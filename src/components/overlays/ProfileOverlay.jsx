@@ -296,7 +296,7 @@ export function ProfileOverlay({
             </section>
 
             {/* 5. Mes Amis */}
-            <FriendsSection userCode={userCode} C={C} />
+            <FriendsSection userCode={userCode} myCoins={coins} C={C} />
 
             {/* 6. Boutons d'édition (pseudo / avatar / bio) */}
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
