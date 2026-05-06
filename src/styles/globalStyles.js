@@ -110,4 +110,31 @@ export const GLOBAL_CSS = `
   .cs-counter-top::before{content:'';position:absolute;top:4px;left:5%;right:5%;height:4px;background:linear-gradient(90deg,transparent 0%,rgba(255,245,220,.8) 30%,rgba(255,245,220,.8) 70%,transparent 100%);border-radius:50%;filter:blur(2px)}
   .cs-counter-front{position:absolute;top:24px;left:0;right:0;bottom:0;background:linear-gradient(180deg,#5C3317 0%,#3D2010 100%);background-image:linear-gradient(90deg,transparent 19%,rgba(0,0,0,.4) 20%,transparent 21%),linear-gradient(90deg,transparent 39%,rgba(0,0,0,.4) 40%,transparent 41%),linear-gradient(90deg,transparent 59%,rgba(0,0,0,.4) 60%,transparent 61%),linear-gradient(90deg,transparent 79%,rgba(0,0,0,.4) 80%,transparent 81%),linear-gradient(180deg,#5C3317 0%,#3D2010 100%);box-shadow:inset 0 6px 12px rgba(0,0,0,.4),inset 0 -2px 4px rgba(0,0,0,.5);border-top:1px solid rgba(0,0,0,.6)}
   .cs-counter-front::after{content:'';position:absolute;bottom:-6px;left:5%;right:5%;height:8px;background:rgba(0,0,0,.4);filter:blur(4px);border-radius:50%}
+
+  /* ── RÉFLEXES CAFÉ (ReflexGame) ─────────────────── */
+  .reflex-arena{width:100%;aspect-ratio:1;border-radius:18px;overflow:hidden;position:relative;margin-bottom:14px;box-shadow:0 12px 32px rgba(74,44,23,.3);border:2px solid #E8DDD0}
+  .rx-arena-bg{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0px,transparent 38px,rgba(74,44,23,.4) 38px,rgba(74,44,23,.4) 40px,transparent 40px,transparent 78px,rgba(74,44,23,.3) 78px,rgba(74,44,23,.3) 80px),repeating-linear-gradient(0deg,rgba(193,127,60,.1) 0px,rgba(193,127,60,.1) 1px,transparent 1px,transparent 4px),linear-gradient(135deg,#B07E4F 0%,#8B5A2B 50%,#6B4220 100%)}
+  .rx-arena-bg::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 30%,rgba(45,22,8,.5) 100%);pointer-events:none}
+  .rx-knot{position:absolute;border-radius:50%;background:radial-gradient(circle at 30% 30%,#5C3317,#3D2010);box-shadow:0 0 4px rgba(0,0,0,.3);pointer-events:none;opacity:.6;z-index:1}
+  .rx-k1{top:15%;left:12%;width:12px;height:8px}
+  .rx-k2{top:70%;right:18%;width:10px;height:7px}
+  .rx-k3{top:45%;left:78%;width:14px;height:9px}
+  .rx-light-spot{position:absolute;inset:0;background:radial-gradient(ellipse 60% 50% at 50% 40%,rgba(255,220,150,.18),transparent 70%);pointer-events:none;z-index:1}
+  .rx-combo-counter{position:absolute;top:12px;left:12px;background:rgba(45,22,8,.85);backdrop-filter:blur(8px);color:#D4A017;padding:6px 12px;border-radius:12px;font-size:11px;font-weight:800;z-index:5;border:1.5px solid rgba(212,160,23,.4);box-shadow:0 4px 12px rgba(0,0,0,.3)}
+  .rx-combo-counter .num{font-size:16px}
+  .rx-combo-badge{position:absolute;top:12px;right:12px;background:linear-gradient(135deg,#D4A017,#C17F3C);color:#fff;padding:6px 12px;border-radius:14px;font-size:13px;font-weight:900;z-index:5;box-shadow:0 4px 12px rgba(212,160,23,.5);animation:rxComboPop .3s ease}
+  @keyframes rxComboPop{0%{transform:scale(0);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+  .rx-cookie{position:absolute;width:70px;height:70px;border-radius:50%;cursor:pointer;z-index:4;animation:rxCookieAppear .25s ease-out;transform-origin:center;transition:opacity .15s;background:transparent;border:none;padding:0}
+  .rx-cookie.disappearing{animation:rxCookieDisappear .2s ease-out forwards;pointer-events:none}
+  .rx-cookie.tapped{animation:rxCookieTapped .3s ease-out forwards;pointer-events:none}
+  .rx-cookie::before{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid rgba(212,160,23,.5);animation:rxCookiePulse .8s ease-in-out infinite;pointer-events:none}
+  @keyframes rxCookieAppear{0%{transform:scale(0) rotate(-30deg);opacity:0}60%{transform:scale(1.15) rotate(5deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes rxCookieDisappear{0%{transform:scale(1) rotate(0);opacity:1}100%{transform:scale(0) rotate(40deg);opacity:0}}
+  @keyframes rxCookieTapped{0%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.8}100%{transform:scale(0);opacity:0}}
+  @keyframes rxCookiePulse{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.15);opacity:0}}
+  .rx-particles-layer{position:absolute;inset:0;pointer-events:none;z-index:6}
+  .rx-crumb{position:absolute;font-size:16px;animation:rxCrumbFly .7s ease-out forwards;pointer-events:none}
+  @keyframes rxCrumbFly{0%{transform:translate(0,0) rotate(0) scale(1);opacity:1}100%{transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(.4);opacity:0}}
+  .rx-plus-one{position:absolute;font-size:18px;font-weight:900;color:#D4A017;text-shadow:0 2px 4px rgba(0,0,0,.4);animation:rxPlusOneFloat .7s ease-out forwards;pointer-events:none}
+  @keyframes rxPlusOneFloat{0%{transform:translate(-50%,0) scale(1);opacity:1}100%{transform:translate(-50%,-50px) scale(1.4);opacity:0}}
 `;

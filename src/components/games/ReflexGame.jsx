@@ -30,15 +30,16 @@ import { GOLD } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export const REFLEX_COST = 5;
-export const REFLEX_DURATION = 30;          // secondes
+export const REFLEX_DURATION = 15;          // secondes
 const TTL_START_MS = 1500;
 const TTL_END_MS   = 500;
 const RESPAWN_HIT_MS  = 150;
 const RESPAWN_MISS_MS = 220;
 
+/* Paliers calibrés pour une partie de 15s */
 function rewardFor(score){
-  if(score >= 25) return 50;
-  if(score >= 15) return 25;
+  if(score >= 15) return 50;
+  if(score >= 10) return 25;
   if(score >= 5)  return 10;
   return 0;
 }
@@ -51,6 +52,8 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
   const [cookie,        setCookie]        = useState(null);        // { id, x, y, ttl } | null
   const [particles,     setParticles]     = useState([]);          // explosions sur tap
   const [shaking,       setShaking]       = useState(false);       // miss feedback
+  const [combo,         setCombo]         = useState(0);            // étape 4 : incrémenté sur tap, reset sur miss
+  const [comboBadge,    setComboBadge]    = useState(null);         // { text, key } — étape 4
 
   const scoreRef     = useRef(0);
   const timeRef      = useRef(null);
@@ -59,6 +62,7 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
   const respawnRef   = useRef(null);
   const startTimeRef = useRef(0);
   const phaseRef     = useRef('idle');
+  const particlesRef = useRef(null);                                // rempli à l'étape 5 (particules au tap)
 
   /* phaseRef : on en a besoin dans les callbacks asynchrones, sinon
      on peut spawn un cookie après endGame(). */
@@ -203,9 +207,9 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
   /* Bannière de fin */
   const earnedFinal = rewardFor(score);
   const banner = phase === 'done'
-    ? (score >= 25
+    ? (score >= 15
         ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:`🏆 ${score} cookies !` }
-        : score >= 15
+        : score >= 10
           ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`Bien joué ! ${score} cookies` }
           : score >= 5
             ? { bg:'linear-gradient(135deg,#FBEFD4,#E5CDA8)', col:'#5D3A1F', border:'#C8A878', title:`${score} cookies` }
@@ -241,29 +245,41 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
         }} />
       </div>
 
-      {/* Aire de jeu */}
+      {/* Aire de jeu — table en bois POV (refonte visuelle) */}
       <div
+        className="reflex-arena"
         style={{
-          position:'relative', width:'100%', maxWidth:360, aspectRatio:'1 / 1.05',
-          borderRadius:18, overflow:'hidden',
-          background:'linear-gradient(180deg,#FBF3E2 0%,#F0DFB6 60%,#E5C088 100%)',
-          border:`1.5px solid ${C.border}`,
-          boxShadow:'inset 0 -10px 22px rgba(74,44,23,.18), 0 6px 20px rgba(74,44,23,.18)',
+          maxWidth:360,
           touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
-          animation: shaking ? 'shake .25s ease-in-out' : 'none',
+          animation: shaking ? 'shake .25s ease-in-out' : undefined,
         }}
       >
-        {/* Petits points décoratifs (poussière de farine) */}
-        <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none', opacity:.4 }}>
-          {[
-            { top:'18%', left:'12%' }, { top:'40%', left:'88%' }, { top:'62%', left:'24%' },
-            { top:'28%', left:'78%' }, { top:'78%', left:'56%' }, { top:'8%',  left:'46%' },
-          ].map((p,i)=>(
-            <span key={i} style={{ position:'absolute', top:p.top, left:p.left, width:4, height:4, borderRadius:'50%', background:'#A0784E', opacity:.4 }} />
-          ))}
-        </div>
+        {/* Fond table en bois + grain + planches */}
+        <div className="rx-arena-bg" />
 
-        {/* Overlay de countdown */}
+        {/* Nœuds de bois décoratifs */}
+        <div className="rx-knot rx-k1" />
+        <div className="rx-knot rx-k2" />
+        <div className="rx-knot rx-k3" />
+
+        {/* Halo lumineux au centre */}
+        <div className="rx-light-spot" />
+
+        {/* Compteur combo (haut gauche) — affiché en permanence pendant la partie */}
+        {(phase === 'playing' || phase === 'countdown') && (
+          <div className="rx-combo-counter">
+            🔥 Combo : <span className="num">{combo}</span>
+          </div>
+        )}
+
+        {/* Badge combo (haut droite, pop éphémère) */}
+        {comboBadge && (
+          <div className="rx-combo-badge" key={comboBadge.key}>
+            {comboBadge.text}
+          </div>
+        )}
+
+        {/* Overlay countdown */}
         {phase === 'countdown' && countdownVal !== null && (
           <div
             key={String(countdownVal)}
@@ -281,57 +297,33 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
           </div>
         )}
 
-        {/* Cookie cible */}
+        {/* Cookie cible — étape 1+2 : placeholder emoji ; étape 3 : SVG premium */}
         {phase === 'playing' && cookie && (
-          <button
+          <div
             key={cookie.id}
+            className="rx-cookie"
             onPointerDown={handleTap}
-            className="bi"
-            style={{
-              position:'absolute',
-              top:`${cookie.y}%`, left:`${cookie.x}%`,
-              width:54, height:54, borderRadius:'50%',
-              padding:0, border:'none',
-              background:'radial-gradient(circle at 35% 30%, #FBEFD4, #D4A017 70%, #8B6914 100%)',
-              fontSize:30, lineHeight:'54px', textAlign:'center',
-              boxShadow:'0 4px 14px rgba(212,160,23,.5), 0 0 0 4px rgba(255,255,255,.7)',
-              cursor:'pointer', zIndex:5,
-              touchAction:'manipulation',
-            }}
+            style={{ left:`${cookie.x}%`, top:`${cookie.y}%` }}
           >
-            🍪
-          </button>
+            <span style={{ fontSize:46, lineHeight:'70px', display:'block', textAlign:'center' }}>🍪</span>
+          </div>
         )}
-
-        {/* Particules d'explosion */}
-        {particles.map(p => (
-          <span
-            key={p.id}
-            style={{
-              position:'absolute',
-              top:`${p.y}%`, left:`${p.x}%`,
-              fontSize:18, pointerEvents:'none', zIndex:4,
-              animation:'confetti .8s ease-out forwards',
-              ['--tx']: `${p.tx}px`,
-              ['--ty']: `${p.ty}px`,
-              textShadow:'0 1px 2px rgba(74,44,23,.35)',
-            }}
-          >
-            🍪
-          </span>
-        ))}
 
         {/* Indication idle */}
         {phase === 'idle' && (
           <div style={{
             position:'absolute', inset:0, display:'flex', flexDirection:'column',
-            alignItems:'center', justifyContent:'center', gap:8, color:C.muted,
-            fontSize:13, fontWeight:600, fontStyle:'italic', pointerEvents:'none',
+            alignItems:'center', justifyContent:'center', gap:8, color:'rgba(255,235,200,.85)',
+            fontSize:13, fontWeight:700, letterSpacing:.4, pointerEvents:'none',
+            zIndex:3, textShadow:'0 2px 6px rgba(0,0,0,.4)',
           }}>
             <span style={{ fontSize:38 }}>👀</span>
             <span>Sois prêt à tapoter !</span>
           </div>
         )}
+
+        {/* Couche particules (vide pour l'instant — étape 5) */}
+        <div ref={particlesRef} className="rx-particles-layer" />
       </div>
 
       {/* Texte d'instruction */}
@@ -392,7 +384,7 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
 
       {/* Tip card */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 <strong style={{ color:'#D4A017' }}>25+ tapés = +50 🍪</strong> · 15-24 = +25 · 5-14 = +10 · ça s'accélère !
+        💡 <strong style={{ color:'#D4A017' }}>15+ tapés = +50 🍪</strong> · 10-14 = +25 · 5-9 = +10 · ça s'accélère !
       </div>
     </div>
   );
