@@ -297,7 +297,10 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
           </div>
         )}
 
-        {/* Cookie cible — étape 1+2 : placeholder emoji ; étape 3 : SVG premium */}
+        {/* Cookie cible — SVG premium (cookie haute qualité avec gradient
+            profond, 5 chips à gradient sombre + miette centrale, reflet
+            spéculaire en haut à gauche). Le drop-shadow donne du relief
+            au-dessus du bois. */}
         {phase === 'playing' && cookie && (
           <div
             key={cookie.id}
@@ -305,7 +308,40 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
             onPointerDown={handleTap}
             style={{ left:`${cookie.x}%`, top:`${cookie.y}%` }}
           >
-            <span style={{ fontSize:46, lineHeight:'70px', display:'block', textAlign:'center' }}>🍪</span>
+            <svg
+              viewBox="0 0 70 70"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ width:'100%', height:'100%', display:'block', filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}
+            >
+              <defs>
+                <radialGradient id="ckGrad" cx="38%" cy="32%" r="78%">
+                  <stop offset="0%"   stopColor="#F0BB7A" />
+                  <stop offset="45%"  stopColor="#C17F3C" />
+                  <stop offset="100%" stopColor="#7D4E1F" />
+                </radialGradient>
+                <radialGradient id="ckChip" cx="35%" cy="30%" r="80%">
+                  <stop offset="0%"   stopColor="#5C2C0A" />
+                  <stop offset="100%" stopColor="#1A0A00" />
+                </radialGradient>
+              </defs>
+              <circle cx="35" cy="36" r="32" fill="#7D4E1F" />
+              <circle cx="35" cy="35" r="32" fill="url(#ckGrad)" />
+              <circle cx="35" cy="35" r="32" fill="none" stroke="rgba(255,225,170,0.4)" strokeWidth="1" />
+              <ellipse cx="22" cy="22" rx="5"   ry="4"   fill="#1F0E04"      transform="rotate(-20 22 22)" />
+              <ellipse cx="22" cy="22" rx="4"   ry="3"   fill="url(#ckChip)" transform="rotate(-20 22 22)" />
+              <ellipse cx="46" cy="20" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(15 46 20)" />
+              <ellipse cx="46" cy="20" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(15 46 20)" />
+              <ellipse cx="18" cy="44" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(-10 18 44)" />
+              <ellipse cx="18" cy="44" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(-10 18 44)" />
+              <ellipse cx="50" cy="44" rx="5"   ry="4"   fill="#1F0E04"      transform="rotate(25 50 44)" />
+              <ellipse cx="50" cy="44" rx="4"   ry="3"   fill="url(#ckChip)" transform="rotate(25 50 44)" />
+              <ellipse cx="34" cy="52" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(-5 34 52)" />
+              <ellipse cx="34" cy="52" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(-5 34 52)" />
+              <ellipse cx="36" cy="34" rx="3"   ry="2.3" fill="#1F0E04" />
+              <ellipse cx="36" cy="34" rx="2.3" ry="1.5" fill="url(#ckChip)" />
+              <ellipse cx="22" cy="16" rx="10" ry="5"   fill="rgba(255,235,200,0.4)"  transform="rotate(-30 22 16)" />
+              <ellipse cx="20" cy="14" rx="5"  ry="2"   fill="rgba(255,250,225,0.55)" transform="rotate(-30 20 14)" />
+            </svg>
           </div>
         )}
 
