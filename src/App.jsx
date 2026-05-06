@@ -6,6 +6,7 @@ import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.j
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { HISTORY_N, TICK_MS, BIG_MOVE_PCT, BIG_EVENTS, SMALL_EVENTS, MEGA_EVENTS, nextPrice } from "./data/market.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
+import { generateUserCode } from "./utils/userCode.js";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -84,6 +85,13 @@ export default function CookiMiner() {
   const [userAvatar,  setUserAvatar]  = useLocalStorage('userAvatar', null);
   const [joinDate,    setJoinDate]    = useLocalStorage('joinDate',   '');
   const [nameChangeCount, setNameChangeCount] = useLocalStorage('nameChangeCount', 0);
+  const [userCode,    setUserCode]    = useLocalStorage('userCode', '');
+
+  /* Génère le code ami au premier lancement (post-onboarding ou refresh sans code en LS).
+     Reset → on remet à '' dans resetProgress, cet effet régénère un nouveau code propre. */
+  useEffect(()=>{
+    if(!userCode) setUserCode(generateUserCode());
+  },[userCode, setUserCode]);
   const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
@@ -300,7 +308,7 @@ export default function CookiMiner() {
     setMarketTrades(0); setMarketRealized(0); setMarketHistory([]);
     setMarketEvent(null); setMarketEventTicks(0); setMarketBigMoveAt(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
-    setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0);
+    setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
     setActiveTheme(''); setActiveSkin(''); setActiveRoue('');
     setPendingLvUp(null); setGameView(null); setTab('accueil');
@@ -689,6 +697,7 @@ export default function CookiMiner() {
           joinDate={joinDate}
           coins={coins} spendCoins={spendCoins}
           nameChangeCount={nameChangeCount} setNameChangeCount={setNameChangeCount}
+          userCode={userCode}
           level={level} xp={xp} xpReq={xpReq}
           totalEarned={totalEarned} streak={streak} unlocked={unlocked}
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed).length}

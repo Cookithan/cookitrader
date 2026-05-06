@@ -5,15 +5,19 @@ import { ONBOARDING_AVATARS, AVATAR_PREMIUM } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
+import { FriendsSection } from "../profile/FriendsSection.jsx";
 
 /* ════════════════════════════════════════════════════
    ProfileOverlay — plein écran z-index 60
    - Mode normal : carte identité, niveau (avec bouton "Voir les niveaux"),
-     stats, équipement, titres, badges, boutons "Modifier mon prénom"
-     (ouvre ChangeNameModal payante) et "Modifier mon avatar"
+     stats, équipement, titres, badges, FriendsSection (code ami + zone
+     "à venir"), boutons "Modifier mon pseudo" (ouvre ChangeNameModal
+     payante) et "Modifier mon avatar", crédit auteur en pied
    - Mode édition : grille avatars (base + premium débloqués)
-   - Le prénom n'est PLUS modifiable depuis le mode édition — passe par
+   - Le pseudo n'est PLUS modifiable depuis le mode édition — passe par
      la modale payante ChangeNameModal (PHASE 1 du brief améliorations)
+   - userCode est généré dans App.jsx puis passé en prop ; on l'affiche
+     ici via FriendsSection (PHASE 3)
    - Le compte d'achievementsTotal ignore master_succes si non révélé
 ═══════════════════════════════════════════════════════ */
 
@@ -21,6 +25,7 @@ export function ProfileOverlay({
   onClose, onOpenLevels, onOpenSettings,
   userName, setUserName, userAvatar, setUserAvatar, joinDate,
   coins, spendCoins, nameChangeCount, setNameChangeCount,
+  userCode,
   level, xp, xpReq, totalEarned, streak, unlocked,
   earnedAchievements, achievementsTotal,
   activeTheme, activeSkin, activeRoue,
@@ -210,6 +215,8 @@ export function ProfileOverlay({
                 </div>
               )}
             </section>
+
+            <FriendsSection userCode={userCode} C={C} />
 
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
               <button onClick={()=>setShowChangeName(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
