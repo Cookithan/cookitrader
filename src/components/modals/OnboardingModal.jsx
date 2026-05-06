@@ -43,7 +43,7 @@ export function OnboardingModal({ onComplete, C }) {
         {step === 0 && (
           <div className="su" style={{ textAlign:'center' }}>
             <div className="float-anim" style={{ fontSize:64, marginBottom:14, display:'inline-block' }}>☕</div>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>Bienvenue dans CookiTrader !</div>
+            <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>Bienvenue dans CookiTrading !</div>
             <div style={{ fontSize:13, color:C.muted, marginBottom:22, lineHeight:1.5 }}>L'app qui récompense ta passion pour le café et les cookies</div>
             <div style={{ textAlign:'left', marginBottom:18 }}>
               <label style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5 }}>Choisis ton pseudo</label>

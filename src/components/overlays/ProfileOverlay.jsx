@@ -312,7 +312,7 @@ export function ProfileOverlay({
             <div style={{ textAlign:'center', marginTop:24, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
               Réalisé avec <strong style={{ color:'#C17F3C' }}>Claude Code</strong> par <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
               <div style={{ fontSize:10, marginTop:2, opacity:0.7 }}>
-                CookiTrader v1.0
+                CookiTrading v1.0
               </div>
             </div>
           </>
