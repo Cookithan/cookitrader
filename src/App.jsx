@@ -539,7 +539,7 @@ export default function CookiMiner() {
           )}
           <div style={{ minWidth:0 }}>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:3, marginBottom:1 }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>Cooki<span style={{ color:'#C17F3C' }}>Trader</span></div>
+            <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>Cooki<span style={{ color:'#C17F3C' }}>Trading</span></div>
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
