@@ -17,7 +17,7 @@ import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
 import { useInstallPrompt } from "./hooks/useInstallPrompt.js";
 import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
-import { AppSplash } from "./components/AppSplash.jsx";
+import SplashScreen from "./components/SplashScreen.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -83,6 +83,17 @@ function fmtCompact(n){
 }
 
 export default function CookiMiner() {
+  /* Splash screen au lancement (BRIEF_SPLASH) — affiché 1 fois par
+     session navigateur. La mise en arrière-plan ne re-déclenche pas
+     (sessionStorage), seule une fermeture/réouverture le fait. */
+  const [showSplash, setShowSplash] = useState(()=>{
+    try{ return sessionStorage.getItem('splashShown') !== '1'; }
+    catch{ return false; }
+  });
+  const handleSplashFinish = () => {
+    try{ sessionStorage.setItem('splashShown', '1'); }catch{}
+    setShowSplash(false);
+  };
   const [coins,       setCoins]       = useLocalStorage('coins',       0);
   const [cafes,       setCafes]       = useLocalStorage('cafes',       0);
   const [totalEarned, setTotalEarned] = useLocalStorage('totalEarned', 0);
@@ -1157,8 +1168,8 @@ export default function CookiMiner() {
       {/* Bulle contextuelle (1re ouverture jeu/onglet) */}
       <ContextHint hint={activeHint} onClose={()=>setActiveHint(null)} />
 
-      {/* Splash custom au montage (transition douce après le splash système) */}
-      <AppSplash />
+      {/* Splash custom au tout 1er rendu (1×/session) */}
+      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
     </div>
   );
 }

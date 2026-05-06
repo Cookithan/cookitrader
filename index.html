@@ -7,7 +7,9 @@
 
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#C17F3C">
+    <!-- Theme-color : sombre pendant le splash, caramel sinon (assorti à l'app) -->
+    <meta name="theme-color" content="#3D2010" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#C17F3C" media="(prefers-color-scheme: light)">
 
     <!-- Apple/iOS specific -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -18,6 +20,19 @@
     <!-- Mobile viewport (anti-zoom au double-tap, sans viewport-fit=cover :
          on reste dans la zone safe automatiquement sur iOS PWA) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Fond sombre dès le tout premier paint (avant chargement React),
+         pour s'enchaîner sans flash blanc avec le splash custom. -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #3D2010;
+      }
+      body {
+        color: #E8C896;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

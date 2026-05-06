@@ -63,8 +63,24 @@ export const GLOBAL_CSS = `
   @keyframes clientWalkOut{0%{transform:translateX(0) translateY(0)}25%{transform:translateX(-50%) translateY(-3px)}50%{transform:translateX(-100%) translateY(0)}75%{transform:translateX(-160%) translateY(-3px);opacity:.7}100%{transform:translateX(-220%) translateY(0);opacity:0}}
   @keyframes bubblePopIn{0%{transform:scale(.6) translateY(8px);opacity:0}55%{transform:scale(1.05) translateY(0);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
   @keyframes spotlightPulse{0%,100%{stroke-width:3;opacity:.7}50%{stroke-width:5;opacity:1}}
-  @keyframes splashBob{0%,100%{transform:translateY(0) rotate(-3deg) scale(1)}50%{transform:translateY(-10px) rotate(3deg) scale(1.05)}}
-  @keyframes splashFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ── SPLASH SCREEN ───────────────────────────────── */
+  .splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,#4A2C17 0%,#3D2010 50%,#2C1810 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;z-index:9999;transition:opacity .5s ease;overflow:hidden}
+  .splash-screen.fade-out{opacity:0;pointer-events:none}
+  .splash-blob{position:absolute;border-radius:50%;pointer-events:none;filter:blur(40px)}
+  .splash-blob-1{top:10%;left:-20%;width:200px;height:200px;background:rgba(212,160,23,.15)}
+  .splash-blob-2{bottom:10%;right:-15%;width:180px;height:180px;background:rgba(193,127,60,.12)}
+  .splash-title{display:flex;gap:0;z-index:2}
+  .splash-letter{font-size:44px;font-weight:900;color:#E8C896;text-shadow:0 2px 8px rgba(212,160,23,.4),0 0 24px rgba(212,160,23,.2);opacity:0;transform:translateY(20px) scale(.7);animation:splashLetterIn .4s cubic-bezier(.34,1.56,.64,1) forwards;letter-spacing:0}
+  @keyframes splashLetterIn{0%{opacity:0;transform:translateY(20px) scale(.7)}60%{opacity:1;transform:translateY(-4px) scale(1.1)}100%{opacity:1;transform:translateY(0) scale(1)}}
+  .splash-subtitle{color:#A0784E;font-size:13px;font-weight:600;letter-spacing:4px;text-transform:uppercase;opacity:0;animation:splashSubIn .5s ease 1.7s forwards;z-index:2}
+  @keyframes splashSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:.9;transform:translateY(0)}}
+  .splash-dots{display:flex;gap:8px;margin-top:12px;opacity:0;animation:splashDotsIn .4s ease 1.9s forwards;z-index:2}
+  @keyframes splashDotsIn{from{opacity:0}to{opacity:1}}
+  .splash-dot{width:7px;height:7px;border-radius:50%;background:#D4A017;animation:splashDotPulse 1.2s ease-in-out infinite}
+  .splash-dot:nth-child(2){animation-delay:.15s}
+  .splash-dot:nth-child(3){animation-delay:.3s}
+  @keyframes splashDotPulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
   @keyframes tabSlideInRight{from{transform:translateX(60%);opacity:.4}to{transform:translateX(0);opacity:1}}
   @keyframes tabSlideInLeft{from{transform:translateX(-60%);opacity:.4}to{transform:translateX(0);opacity:1}}
   .tab-slide-in-right{animation:tabSlideInRight .28s cubic-bezier(.36,.07,.19,.97) both}
