@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap } from "lucide-react";
+import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
@@ -371,12 +371,21 @@ export default function CookiMiner() {
     setPendingAchievement(null);
   };
 
+  /* GAMES — `levelRequired` (PHASE 6A) :
+     - Si `level < levelRequired` → carte verrouillée (cadenas, "Niveau X requis"), clic bloqué
+     - On n'affiche que les jeux dont `levelRequired - level <= 1` : le joueur voit
+       le prochain palier à débloquer (donne envie), pas tous les futurs jeux d'un coup.
+     - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
+       le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title:'Check-in quotidien',  desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C' },
-    { id:'quiz',    Icon:Star,              title:'Quiz café',            desc:'Toutes les 5h', reward:'20 à 60 cookies', avail:canQuiz, color:'#D4A017' },
-    { id:'spin',    Icon:CircleDot,         title:'Roue de la fortune',   desc:'Tentez votre chance',       reward:'Variable (coût 20🍪)',avail:coins>=20,   color:'#4A2C17' },
-    { id:'click',   Icon:MousePointerClick, title:'Défi de clics',        desc:'Tapotez le cookie !',       reward:'1 cookie / 2 clics',  avail:coins>=5,    color:'#7D4E1F' },
-    { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520' },
+    { id:'checkin', Icon:Gift,              title:'Check-in quotidien',  desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'quiz',    Icon:Star,              title:'Quiz café',            desc:'Toutes les 5h', reward:'20 à 60 cookies', avail:canQuiz, color:'#D4A017', levelRequired:1 },
+    { id:'spin',    Icon:CircleDot,         title:'Roue de la fortune',   desc:'Tentez votre chance',       reward:'Variable (coût 20🍪)',avail:coins>=20,   color:'#4A2C17', levelRequired:1 },
+    { id:'click',   Icon:MousePointerClick, title:'Défi de clics',        desc:'Tapotez le cookie !',       reward:'1 cookie / 2 clics',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
+    { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520', levelRequired:1 },
+    { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies',      avail:false,       color:'#A0784E', levelRequired:2, comingSoon:true },
+    { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc:'5 questions café',          reward:'0 à 60 cookies',      avail:false,       color:'#8B5A2B', levelRequired:3, comingSoon:true },
+    { id:'reflex',  Icon:Timer,             title:'Réflexes café',        desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies',  avail:false,       color:'#D4A017', levelRequired:4, comingSoon:true },
   ];
 
   const s = {
@@ -569,27 +578,67 @@ export default function CookiMiner() {
         {tab==='jeux' && (
           <div className="su">
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
-            {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz').map(g=>(
-              <button key={g.id} onClick={()=>setGameView(g.id)} style={{ width:'100%', borderRadius:20, overflow:'hidden', boxShadow:'0 4px 16px rgba(0,0,0,.1)', marginBottom:12, textAlign:'left', display:'block' }}>
-                <div style={{ padding:18, background:g.color, display:'flex', alignItems:'center', gap:14 }}>
-                  <div style={{ width:54, height:54, borderRadius:16, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                    <g.Icon size={26} color="#fff" />
+            {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && g.levelRequired - level <= 1).map(g=>{
+              const locked     = level < g.levelRequired;
+              const comingSoon = !locked && g.comingSoon;
+              const blocked    = locked || comingSoon;
+              const onClick    = blocked ? undefined : ()=>setGameView(g.id);
+
+              return (
+                <button
+                  key={g.id}
+                  onClick={onClick}
+                  disabled={blocked}
+                  style={{
+                    width:'100%', borderRadius:20, overflow:'hidden',
+                    boxShadow: blocked ? '0 2px 8px rgba(0,0,0,.06)' : '0 4px 16px rgba(0,0,0,.1)',
+                    marginBottom:12, textAlign:'left', display:'block',
+                    cursor: blocked ? 'not-allowed' : 'pointer',
+                    opacity: locked ? .65 : 1,
+                  }}
+                >
+                  <div style={{
+                    padding:18,
+                    background: locked ? 'linear-gradient(135deg,#3D2010,#2A1508)' : g.color,
+                    display:'flex', alignItems:'center', gap:14,
+                    filter: locked ? 'grayscale(.4)' : 'none',
+                  }}>
+                    <div style={{ width:54, height:54, borderRadius:16, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, position:'relative' }}>
+                      <g.Icon size={26} color="#fff" />
+                      {locked && (
+                        <div style={{ position:'absolute', bottom:-4, right:-4, width:22, height:22, borderRadius:'50%', background:'#1A0E08', border:'2px solid #4A2C17', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          <Lock size={11} color="#F0E0C0" />
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:17, fontWeight:800, color:'#fff' }}>{g.title}</div>
+                      <div style={{ fontSize:12, color:'rgba(255,255,255,.7)', marginTop:2 }}>{g.desc}</div>
+                    </div>
+                    <div style={{ textAlign:'right', flexShrink:0 }}>
+                      <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>Récompense</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{g.reward}</div>
+                    </div>
                   </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:17, fontWeight:800, color:'#fff' }}>{g.title}</div>
-                    <div style={{ fontSize:12, color:'rgba(255,255,255,.7)', marginTop:2 }}>{g.desc}</div>
+                  <div style={{ padding:'10px 18px', background:C.card, borderTop:`1px solid ${C.border}`, display:'flex', justifyContent: locked ? 'center' : (g.avail ? 'space-between' : 'flex-end'), alignItems:'center', gap:6 }}>
+                    {locked ? (
+                      <span style={{ fontSize:12, fontWeight:700, color:C.muted, display:'flex', alignItems:'center', gap:6, letterSpacing:.3 }}>
+                        <Lock size={12} /> Niveau {g.levelRequired} requis
+                      </span>
+                    ) : comingSoon ? (
+                      <span style={{ fontSize:12, fontWeight:700, color:'#C17F3C', letterSpacing:.3 }}>
+                        ✨ Bientôt disponible
+                      </span>
+                    ) : (
+                      <>
+                        {g.avail && <span style={{ fontSize:12, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:5 }}><span style={{ width:6, height:6, borderRadius:'50%', background:'#D4A017', display:'inline-block' }} />Disponible</span>}
+                        <span style={{ fontSize:12, color:C.muted, fontWeight:600 }}>Jouer →</span>
+                      </>
+                    )}
                   </div>
-                  <div style={{ textAlign:'right', flexShrink:0 }}>
-                    <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>Récompense</div>
-                    <div style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{g.reward}</div>
-                  </div>
-                </div>
-                <div style={{ padding:'10px 18px', background:C.card, borderTop:`1px solid ${C.border}`, display:'flex', justifyContent:g.avail?'space-between':'flex-end', alignItems:'center' }}>
-                  {g.avail && <span style={{ fontSize:12, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:5 }}><span style={{ width:6, height:6, borderRadius:'50%', background:'#D4A017', display:'inline-block' }} />Disponible</span>}
-                  <span style={{ fontSize:12, color:C.muted, fontWeight:600 }}>Jouer →</span>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
         )}
 
