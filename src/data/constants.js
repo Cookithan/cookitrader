@@ -53,10 +53,15 @@ export const REWARDS = [
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
   { id:'theme_caramel',    name:'Thème Caramel Sunrise',     desc:'Dégradé chaud animé',       cost:450,  type:'Thème', emoji:'🌅', levelRequired:3 },
   { id:'theme_legendaire', name:'Thème Légendaire',          desc:'Fond doré avec particules', cost:1200, type:'Thème', emoji:'💫', levelRequired:6 },
-  // AVATARS
-  { id:'avatar_cookie', name:'Avatar Cookie',   desc:'Tête de cookie dodue',     cost:100,  type:'Avatar', emoji:'🍪', levelRequired:1 },
-  { id:'avatar_chef',   name:'Avatar Chef',     desc:'Toque du grand chef',      cost:400,  type:'Avatar', emoji:'👨‍🍳', levelRequired:4 },
-  { id:'avatar_legend', name:'Avatar Légende',  desc:'Couronne dorée animée',    cost:1000, type:'Avatar', emoji:'👑', levelRequired:6 },
+  // AVATARS premium (8 — PHASE 4)
+  { id:'avatar_chef',    name:'Avatar Chef étoilé',     desc:'Toque, moustache et étoile',     cost:200,  type:'Avatar', emoji:'👨‍🍳', levelRequired:2 },
+  { id:'avatar_robot',   name:'Avatar Robot Barista',   desc:'Robot mignon avec engrenages',   cost:300,  type:'Avatar', emoji:'🤖',   levelRequired:3 },
+  { id:'avatar_chat',    name:'Avatar Chat Café',       desc:'Chat caramel dans une tasse',    cost:400,  type:'Avatar', emoji:'🐱',   levelRequired:3 },
+  { id:'avatar_renard',  name:'Avatar Renard',          desc:'Renard avec moustaches',         cost:500,  type:'Avatar', emoji:'🦊',   levelRequired:4 },
+  { id:'avatar_panda',   name:'Avatar Panda Café',      desc:'Panda avec petite tasse',        cost:600,  type:'Avatar', emoji:'🐼',   levelRequired:4 },
+  { id:'avatar_dragon',  name:'Avatar Dragon Espresso', desc:'Dragon qui crache de la vapeur', cost:800,  type:'Avatar', emoji:'🐲',   levelRequired:5 },
+  { id:'avatar_or',      name:'Avatar Or Massif',       desc:'Visage doré scintillant',        cost:1500, type:'Avatar', emoji:'✨',   levelRequired:6 },
+  { id:'avatar_legende', name:'Avatar Légende',         desc:'Couronne + cookie magique',      cost:2500, type:'Avatar', emoji:'👑',   levelRequired:6 },
   // SKINS COOKIE
   { id:'skin_chocolat', name:'Cookie Chocolat', desc:'Tout chocolat avec éclats', cost:250, type:'Skin', emoji:'🍫', levelRequired:3 },
   { id:'skin_dore',     name:'Cookie Doré',     desc:'Brillance animée',          cost:700, type:'Skin', emoji:'⭐', levelRequired:5 },

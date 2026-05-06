@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ChevronLeft, Settings, User } from "lucide-react";
+import { ChevronLeft, Settings, Lock } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
-import { ONBOARDING_AVATARS, AVATAR_PREMIUM } from "../../data/avatars.js";
+import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
@@ -38,13 +38,21 @@ export function ProfileOverlay({
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
   const titres = REWARDS.filter(r => r.type==='Titre'  && unlocked.includes(r.id));
-  const ownedAvatars = REWARDS.filter(r => (r.type==='Avatar' || (r.type==='Premium' && r.applyAs==='avatar')) && unlocked.includes(r.id));
 
-  /* Liste de tous les choix d'avatar : 4 base + premium débloqués */
-  const avatarChoices = [
-    ...ONBOARDING_AVATARS.map((a,i)=>({ value:i, ...a })),
-    ...ownedAvatars.map(r => ({ value:r.id, ...AVATAR_PREMIUM[r.id] })),
-  ];
+  /* Sélecteur d'avatar (PHASE 4) :
+     - "Mes avatars" : 12 de base (toujours dispos) + premium débloqués
+     - "À débloquer" : premium non débloqués, grisés avec cadenas */
+  const myBaseAvatars = ONBOARDING_AVATARS.map((a,i)=>({ value:i, art:a.art, bg:a.bg, name:a.name, owned:true }));
+  const myPremiumAvatars = AVATAR_PREMIUM_LIST
+    .filter(a => unlocked.includes(a.id))
+    .map(a => ({ value:a.id, art:a.art, bg:a.bg, name:a.name, owned:true }));
+  const lockedPremiumAvatars = AVATAR_PREMIUM_LIST
+    .filter(a => !unlocked.includes(a.id))
+    .map(a => {
+      const r = REWARDS.find(x => x.id === a.id);
+      return { value:a.id, art:a.art, bg:a.bg, name:a.name, owned:false,
+               cost: r ? r.cost : 0, levelRequired: r ? r.levelRequired : 1 };
+    });
 
   const equipment = [
     { label:'Avatar', kind:'avatar', value:userAvatar },
@@ -85,31 +93,81 @@ export function ProfileOverlay({
         {editing ? (
           <>
             <section>
-              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>AVATAR</div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10 }}>
-                {avatarChoices.map(a => {
+              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>MES AVATARS</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, justifyItems:'center' }}>
+                {[...myBaseAvatars, ...myPremiumAvatars].map(a => {
                   const sel = editAvatar===a.value;
                   return (
-                    <button key={String(a.value)} onClick={()=>setEditAvatar(a.value)} className={sel?'pulse-ring':''} style={{ aspectRatio:'1', borderRadius:'50%', background:a.bg, border:`3px solid ${sel?'#D4A017':'transparent'}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:sel?'0 4px 16px rgba(212,160,23,.45)':'0 2px 6px rgba(0,0,0,.15)', transition:'all .2s' }}>
-                      {a.kind==='emoji'
-                        ? <span style={{ fontSize:28, lineHeight:1 }}>{a.emoji}</span>
-                        : <User size={32} color={a.stroke} strokeWidth={2.2} />}
+                    <button
+                      key={String(a.value)}
+                      onClick={()=>setEditAvatar(a.value)}
+                      className={sel?'pulse-ring':''}
+                      style={{
+                        padding:0, borderRadius:'50%',
+                        border:`3px solid ${sel?'#D4A017':'transparent'}`,
+                        cursor:'pointer',
+                        boxShadow:sel?'0 4px 16px rgba(212,160,23,.45)':'0 2px 6px rgba(0,0,0,.15)',
+                        transition:'all .2s',
+                        background:'transparent', lineHeight:0,
+                        display:'inline-flex',
+                      }}
+                      aria-label={a.name}
+                    >
+                      <AvatarFigure value={a.value} size={66} />
                     </button>
                   );
                 })}
               </div>
-              {avatarChoices.length === 4 && (
-                <div style={{ fontSize:11, color:C.muted, marginTop:10, fontStyle:'italic', textAlign:'center' }}>
-                  Débloque plus d'avatars dans la boutique ✨
-                </div>
-              )}
             </section>
+
+            {lockedPremiumAvatars.length > 0 && (
+              <section>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>À DÉBLOQUER</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, justifyItems:'center' }}>
+                  {lockedPremiumAvatars.map(a => (
+                    <div
+                      key={a.value}
+                      title={`${a.name} — niveau ${a.levelRequired} requis · ${a.cost} 🍪`}
+                      style={{
+                        position:'relative',
+                        width:66, height:66,
+                        opacity:.55,
+                        filter:'grayscale(.55)',
+                      }}
+                    >
+                      <AvatarFigure value={a.value} size={66} />
+                      <div style={{
+                        position:'absolute', inset:0, borderRadius:'50%',
+                        background:'rgba(15,8,4,.45)',
+                        display:'flex', alignItems:'center', justifyContent:'center'
+                      }}>
+                        <Lock size={20} color="#FAF0E0" />
+                      </div>
+                      <div style={{
+                        position:'absolute', bottom:-4, left:'50%', transform:'translateX(-50%)',
+                        fontSize:9, fontWeight:800,
+                        background:'#2A1606', color:'#F0C050',
+                        padding:'2px 6px', borderRadius:8,
+                        border:'1px solid rgba(212,160,23,.4)',
+                        whiteSpace:'nowrap',
+                      }}>
+                        Niv {a.levelRequired}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ fontSize:11, color:C.muted, marginTop:14, fontStyle:'italic', textAlign:'center' }}>
+                  Débloque-les depuis la boutique ✨
+                </div>
+              </section>
+            )}
+
             <div style={{ display:'flex', gap:10, marginTop:'auto' }}>
               <button onClick={()=>{ setEditing(false); setEditAvatar(userAvatar); }} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:14, fontWeight:700 }}>
                 Annuler
               </button>
               <button onClick={saveEdit} disabled={editAvatar===null} style={{ flex:1, padding:'13px 0', borderRadius:14, background: editAvatar===null ? C.card2 : GOLD, color: editAvatar===null ? C.muted : '#fff', border:'none', fontSize:14, fontWeight:800, cursor:editAvatar===null?'not-allowed':'pointer' }}>
-                Enregistrer
+                Confirmer
               </button>
             </div>
           </>

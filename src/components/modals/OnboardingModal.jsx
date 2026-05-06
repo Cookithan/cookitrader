@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ChevronLeft, User } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { ONBOARDING_AVATARS } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
+import { AvatarFigure } from "../AvatarFigure.jsx";
 
 /* ════════════════════════════════════════════════════
    OnboardingModal — premier lancement
@@ -71,7 +72,7 @@ export function OnboardingModal({ onComplete, C }) {
           <div className="su" style={{ textAlign:'center' }}>
             <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>Choisis ton avatar</div>
             <div style={{ fontSize:12, color:C.muted, marginBottom:18 }}>Tu pourras le changer plus tard</div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:22 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:22, justifyItems:'center' }}>
               {ONBOARDING_AVATARS.map((av, i) => {
                 const selected = avatar === i;
                 return (
@@ -80,17 +81,19 @@ export function OnboardingModal({ onComplete, C }) {
                     onClick={()=>setAvatar(i)}
                     className={selected?'pulse-ring':''}
                     style={{
-                      aspectRatio:'1', borderRadius:'50%',
-                      background:av.bg,
+                      padding:0,
+                      borderRadius:'50%',
                       border:`3px solid ${selected?'#D4A017':'transparent'}`,
-                      display:'flex', alignItems:'center', justifyContent:'center',
                       cursor:'pointer',
                       boxShadow:selected?'0 4px 16px rgba(212,160,23,.45)':'0 2px 6px rgba(0,0,0,.15)',
-                      transition:'all .2s'
+                      transition:'all .2s',
+                      background:'transparent',
+                      lineHeight:0,
+                      display:'inline-flex',
                     }}
-                    aria-label={`Avatar ${av.label}`}
+                    aria-label={`Avatar ${av.name}`}
                   >
-                    <User size={32} color={av.stroke} strokeWidth={2.2} />
+                    <AvatarFigure value={i} size={62} />
                   </button>
                 );
               })}
@@ -98,15 +101,7 @@ export function OnboardingModal({ onComplete, C }) {
             <button
               onClick={()=>setStep(2)}
               disabled={avatar===null}
-              style={avatar===null ? goldBtn(true) : {
-                width:'100%', padding:'15px 22px', borderRadius:18, fontSize:15, fontWeight:800,
-                background:ONBOARDING_AVATARS[avatar].bg,
-                color:ONBOARDING_AVATARS[avatar].stroke,
-                border:'2px solid transparent',
-                boxShadow:`0 6px 20px ${ONBOARDING_AVATARS[avatar].bg}66`,
-                cursor:'pointer', letterSpacing:.3,
-                transition:'all .25s'
-              }}
+              style={goldBtn(avatar===null)}
             >
               Suivant →
             </button>
@@ -116,9 +111,7 @@ export function OnboardingModal({ onComplete, C }) {
         {step === 2 && (
           <div className="su" style={{ textAlign:'center' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:18 }}>
-              <div style={{ width:42, height:42, borderRadius:'50%', background:ONBOARDING_AVATARS[avatar].bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:'0 2px 8px rgba(0,0,0,.18)' }}>
-                <User size={22} color={ONBOARDING_AVATARS[avatar].stroke} strokeWidth={2.2} />
-              </div>
+              <AvatarFigure value={avatar} size={48} />
               <div style={{ fontSize:22, fontWeight:900, color:C.text }}>Bien joué, {trimmed} !</div>
             </div>
             <div style={{ fontSize:11, color:C.muted, marginBottom:10, fontStyle:'italic' }}>Tape une carte pour en savoir plus 👇</div>

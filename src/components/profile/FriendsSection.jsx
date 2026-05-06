@@ -35,14 +35,20 @@ export function FriendsSection({ userCode, C }){
       {/* Carte code ami */}
       <div style={{ background:ESPRESSO, borderRadius:16, padding:'16px 18px', border:'1px solid rgba(212,160,23,.35)', boxShadow:'0 6px 18px rgba(74,44,23,.25)' }}>
         <div style={{ fontSize:9, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700, marginBottom:6 }}>MON CODE AMI</div>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
-          <span style={{ fontSize:24, fontWeight:900, color:'#F0C050', letterSpacing:6, fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+          <span style={{
+            fontSize:21, fontWeight:900, color:'#F0C050',
+            letterSpacing:3, whiteSpace:'nowrap',
+            fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+            flex:'0 1 auto', minWidth:0
+          }}>
             {userCode || '—'}
           </span>
           <button
             onClick={copyCode}
             disabled={!userCode}
             style={{
+              flexShrink:0,
               padding:'8px 14px', borderRadius:11,
               background: copied ? 'rgba(212,160,23,.25)' : 'rgba(255,255,255,.08)',
               border:`1px solid ${copied ? 'rgba(212,160,23,.65)' : 'rgba(255,255,255,.18)'}`,
