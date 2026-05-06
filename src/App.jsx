@@ -14,6 +14,7 @@ import { EventRewardModal } from "./components/modals/EventRewardModal.jsx";
 import { TutorialOverlay } from "./components/tutorial/TutorialOverlay.jsx";
 import { ContextHint, CONTEXT_HINTS } from "./components/tutorial/ContextHint.jsx";
 import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
+import { InstallBanner } from "./components/InstallBanner.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -1096,6 +1097,9 @@ export default function CookiMiner() {
       )}
       {/* Bulle contextuelle (1re ouverture jeu/onglet) */}
       <ContextHint hint={activeHint} onClose={()=>setActiveHint(null)} />
+
+      {/* Bannière d'installation PWA (Android/Desktop seulement) */}
+      <InstallBanner />
     </div>
   );
 }
