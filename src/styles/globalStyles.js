@@ -65,6 +65,10 @@ export const GLOBAL_CSS = `
   @keyframes spotlightPulse{0%,100%{stroke-width:3;opacity:.7}50%{stroke-width:5;opacity:1}}
   @keyframes splashBob{0%,100%{transform:translateY(0) rotate(-3deg) scale(1)}50%{transform:translateY(-10px) rotate(3deg) scale(1.05)}}
   @keyframes splashFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes tabSlideInRight{from{transform:translateX(60%);opacity:.4}to{transform:translateX(0);opacity:1}}
+  @keyframes tabSlideInLeft{from{transform:translateX(-60%);opacity:.4}to{transform:translateX(0);opacity:1}}
+  .tab-slide-in-right{animation:tabSlideInRight .28s cubic-bezier(.36,.07,.19,.97) both}
+  .tab-slide-in-left{animation:tabSlideInLeft .28s cubic-bezier(.36,.07,.19,.97) both}
 
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}

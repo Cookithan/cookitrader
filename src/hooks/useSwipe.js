@@ -1,50 +1,92 @@
 import { useRef } from "react";
 
 /* ════════════════════════════════════════════════════
-   useSwipe — détection de swipe horizontal au pouce (mobile)
+   useSwipe — swipe horizontal avec suivi du doigt en temps réel
    ────────────────────────────────────────────────────
-   Retourne un objet { onTouchStart, onTouchEnd } à spread sur le div
-   qui doit capter les swipes.
+   Retourne { ref, handlers } à appliquer sur le conteneur :
+   - ref : à brancher comme ref du div, on l'utilise pour translater le
+     contenu en CSS pendant le drag (sans re-render React → fluide).
+   - handlers : { onTouchStart, onTouchMove, onTouchEnd } à spread sur
+     le même div.
 
-   Heuristiques :
-   - Distance min `threshold` (60px par défaut) pour confirmer un swipe
-   - Ratio horizontal/vertical : on ignore les gestes plus verticaux
-     que horizontaux (le scroll vertical garde la priorité)
-   - Durée max `maxMs` (800ms) — un geste trop lent n'est pas un swipe
-   - Si `enabled` est false (overlay/modal ouvert), on n'écoute rien
+   Comportement :
+   - Au touchstart : on mémorise la position et on attend.
+   - Au touchmove : on détermine l'axe dominant (horizontal vs vertical)
+     une fois pour toutes (lock). Si vertical → on laisse le scroll
+     natif. Si horizontal → on translate le contenu via DOM direct.
+   - Au touchend :
+     · Geste vertical ou trop court → snap retour à 0 (animé .25s)
+     · Geste horizontal valide (≥ threshold) → snap final hors écran
+       (animé) puis appel onLeft/onRight + reset transform.
 
    Props :
-   - onLeft       : callback swipe vers la gauche (deltaX négatif)
-   - onRight      : callback swipe vers la droite (deltaX positif)
-   - threshold    : distance min en px (default 60)
-   - maxMs        : durée max du geste (default 800)
-   - enabled      : (boolean) active/désactive l'écoute
+   - onLeft  : callback si swipe vers la gauche (deltaX négatif)
+   - onRight : callback si swipe vers la droite (deltaX positif)
+   - threshold : distance min (default 60px)
+   - enabled : (boolean) désactive complètement (overlay/modal)
 ═══════════════════════════════════════════════════════ */
 
-export function useSwipe({ onLeft, onRight, threshold = 60, maxMs = 800, enabled = true } = {}){
+export function useSwipe({ onLeft, onRight, threshold = 60, enabled = true } = {}){
+  const ref      = useRef(null);
   const startRef = useRef(null);
+
+  const setTx = (px, animated = false) => {
+    const el = ref.current;
+    if(!el) return;
+    el.style.transition = animated ? 'transform .25s ease-out' : 'none';
+    el.style.transform  = px === 0 ? '' : `translateX(${px}px)`;
+  };
 
   const onTouchStart = (e) => {
     if(!enabled) return;
     const t = e.touches[0];
     if(!t) return;
-    startRef.current = { x: t.clientX, y: t.clientY, time: Date.now() };
+    startRef.current = { x: t.clientX, y: t.clientY, lock: null };
+  };
+
+  const onTouchMove = (e) => {
+    if(!startRef.current) return;
+    const t = e.touches[0];
+    if(!t) return;
+    const dx = t.clientX - startRef.current.x;
+    const dy = t.clientY - startRef.current.y;
+
+    /* Lock l'axe une fois qu'on a bougé ≥ 12px : empêche le scroll
+       vertical de devenir un faux swipe horizontal et inversement. */
+    if(!startRef.current.lock){
+      if(Math.abs(dx) > 12 || Math.abs(dy) > 12){
+        startRef.current.lock = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+      } else return;
+    }
+    if(startRef.current.lock !== 'h') return;
+
+    setTx(dx);
   };
 
   const onTouchEnd = (e) => {
-    if(!enabled || !startRef.current) return;
-    const t = e.changedTouches[0];
-    if(!t){ startRef.current = null; return; }
-    const dx = t.clientX - startRef.current.x;
-    const dy = t.clientY - startRef.current.y;
-    const dt = Date.now() - startRef.current.time;
+    const start = startRef.current;
     startRef.current = null;
-    if(dt > maxMs) return;
-    if(Math.abs(dx) < threshold) return;
-    if(Math.abs(dx) < Math.abs(dy) * 1.3) return; // gesture trop vertical
-    if(dx > 0) onRight?.();
-    else       onLeft?.();
+    if(!start){ setTx(0, true); return; }
+
+    const t = e.changedTouches[0];
+    const dx = t ? (t.clientX - start.x) : 0;
+    if(start.lock !== 'h'){ setTx(0); return; }
+
+    if(Math.abs(dx) < threshold){
+      setTx(0, true);
+      return;
+    }
+
+    /* Snap final hors-écran avant de changer d'onglet : donne l'impression
+       que la page courante "sort" sur le côté. */
+    const w = ref.current?.clientWidth || 400;
+    setTx(dx > 0 ? w : -w, true);
+    setTimeout(()=>{
+      setTx(0);
+      if(dx > 0) onRight?.();
+      else       onLeft?.();
+    }, 220);
   };
 
-  return { onTouchStart, onTouchEnd };
+  return { ref, handlers: { onTouchStart, onTouchMove, onTouchEnd } };
 }

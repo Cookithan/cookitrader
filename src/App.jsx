@@ -237,8 +237,32 @@ export default function CookiMiner() {
   const installPrompt = useInstallPrompt();
 
   /* Swipe horizontal pour changer d'onglet — désactivé tant qu'un
-     overlay/modal/jeu/tuto est ouvert, pour éviter les conflits. */
+     overlay/modal/jeu/tuto est ouvert, pour éviter les conflits.
+     `slideDir` mémorise la direction du dernier changement pour
+     animer le content entrant (depuis la droite ou la gauche). */
   const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
+  const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
+
+  const goToTab = (target) => {
+    const i = TAB_ORDER.indexOf(tab);
+    const j = TAB_ORDER.indexOf(target);
+    if(j === -1 || j === i) { setTab(target); return; }
+    setSlideDir(j > i ? 'next' : 'prev');
+    setTab(target);
+  };
+
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipe = useSwipe({
+    enabled: !swipeBlocked,
+    onLeft:  () => {
+      const i = TAB_ORDER.indexOf(tab);
+      if(i >= 0 && i < TAB_ORDER.length - 1) goToTab(TAB_ORDER[i + 1]);
+    },
+    onRight: () => {
+      const i = TAB_ORDER.indexOf(tab);
+      if(i > 0) goToTab(TAB_ORDER[i - 1]);
+    },
+  });
 
   /* ── TUTORIEL : démarrage / wires ─────────────── */
 
@@ -665,21 +689,20 @@ export default function CookiMiner() {
         </div>
       </header>
 
-      {/* CONTENT — swipe horizontal navigue dans TAB_ORDER */}
+      {/* CONTENT — swipe horizontal navigue dans TAB_ORDER.
+          Le wrapper externe capte le geste et translate son enfant en
+          temps réel (via swipe.ref). Le wrapper interne a key={tab} :
+          il se remonte à chaque changement, ce qui rejoue l'animation
+          tabSlideIn(Right|Left) selon slideDir. */}
       <div
-        style={{ flex:1, overflowY:'auto', padding:'0 16px', paddingBottom:104 }}
-        {...useSwipe({
-          enabled: !gameView && !showSettings && !showProfile && !showLevels && !showOnboarding && !showSkipConfirm && !showEventModal && !eventReward && tutorialStep === 0 && !pendingLvUp && !pendingAchievement,
-          onLeft: () => {
-            const i = TAB_ORDER.indexOf(tab);
-            if(i >= 0 && i < TAB_ORDER.length - 1) setTab(TAB_ORDER[i + 1]);
-          },
-          onRight: () => {
-            const i = TAB_ORDER.indexOf(tab);
-            if(i > 0) setTab(TAB_ORDER[i - 1]);
-          },
-        })}
+        ref={swipe.ref}
+        {...swipe.handlers}
+        style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'0 16px', paddingBottom:104, willChange:'transform' }}
       >
+        <div
+          key={tab}
+          className={slideDir === 'next' ? 'tab-slide-in-right' : slideDir === 'prev' ? 'tab-slide-in-left' : ''}
+        >
 
         {/* ── ACCUEIL ── */}
         {tab==='accueil' && (
@@ -940,6 +963,7 @@ export default function CookiMiner() {
             C={C}
           />
         )}
+        </div>
       </div>
 
       {/* NAV */}
@@ -948,7 +972,7 @@ export default function CookiMiner() {
           {[{id:'accueil',Icon:Home,label:'Accueil'},{id:'jeux',Icon:Gamepad2,label:'Jeux'},{id:'classement',Icon:Trophy,label:'Classement'},{id:'marche',Icon:TrendingUp,label:'Marché'},{id:'boutique',Icon:ShoppingBag,label:'Boutique'}].map(item=>{
             const showDot = item.id==='accueil' && (canCheckin || canQuiz);
             return (
-              <button key={item.id} id={item.id === 'jeux' ? 'nav-jeux' : item.id === 'boutique' ? 'nav-boutique' : undefined} onClick={()=>setTab(item.id)} style={s.pill(tab===item.id)}>
+              <button key={item.id} id={item.id === 'jeux' ? 'nav-jeux' : item.id === 'boutique' ? 'nav-boutique' : undefined} onClick={()=>goToTab(item.id)} style={s.pill(tab===item.id)}>
                 <span style={{ position:'relative', display:'inline-flex', lineHeight:0 }}>
                   <item.Icon size={20} />
                   {showDot && (
