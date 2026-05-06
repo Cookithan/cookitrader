@@ -7,6 +7,10 @@ import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { HISTORY_N, TICK_MS, BIG_MOVE_PCT, BIG_EVENTS, SMALL_EVENTS, MEGA_EVENTS, nextPrice } from "./data/market.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { generateUserCode } from "./utils/userCode.js";
+import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, EVENT_LEVEL_MIN } from "./data/events.js";
+import { EventBanner } from "./components/EventBanner.jsx";
+import { EventAnnounceModal } from "./components/modals/EventAnnounceModal.jsx";
+import { EventRewardModal } from "./components/modals/EventRewardModal.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -87,6 +91,13 @@ export default function CookiMiner() {
   const [nameChangeCount, setNameChangeCount] = useLocalStorage('nameChangeCount', 0);
   const [userCode,    setUserCode]    = useLocalStorage('userCode', '');
   const [userBio,     setUserBio]     = useLocalStorage('userBio',  '');
+
+  /* Événements spéciaux (PHASE 6E) — cycle waiting (1-24h) → active
+     (1h, 3 essais) → repeat. Persistés pour survivre au refresh. */
+  const [activeEvent,     setActiveEvent]     = useLocalStorage('activeEvent',     null);
+  const [completedEvents, setCompletedEvents] = useLocalStorage('completedEvents', []);
+  const [showEventModal,  setShowEventModal]  = useState(false);
+  const [eventReward,     setEventReward]     = useState(null);
 
   /* Génère le code ami au premier lancement (post-onboarding ou refresh sans code en LS).
      Reset → on remet à '' dans resetProgress, cet effet régénère un nouveau code propre. */
@@ -241,6 +252,91 @@ export default function CookiMiner() {
 
   const spendCoins   = useCallback((a)=>setCoins(c=>Math.max(0,c-a)),[]);
 
+  /* ── ÉVÉNEMENTS SPÉCIAUX (PHASE 6E) ─────────────── */
+
+  /* Tire le prochain event en phase 'waiting' (timer 1-24h aléatoire).
+     Si tous les events ont déjà été complétés → setActiveEvent(null) :
+     plus de cycle. */
+  const triggerNextEvent = () => {
+    const tpl = pickRandomEvent(completedEvents);
+    if(!tpl){ setActiveEvent(null); return; }
+    setActiveEvent(buildWaitingEvent(tpl));
+  };
+
+  /* Passe l'event de 'waiting' à 'active' : démarre la fenêtre de 1h
+     avec MAX_ATTEMPTS essais, et ouvre la modale d'annonce. */
+  const revealEvent = () => {
+    setActiveEvent(prev => prev ? ({
+      ...prev,
+      phase:'active',
+      revealAt: Date.now(),
+      expiresAt: Date.now() + ACTIVE_DURATION_MS,
+      attemptsLeft: MAX_ATTEMPTS,
+    }) : prev);
+    setShowEventModal(true);
+  };
+
+  /* Vérifie si un challenge en cours matche le type/value passé.
+     Une tentative est consommée à chaque appel pour l'event actif courant.
+     - Succès → débloque le thème limité, ouvre la modale de récompense,
+       lance le prochain cycle (waiting).
+     - Échec → décrémente attemptsLeft. Si 0, lance le prochain cycle. */
+  const checkEventChallenge = (type, value) => {
+    const ev = activeEvent;
+    if(!ev || ev.phase !== 'active') return;
+    if(Date.now() >= ev.expiresAt) return;
+    if(type !== ev.challenge) return;       // pas une tentative pour cet event
+
+    let success = false;
+    if(type === 'quiz_perfect') success = value === 5;
+    if(type === 'spin_jackpot') success = value >= 200;
+    if(type === 'click_50')     success = value >= 50;
+
+    if(success){
+      setUnlocked(u => u.includes(ev.reward.id) ? u : [...u, ev.reward.id]);
+      setCompletedEvents(c => c.includes(ev.id) ? c : [...c, ev.id]);
+      setEventReward(ev.reward);
+      triggerNextEvent();
+      return;
+    }
+
+    /* Échec d'une tentative */
+    const newAttempts = ev.attemptsLeft - 1;
+    if(newAttempts <= 0){
+      triggerNextEvent();
+    } else {
+      setActiveEvent(prev => prev ? ({ ...prev, attemptsLeft: newAttempts }) : prev);
+    }
+  };
+
+  /* Initialisation : si level >= 4 et pas d'event en cours → on lance
+     un waiting. Couvre le cas du 1er passage au niveau 4. */
+  useEffect(()=>{
+    if(level < EVENT_LEVEL_MIN) return;
+    if(activeEvent) return;
+    triggerNextEvent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [level]);
+
+  /* Tick périodique (5s) pour gérer les transitions de phase :
+     - waiting → active : quand revealAt atteint
+     - active  → fail   : quand expiresAt atteint sans succès */
+  useEffect(()=>{
+    if(level < EVENT_LEVEL_MIN || !activeEvent) return;
+    const tick = () => {
+      const now = Date.now();
+      if(activeEvent.phase === 'waiting' && now >= activeEvent.revealAt){
+        revealEvent();
+      } else if(activeEvent.phase === 'active' && now >= activeEvent.expiresAt){
+        triggerNextEvent();
+      }
+    };
+    tick();
+    const id = setInterval(tick, 5000);
+    return ()=>clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEvent, level]);
+
   /* === Tick global du marché — tourne en arrière-plan dès le niveau 3 === */
   const eventRefGlobal = useRef(null);
   const eventTicksRefGlobal = useRef(0);
@@ -312,6 +408,8 @@ export default function CookiMiner() {
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
     setActiveTheme(''); setActiveSkin(''); setActiveRoue('');
+    setActiveEvent(null); setCompletedEvents([]);
+    setShowEventModal(false); setEventReward(null);
     setPendingLvUp(null); setGameView(null); setTab('accueil');
     setShowOnboarding(true);
   };
@@ -465,6 +563,15 @@ export default function CookiMiner() {
         {/* ── ACCUEIL ── */}
         {tab==='accueil' && (
           <div className="su">
+            {/* Bannière événement spécial (PHASE 6E) — visible en
+                phase 'waiting' (timer mystère) et en phase 'active'
+                (titre + temps restant + essais). */}
+            {activeEvent && (
+              <EventBanner
+                event={activeEvent}
+                onView={()=>setShowEventModal(true)}
+              />
+            )}
             {/* Level card */}
             <button onClick={()=>setShowLevels(true)} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
               <div style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)' }} />
@@ -718,7 +825,30 @@ export default function CookiMiner() {
           onSpinEarn={addCoins} onSpend={spendCoins}
           onClickEarn={addCoins} onUpdateRecord={s=>setClickRecord(r=>Math.max(r,s))}
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
+          onEventChallenge={checkEventChallenge}
           activeSkin={activeSkin} activeRoue={activeRoue}
+          C={C}
+        />
+      )}
+
+      {/* ÉVÉNEMENTS SPÉCIAUX (PHASE 6E) — la modale s'ouvre :
+          - automatiquement au passage waiting → active (révélation)
+          - au clic sur la bannière en phase 'waiting' (teasing
+            + trophées déjà gagnés)
+          - au clic sur la bannière en phase 'active' (rappel) */}
+      {showEventModal && activeEvent && (
+        <EventAnnounceModal
+          event={activeEvent}
+          completedEvents={completedEvents}
+          onClose={()=>setShowEventModal(false)}
+          C={C}
+        />
+      )}
+      {eventReward && (
+        <EventRewardModal
+          reward={eventReward}
+          onClose={()=>setEventReward(null)}
+          onView={()=>{ setShowSettings(true); }}
           C={C}
         />
       )}

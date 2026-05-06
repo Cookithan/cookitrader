@@ -53,6 +53,14 @@ export const REWARDS = [
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
   { id:'theme_caramel',    name:'Thème Caramel Sunrise',     desc:'Dégradé chaud animé',       cost:450,  type:'Thème', emoji:'🌅', levelRequired:3 },
   { id:'theme_legendaire', name:'Thème Légendaire',          desc:'Fond doré avec particules', cost:1200, type:'Thème', emoji:'💫', levelRequired:6 },
+  /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements
+     spéciaux uniquement. cost:0, flag `limited:true` + `event:<id>`.
+     La boutique les masque tant qu'ils ne sont pas dans `unlocked` ;
+     une fois débloqués, ils apparaissent avec un badge "Édition limitée"
+     et sont déjà marqués comme possédés. */
+  { id:'theme_chocolat_festif', name:'Thème Chocolat Festif',    desc:'Édition limitée — Fête du Chocolat',     cost:0, type:'Thème', emoji:'🍫', levelRequired:4, limited:true, event:'event_chocolat'  },
+  { id:'theme_or_limite',       name:'Thème Or Massif Limité',   desc:'Édition limitée — Tour Spécial Roue',     cost:0, type:'Thème', emoji:'🥇', levelRequired:4, limited:true, event:'event_jackpot'   },
+  { id:'theme_vitesse',         name:'Thème Vitesse Lumière',    desc:'Édition limitée — Défi Speedster',        cost:0, type:'Thème', emoji:'⚡', levelRequired:4, limited:true, event:'event_speedster' },
   // AVATARS premium (8 — PHASE 4)
   { id:'avatar_chef',    name:'Avatar Chef étoilé',     desc:'Toque, moustache et étoile',     cost:200,  type:'Avatar', emoji:'👨‍🍳', levelRequired:2 },
   { id:'avatar_robot',   name:'Avatar Robot Barista',   desc:'Robot mignon avec engrenages',   cost:300,  type:'Avatar', emoji:'🤖',   levelRequired:3 },

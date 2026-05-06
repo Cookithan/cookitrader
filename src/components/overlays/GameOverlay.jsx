@@ -16,7 +16,7 @@ import { ReflexGame } from "../games/ReflexGame.jsx";
    - Tous les onClose, onEarn, onSpend etc. sont propagés depuis CookiMiner
 ═══════════════════════════════════════════════════════ */
 
-export function GameOverlay({ gameView, onClose, coins, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onUpdateRecord, onJackpot, activeSkin, activeRoue, C }) {
+export function GameOverlay({ gameView, onClose, coins, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onUpdateRecord, onJackpot, onEventChallenge, activeSkin, activeRoue, C }) {
   const TITLES = { checkin:'Check-in quotidien', quiz:'Quiz café', spin:'Roue de la fortune', click:'Défi de clics', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes café' };
   return (
     <div style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column' }}>
@@ -32,9 +32,9 @@ export function GameOverlay({ gameView, onClose, coins, streak, canCheckin, canQ
       </div>
       <div style={{ flex:1, overflowY:'auto', padding:20 }}>
         {gameView==='checkin' && <CheckinGame streak={streak} canCheckin={canCheckin} onCheckin={onCheckin} checkinReward={checkinReward} C={C} />}
-        {gameView==='quiz'    && <QuizGame    canPlay={canQuiz}  msLeft={quizMsLeft} coins={coins} onEarn={onQuizEarn} onSpend={onSpend} onDone={onQuizDone} onClose={onClose} C={C} />}
-        {gameView==='spin'    && <SpinGame    coins={coins} onEarn={onSpinEarn} onSpend={onSpend} onJackpot={onJackpot} activeRoue={activeRoue} C={C} />}
-        {gameView==='click'   && <ClickGame   coins={coins} bestScore={clickRecord} onEarn={onClickEarn} onSpend={onSpend} onUpdateRecord={onUpdateRecord} activeSkin={activeSkin} C={C} />}
+        {gameView==='quiz'    && <QuizGame    canPlay={canQuiz}  msLeft={quizMsLeft} coins={coins} onEarn={onQuizEarn} onSpend={onSpend} onDone={onQuizDone} onClose={onClose} onEventChallenge={onEventChallenge} C={C} />}
+        {gameView==='spin'    && <SpinGame    coins={coins} onEarn={onSpinEarn} onSpend={onSpend} onJackpot={onJackpot} onEventChallenge={onEventChallenge} activeRoue={activeRoue} C={C} />}
+        {gameView==='click'   && <ClickGame   coins={coins} bestScore={clickRecord} onEarn={onClickEarn} onSpend={onSpend} onUpdateRecord={onUpdateRecord} onEventChallenge={onEventChallenge} activeSkin={activeSkin} C={C} />}
         {gameView==='pour'    && <PourGame    onEarn={onClickEarn} onSpend={onSpend} C={C} />}
         {gameView==='memory'  && <MemoryGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} C={C} />}
         {gameView==='guess'   && <GuessGame   coins={coins} onEarn={onClickEarn} onSpend={onSpend} C={C} />}

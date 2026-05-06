@@ -12,7 +12,7 @@ import { SEG_A, SEG_C, wRandom } from "../../utils/spin.js";
    - onJackpot() est appelé si le résultat = +200 (déclenche succès 'jackpot')
 ═══════════════════════════════════════════════════════ */
 
-export function SpinGame({ coins, onEarn, onSpend, onJackpot, activeRoue, C }) {
+export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, C }) {
   const canvasRef  = useRef(null);
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);
@@ -81,6 +81,8 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, activeRoue, C }) {
         angleRef.current=final; setSpinning(false); setResult(SEGMENTS[idx]);
         onEarn(SEGMENTS[idx].value);
         if(SEGMENTS[idx].value === 200 && onJackpot) onJackpot();
+        /* PHASE 6E — challenge spin_jackpot : tomber sur +200 */
+        onEventChallenge?.('spin_jackpot', SEGMENTS[idx].value);
       }
     };
     requestAnimationFrame(animate);

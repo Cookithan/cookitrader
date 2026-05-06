@@ -17,7 +17,7 @@ import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 export const CLICK_DURATION = 5;
 export const CLICK_COST = 5;
 
-export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, activeSkin, C }) {
+export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
 
@@ -69,6 +69,8 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, a
       setShowConfetti(true);
       setTimeout(()=>setShowConfetti(false), 1500);
     }
+    /* PHASE 6E — challenge click_50 : 50 clics ou plus en 5s */
+    onEventChallenge?.('click_50', finalClicks);
   };
 
   const startGame = () => {

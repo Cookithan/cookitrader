@@ -45,7 +45,15 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   if(mode === 'premium'){
     visible = REWARDS.filter(r => r.currency === 'cafe' && !initialUnlocked.includes(r.id));
   } else {
-    visible = REWARDS.filter(r => r.currency !== 'cafe' && !initialUnlocked.includes(r.id) && r.levelRequired <= revealedLevel);
+    /* PHASE 6E — les items `limited` sont la règle inverse : visibles
+       UNIQUEMENT s'ils sont débloqués (gagnés via événement spécial),
+       avec un badge "Édition limitée". On lit `unlocked` (live) pour
+       les afficher dès la victoire, sans attendre le prochain mount. */
+    visible = REWARDS.filter(r => {
+      if(r.currency === 'cafe') return false;
+      if(r.limited) return unlocked.includes(r.id);
+      return !initialUnlocked.includes(r.id) && r.levelRequired <= revealedLevel;
+    });
   }
   const filtered = mode === 'premium' || filter==='Tous' ? visible : visible.filter(r=>r.type===filter);
   const shown = [...filtered].sort((a,b)=>{
@@ -155,7 +163,11 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               {isPremium && !isUnlocked && (
                 <span style={{ position:'absolute', top:8, right:10, fontSize:9, fontWeight:800, padding:'3px 7px', borderRadius:8, background:ESPRESSO, color:'#F0C050', letterSpacing:.5 }}>PREMIUM</span>
               )}
-              {isUnlocked && <span className="sparkle-anim" style={{ position:'absolute', top:8, right:10, fontSize:14, animationDelay:`${i*0.3}s` }}>✨</span>}
+              {/* PHASE 6E — badge "Édition limitée" (remplace le ✨ habituel) */}
+              {r.limited && isUnlocked && (
+                <span style={{ position:'absolute', top:8, right:10, fontSize:9, fontWeight:800, padding:'3px 7px', borderRadius:8, background:'linear-gradient(135deg,#D4A017,#C17F3C)', color:'#fff', letterSpacing:.5, boxShadow:'0 2px 6px rgba(212,160,23,.35)' }}>ÉDITION LIMITÉE</span>
+              )}
+              {isUnlocked && !r.limited && <span className="sparkle-anim" style={{ position:'absolute', top:8, right:10, fontSize:14, animationDelay:`${i*0.3}s` }}>✨</span>}
               <div className={isUnlocked ? 'float-anim' : ''} style={{ fontSize:30, marginBottom:8, display:'inline-block', filter:lvLocked?'grayscale(.7)':'none' }}>{lvLocked ? '🔒' : r.emoji}</div>
               <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:3 }}>{r.name}</div>
               <div style={{ fontSize:11, color:C.muted, marginBottom:12 }}>{r.desc}</div>

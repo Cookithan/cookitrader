@@ -16,7 +16,7 @@ export const QUIZ_QUESTIONS_PER_SESSION = 3;
 export const QUIZ_HINT_COST = 10;
 export const QUIZ_HINT_DELAY_MS = 8000;
 
-export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onClose, C }) {
+export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onClose, onEventChallenge, C }) {
   const [chosenDifficulty, setChosenDifficulty] = useState(null);
   const [qIndices,         setQIndices]         = useState([]);
 
@@ -149,10 +149,15 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
 
   const q = QUESTIONS[qIndices[step]];
 
-  const goNext = () => {
+  const goNext = (lastWasCorrect = false) => {
     if(step + 1 >= qIndices.length){
       setAllDone(true);
       onDone();
+      /* PHASE 6E — challenge quiz_perfect : on évalue avec le compteur
+         courant + le dernier hit (passé en argument car setCorrectCount
+         est asynchrone, on ne peut pas se fier à la valeur du state ici). */
+      const finalCorrect = correctCount + (lastWasCorrect ? 1 : 0);
+      onEventChallenge?.('quiz_perfect', finalCorrect);
     } else {
       setStep(s=>s+1);
       setSel(null);
@@ -166,12 +171,13 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     if(sel!==null) return;
     if(hiddenChoices.includes(i)) return;
     setSel(i);
-    if(i===q.answer){
+    const isCorrect = i === q.answer;
+    if(isCorrect){
       onEarn(q.reward);
       setScore(s=>s+q.reward);
       setCorrectCount(c=>c+1);
     }
-    setTimeout(goNext, 1500);
+    setTimeout(()=>goNext(isCorrect), 1500);
   };
 
   const useHint = () => {

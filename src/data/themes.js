@@ -21,6 +21,13 @@ export const THEMES = {
   /* Cosmos : ambiance galactique sombre — indigo nuit + violet profond + étoiles.
      Les accents café (or, espresso, gold) restent intacts. */
   theme_cosmos:    { dark:true, bg:'linear-gradient(160deg,#070220 0%,#160838 35%,#2A1058 65%,#0F0428 100%)', card:'#1F0F3A', card2:'#2D1854', text:'#F0E0FF', muted:'#9A85C8', border:'#4A2D7A', sparkles:true },
+
+  /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements spéciaux,
+     impossibles à acheter. Visibles dans la boutique uniquement une fois
+     gagnés, avec un badge "Édition limitée". */
+  theme_chocolat_festif: { dark:true, bg:'linear-gradient(140deg,#3D1A0E,#7D3919)', card:'#5C2614', card2:'#7D3919', text:'#F5DCC8', muted:'#B89878', border:'#5C2614' },
+  theme_or_limite:       { dark:true, bg:'linear-gradient(140deg,#3D2810,#8B6914)', card:'#5C4014', card2:'#8B6914', text:'#FFE4A0', muted:'#C8A878', border:'#5C4014', sparkles:true },
+  theme_vitesse:         { dark:true, bg:'linear-gradient(140deg,#1A1F30,#3D4A6A)', card:'#2A3050', card2:'#3D4A6A', text:'#E0E8FF', muted:'#9CB0D8', border:'#2A3050' },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';
