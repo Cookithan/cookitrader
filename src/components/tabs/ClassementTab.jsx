@@ -161,53 +161,66 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
   );
 }
 
-/* Une ligne du classement. Look sobre uniforme : même fond pour
-   tout le monde, le top 3 est juste indiqué par un emoji médaille
-   à gauche. Le 1er a son rang en doré (subtil). Mon profil reçoit
-   une bordure dorée + ✦. */
+/* Une ligne du classement. Tous les rangs en #N (pas d'emojis médaille).
+   Seul le 1er a une bannière distincte : gradient or doux + bordure
+   dorée + petit pictogramme 🏆. Mon profil garde une bordure dorée
+   et un ✦ après le nom. */
 function LeaderRow({ rank, p, isMe, C }){
-  const medalEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null;
-  const rankColor  = rank === 1 ? '#D4A017' : C.muted;
+  const isFirst = rank === 1;
 
   return (
     <div style={{
       display:'flex', alignItems:'center', gap:12,
       padding:'12px 14px', borderRadius:14,
-      background: C.card,
-      border: isMe ? '2px solid #D4A017' : `1px solid ${C.border}`,
+      background: isFirst ? 'linear-gradient(135deg,#FBEFD4,#F0C050)' : C.card,
+      border: (isFirst || isMe) ? '2px solid #D4A017' : `1px solid ${C.border}`,
+      boxShadow: isFirst ? '0 6px 18px rgba(212,160,23,.28)' : 'none',
+      position:'relative',
     }}>
+      {isFirst && (
+        <span style={{
+          position:'absolute', top:-9, right:12,
+          padding:'2px 9px', borderRadius:8,
+          background:'#3D2010', color:'#F0C050',
+          fontSize:9, fontWeight:900, letterSpacing:1, textTransform:'uppercase',
+          border:'1px solid rgba(212,160,23,.5)',
+        }}>
+          🏆 Champion
+        </span>
+      )}
       <div style={{
         flexShrink:0, width:32, textAlign:'center',
-        fontSize: medalEmoji ? 20 : 13,
-        fontWeight:800, color: rankColor,
+        fontSize:13, fontWeight:900,
+        color: isFirst ? '#5D3A1F' : C.muted,
         lineHeight:1,
       }}>
-        {medalEmoji || `#${rank}`}
+        #{rank}
       </div>
       <AvatarFigure value={Number(p.user_avatar) || 0} size={40} />
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
-            fontSize:13, fontWeight:800, color: C.text,
+            fontSize:13, fontWeight:800,
+            color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
-          <span style={{ fontSize:10, color: C.muted, fontWeight:700, letterSpacing:.4 }}>
+          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
             Niv.{p.level}
           </span>
         </div>
         {p.streak > 0 && (
-          <div style={{ fontSize:10, color: C.muted, fontWeight:600 }}>
+          <div style={{ fontSize:10, fontWeight:600, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
             🔥 {p.streak}j de série
           </div>
         )}
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
-        <div style={{ fontSize:15, fontWeight:900, color:'#D4A017', lineHeight:1 }}>
+        <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: isFirst ? '#5D3A1F' : '#D4A017' }}>
           {(p.total_earned ?? 0).toLocaleString('fr-FR')}
         </div>
-        <div style={{ fontSize:9, color: C.muted, fontWeight:700, letterSpacing:.5 }}>🍪 cumulés</div>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: isFirst ? 'rgba(61,32,16,.65)' : C.muted }}>🍪 cumulés</div>
       </div>
     </div>
   );
