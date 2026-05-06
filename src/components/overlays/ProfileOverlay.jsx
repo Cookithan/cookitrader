@@ -43,6 +43,8 @@ export function ProfileOverlay({
   marketRealized = 0,
   activeTheme, activeSkin, activeRoue,
   onReset,
+  supabaseEnabled = false,
+  supabaseSyncOk  = false,
   C
 }) {
   const [editing, setEditing] = useState(false);
@@ -92,7 +94,16 @@ export function ProfileOverlay({
         <button onClick={onClose} style={{ width:36, height:36, borderRadius:12, background:C.card2, display:'flex', alignItems:'center', justifyContent:'center', color:C.text }}>
           <ChevronLeft size={20} />
         </button>
-        <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1 }}>{editing ? 'Modifier mon avatar' : 'Mon profil'}</span>
+        <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1, display:'flex', alignItems:'center', gap:10 }}>
+          {editing ? 'Modifier mon avatar' : 'Mon profil'}
+          {!editing && (
+            supabaseEnabled && supabaseSyncOk ? (
+              <span style={{ fontSize:10, fontWeight:700, color:'#D4A017', letterSpacing:.3 }} title="Profil synchronisé en ligne">● Synchronisé</span>
+            ) : (
+              <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', letterSpacing:.3 }} title="Pas de sync en ligne">○ Hors ligne</span>
+            )
+          )}
+        </span>
         {!editing && (
           <button onClick={onOpenSettings} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />

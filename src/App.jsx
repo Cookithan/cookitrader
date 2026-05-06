@@ -18,6 +18,8 @@ import { useInstallPrompt } from "./hooks/useInstallPrompt.js";
 import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
+import { isSupabaseEnabled } from "./lib/supabase.js";
+import { upsertProfile } from "./lib/supabaseSync.js";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -152,6 +154,25 @@ export default function CookiMiner() {
   useEffect(()=>{
     if(!userCode) setUserCode(generateUserCode());
   },[userCode, setUserCode]);
+
+  /* Sync Supabase debouncé (5s). Crée OU met à jour le profil via upsert
+     selon que user_code existe déjà ou non — pas de logique séparée
+     "création" / "update" à gérer côté client.
+     Skipped si Supabase off, pas de userCode, ou pas encore d'userName
+     (l'utilisateur n'a pas fini l'onboarding). */
+  const [supabaseSyncOk, setSupabaseSyncOk] = useState(false);
+  useEffect(()=>{
+    if(!isSupabaseEnabled()) return;
+    if(!userCode || !userName) return;
+    const t = setTimeout(async ()=>{
+      const res = await upsertProfile({
+        userCode, userName, userAvatar, level, totalEarned,
+        coins, streak, userBio,
+      });
+      setSupabaseSyncOk(!!res?.ok);
+    }, 5000);
+    return ()=>clearTimeout(t);
+  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio]);
   const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
@@ -1096,6 +1117,8 @@ export default function CookiMiner() {
           marketRealized={marketRealized}
           activeTheme={activeTheme} activeSkin={activeSkin} activeRoue={activeRoue}
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
+          supabaseEnabled={isSupabaseEnabled()}
+          supabaseSyncOk={supabaseSyncOk}
           C={C}
         />
       )}
