@@ -5,20 +5,31 @@ import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../d
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
+import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
 import { FriendsSection } from "../profile/FriendsSection.jsx";
+import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 
 /* ════════════════════════════════════════════════════
-   ProfileOverlay — plein écran z-index 60
-   - Mode normal : carte identité, niveau (avec bouton "Voir les niveaux"),
-     stats, équipement, titres, badges, FriendsSection (code ami + zone
-     "à venir"), boutons "Modifier mon pseudo" (ouvre ChangeNameModal
-     payante) et "Modifier mon avatar", crédit auteur en pied
-   - Mode édition : grille avatars (base + premium débloqués)
-   - Le pseudo n'est PLUS modifiable depuis le mode édition — passe par
-     la modale payante ChangeNameModal (PHASE 1 du brief améliorations)
-   - userCode est généré dans App.jsx puis passé en prop ; on l'affiche
-     ici via FriendsSection (PHASE 3)
-   - Le compte d'achievementsTotal ignore master_succes si non révélé
+   ProfileOverlay — plein écran z-index 60 (PHASE 5)
+   ────────────────────────────────────────────────────
+   Structure de la vue normale :
+     1. Carte profil principale (gradient beige) — avatar 92px, pseudo, titre,
+        code ami, "membre depuis…", barre XP, bouton "Voir les niveaux"
+     2. Bio courte (affichage uniquement si remplie)
+     3. Stats grid 2×3 (Total gagné · Série · Niveau · Succès · Items · CKM)
+     4. Mes Badges
+     5. Mes Amis (FriendsSection)
+     6. Boutons d'édition : pseudo (payant), avatar (gratuit), bio (gratuit)
+     7. Réinitialiser ma progression (double validation, ResetProgressButton)
+     8. Crédit "Réalisé avec Claude Code par Cookithan"
+
+   Mode édition (toggle "Modifier mon avatar") : sections "Mes avatars"
+   + "À débloquer" (grille des 12 base + 8 premium avec cadenas).
+
+   Le pseudo n'est PLUS éditable depuis le mode édition — passe par la
+   ChangeNameModal payante (PHASE 1). La bio passe par ChangeBioModal
+   (PHASE 5, gratuite). Le compte d'achievementsTotal ignore master_
+   succes si non révélé.
 ═══════════════════════════════════════════════════════ */
 
 export function ProfileOverlay({
@@ -26,18 +37,21 @@ export function ProfileOverlay({
   userName, setUserName, userAvatar, setUserAvatar, joinDate,
   coins, spendCoins, nameChangeCount, setNameChangeCount,
   userCode,
+  userBio, setUserBio,
   level, xp, xpReq, totalEarned, streak, unlocked,
   earnedAchievements, achievementsTotal,
+  marketRealized = 0,
   activeTheme, activeSkin, activeRoue,
+  onReset,
   C
 }) {
   const [editing, setEditing] = useState(false);
   const [editAvatar, setEditAvatar] = useState(userAvatar);
   const [showChangeName, setShowChangeName] = useState(false);
+  const [showChangeBio,  setShowChangeBio]  = useState(false);
 
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
-  const titres = REWARDS.filter(r => r.type==='Titre'  && unlocked.includes(r.id));
 
   /* Sélecteur d'avatar (PHASE 4) :
      - "Mes avatars" : 12 de base (toujours dispos) + premium débloqués
@@ -54,13 +68,6 @@ export function ProfileOverlay({
                cost: r ? r.cost : 0, levelRequired: r ? r.levelRequired : 1 };
     });
 
-  const equipment = [
-    { label:'Avatar', kind:'avatar', value:userAvatar },
-    { label:'Thème',  kind:'item',   id:activeTheme, item: activeTheme ? REWARDS.find(r=>r.id===activeTheme) : null },
-    { label:'Skin',   kind:'item',   id:activeSkin,  item: activeSkin  ? REWARDS.find(r=>r.id===activeSkin)  : null },
-    { label:'Roue',   kind:'item',   id:activeRoue,  item: activeRoue  ? REWARDS.find(r=>r.id===activeRoue)  : null },
-  ];
-
   const saveEdit = () => {
     if(editAvatar===null) return;
     setUserAvatar(editAvatar);
@@ -72,6 +79,11 @@ export function ProfileOverlay({
     setUserName(newName);
     setNameChangeCount(c => c + 1);
     setShowChangeName(false);
+  };
+
+  const confirmBio = (text) => {
+    setUserBio(text);
+    setShowChangeBio(false);
   };
 
   return (
@@ -173,88 +185,86 @@ export function ProfileOverlay({
           </>
         ) : (
           <>
-            {/* Identité */}
-            <section style={{ textAlign:'center', paddingTop:6 }}>
-              <div style={{ margin:'0 auto 14px', display:'inline-flex' }}>
-                <AvatarFigure value={userAvatar} size={108} />
+            {/* 1. Carte profil principale (beige) — avatar + identité + XP */}
+            <section style={{
+              background:'linear-gradient(140deg,#F5E5C8,#E5CDA8)',
+              borderRadius:22, padding:'22px 20px',
+              boxShadow:'0 8px 24px rgba(139,106,90,.18)',
+              border:'1px solid rgba(193,127,60,.35)',
+              display:'flex', flexDirection:'column', alignItems:'center',
+            }}>
+              <AvatarFigure value={userAvatar} size={92} />
+              <div style={{ fontSize:24, fontWeight:900, color:'#3D2010', marginTop:12, marginBottom:6, letterSpacing:.2, textAlign:'center' }}>
+                {userName || 'Joueur'}
               </div>
-              <div style={{ fontSize:24, fontWeight:900, color:C.text, marginBottom:4 }}>{userName || 'Joueur'}</div>
-              {joinDate && (
-                <div style={{ fontSize:11, color:C.muted }}>Membre depuis le {joinDate}</div>
+              <div style={{ padding:'4px 12px', borderRadius:12, background:'rgba(212,160,23,.22)', border:'1px solid rgba(193,127,60,.55)', marginBottom:8 }}>
+                <span style={{ fontSize:11, fontWeight:800, color:'#7D4E1F', letterSpacing:.5 }}>
+                  {LEVEL_NAMES[level]}
+                </span>
+              </div>
+              {userCode && (
+                <div style={{ fontSize:11, color:'#8B6A5A', marginBottom:2, fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', letterSpacing:1.5 }}>
+                  Code · {userCode}
+                </div>
               )}
-              <div style={{ marginTop:10, display:'inline-block', padding:'5px 14px', borderRadius:14, background:'rgba(212,160,23,.12)', border:'1px solid rgba(212,160,23,.45)' }}>
-                <span style={{ fontSize:12, fontWeight:800, color:'#D4A017', letterSpacing:.5 }}>{LEVEL_NAMES[level]}</span>
-              </div>
-            </section>
+              {joinDate && (
+                <div style={{ fontSize:11, color:'#A88060', marginBottom:14 }}>
+                  Membre depuis le {joinDate}
+                </div>
+              )}
 
-            {/* Niveau */}
-            <section>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>NIVEAU {level}</div>
-                <div style={{ fontSize:11, color:C.muted, fontWeight:600 }}>{xp} / {xpReq} XP</div>
+              <div style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:joinDate?0:14, marginBottom:6 }}>
+                <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', textTransform:'uppercase', letterSpacing:2 }}>
+                  NIVEAU {level}
+                </span>
+                <span style={{ fontSize:11, color:'#7D4E1F', fontWeight:600 }}>
+                  {xp} / {xpReq} XP
+                </span>
               </div>
-              <div style={{ height:8, borderRadius:4, background:C.card2, overflow:'hidden', marginBottom:10 }}>
+              <div style={{ width:'100%', height:8, borderRadius:4, background:'rgba(74,44,23,.15)', overflow:'hidden', marginBottom:12 }}>
                 <div style={{ height:'100%', width:`${xpPct}%`, background:GOLD, transition:'width .8s cubic-bezier(.36,.07,.19,.97)' }} />
               </div>
-              <button onClick={onOpenLevels} style={{ width:'100%', padding:'10px', borderRadius:12, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:12, fontWeight:700 }}>
-                Voir les niveaux →
+              <button onClick={onOpenLevels} style={{ width:'100%', padding:'9px', borderRadius:11, background:'rgba(255,255,255,.5)', border:'1px solid rgba(193,127,60,.4)', color:'#4A2C17', fontSize:12, fontWeight:700, cursor:'pointer' }}>
+                Voir tous les niveaux →
               </button>
             </section>
 
-            {/* Stats */}
+            {/* 2. Bio courte (affichage uniquement) */}
+            {userBio && (
+              <section style={{
+                borderRadius:14, padding:'14px 16px',
+                background:C.card, border:`1px solid ${C.border}`,
+                fontSize:13, color:C.text, lineHeight:1.5, fontStyle:'italic',
+                position:'relative',
+              }}>
+                <span style={{ fontSize:18, color:'#C17F3C', position:'absolute', top:6, left:10, opacity:.6 }}>"</span>
+                <div style={{ padding:'0 14px' }}>{userBio}</div>
+                <span style={{ fontSize:18, color:'#C17F3C', position:'absolute', bottom:0, right:10, opacity:.6 }}>"</span>
+              </section>
+            )}
+
+            {/* 3. Stats grid 2×3 */}
             <section>
               <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>STATISTIQUES</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 {[
-                  { label:'Total gagné', value:totalEarned, sub:'cookies', col:'#D4A017' },
-                  { label:'Série',        value:streak,      sub:`jour${streak>1?'s':''}`, col:'#E07040' },
-                  { label:'Succès',       value:`${earnedAchievements.length}/${achievementsTotal}`, sub:'débloqués', col:'#C17F3C' },
-                  { label:'Items',        value:`${unlocked.length}/${REWARDS.length}`, sub:'possédés', col:'#7D4E1F' },
+                  { label:'Total gagné',  value:totalEarned, sub:'cookies', col:'#D4A017' },
+                  { label:'Série',         value:streak,      sub:`jour${streak>1?'s':''}`, col:'#E07040' },
+                  { label:'Niveau',        value:level,       sub:LEVEL_NAMES[level], col:'#8B5A2B' },
+                  { label:'Succès',        value:`${earnedAchievements.length}/${achievementsTotal}`, sub:'débloqués', col:'#C17F3C' },
+                  { label:'Items',         value:`${unlocked.length}/${REWARDS.length}`, sub:'possédés', col:'#7D4E1F' },
+                  { label:'Marché',        value:marketRealized, sub:`cookies $CKM`, col:'#A0784E' },
                 ].map(st => (
                   <div key={st.label} style={{ borderRadius:14, background:C.card, border:`1px solid ${C.border}`, padding:'12px 14px' }}>
                     <div style={{ fontSize:10, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase', marginBottom:4 }}>{st.label}</div>
                     <div style={{ fontSize:22, fontWeight:800, color:st.col, lineHeight:1.1 }}>{st.value}</div>
-                    <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{st.sub}</div>
+                    <div style={{ fontSize:10, color:C.muted, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{st.sub}</div>
                   </div>
                 ))}
               </div>
             </section>
 
-            {/* Équipement */}
-            <section>
-              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>ÉQUIPEMENT</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:8 }}>
-                {equipment.map(e => (
-                  <div key={e.label} style={{ borderRadius:12, background:C.card, border:`1px solid ${C.border}`, padding:'10px 6px', textAlign:'center', minHeight:72, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 }}>
-                    {e.kind === 'avatar'
-                      ? <AvatarFigure value={e.value} size={32} />
-                      : <div style={{ fontSize:22 }}>{e.item ? e.item.emoji : '–'}</div>
-                    }
-                    <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:.5, textTransform:'uppercase' }}>{e.label}</div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Titres débloqués */}
-            {titres.length > 0 && (
-              <section>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
-                  <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES TITRES</div>
-                  <div style={{ fontSize:11, color:C.muted }}>{titres.length}</div>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  {titres.map(t => (
-                    <div key={t.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background:C.card, border:`1px solid ${C.border}` }}>
-                      <span style={{ fontSize:18 }}>{t.emoji}</span>
-                      <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{t.name.replace(/^Titre\s+"?|"$/g, '').replace(/"$/, '')}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Badges */}
+            {/* 4. Mes Badges */}
             <section>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
                 <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES BADGES</div>
@@ -274,8 +284,10 @@ export function ProfileOverlay({
               )}
             </section>
 
+            {/* 5. Mes Amis */}
             <FriendsSection userCode={userCode} C={C} />
 
+            {/* 6. Boutons d'édition (pseudo / avatar / bio) */}
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
               <button onClick={()=>setShowChangeName(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
                 <span>Modifier mon pseudo</span>
@@ -284,10 +296,20 @@ export function ProfileOverlay({
               <button onClick={()=>{ setEditAvatar(userAvatar); setEditing(true); }} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700 }}>
                 Modifier mon avatar
               </button>
+              <button onClick={()=>setShowChangeBio(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700 }}>
+                {userBio ? 'Modifier ma bio' : '+ Ajouter une bio'}
+              </button>
             </div>
 
-            {/* Crédit auteur — toujours en pied de profil (PHASE 2) */}
-            <div style={{ textAlign:'center', marginTop:32, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
+            {/* 7. Réinitialiser ma progression */}
+            {onReset && (
+              <section style={{ marginTop:8 }}>
+                <ResetProgressButton onReset={onReset} C={C} />
+              </section>
+            )}
+
+            {/* 8. Crédit auteur — toujours en pied de profil (PHASE 2) */}
+            <div style={{ textAlign:'center', marginTop:24, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
               Réalisé avec <strong style={{ color:'#C17F3C' }}>Claude Code</strong> par <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
               <div style={{ fontSize:10, marginTop:2, opacity:0.7 }}>
                 CookiTrader v1.0
@@ -305,6 +327,15 @@ export function ProfileOverlay({
           nameChangeCount={nameChangeCount}
           onConfirm={confirmNameChange}
           onClose={()=>setShowChangeName(false)}
+          C={C}
+        />
+      )}
+
+      {showChangeBio && (
+        <ChangeBioModal
+          currentBio={userBio}
+          onSave={confirmBio}
+          onClose={()=>setShowChangeBio(false)}
           C={C}
         />
       )}

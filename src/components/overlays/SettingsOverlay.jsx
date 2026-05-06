@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChevronLeft, Check, Lock, AlertTriangle } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, COOKIE_SKINS, LT, GOLD } from "../../data/themes.js";
+import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 
 /* ════════════════════════════════════════════════════
    SettingsOverlay — plein écran z-index 60
@@ -13,7 +14,6 @@ import { THEMES, COOKIE_SKINS, LT, GOLD } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, activeSkin, setActiveSkin, activeRoue, setActiveRoue, onReset, C }) {
-  const [confirming, setConfirming] = useState(false);
   const [appearanceTab, setAppearanceTab] = useState('themes'); // 'themes' | 'skins' | 'roues'
 
   const unlockedThemes = REWARDS.filter(r => unlocked.includes(r.id) && (r.type==='Thème' || (r.type==='Premium' && r.applyAs==='theme')));
@@ -194,26 +194,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             <AlertTriangle size={11} /> ZONE SENSIBLE
           </div>
 
-          {!confirming ? (
-            <button onClick={()=>setConfirming(true)} style={{ width:'100%', padding:11, borderRadius:12, background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, fontWeight:500, fontSize:12, letterSpacing:.2 }}>
-              Réinitialiser ma progression
-            </button>
-          ) : (
-            <div style={{ borderRadius:14, padding:14, background:'linear-gradient(135deg,#3D2010,#2A1508)', border:'1px solid #4A2C17' }}>
-              <div style={{ fontSize:13, fontWeight:700, color:'#F0E0C0', marginBottom:6 }}>Tout effacer ?</div>
-              <div style={{ fontSize:11, color:'rgba(240,224,192,.7)', lineHeight:1.5, marginBottom:14 }}>
-                Cookies, niveau, série, record, récompenses débloquées et thème seront définitivement perdus. Cette action est irréversible.
-              </div>
-              <div style={{ display:'flex', gap:8 }}>
-                <button onClick={()=>setConfirming(false)} style={{ flex:1, padding:10, borderRadius:11, background:'rgba(240,224,192,.1)', color:'#F0E0C0', fontWeight:700, fontSize:12, border:'1px solid rgba(240,224,192,.2)' }}>
-                  Annuler
-                </button>
-                <button onClick={onReset} style={{ flex:1, padding:10, borderRadius:11, background:'#1A0E08', color:'#A88060', fontWeight:700, fontSize:12, border:'1px solid #3D2010' }}>
-                  Tout effacer
-                </button>
-              </div>
-            </div>
-          )}
+          <ResetProgressButton onReset={onReset} C={C} />
         </section>
 
       </div>

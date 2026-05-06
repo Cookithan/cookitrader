@@ -86,6 +86,7 @@ export default function CookiMiner() {
   const [joinDate,    setJoinDate]    = useLocalStorage('joinDate',   '');
   const [nameChangeCount, setNameChangeCount] = useLocalStorage('nameChangeCount', 0);
   const [userCode,    setUserCode]    = useLocalStorage('userCode', '');
+  const [userBio,     setUserBio]     = useLocalStorage('userBio',  '');
 
   /* Génère le code ami au premier lancement (post-onboarding ou refresh sans code en LS).
      Reset → on remet à '' dans resetProgress, cet effet régénère un nouveau code propre. */
@@ -308,7 +309,7 @@ export default function CookiMiner() {
     setMarketTrades(0); setMarketRealized(0); setMarketHistory([]);
     setMarketEvent(null); setMarketEventTicks(0); setMarketBigMoveAt(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
-    setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode('');
+    setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
     setActiveTheme(''); setActiveSkin(''); setActiveRoue('');
     setPendingLvUp(null); setGameView(null); setTab('accueil');
@@ -698,10 +699,13 @@ export default function CookiMiner() {
           coins={coins} spendCoins={spendCoins}
           nameChangeCount={nameChangeCount} setNameChangeCount={setNameChangeCount}
           userCode={userCode}
+          userBio={userBio} setUserBio={setUserBio}
           level={level} xp={xp} xpReq={xpReq}
           totalEarned={totalEarned} streak={streak} unlocked={unlocked}
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed).length}
+          marketRealized={marketRealized}
           activeTheme={activeTheme} activeSkin={activeSkin} activeRoue={activeRoue}
+          onReset={()=>{ resetProgress(); setShowProfile(false); }}
           C={C}
         />
       )}
