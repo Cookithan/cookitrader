@@ -1,0 +1,222 @@
+import { useState } from "react";
+import { ChevronLeft, Settings, User } from "lucide-react";
+import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
+import { ONBOARDING_AVATARS, AVATAR_PREMIUM } from "../../data/avatars.js";
+import { GOLD } from "../../data/themes.js";
+import { AvatarFigure } from "../AvatarFigure.jsx";
+
+/* ════════════════════════════════════════════════════
+   ProfileOverlay — plein écran z-index 60
+   - Mode normal : carte identité, niveau (avec bouton "Voir les niveaux"),
+     stats, équipement, titres, badges, bouton "Modifier"
+   - Mode édition : prénom + grille avatars (base + premium débloqués)
+   - Le compte d'achievementsTotal ignore master_succes si non révélé
+═══════════════════════════════════════════════════════ */
+
+export function ProfileOverlay({
+  onClose, onOpenLevels, onOpenSettings,
+  userName, setUserName, userAvatar, setUserAvatar, joinDate,
+  level, xp, xpReq, totalEarned, streak, unlocked,
+  earnedAchievements, achievementsTotal,
+  activeTheme, activeSkin, activeRoue,
+  C
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(userName);
+  const [editAvatar, setEditAvatar] = useState(userAvatar);
+
+  const xpPct = Math.min((xp/xpReq)*100, 100);
+  const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
+  const titres = REWARDS.filter(r => r.type==='Titre'  && unlocked.includes(r.id));
+  const ownedAvatars = REWARDS.filter(r => (r.type==='Avatar' || (r.type==='Premium' && r.applyAs==='avatar')) && unlocked.includes(r.id));
+
+  /* Liste de tous les choix d'avatar : 4 base + premium débloqués */
+  const avatarChoices = [
+    ...ONBOARDING_AVATARS.map((a,i)=>({ value:i, ...a })),
+    ...ownedAvatars.map(r => ({ value:r.id, ...AVATAR_PREMIUM[r.id] })),
+  ];
+
+  const equipment = [
+    { label:'Avatar', kind:'avatar', value:userAvatar },
+    { label:'Thème',  kind:'item',   id:activeTheme, item: activeTheme ? REWARDS.find(r=>r.id===activeTheme) : null },
+    { label:'Skin',   kind:'item',   id:activeSkin,  item: activeSkin  ? REWARDS.find(r=>r.id===activeSkin)  : null },
+    { label:'Roue',   kind:'item',   id:activeRoue,  item: activeRoue  ? REWARDS.find(r=>r.id===activeRoue)  : null },
+  ];
+
+  const saveEdit = () => {
+    const trimmed = editName.trim();
+    if(!trimmed || editAvatar===null) return;
+    setUserName(trimmed);
+    setUserAvatar(editAvatar);
+    setEditing(false);
+  };
+
+  return (
+    <div style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:60, display:'flex', flexDirection:'column' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
+        <button onClick={onClose} style={{ width:36, height:36, borderRadius:12, background:C.card2, display:'flex', alignItems:'center', justifyContent:'center', color:C.text }}>
+          <ChevronLeft size={20} />
+        </button>
+        <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1 }}>{editing ? 'Modifier mon profil' : 'Mon profil'}</span>
+        {!editing && (
+          <button onClick={onOpenSettings} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <Settings size={15} />
+          </button>
+        )}
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', padding:'18px 18px 28px', display:'flex', flexDirection:'column', gap:18 }}>
+
+        {editing ? (
+          <>
+            <section>
+              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>PRÉNOM</div>
+              <input
+                value={editName}
+                onChange={e=>setEditName(e.target.value)}
+                maxLength={20}
+                style={{ width:'100%', padding:'14px 16px', borderRadius:14, border:`2px solid ${C.border}`, background:C.card, color:C.text, fontSize:15, fontWeight:600, outline:'none', fontFamily:'inherit' }}
+              />
+            </section>
+            <section>
+              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>AVATAR</div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10 }}>
+                {avatarChoices.map(a => {
+                  const sel = editAvatar===a.value;
+                  return (
+                    <button key={String(a.value)} onClick={()=>setEditAvatar(a.value)} className={sel?'pulse-ring':''} style={{ aspectRatio:'1', borderRadius:'50%', background:a.bg, border:`3px solid ${sel?'#D4A017':'transparent'}`, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:sel?'0 4px 16px rgba(212,160,23,.45)':'0 2px 6px rgba(0,0,0,.15)', transition:'all .2s' }}>
+                      {a.kind==='emoji'
+                        ? <span style={{ fontSize:28, lineHeight:1 }}>{a.emoji}</span>
+                        : <User size={32} color={a.stroke} strokeWidth={2.2} />}
+                    </button>
+                  );
+                })}
+              </div>
+              {avatarChoices.length === 4 && (
+                <div style={{ fontSize:11, color:C.muted, marginTop:10, fontStyle:'italic', textAlign:'center' }}>
+                  Débloque plus d'avatars dans la boutique ✨
+                </div>
+              )}
+            </section>
+            <div style={{ display:'flex', gap:10, marginTop:'auto' }}>
+              <button onClick={()=>{ setEditing(false); setEditName(userName); setEditAvatar(userAvatar); }} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:14, fontWeight:700 }}>
+                Annuler
+              </button>
+              <button onClick={saveEdit} disabled={!editName.trim() || editAvatar===null} style={{ flex:1, padding:'13px 0', borderRadius:14, background: (!editName.trim()||editAvatar===null) ? C.card2 : GOLD, color: (!editName.trim()||editAvatar===null) ? C.muted : '#fff', border:'none', fontSize:14, fontWeight:800, cursor:(!editName.trim()||editAvatar===null)?'not-allowed':'pointer' }}>
+                Enregistrer
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Identité */}
+            <section style={{ textAlign:'center', paddingTop:6 }}>
+              <div style={{ margin:'0 auto 14px', display:'inline-flex' }}>
+                <AvatarFigure value={userAvatar} size={108} />
+              </div>
+              <div style={{ fontSize:24, fontWeight:900, color:C.text, marginBottom:4 }}>{userName || 'Joueur'}</div>
+              {joinDate && (
+                <div style={{ fontSize:11, color:C.muted }}>Membre depuis le {joinDate}</div>
+              )}
+              <div style={{ marginTop:10, display:'inline-block', padding:'5px 14px', borderRadius:14, background:'rgba(212,160,23,.12)', border:'1px solid rgba(212,160,23,.45)' }}>
+                <span style={{ fontSize:12, fontWeight:800, color:'#D4A017', letterSpacing:.5 }}>{LEVEL_NAMES[level]}</span>
+              </div>
+            </section>
+
+            {/* Niveau */}
+            <section>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>NIVEAU {level}</div>
+                <div style={{ fontSize:11, color:C.muted, fontWeight:600 }}>{xp} / {xpReq} XP</div>
+              </div>
+              <div style={{ height:8, borderRadius:4, background:C.card2, overflow:'hidden', marginBottom:10 }}>
+                <div style={{ height:'100%', width:`${xpPct}%`, background:GOLD, transition:'width .8s cubic-bezier(.36,.07,.19,.97)' }} />
+              </div>
+              <button onClick={onOpenLevels} style={{ width:'100%', padding:'10px', borderRadius:12, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:12, fontWeight:700 }}>
+                Voir les niveaux →
+              </button>
+            </section>
+
+            {/* Stats */}
+            <section>
+              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>STATISTIQUES</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                {[
+                  { label:'Total gagné', value:totalEarned, sub:'cookies', col:'#D4A017' },
+                  { label:'Série',        value:streak,      sub:`jour${streak>1?'s':''}`, col:'#E07040' },
+                  { label:'Succès',       value:`${earnedAchievements.length}/${achievementsTotal}`, sub:'débloqués', col:'#C17F3C' },
+                  { label:'Items',        value:`${unlocked.length}/${REWARDS.length}`, sub:'possédés', col:'#7D4E1F' },
+                ].map(st => (
+                  <div key={st.label} style={{ borderRadius:14, background:C.card, border:`1px solid ${C.border}`, padding:'12px 14px' }}>
+                    <div style={{ fontSize:10, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase', marginBottom:4 }}>{st.label}</div>
+                    <div style={{ fontSize:22, fontWeight:800, color:st.col, lineHeight:1.1 }}>{st.value}</div>
+                    <div style={{ fontSize:10, color:C.muted, marginTop:2 }}>{st.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Équipement */}
+            <section>
+              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>ÉQUIPEMENT</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:8 }}>
+                {equipment.map(e => (
+                  <div key={e.label} style={{ borderRadius:12, background:C.card, border:`1px solid ${C.border}`, padding:'10px 6px', textAlign:'center', minHeight:72, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4 }}>
+                    {e.kind === 'avatar'
+                      ? <AvatarFigure value={e.value} size={32} />
+                      : <div style={{ fontSize:22 }}>{e.item ? e.item.emoji : '–'}</div>
+                    }
+                    <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:.5, textTransform:'uppercase' }}>{e.label}</div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Titres débloqués */}
+            {titres.length > 0 && (
+              <section>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES TITRES</div>
+                  <div style={{ fontSize:11, color:C.muted }}>{titres.length}</div>
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {titres.map(t => (
+                    <div key={t.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:12, background:C.card, border:`1px solid ${C.border}` }}>
+                      <span style={{ fontSize:18 }}>{t.emoji}</span>
+                      <span style={{ fontSize:13, fontWeight:700, color:C.text }}>{t.name.replace(/^Titre\s+"?|"$/g, '').replace(/"$/, '')}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Badges */}
+            <section>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES BADGES</div>
+                <div style={{ fontSize:11, color:C.muted }}>{badges.length}</div>
+              </div>
+              {badges.length === 0 ? (
+                <div style={{ fontSize:12, color:C.muted, fontStyle:'italic', padding:'10px 4px' }}>Aucun badge encore — direction la boutique !</div>
+              ) : (
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
+                  {badges.map(b => (
+                    <div key={b.id} style={{ borderRadius:12, background:C.card, border:'1px solid rgba(212,160,23,.4)', padding:'10px 4px', textAlign:'center' }}>
+                      <div style={{ fontSize:24, marginBottom:4 }}>{b.emoji}</div>
+                      <div style={{ fontSize:9, fontWeight:700, color:C.text, lineHeight:1.2 }}>{b.name.replace(/^Badge\s+/, '')}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <button onClick={()=>setEditing(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700, marginTop:6 }}>
+              Modifier mon profil
+            </button>
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}

@@ -27,25 +27,38 @@ Pour tester depuis un téléphone sur le même Wi-Fi : `npm run dev -- --host`, 
 
 ---
 
-## Architecture du fichier
+## Architecture des fichiers
 
-**Tout le code est dans `src/App.jsx`** — un seul fichier, ~700 lignes, structuré en sections séparées par des bandeaux de commentaires `══════`. Les sections, dans l'ordre :
+Le code a été découpé depuis `App.jsx` (qui faisait > 4000 lignes) en modules thématiques. Le fichier `src/App.jsx` ne garde plus que le composant principal `CookiMiner` (~760 lignes : états, ticks globaux, render des onglets, nav).
 
-1. **DATA** — constantes : `LEVEL_NAMES`, `SEGMENTS` (roue), `REWARDS` (boutique), `QUESTIONS` (quiz)
-2. **Geometry helpers** — calculs précomputés pour la roue (`SEG_A`, `SEG_C`) + `wRandom()` pondéré
-3. **Themes** — `DK` (espresso sombre) et `LT` (cream clair) + gradients `GOLD` et `ESPRESSO`
-4. **MAIN component** `CookiMiner` (export default) — état global + render des onglets Accueil / Jeux / Boutique + nav fixe en bas
-5. **BoutiqueTab** — grille des récompenses avec filtres
-6. **LevelUpModal** — overlay plein écran avec sparkles
-7. **SettingsOverlay** — overlay Paramètres (thème, infos sauvegarde, reset progression avec double validation)
-8. **LevelsModal** — popup déclenchée en cliquant sur la carte niveau ; révèle les 6 paliers (passés en gold, courant pulsé avec barre XP, futurs verrouillés "? ? ?")
-9. **GameOverlay** — wrapper qui s'ouvre par-dessus quand on lance un mini-jeu
-8. **CheckinGame** — récompense progressive selon le jour de la série (cf. `DAILY_REWARDS`) + tracker visuel 7 jours, jour 7 = jackpot hebdomadaire
-9. **QuizGame** — 1 question aléatoire/jour, 4 choix, feedback en couleurs cookie
-10. **SpinGame** — roue canvas avec animation cumulative-angle
-11. **ClickGame** — cookie SVG tactile, timer 10s, particules `+1 🍪` flottantes
+```
+src/
+├── App.jsx                       — CookiMiner (orchestration, états persistés, tick marché global, layout)
+├── data/
+│   ├── constants.js              — LEVEL_NAMES, SEGMENTS, REWARDS, ACHIEVEMENTS, QUESTIONS, DAILY_REWARDS, QUIZ_COOLDOWN_MS
+│   ├── themes.js                 — DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, ROUE_PALETTES, ROUE_GLOWS, COOKIE_SKINS
+│   ├── avatars.js                — ONBOARDING_AVATARS, AVATAR_PREMIUM, getAvatar()
+│   ├── leaderboard.js            — LEADERBOARD_SCHEMA, BOT_NAMES, BOT_LEVELS, generateLeaderboard, leaderboardScore
+│   └── market.js                 — PRICE_*, TICK_MS, BIG_MOVE_PCT, HISTORY_N, MARKET_EVENTS, nextPrice, fmt
+├── hooks/useLocalStorage.js      — wrap localStorage (préfixe 'cookiminer:')
+├── utils/spin.js                 — TW, SEG_A, SEG_C, wRandom (géométrie roue)
+├── styles/globalStyles.js        — chaîne CSS exportée (keyframes + classes utilitaires)
+└── components/
+    ├── AvatarFigure.jsx · Sparkline.jsx
+    ├── cookies/PremiumCookie.jsx · SkinnedCookie.jsx
+    ├── modals/LevelsModal · LevelUpModal · AchievementModal · OnboardingModal · TradeModal
+    ├── overlays/SettingsOverlay · ProfileOverlay · GameOverlay
+    ├── games/CheckinGame · QuizGame · SpinGame · ClickGame · PourGame
+    └── tabs/BoutiqueTab · ClassementTab · MarketTab · MarketLocked
+```
 
-⚠️ **Garde tout dans un seul fichier pour l'instant.** Plus simple à itérer. Si le fichier dépasse ~1200 lignes ou que des composants deviennent réutilisables, on splittera dans `src/components/`.
+Chaque fichier a un bandeau d'en-tête `══════` qui décrit son rôle, ses props et les invariants importants.
+
+**Règles d'évolution** :
+- Avant de modifier un composant, ouvre d'abord son fichier (pas la grande carte mentale dans App.jsx).
+- Si tu ajoutes un nouveau jeu / overlay / tab, suis la même arborescence (`components/games/MonJeu.jsx`, etc.) et exporte un composant nommé.
+- Les constantes "données" (REWARDS, QUESTIONS, MARKET_EVENTS…) vivent dans `data/`, pas dans le composant qui les consomme.
+- Les keyframes vont **toujours** dans `styles/globalStyles.js`, jamais dans un nouveau bloc `<style>`.
 
 ---
 
@@ -63,8 +76,8 @@ Pour tester depuis un téléphone sur le même Wi-Fi : `npm run dev -- --host`, 
 | `lastCheckin` | string \| null | `null` | `toDateString()` du dernier check-in |
 | `lastQuiz` | string \| null | `null` | `toDateString()` du dernier quiz |
 | `pendingLvUp` | number \| null | `null` | Si non null, déclenche `LevelUpModal` |
-| `tab` | 'accueil' \| 'jeux' \| 'boutique' | `'accueil'` | Onglet actif |
-| `gameView` | 'checkin' \| 'quiz' \| 'spin' \| 'click' \| null | `null` | Mini-jeu ouvert en overlay |
+| `tab` | 'accueil' \| 'jeux' \| 'classement' \| 'marche' \| 'boutique' | `'accueil'` | Onglet actif |
+| `gameView` | 'checkin' \| 'quiz' \| 'spin' \| 'click' \| 'pour' \| null | `null` | Mini-jeu ouvert en overlay |
 | `dark` | boolean | `false` | Thème Nuit Espresso (nécessite `theme_espresso` débloqué) |
 
 ### Le hook clé : `addCoins(amount)`
@@ -93,8 +106,10 @@ Pour tester depuis un téléphone sur le même Wi-Fi : `npm run dev -- --host`, 
 
 - **Cookie** = monnaie (jamais "pièce", jamais "coin" en français)
 - **Niveaux** : Barista (1) → Torréfacteur (2) → Maître (3) → Grand Barista (4) → Chef Pâtissier (5) → Légende (6)
-- **Récompenses** sont des `Badge` / `Titre` / `Thème` / `Cadre` (4 catégories filtrables)
-- **Roue** = 9 segments avec poids. Jackpot +200 ultra-rare (poids 2). Pertes possibles : -5, -15, -20.
+- **Récompenses** sont des `Badge` / `Titre` / `Thème` / `Avatar` / `Skin` / `Roue` / `Premium` (7 catégories ; Premium = payé en cafés ☕ via `currency:'cafe'`)
+- **Roue** = 11 segments pondérés. Pertes : -5, -10, -15, -25, -100. Gains : +10, +20, +50, +100, +200 (jackpot, poids 2), +300 (super jackpot, poids 2).
+- **Café (CF / ☕)** = monnaie premium rare, gagnée via level-up, certains succès, jackpot, ou conversion 1000 🍪 → 1 ☕ depuis le marché.
+- **$CKM** = "action" du marché (ouvert au niveau 3). Prix entre 30 et 500, valeur de référence 100. Tick toutes les 1.5s. News classées en small / big / mega.
 
 ---
 
@@ -120,7 +135,7 @@ Pistes ouvertes :
 2. **Une feature = une branche git** quand c'est non-trivial.
 3. **Préserve les conventions** : styles inline, pas de TypeScript, palette café-only.
 4. **Teste en visuel** : après chaque modif, suggère à l'utilisateur de relancer `npm run dev` et de regarder.
-5. **Demande avant de splitter le fichier** — l'utilisateur préfère un fichier monolithique tant que c'est gérable.
+5. **Le code est déjà découpé** (`src/data/`, `src/components/{games,modals,overlays,tabs,cookies}/`). Pour un nouveau composant non trivial, crée un fichier dédié dans le bon sous-dossier ; ne ré-empile pas tout dans `App.jsx`.
 6. **Si tu ajoutes une dépendance npm**, explique pourquoi et propose une alternative sans dépendance d'abord.
 7. **Garde le mobile-first en tête** : tout doit marcher au doigt, pas juste à la souris.
 8. **Pour les animations**, ajoute le keyframe dans le bloc `<style>` existant, ne crée pas un nouveau bloc.
