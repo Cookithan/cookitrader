@@ -68,6 +68,13 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
      on peut spawn un cookie après endGame(). */
   useEffect(()=>{ phaseRef.current = phase; }, [phase]);
 
+  /* Auto-clear du badge combo après 1.5s (purement visuel) */
+  useEffect(()=>{
+    if(!comboBadge) return;
+    const t = setTimeout(()=>setComboBadge(null), 1500);
+    return ()=>clearTimeout(t);
+  }, [comboBadge]);
+
   /* Cleanup intégral */
   useEffect(()=>()=>{
     if(timeRef.current)     clearInterval(timeRef.current);
@@ -95,10 +102,11 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     const c = newCookie();
     setCookie(c);
     cookieTORef.current = setTimeout(()=>{
-      /* Miss : décrémente le score (min 0), shake bref */
+      /* Miss : décrémente le score (min 0), shake bref, reset combo */
       const dropped = Math.max(0, scoreRef.current - 1);
       scoreRef.current = dropped;
       setScore(dropped);
+      setCombo(0);
       setShaking(true);
       setTimeout(()=>setShaking(false), 240);
       setCookie(null);
@@ -124,6 +132,8 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     setTimeLeft(REFLEX_DURATION);
     setParticles([]);
     setShaking(false);
+    setCombo(0);
+    setComboBadge(null);
     setPhase('countdown');
     phaseRef.current = 'countdown';
 
@@ -161,6 +171,8 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     setTimeLeft(REFLEX_DURATION);
     setCookie(null);
     setParticles([]);
+    setCombo(0);
+    setComboBadge(null);
   };
 
   const handleTap = (e) => {
@@ -171,6 +183,14 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     const newScore = scoreRef.current + 1;
     scoreRef.current = newScore;
     setScore(newScore);
+
+    /* Combo (purement visuel, n'affecte pas les récompenses) :
+       seuils 3 / 7 / 12 → x2 🔥 / x3 ⚡ / x4 💥, badge éphémère 1.5s */
+    const newCombo = combo + 1;
+    setCombo(newCombo);
+    if(newCombo === 3)  setComboBadge({ text:'x2 🔥', key: Date.now() });
+    if(newCombo === 7)  setComboBadge({ text:'x3 ⚡', key: Date.now() });
+    if(newCombo === 12) setComboBadge({ text:'x4 💥', key: Date.now() });
 
     /* Explosion : 5-7 mini-cookies depuis la position du cookie */
     const baseId = Date.now();
