@@ -83,20 +83,14 @@ function fmtCompact(n){
 }
 
 export default function CookiMiner() {
-  /* Splash screen au lancement (BRIEF_SPLASH) — affiché 1 fois par
-     session navigateur. La mise en arrière-plan ne re-déclenche pas
-     (sessionStorage), seule une fermeture/réouverture le fait. */
-  const [showSplash, setShowSplash] = useState(()=>{
-    try{ return sessionStorage.getItem('splashShown') !== '1'; }
-    catch{ return false; }
-  });
+  /* Splash screen au lancement (BRIEF_SPLASH) — affiché à chaque
+     mount React, donc à chaque ouverture ET à chaque refresh (F5).
+     Une simple mise en arrière-plan ne re-mount pas → pas de splash. */
+  const [showSplash, setShowSplash] = useState(true);
   /* useCallback stable : sinon SplashScreen voit une nouvelle référence
      à chaque render parent (tick market, events, etc.), son useEffect
      se relance et les timers ne s'écoulent jamais. */
-  const handleSplashFinish = useCallback(() => {
-    try{ sessionStorage.setItem('splashShown', '1'); }catch{}
-    setShowSplash(false);
-  }, []);
+  const handleSplashFinish = useCallback(() => setShowSplash(false), []);
   const [coins,       setCoins]       = useLocalStorage('coins',       0);
   const [cafes,       setCafes]       = useLocalStorage('cafes',       0);
   const [totalEarned, setTotalEarned] = useLocalStorage('totalEarned', 0);

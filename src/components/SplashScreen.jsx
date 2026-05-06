@@ -49,7 +49,12 @@ export default function SplashScreen({ onFinish }){
           <span
             key={i}
             className="splash-letter"
-            style={{ animationDelay: `${0.05 + i * 0.17}s` }}
+            style={{
+              animationDelay: `${0.05 + i * 0.17}s`,
+              /* "Miner" (5 dernières lettres) en caramel plus foncé,
+                 cohérent avec le header. Reste plus clair que le fond. */
+              ...(i >= 5 ? { color: '#C17F3C' } : null),
+            }}
           >
             {letter}
           </span>
