@@ -15,6 +15,7 @@ import { TutorialOverlay } from "./components/tutorial/TutorialOverlay.jsx";
 import { ContextHint, CONTEXT_HINTS } from "./components/tutorial/ContextHint.jsx";
 import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
 import { useInstallPrompt } from "./hooks/useInstallPrompt.js";
+import { useSwipe } from "./hooks/useSwipe.js";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -233,6 +234,10 @@ export default function CookiMiner() {
 
   /* Hook PWA : exposé aux paramètres pour le bouton "Installer" */
   const installPrompt = useInstallPrompt();
+
+  /* Swipe horizontal pour changer d'onglet — désactivé tant qu'un
+     overlay/modal/jeu/tuto est ouvert, pour éviter les conflits. */
+  const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
 
   /* ── TUTORIEL : démarrage / wires ─────────────── */
 
@@ -659,8 +664,21 @@ export default function CookiMiner() {
         </div>
       </header>
 
-      {/* CONTENT */}
-      <div style={{ flex:1, overflowY:'auto', padding:'0 16px', paddingBottom:104 }}>
+      {/* CONTENT — swipe horizontal navigue dans TAB_ORDER */}
+      <div
+        style={{ flex:1, overflowY:'auto', padding:'0 16px', paddingBottom:104 }}
+        {...useSwipe({
+          enabled: !gameView && !showSettings && !showProfile && !showLevels && !showOnboarding && !showSkipConfirm && !showEventModal && !eventReward && tutorialStep === 0 && !pendingLvUp && !pendingAchievement,
+          onLeft: () => {
+            const i = TAB_ORDER.indexOf(tab);
+            if(i >= 0 && i < TAB_ORDER.length - 1) setTab(TAB_ORDER[i + 1]);
+          },
+          onRight: () => {
+            const i = TAB_ORDER.indexOf(tab);
+            if(i > 0) setTab(TAB_ORDER[i - 1]);
+          },
+        })}
+      >
 
         {/* ── ACCUEIL ── */}
         {tab==='accueil' && (
