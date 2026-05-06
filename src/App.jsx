@@ -160,7 +160,10 @@ export default function CookiMiner() {
      "création" / "update" à gérer côté client.
      Skipped si Supabase off, pas de userCode, ou pas encore d'userName
      (l'utilisateur n'a pas fini l'onboarding). */
-  const [supabaseSyncOk, setSupabaseSyncOk] = useState(false);
+  /* État "online" optimiste : on suppose que la sync marche. Ne passe
+     à `error` que si un upsert échoue (réseau, RLS, etc.). Ça évite
+     l'effet "Hors ligne" pendant les 5s du debounce initial. */
+  const [supabaseError, setSupabaseError] = useState(false);
   useEffect(()=>{
     if(!isSupabaseEnabled()) return;
     if(!userCode || !userName) return;
@@ -169,7 +172,7 @@ export default function CookiMiner() {
         userCode, userName, userAvatar, level, totalEarned,
         coins, streak, userBio,
       });
-      setSupabaseSyncOk(!!res?.ok);
+      setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
   }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio]);
@@ -1118,7 +1121,7 @@ export default function CookiMiner() {
           activeTheme={activeTheme} activeSkin={activeSkin} activeRoue={activeRoue}
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
           supabaseEnabled={isSupabaseEnabled()}
-          supabaseSyncOk={supabaseSyncOk}
+          supabaseSyncOk={!supabaseError}
           C={C}
         />
       )}
