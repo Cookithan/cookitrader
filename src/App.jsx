@@ -984,8 +984,9 @@ export default function CookiMiner() {
         {/* ── CLASSEMENT ── */}
         {tab==='classement' && (
           <ClassementTab
-            leaderboard={leaderboard || []}
-            user={{ name:userName, avatar:userAvatar, level, streak, totalEarned, clickRecord, marketRealized, cafes }}
+            userCode={userCode}
+            userName={userName}
+            userAvatar={userAvatar}
             onOpenProfile={()=>setShowProfile(true)}
             C={C}
           />

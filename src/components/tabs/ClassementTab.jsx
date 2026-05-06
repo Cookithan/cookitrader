@@ -1,196 +1,224 @@
-import { useState } from "react";
-import { leaderboardScore } from "../../data/leaderboard.js";
+import { useEffect, useRef, useState } from "react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
+import { isSupabaseEnabled } from "../../lib/supabase.js";
+import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSync.js";
 
 /* ════════════════════════════════════════════════════
-   ClassementTab — leaderboard fictif (29 bots + le joueur)
-   - Filtres : Cookies / Score / Cafés / Niveau / Série / Clics
-   - Carte sticky-top : position du joueur dans le classement courant
-   - Podium top 3 (ordre 2-1-3 visuel) + liste rang 4+
-   - "Voir plus" si l'utilisateur est masqué hors top 10 → indication visuelle
+   ClassementTab — vrai classement Supabase (BRIEF_SUPABASE phase 5)
+   ────────────────────────────────────────────────────
+   Plus aucun bot fictif. Le classement est une liste live des vrais
+   joueurs ordonnés par total_earned décroissant.
+
+   - Carte sticky en haut : mon rang #N sur M joueurs (mise en évidence
+     gradient ESPRESSO + or)
+   - Top 3 : style spécial avec gradient or/bronze/cuivre (palette café)
+   - Mon profil dans la liste : bordure dorée + ✦
+   - Refresh auto toutes les 30s
+   - Cache via sessionStorage : la liste s'affiche instantanément à
+     l'ouverture du tab même hors-ligne (phase 6)
+   - Si Supabase off : placeholder "Hors ligne" sans bots fictifs
+
+   Props :
+   - userCode    : pour getMyRank et highlight
+   - userName    : utilisé en fallback si profil pas encore sync serveur
+   - userAvatar  : idem
+   - onOpenProfile : tap sur ma carte sticky → ouvre l'overlay profil
 ═══════════════════════════════════════════════════════ */
 
-export function ClassementTab({ leaderboard, user, onOpenProfile, C }){
-  const [filter, setFilter] = useState('coins');
-  const [showAll, setShowAll] = useState(false);
-  const FILTERS = [
-    { id:'coins',  label:'Cookies',   metric:'totalEarned',    unit:'🍪'   },
-    { id:'score',  label:'Score',     metric:'score',          unit:''     },
-    { id:'cafes',  label:'Cafés',     metric:'cafes',          unit:'☕'   },
-    { id:'level',  label:'Niveau',    metric:'level',          unit:''     },
-    { id:'streak', label:'Série',     metric:'streak',         unit:'j'    },
-    { id:'click',  label:'Clics',     metric:'clickRecord',    unit:''     },
-  ];
-  const current = FILTERS.find(f => f.id === filter) || FILTERS[0];
+const REFRESH_MS = 30_000;
+const CACHE_KEY = 'leaderboard:cache';
 
-  const userEntry = {
-    name: user.name || 'Toi',
-    avatar: user.avatar !== null && user.avatar !== undefined ? user.avatar : 0,
-    level: user.level || 1,
-    streak: user.streak || 0,
-    totalEarned: user.totalEarned || 0,
-    clickRecord: user.clickRecord || 0,
-    marketRealized: user.marketRealized || 0,
-    cafes: user.cafes || 0,
-    isUser: true
-  };
+function loadCache(){
+  try{
+    const raw = sessionStorage.getItem(CACHE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  }catch{ return null; }
+}
+function saveCache(payload){
+  try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload)); }catch{}
+}
 
-  const getMetric = (p) => current.metric === 'score' ? leaderboardScore(p) : (p[current.metric] || 0);
+export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C }){
+  const enabled = isSupabaseEnabled();
 
-  const all = [...leaderboard, userEntry].sort((a,b) => getMetric(b) - getMetric(a));
-  const userPos = all.findIndex(p => p.isUser) + 1;
-  const totalPlayers = all.length;
-  const top3 = all.slice(0, 3);
+  /* État initialisé depuis le cache pour un affichage instantané */
+  const cached = loadCache();
+  const [list,    setList]    = useState(cached?.list  ?? []);
+  const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
+  const [total,   setTotal]   = useState(cached?.total ?? null);
+  const [loading, setLoading] = useState(!cached);
+  const aliveRef = useRef(true);
 
-  const podiumColors = ['#D4A017','#C0B0A0','#C17F3C'];
-  const podiumEmojis = ['🥇','🥈','🥉'];
+  useEffect(()=>{
+    aliveRef.current = true;
+    if(!enabled){ setLoading(false); return; }
+
+    const fetchAll = async () => {
+      const [leaderboard, rank, count] = await Promise.all([
+        getLeaderboard(50),
+        userCode ? getMyRank(userCode) : Promise.resolve(null),
+        getTotalPlayers(),
+      ]);
+      if(!aliveRef.current) return;
+      setList(leaderboard);
+      setMyRank(rank);
+      setTotal(count);
+      setLoading(false);
+      saveCache({ list:leaderboard, myRank:rank, total:count });
+    };
+
+    fetchAll();
+    const id = setInterval(fetchAll, REFRESH_MS);
+    return ()=>{ aliveRef.current = false; clearInterval(id); };
+  }, [enabled, userCode]);
+
+  /* Cas Supabase off : placeholder, pas de bots fictifs */
+  if(!enabled){
+    return (
+      <div className="su" style={{ paddingTop:4 }}>
+        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>CLASSEMENT</div>
+        <div style={{
+          background:'rgba(193,127,60,.08)',
+          border:`2px dashed ${C.border}`,
+          borderRadius:18, padding:'30px 22px', textAlign:'center',
+        }}>
+          <div style={{ fontSize:42, marginBottom:8 }}>🔌</div>
+          <div style={{ fontSize:14, fontWeight:800, color:C.text, marginBottom:6 }}>Hors ligne</div>
+          <div style={{ fontSize:12, color:C.muted, lineHeight:1.5 }}>
+            Le classement nécessite une connexion réseau. Réessaie plus tard.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="su" style={{ paddingTop:4, paddingBottom:8 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
         <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>CLASSEMENT</div>
-        <div style={{ fontSize:11, fontWeight:600, color:C.muted }}>{totalPlayers} joueurs</div>
+        <div style={{ fontSize:11, fontWeight:600, color:C.muted }}>
+          {total !== null ? `${total} joueur${total>1?'s':''}` : '…'}
+        </div>
       </div>
 
-      {/* Carte position du joueur */}
+      {/* Carte sticky : mon rang */}
       <button
         onClick={onOpenProfile}
         style={{
-          width:'100%', display:'flex', alignItems:'center', gap:14, padding:'14px 16px',
-          borderRadius:18, marginBottom:14, background:ESPRESSO,
-          border:'2px solid #D4A017',
-          boxShadow:'0 6px 20px rgba(212,160,23,.35)',
-          textAlign:'left', cursor:'pointer'
+          width:'100%', display:'flex', alignItems:'center', gap:14,
+          padding:'14px 16px', marginBottom:14,
+          borderRadius:18, background:ESPRESSO,
+          border:'1px solid rgba(212,160,23,.4)',
+          boxShadow:'0 6px 20px rgba(74,44,23,.3)',
+          color:'#fff', textAlign:'left', cursor:'pointer',
         }}
       >
-        <div style={{ fontSize:32, fontWeight:900, color:'#F0C050', minWidth:54, textAlign:'center', letterSpacing:'-1px' }}>
-          #{userPos}
-        </div>
-        <AvatarFigure value={userEntry.avatar} size={42} />
+        <AvatarFigure value={userAvatar ?? 0} size={48} />
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:14, fontWeight:800, color:'#fff' }}>{userEntry.name}</div>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,.7)' }}>
-            Ta position en <strong style={{ color:'#F0C050' }}>{current.label.toLowerCase()}</strong>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>Ton rang</div>
+          <div style={{ fontSize:15, fontWeight:800, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+            {userName || 'Joueur'}
           </div>
         </div>
         <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:16, fontWeight:900, color:'#F0C050' }}>{getMetric(userEntry).toLocaleString('fr-FR')}</div>
-          {current.unit && <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>{current.unit}</div>}
+          <div style={{ fontSize:28, fontWeight:900, color:'#F0C050', lineHeight:1, letterSpacing:'-1px' }}>
+            {myRank !== null ? `#${myRank}` : '—'}
+          </div>
+          {total !== null && myRank !== null && (
+            <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>sur {total}</div>
+          )}
         </div>
       </button>
 
-      {/* Filtres pills */}
-      <div style={{ display:'flex', gap:6, marginBottom:14, overflowX:'auto', paddingBottom:2 }}>
-        {FILTERS.map(f=>(
-          <button key={f.id} onClick={()=>setFilter(f.id)} style={{
-            padding:'6px 12px', borderRadius:18, fontSize:11, fontWeight:700, whiteSpace:'nowrap',
-            background:filter===f.id?GOLD:C.card, color:filter===f.id?'#fff':C.muted,
-            border:`1px solid ${filter===f.id?'transparent':C.border}`, cursor:'pointer', transition:'all .2s'
-          }}>{f.label}</button>
-        ))}
+      {/* Liste */}
+      {loading && list.length === 0 ? (
+        <div style={{ fontSize:12, color:C.muted, textAlign:'center', padding:24, fontStyle:'italic' }}>
+          Chargement…
+        </div>
+      ) : list.length === 0 ? (
+        <div style={{
+          background:C.card, border:`1px dashed ${C.border}`,
+          borderRadius:14, padding:20, textAlign:'center', color:C.muted, fontSize:12,
+        }}>
+          Pas encore de joueurs. Sois le premier !
+        </div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {list.map((p, i) => (
+            <LeaderRow
+              key={p.user_code}
+              rank={i + 1}
+              p={p}
+              isMe={p.user_code === userCode}
+              C={C}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* Une ligne du classement. Rang 1-3 : gradient médaille (or/bronze/
+   cuivre, palette café). Rang 4+ : carte normale. Highlight de mon
+   profil avec bordure dorée + ✦. */
+function LeaderRow({ rank, p, isMe, C }){
+  const medal = rank === 1
+    ? { bg:'linear-gradient(135deg,#F0C050,#D4A017)', col:'#3D2010', emoji:'🥇' }
+    : rank === 2
+    ? { bg:'linear-gradient(135deg,#C8A878,#A0784E)', col:'#3D2010', emoji:'🥈' }
+    : rank === 3
+    ? { bg:'linear-gradient(135deg,#B07840,#7D4E1F)', col:'#F0E0C0', emoji:'🥉' }
+    : null;
+
+  const cardBg     = medal ? medal.bg : C.card;
+  const textColor  = medal ? medal.col : C.text;
+  const subColor   = medal ? `${medal.col}cc` : C.muted;
+  const cookieColor = medal ? medal.col : '#D4A017';
+
+  return (
+    <div style={{
+      display:'flex', alignItems:'center', gap:12,
+      padding:'12px 14px', borderRadius:14,
+      background: cardBg,
+      border: isMe ? '2px solid #D4A017' : `1px solid ${medal ? 'transparent' : C.border}`,
+      boxShadow: medal ? '0 6px 18px rgba(74,44,23,.25)' : isMe ? '0 0 0 4px rgba(212,160,23,.12)' : 'none',
+      position:'relative',
+    }}>
+      <div style={{
+        flexShrink:0, width:36, textAlign:'center',
+        fontSize: rank <= 3 ? 22 : 13,
+        fontWeight:900, color: textColor,
+        lineHeight:1,
+      }}>
+        {medal ? medal.emoji : `#${rank}`}
       </div>
-
-      {/* Podium top 3 */}
-      <div style={{ display:'flex', gap:8, marginBottom:16, alignItems:'flex-end' }}>
-        {[1,0,2].map(i => {
-          const p = top3[i];
-          if(!p) return <div key={i} style={{ flex:1 }} />;
-          const isUser = p.isUser;
-          const heights = [96, 78, 70];
-          return (
-            <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6 }}>
-              <div style={{ position:'relative' }}>
-                <AvatarFigure value={p.avatar} size={40} ringColor={isUser?'#D4A017':podiumColors[i]} />
-                <div style={{ position:'absolute', top:-8, right:-8, fontSize:18 }}>{podiumEmojis[i]}</div>
-              </div>
-              <div style={{
-                width:'100%', borderRadius:'12px 12px 0 0', height:heights[i],
-                background: isUser
-                  ? 'linear-gradient(180deg, rgba(212,160,23,.3), rgba(212,160,23,.1))'
-                  : i===0 ? 'linear-gradient(180deg, rgba(212,160,23,.22), rgba(212,160,23,.05))'
-                  : i===1 ? 'linear-gradient(180deg, rgba(192,176,160,.22), rgba(192,176,160,.05))'
-                  :         'linear-gradient(180deg, rgba(193,127,60,.22), rgba(193,127,60,.05))',
-                border: `1.5px solid ${isUser ? '#D4A017' : podiumColors[i]}`,
-                borderBottom:'none',
-                display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-start',
-                padding:'8px 4px'
-              }}>
-                <div style={{ fontSize:11, fontWeight:800, color:C.text, textAlign:'center', lineHeight:1.2, maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.name}</div>
-                <div style={{ fontSize:13, fontWeight:900, color: isUser?'#D4A017':podiumColors[i], marginTop:4 }}>
-                  {getMetric(p).toLocaleString('fr-FR')}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      <AvatarFigure value={Number(p.user_avatar) || 0} size={40} />
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
+          <span style={{
+            fontSize:13, fontWeight:800, color: textColor,
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+          }}>
+            {p.user_name}{isMe && ' ✦'}
+          </span>
+          <span style={{ fontSize:10, color: subColor, fontWeight:700, letterSpacing:.4 }}>
+            Niv.{p.level}
+          </span>
+        </div>
+        {p.streak > 0 && (
+          <div style={{ fontSize:10, color: subColor, fontWeight:600 }}>
+            🔥 {p.streak}j de série
+          </div>
+        )}
       </div>
-
-      {/* Liste rang 4+ (top 10 par défaut, voir plus pour le reste) */}
-      {(() => {
-        const rest = all.slice(3);
-        const visibleCount = showAll ? rest.length : Math.min(7, rest.length); // 4-10 par défaut
-        const visible = rest.slice(0, visibleCount);
-        const userInHidden = !showAll && rest.findIndex(p => p.isUser) >= 7;
-        return (
-          <>
-            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              {visible.map((p, idx) => {
-                const rank = idx + 4;
-                const isUser = p.isUser;
-                return (
-                  <div
-                    key={`${p.name}-${rank}`}
-                    onClick={isUser ? onOpenProfile : undefined}
-                    style={{
-                      display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12,
-                      background: isUser ? 'rgba(212,160,23,.14)' : C.card,
-                      border:`1.5px solid ${isUser ? '#D4A017' : C.border}`,
-                      cursor: isUser ? 'pointer' : 'default'
-                    }}
-                  >
-                    <div style={{ fontSize:13, fontWeight:800, color: isUser?'#D4A017':C.muted, minWidth:30 }}>#{rank}</div>
-                    <AvatarFigure value={p.avatar} size={32} />
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:isUser?900:700, color:C.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                        {p.name}{isUser && <span style={{ fontSize:10, marginLeft:6, padding:'2px 6px', borderRadius:6, background:GOLD, color:'#fff', fontWeight:800 }}>TOI</span>}
-                      </div>
-                      <div style={{ fontSize:10, color:C.muted }}>Niv {p.level} · 🔥 {p.streak} · ☕ {p.cafes || 0}</div>
-                    </div>
-                    <div style={{ fontSize:14, fontWeight:900, color:isUser?'#D4A017':C.text, textAlign:'right' }}>
-                      {getMetric(p).toLocaleString('fr-FR')}
-                      {current.unit && <span style={{ fontSize:9, color:C.muted, marginLeft:3 }}>{current.unit}</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            {rest.length > 7 && (
-              <button
-                onClick={()=>setShowAll(v => !v)}
-                style={{
-                  width:'100%', marginTop:10, padding:'10px',
-                  borderRadius:12, background:'transparent',
-                  border:`1px dashed ${userInHidden ? '#D4A017' : C.border}`,
-                  color: userInHidden ? '#D4A017' : C.muted,
-                  fontSize:12, fontWeight:700, letterSpacing:.3, cursor:'pointer'
-                }}
-              >
-                {showAll
-                  ? 'Voir moins ↑'
-                  : `Voir plus (${rest.length - 7})${userInHidden ? ' — tu y es !' : ''} ↓`}
-              </button>
-            )}
-          </>
-        );
-      })()}
-
-      {/* Message bas */}
-      <div style={{ textAlign:'center', marginTop:18, fontSize:12, color:C.muted, fontStyle:'italic' }}>
-        {userPos === 1 ? '👑 Tu domines tous les baristas du monde !'
-          : userPos <= 3 ? '🏆 Tu es sur le podium — encore un effort !'
-          : userPos <= 10 ? '🔥 Top 10 — continue à grimper !'
-          : 'Joue plus pour grimper dans le classement ☕'}
+      <div style={{ textAlign:'right', flexShrink:0 }}>
+        <div style={{ fontSize:15, fontWeight:900, color: cookieColor, lineHeight:1 }}>
+          {(p.total_earned ?? 0).toLocaleString('fr-FR')}
+        </div>
+        <div style={{ fontSize:9, color: subColor, fontWeight:700, letterSpacing:.5 }}>🍪 cumulés</div>
       </div>
     </div>
   );
