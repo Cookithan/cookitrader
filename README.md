@@ -1,4 +1,4 @@
-# CookiTrader 🍪☕
+# CookiMiner 🍪☕
 
 App mobile React de récompenses sur le thème café & cookie. L'utilisateur joue à des mini-jeux, accumule des cookies (la monnaie), monte de niveau, débloque des récompenses cosmétiques, investit sur un marché simulé $CKM, et se mesure dans un classement.
 
