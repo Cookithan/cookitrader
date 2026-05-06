@@ -16,6 +16,7 @@ import { ContextHint, CONTEXT_HINTS } from "./components/tutorial/ContextHint.js
 import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
 import { useInstallPrompt } from "./hooks/useInstallPrompt.js";
 import { useSwipe } from "./hooks/useSwipe.js";
+import { AppSplash } from "./components/AppSplash.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -1119,6 +1120,9 @@ export default function CookiMiner() {
       )}
       {/* Bulle contextuelle (1re ouverture jeu/onglet) */}
       <ContextHint hint={activeHint} onClose={()=>setActiveHint(null)} />
+
+      {/* Splash custom au montage (transition douce après le splash système) */}
+      <AppSplash />
     </div>
   );
 }
