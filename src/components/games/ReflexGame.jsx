@@ -50,7 +50,6 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
   const [timeLeft,      setTimeLeft]      = useState(REFLEX_DURATION);
   const [countdownVal,  setCountdownVal]  = useState(null);
   const [cookie,        setCookie]        = useState(null);        // { id, x, y, ttl } | null
-  const [particles,     setParticles]     = useState([]);          // explosions sur tap
   const [shaking,       setShaking]       = useState(false);       // miss feedback
   const [combo,         setCombo]         = useState(0);            // étape 4 : incrémenté sur tap, reset sur miss
   const [comboBadge,    setComboBadge]    = useState(null);         // { text, key } — étape 4
@@ -130,7 +129,6 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     scoreRef.current = 0;
     setScore(0);
     setTimeLeft(REFLEX_DURATION);
-    setParticles([]);
     setShaking(false);
     setCombo(0);
     setComboBadge(null);
@@ -170,7 +168,6 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     setScore(0); scoreRef.current = 0;
     setTimeLeft(REFLEX_DURATION);
     setCookie(null);
-    setParticles([]);
     setCombo(0);
     setComboBadge(null);
   };
@@ -192,27 +189,53 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     if(newCombo === 7)  setComboBadge({ text:'x3 ⚡', key: Date.now() });
     if(newCombo === 12) setComboBadge({ text:'x4 💥', key: Date.now() });
 
-    /* Explosion : 5-7 mini-cookies depuis la position du cookie */
-    const baseId = Date.now();
-    const count  = 5 + Math.floor(Math.random() * 3);
-    const pieces = Array.from({ length: count }).map((_, i) => {
-      const angle = (i / count) * Math.PI * 2 + (Math.random() - .5) * .5;
-      const dist  = 50 + Math.random() * 40;
-      return {
-        id: baseId + i,
-        x:  cookie.x,
-        y:  cookie.y,
-        tx: Math.cos(angle) * dist,
-        ty: Math.sin(angle) * dist,
-      };
-    });
-    setParticles(p => [...p, ...pieces]);
-    setTimeout(()=>{
-      setParticles(p => p.filter(x => !pieces.some(pp => pp.id === x.id)));
-    }, 900);
+    /* Particules : 6 crumbs en cercle (🍪/✨ alternés) + "+1 🍪"
+       qui flotte vers le haut. Injection DOM directe via particlesRef
+       (pas de state React) : moins de re-renders, animations CSS pures. */
+    spawnTapParticles(e);
 
     setCookie(null);
     respawnRef.current = setTimeout(spawn, RESPAWN_HIT_MS);
+  };
+
+  /* Calcule la position du cookie tapé relative à l'arène, puis injecte
+     6 .rx-crumb (animation rxCrumbFly) et 1 .rx-plus-one (rxPlusOneFloat).
+     Cleanup auto via setTimeout 700ms. */
+  const spawnTapParticles = (e) => {
+    const layer = particlesRef.current;
+    if(!layer) return;
+    const arenaEl = layer.parentElement;
+    if(!arenaEl) return;
+    const arenaRect  = arenaEl.getBoundingClientRect();
+    const cookieEl   = e.currentTarget;
+    const cookieRect = cookieEl.getBoundingClientRect();
+    const x = cookieRect.left - arenaRect.left + cookieRect.width  / 2;
+    const y = cookieRect.top  - arenaRect.top  + cookieRect.height / 2;
+
+    /* 6 crumbs en cercle */
+    for(let i = 0; i < 6; i++){
+      const crumb = document.createElement('div');
+      crumb.className   = 'rx-crumb';
+      crumb.textContent = i % 2 === 0 ? '🍪' : '✨';
+      crumb.style.left  = (x - 8) + 'px';
+      crumb.style.top   = (y - 8) + 'px';
+      const angle = (i / 6) * Math.PI * 2;
+      const dist  = 50 + Math.random() * 30;
+      crumb.style.setProperty('--tx',  Math.cos(angle) * dist + 'px');
+      crumb.style.setProperty('--ty',  Math.sin(angle) * dist + 'px');
+      crumb.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      layer.appendChild(crumb);
+      setTimeout(()=>crumb.remove(), 700);
+    }
+
+    /* +1 🍪 qui flotte vers le haut */
+    const plus = document.createElement('div');
+    plus.className   = 'rx-plus-one';
+    plus.textContent = '+1 🍪';
+    plus.style.left  = x + 'px';
+    plus.style.top   = (y - 10) + 'px';
+    layer.appendChild(plus);
+    setTimeout(()=>plus.remove(), 700);
   };
 
   const canPlay = coins >= REFLEX_COST;
@@ -382,11 +405,15 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
         <div ref={particlesRef} className="rx-particles-layer" />
       </div>
 
-      {/* Texte d'instruction */}
-      <div style={{ minHeight:18, fontSize:13, fontWeight:600, color: phase==='playing' ? '#D4A017' : C.muted, fontStyle: phase==='playing'?'normal':'italic', textAlign:'center' }}>
-        {phase === 'idle'      && 'Tape les cookies avant qu\'ils disparaissent'}
+      {/* Texte d'instruction (style brief : uppercase, doré, letter-spacing) */}
+      <div style={{
+        minHeight:18, textAlign:'center',
+        fontSize:13, fontWeight:800,
+        color:'#D4A017', textTransform:'uppercase', letterSpacing:2,
+      }}>
+        {phase === 'idle'      && 'Prêt à tester tes réflexes ?'}
         {phase === 'countdown' && 'Prépare-toi…'}
-        {phase === 'playing'   && (shaking ? 'Loupé !' : 'Tape ! Tape !')}
+        {phase === 'playing'   && (shaking ? 'Loupé !' : 'Tape ! Tape ! Tape !')}
         {phase === 'done'      && (score >= 5 ? 'Bien joué !' : 'Tu peux mieux faire')}
       </div>
 
