@@ -74,8 +74,10 @@ export const GLOBAL_CSS = `
   .splash-letter{font-size:44px;font-weight:900;color:#E8C896;text-shadow:0 2px 8px rgba(212,160,23,.4),0 0 24px rgba(212,160,23,.2);opacity:0;transform:translateY(20px) scale(.7);animation:splashLetterIn .4s cubic-bezier(.34,1.56,.64,1) forwards;letter-spacing:0}
   @keyframes splashLetterIn{0%{opacity:0;transform:translateY(20px) scale(.7)}60%{opacity:1;transform:translateY(-4px) scale(1.1)}100%{opacity:1;transform:translateY(0) scale(1)}}
   .splash-subtitle{color:#A0784E;font-size:13px;font-weight:600;letter-spacing:4px;text-transform:uppercase;opacity:0;animation:splashSubIn .5s ease 1.7s forwards;z-index:2}
+  .splash-screen.fast .splash-subtitle{animation:splashSubIn .35s ease .8s forwards}
   @keyframes splashSubIn{from{opacity:0;transform:translateY(10px)}to{opacity:.9;transform:translateY(0)}}
   .splash-dots{display:flex;gap:8px;margin-top:12px;opacity:0;animation:splashDotsIn .4s ease 1.9s forwards;z-index:2}
+  .splash-screen.fast .splash-dots{animation:splashDotsIn .3s ease .9s forwards}
   @keyframes splashDotsIn{from{opacity:0}to{opacity:1}}
   .splash-dot{width:7px;height:7px;border-radius:50%;background:#D4A017;animation:splashDotPulse 1.2s ease-in-out infinite}
   .splash-dot:nth-child(2){animation-delay:.15s}

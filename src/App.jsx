@@ -85,8 +85,17 @@ function fmtCompact(n){
 export default function CookiMiner() {
   /* Splash screen au lancement (BRIEF_SPLASH) — affiché à chaque
      mount React, donc à chaque ouverture ET à chaque refresh (F5).
-     Une simple mise en arrière-plan ne re-mount pas → pas de splash. */
+     Une simple mise en arrière-plan ne re-mount pas → pas de splash.
+     Si c'est un refresh (Performance API), on passe en mode "fast"
+     (durées ~/2 ; le splash long est inutile à ce moment-là). */
   const [showSplash, setShowSplash] = useState(true);
+  const splashFastRef = useRef(false);
+  if(typeof window !== 'undefined' && splashFastRef.current === false){
+    try{
+      const nav = performance.getEntriesByType?.('navigation');
+      if(nav?.[0]?.type === 'reload') splashFastRef.current = true;
+    }catch{}
+  }
   /* useCallback stable : sinon SplashScreen voit une nouvelle référence
      à chaque render parent (tick market, events, etc.), son useEffect
      se relance et les timers ne s'écoulent jamais. */
@@ -1175,8 +1184,9 @@ export default function CookiMiner() {
       {/* Bulle contextuelle (1re ouverture jeu/onglet) */}
       <ContextHint hint={activeHint} onClose={()=>setActiveHint(null)} />
 
-      {/* Splash custom au tout 1er rendu (1×/session) */}
-      {showSplash && <SplashScreen onFinish={handleSplashFinish} />}
+      {/* Splash custom à chaque mount (ouverture + F5). En mode fast
+          si c'est un refresh détecté via Performance API. */}
+      {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
     </div>
   );
 }
