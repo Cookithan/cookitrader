@@ -60,16 +60,20 @@ export function InstallBanner(){
 
   return (
     <div
-      className="su"
       style={{
         position:'fixed',
         bottom:90, left:'50%', transform:'translateX(-50%)',
         maxWidth:410, width:'calc(100% - 20px)',
+        zIndex:200,
+      }}
+    >
+    <div
+      className="su"
+      style={{
         background:'linear-gradient(135deg,#D4A017,#C17F3C)',
         borderRadius:18, padding:'14px 16px',
         boxShadow:'0 8px 24px rgba(74,44,23,.3)',
         color:'#fff',
-        zIndex:200,
         display:'flex', alignItems:'center', gap:12,
       }}
     >
@@ -101,6 +105,7 @@ export function InstallBanner(){
       >
         ✕
       </button>
+    </div>
     </div>
   );
 }

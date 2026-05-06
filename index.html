@@ -15,8 +15,9 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="CookiMiner">
 
-    <!-- Mobile viewport (anti-zoom au double-tap) -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Mobile viewport (anti-zoom au double-tap, sans viewport-fit=cover :
+         on reste dans la zone safe automatiquement sur iOS PWA) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   </head>
   <body>
     <div id="root"></div>

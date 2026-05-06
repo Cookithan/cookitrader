@@ -12,6 +12,11 @@ import { useEffect, useState } from "react";
    Léger délai d'apparition (.4s) pour laisser le voile s'installer
    visuellement avant que la bulle pop.
 
+   ⚠️ Cadrage : la classe .bi (bounceIn) anime transform:scale, ce qui
+   écrase tout transform inline sur le même élément. On encapsule donc
+   dans un wrapper qui détient le translateX(-50%), et on applique .bi
+   sur l'enfant. Sinon la bulle saute hors centrage pendant 0.55s.
+
    Props :
    - text, position ('top'|'bottom'), actionRequired
    - onNext, onSkip (null hors étape 1)
@@ -32,64 +37,69 @@ export function TutorialBubble({ text, position, actionRequired, onNext, onSkip,
 
   return (
     <div
-      className="bi"
       style={{
         position:'fixed',
         top:    position === 'bottom' ? '60%' : 'auto',
         bottom: position === 'bottom' ? 'auto' : 100,
         left:'50%', transform:'translateX(-50%)',
-        background:'linear-gradient(140deg,#4A2C17,#7D4E1F)',
-        color:'#fff',
-        borderRadius:18, padding:'16px 20px',
         maxWidth:320, width:'calc(100% - 40px)',
-        boxShadow:'0 12px 32px rgba(0,0,0,.4), 0 0 24px rgba(212,160,23,.3)',
-        border:'2px solid rgba(212,160,23,.4)',
         zIndex:210,
       }}
     >
-      <div style={{
-        fontSize:10, color:'rgba(255,255,255,.6)',
-        textTransform:'uppercase', letterSpacing:2, marginBottom:6,
-      }}>
-        Étape {stepCount} / {totalSteps}
-      </div>
+      <div
+        className="bi"
+        style={{
+          background:'linear-gradient(140deg,#4A2C17,#7D4E1F)',
+          color:'#fff',
+          borderRadius:18, padding:'16px 20px',
+          boxShadow:'0 12px 32px rgba(0,0,0,.4), 0 0 24px rgba(212,160,23,.3)',
+          border:'2px solid rgba(212,160,23,.4)',
+        }}
+      >
+        <div style={{
+          fontSize:10, color:'rgba(255,255,255,.6)',
+          textTransform:'uppercase', letterSpacing:2, marginBottom:6,
+        }}>
+          Étape {stepCount} / {totalSteps}
+        </div>
 
-      <div style={{ fontSize:14, fontWeight:600, lineHeight:1.45, marginBottom:14 }}>
-        {text}
-      </div>
+        <div style={{ fontSize:14, fontWeight:600, lineHeight:1.45, marginBottom:14 }}>
+          {text}
+        </div>
 
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
-        {onSkip ? (
-          <button
-            onClick={onSkip}
-            style={{
-              fontSize:12, color:'rgba(255,255,255,.5)',
-              background:'transparent', border:'none', cursor:'pointer',
-              textDecoration:'underline', padding:0,
-            }}
-          >
-            Passer le tutoriel
-          </button>
-        ) : <div />}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:10 }}>
+          {onSkip ? (
+            <button
+              onClick={onSkip}
+              style={{
+                fontSize:12, color:'rgba(255,255,255,.5)',
+                background:'transparent', border:'none', cursor:'pointer',
+                textDecoration:'underline', padding:0,
+              }}
+            >
+              Passer le tutoriel
+            </button>
+          ) : <div />}
 
-        {!actionRequired ? (
-          <button
-            onClick={onNext}
-            style={{
-              padding:'8px 18px', borderRadius:14,
-              fontSize:13, fontWeight:800,
-              background:'linear-gradient(135deg,#D4A017,#C17F3C)',
-              color:'#fff', border:'none', cursor:'pointer',
-              boxShadow:'0 4px 12px rgba(212,160,23,.4)',
-            }}
-          >
-            Suivant →
-          </button>
-        ) : (
-          <div style={{ fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.3 }}>
-            👇 Clique pour continuer
-          </div>
-        )}
+          {!actionRequired ? (
+            <button
+              onClick={onNext}
+              style={{
+                padding:'8px 18px', borderRadius:14,
+                fontSize:13, fontWeight:800,
+                background:'linear-gradient(135deg,#D4A017,#C17F3C)',
+                color:'#fff', border:'none', cursor:'pointer',
+                boxShadow:'0 4px 12px rgba(212,160,23,.4)',
+              }}
+            >
+              Suivant →
+            </button>
+          ) : (
+            <div style={{ fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.3 }}>
+              👇 Clique pour continuer
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
