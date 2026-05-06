@@ -16,7 +16,7 @@ export const PRICE_MIN  = 30;
 export const PRICE_MAX  = 500;
 export const PRICE_REF  = 100;
 export const HISTORY_N  = 100;
-export const TICK_MS    = 1500;
+export const TICK_MS    = 2500;
 export const BIG_MOVE_PCT = 8;
 
 /* Événements de marché — règle simple : bonne nouvelle = hausse, mauvaise = baisse.
