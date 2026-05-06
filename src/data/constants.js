@@ -82,6 +82,7 @@ export const REWARDS = [
   { id:'theme_cosmos',  currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:9,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'skin_mystique', currency:'cafe', applyAs:'skin',        name:'Cookie Cosmos',         desc:'Cookie qui pulse en violet',   cost:4,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'reveal_master', currency:'cafe', applyAs:'achievement', name:'Dernier Succès Caché',  desc:'Révèle un succès secret',      cost:15, type:'Premium', emoji:'🔮', levelRequired:1 },
+  { id:'banner_cookies', currency:'cafe', applyAs:'banner',     name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau',  cost:7,  type:'Premium', emoji:'🍪', levelRequired:1 },
 ];
 
 /* Achievements (succès surprises) */

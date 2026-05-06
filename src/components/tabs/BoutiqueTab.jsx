@@ -16,7 +16,7 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
                 Avatar : pas de désactivation, juste switch.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeSkin, activeRoue, userAvatar, setActiveTheme, setActiveSkin, setActiveRoue, setUserAvatar, C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeSkin, activeRoue, activeBanner, userAvatar, setActiveTheme, setActiveSkin, setActiveRoue, setActiveBanner, setUserAvatar, C }) {
   const [filter, setFilter] = useState('Tous');
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
@@ -25,11 +25,12 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   const FILTERS = ['Tous','Badge','Titre','Thème','Avatar','Skin','Roue'];
 
   const ACTIVATABLE = {
-    'Thème' :[activeTheme, setActiveTheme],
-    'Skin'  :[activeSkin,  setActiveSkin],
-    'Roue'  :[activeRoue,  setActiveRoue],
+    'Thème'   :[activeTheme,  setActiveTheme],
+    'Skin'    :[activeSkin,   setActiveSkin],
+    'Roue'    :[activeRoue,   setActiveRoue],
+    'Bannière':[activeBanner, setActiveBanner],
     /* Avatar : pas de désactivation possible, juste switch (gère plus bas) */
-    'Avatar':[userAvatar,  setUserAvatar],
+    'Avatar'  :[userAvatar,   setUserAvatar],
   };
 
   /* Révèle un niveau de plus uniquement quand tout celui en cours est acheté
@@ -144,6 +145,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
             ? (r.applyAs==='theme'  ? 'Thème'
               : r.applyAs==='skin'  ? 'Skin'
               : r.applyAs==='avatar'? 'Avatar'
+              : r.applyAs==='banner'? 'Bannière'
               : null)
             : r.type;
           const activatable = ACTIVATABLE[activeKey];

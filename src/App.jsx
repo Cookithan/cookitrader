@@ -63,6 +63,21 @@ import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
      · mobile-first (largeur max 430px, centrée)
 ═══════════════════════════════════════════════════════ */
 
+/* Formatage compact pour les compteurs du header (cafés / cookies) :
+   évite que des grands nombres écrasent le titre "CookiTrading".
+   - < 10 000 : nombre brut (jusqu'à 4 chiffres OK dans le pill)
+   - 10 000 – 999 999 : "12K" ou "12.3K" selon précision
+   - 1 000 000+ : "1.2M"
+   Le tooltip natif (title="...") affiche la valeur exacte. */
+function fmtCompact(n){
+  if(n < 10_000) return String(n);
+  if(n < 1_000_000){
+    const v = n / 1_000;
+    return (v < 100 ? v.toFixed(1) : Math.floor(v)) + 'K';
+  }
+  return (n / 1_000_000).toFixed(1) + 'M';
+}
+
 export default function CookiMiner() {
   const [coins,       setCoins]       = useLocalStorage('coins',       0);
   const [cafes,       setCafes]       = useLocalStorage('cafes',       0);
@@ -119,9 +134,10 @@ export default function CookiMiner() {
   const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
-  const [activeTheme, setActiveTheme] = useLocalStorage('activeTheme', '');
-  const [activeSkin,  setActiveSkin]  = useLocalStorage('activeSkin',  '');
-  const [activeRoue,  setActiveRoue]  = useLocalStorage('activeRoue',  '');
+  const [activeTheme,  setActiveTheme]  = useLocalStorage('activeTheme', '');
+  const [activeSkin,   setActiveSkin]   = useLocalStorage('activeSkin',  '');
+  const [activeRoue,   setActiveRoue]   = useLocalStorage('activeRoue',  '');
+  const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
@@ -326,13 +342,14 @@ export default function CookiMiner() {
 
   /* ── ÉVÉNEMENTS SPÉCIAUX (PHASE 6E) ─────────────── */
 
-  /* Tire le prochain event en phase 'waiting' (timer 1-24h aléatoire).
-     Si tous les events ont déjà été complétés → setActiveEvent(null) :
-     plus de cycle. */
+  /* Tire le prochain event en phase 'waiting' (timer 1h-48h aléatoire,
+     ou 1-3 min en mode dev "cookithan"). Si tous les events ont déjà
+     été complétés → setActiveEvent(null) : plus de cycle. */
   const triggerNextEvent = () => {
     const tpl = pickRandomEvent(completedEvents);
     if(!tpl){ setActiveEvent(null); return; }
-    setActiveEvent(buildWaitingEvent(tpl));
+    const devMode = (userName || '').trim().toLowerCase() === 'cookithan';
+    setActiveEvent(buildWaitingEvent(tpl, devMode));
   };
 
   /* Passe l'event de 'waiting' à 'active' : démarre la fenêtre de 1h
@@ -360,7 +377,7 @@ export default function CookiMiner() {
     if(type !== ev.challenge) return;       // pas une tentative pour cet event
 
     let success = false;
-    if(type === 'quiz_perfect') success = value === 5;
+    if(type === 'quiz_perfect') success = value >= 3;       // 3/3 sur quiz Expert (filtré côté QuizGame)
     if(type === 'spin_jackpot') success = value >= 200;
     if(type === 'click_50')     success = value >= 50;
 
@@ -479,7 +496,7 @@ export default function CookiMiner() {
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
-    setActiveTheme(''); setActiveSkin(''); setActiveRoue('');
+    setActiveTheme(''); setActiveSkin(''); setActiveRoue(''); setActiveBanner('');
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
     /* Tuto : reset complet pour qu'un reset rejoue le tuto au démarrage */
@@ -605,30 +622,35 @@ export default function CookiMiner() {
 
       <style>{GLOBAL_CSS}</style>
 
-      {/* HEADER */}
-      <header style={{ padding:'18px 20px 10px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+      {/* HEADER — la zone gauche (avatar + titre) est protégée du
+          rétrécissement (flexShrink:0) pour que "CookiTrading" reste
+          toujours lisible. Le sous-label "BONJOUR XYZ" peut être
+          ellipsé s'il est trop long ; le titre lui ne l'est plus.
+          La zone droite (pills cafés/cookies) reste à largeur naturelle
+          grâce au format compact (fmtCompact) appliqué aux nombres. */}
+      <header style={{ padding:'18px 16px 10px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0, gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flexShrink:0 }}>
           {userName && userAvatar !== null && (
-            <button onClick={()=>setShowProfile(true)} aria-label="Profil" style={{ padding:0, background:'transparent', border:'none' }}>
+            <button onClick={()=>setShowProfile(true)} aria-label="Profil" style={{ padding:0, background:'transparent', border:'none', flexShrink:0 }}>
               <AvatarFigure value={userAvatar} size={42} />
             </button>
           )}
           <div style={{ minWidth:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:3, marginBottom:1 }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>Cooki<span style={{ color:'#C17F3C' }}>Trading</span></div>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:3, marginBottom:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:140 }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
+            <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap' }}>Cooki<span style={{ color:'#C17F3C' }}>Trading</span></div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:1, minWidth:0 }}>
           <button onClick={()=>setShowSettings(true)} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card, border:`1px solid ${C.border}`, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />
           </button>
-          <div style={{ display:'flex', alignItems:'center', gap:5, background:ESPRESSO, borderRadius:20, padding:'8px 12px', border:'1.5px solid rgba(212,160,23,.5)', boxShadow:'0 4px 12px rgba(74,44,23,.4)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:5, background:ESPRESSO, borderRadius:20, padding:'8px 12px', border:'1.5px solid rgba(212,160,23,.5)', boxShadow:'0 4px 12px rgba(74,44,23,.4)' }} title={`${cafes} cafés`}>
             <Coffee size={14} color="#F0C050" />
-            <span key={cafes} className="coin-pop" style={{ fontWeight:800, fontSize:15, color:'#F0C050', display:'inline-block', minWidth:10, textAlign:'center' }}>{cafes}</span>
+            <span key={cafes} className="coin-pop" style={{ fontWeight:800, fontSize:15, color:'#F0C050', display:'inline-block', minWidth:10, textAlign:'center' }}>{fmtCompact(cafes)}</span>
           </div>
-          <div id="cookie-counter" style={{ display:'flex', alignItems:'center', gap:6, background:GOLD, borderRadius:20, padding:'8px 14px', boxShadow:'0 4px 12px rgba(212,160,23,.35)' }} className="gradient-anim">
+          <div id="cookie-counter" style={{ display:'flex', alignItems:'center', gap:6, background:GOLD, borderRadius:20, padding:'8px 14px', boxShadow:'0 4px 12px rgba(212,160,23,.35)' }} className="gradient-anim" title={`${coins} cookies`}>
             <Cookie size={16} color="#fff" />
-            <span key={coins} className="coin-pop" style={{ fontWeight:800, fontSize:18, color:'#fff', display:'inline-block', minWidth:14, textAlign:'center' }}>{coins}</span>
+            <span key={coins} className="coin-pop" style={{ fontWeight:800, fontSize:18, color:'#fff', display:'inline-block', minWidth:14, textAlign:'center' }}>{fmtCompact(coins)}</span>
           </div>
         </div>
       </header>
@@ -651,6 +673,31 @@ export default function CookiMiner() {
             {/* Level card */}
             <button id="card-niveau" onClick={()=>setShowLevels(true)} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
               <div style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)' }} />
+              {/* Bannière Cookies premium — overlay décoratif (floating cookies) */}
+              {activeBanner === 'banner_cookies' && (
+                <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden' }}>
+                  {[
+                    { top:'6%',  left:'12%', size:32, delay:0,    rot:-12 },
+                    { top:'60%', left:'6%',  size:26, delay:1.2,  rot:8   },
+                    { top:'24%', left:'82%', size:30, delay:.5,   rot:18  },
+                    { top:'74%', left:'40%', size:24, delay:2.1,  rot:-6  },
+                    { top:'8%',  left:'52%', size:28, delay:1.7,  rot:14  },
+                    { top:'48%', left:'68%', size:30, delay:.9,   rot:-20 },
+                  ].map((c,i)=>(
+                    <span
+                      key={i}
+                      className="float-anim"
+                      style={{
+                        position:'absolute', top:c.top, left:c.left,
+                        fontSize:c.size, opacity:.22,
+                        transform:`rotate(${c.rot}deg)`,
+                        animationDelay:`${c.delay}s`,
+                        filter:'drop-shadow(0 1px 2px rgba(0,0,0,.3))',
+                      }}
+                    >🍪</span>
+                  ))}
+                </div>
+              )}
               <div style={{ position:'absolute', top:14, right:16, fontSize:10, color:'rgba(255,255,255,.45)', display:'flex', alignItems:'center', gap:3, fontWeight:600 }}>
                 Voir tous <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
               </div>
@@ -862,10 +909,11 @@ export default function CookiMiner() {
           <BoutiqueTab
             coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
             mode={boutiqueMode} setMode={setBoutiqueMode}
-            activeTheme={activeTheme} setActiveTheme={setActiveTheme}
-            activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
-            activeRoue={activeRoue}   setActiveRoue={setActiveRoue}
-            userAvatar={userAvatar}   setUserAvatar={setUserAvatar}
+            activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
+            activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
+            activeRoue={activeRoue}     setActiveRoue={setActiveRoue}
+            activeBanner={activeBanner} setActiveBanner={setActiveBanner}
+            userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
             C={C}
           />
         )}
