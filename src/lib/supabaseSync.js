@@ -118,6 +118,25 @@ export async function getTotalPlayers(){
   }catch{ return null; }
 }
 
+/* Supprime mon profil entier + toutes les amitiés associées (côté
+   user_id via le ON DELETE CASCADE de la FK, mais aussi côté
+   friend_code chez les autres utilisateurs qui m'avaient ajouté).
+   Utilisé lors du "Réinitialiser ma progression" pour ne pas laisser
+   de profils orphelins dans le classement. */
+export async function deleteMyProfile(myUserCode){
+  if(!isSupabaseEnabled() || !myUserCode) return false;
+  try{
+    /* 1. Retire tous les liens où je suis "friend_code" chez d'autres
+          (le cascade FK ne couvre que user_id côté Supabase) */
+    await supabase.from('friendships').delete().eq('friend_code', myUserCode);
+    /* 2. Supprime le profil — le cascade FK retire les friendships
+          où je suis user_id automatiquement */
+    const { error } = await supabase.from('users').delete().eq('user_code', myUserCode);
+    if(error){ notifySupabaseError(); return false; }
+    return true;
+  }catch{ notifySupabaseError(); return false; }
+}
+
 /* Retire un ami de ma liste. Retourne true si OK. */
 export async function removeFriend(myUserCode, friendCode){
   if(!isSupabaseEnabled()) return false;

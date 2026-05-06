@@ -19,7 +19,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile } from "./lib/supabaseSync.js";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -584,6 +584,18 @@ export default function CookiMiner() {
   }, [level]);
   const checkinReward = DAILY_REWARDS[streak % 7];
   const resetProgress = () => {
+    /* Supabase : supprime le profil online en arrière-plan pour qu'il
+       disparaisse du classement et des amis qui m'avaient ajouté.
+       Fire-and-forget — si la requête échoue (réseau), on reset quand
+       même les states locaux. */
+    if(isSupabaseEnabled() && userCode){
+      deleteMyProfile(userCode);
+    }
+    /* Vide aussi le cache leaderboard (sinon je continuerais à voir
+       l'ancien classement avec mon ancien profil tant que le tab Classement
+       n'est pas refresh). */
+    try{ sessionStorage.removeItem('leaderboard:cache'); }catch{}
+
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
     setStreak(0); setClickRecord(0); setUnlocked([]);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
