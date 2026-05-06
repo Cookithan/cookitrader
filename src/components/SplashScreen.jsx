@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /* ════════════════════════════════════════════════════
    SplashScreen — écran d'accueil custom au lancement (BRIEF_SPLASH)
@@ -10,6 +10,12 @@ import { useEffect, useState } from 'react';
    Affiché une fois par session (sessionStorage 'splashShown') —
    une simple mise en arrière-plan ne le redéclenche pas.
 
+   ⚠️ onFinish est isolé dans un ref pour que les timers ne se
+   réarment pas si le parent re-render et passe une nouvelle
+   référence (le tick market re-rend toutes les 1.5s, sinon le
+   splash ne se ferme jamais). Le useEffect a [] en deps : armé
+   une seule fois au mount.
+
    Tous les styles sont dans globalStyles.js (.splash-screen + descendants
    + 4 keyframes).
 
@@ -19,15 +25,17 @@ import { useEffect, useState } from 'react';
 
 export default function SplashScreen({ onFinish }){
   const [fadingOut, setFadingOut] = useState(false);
+  const onFinishRef = useRef(onFinish);
+  useEffect(()=>{ onFinishRef.current = onFinish; }, [onFinish]);
 
   useEffect(()=>{
-    const fadeTimer   = setTimeout(()=>setFadingOut(true), 2000);
-    const removeTimer = setTimeout(()=>onFinish(),         2500);
+    const fadeTimer   = setTimeout(()=>setFadingOut(true),     2000);
+    const removeTimer = setTimeout(()=>onFinishRef.current?.(), 2500);
     return ()=>{
       clearTimeout(fadeTimer);
       clearTimeout(removeTimer);
     };
-  }, [onFinish]);
+  }, []);
 
   const letters = 'CookiMiner'.split('');
 

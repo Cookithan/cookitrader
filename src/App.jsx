@@ -90,10 +90,13 @@ export default function CookiMiner() {
     try{ return sessionStorage.getItem('splashShown') !== '1'; }
     catch{ return false; }
   });
-  const handleSplashFinish = () => {
+  /* useCallback stable : sinon SplashScreen voit une nouvelle référence
+     à chaque render parent (tick market, events, etc.), son useEffect
+     se relance et les timers ne s'écoulent jamais. */
+  const handleSplashFinish = useCallback(() => {
     try{ sessionStorage.setItem('splashShown', '1'); }catch{}
     setShowSplash(false);
-  };
+  }, []);
   const [coins,       setCoins]       = useLocalStorage('coins',       0);
   const [cafes,       setCafes]       = useLocalStorage('cafes',       0);
   const [totalEarned, setTotalEarned] = useLocalStorage('totalEarned', 0);
