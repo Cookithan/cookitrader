@@ -288,7 +288,7 @@ export default function CookiMiner() {
   useEffect(()=>{
     if(tab !== 'boutique' && boutiqueMode === 'premium') setBoutiqueMode('shop');
   },[tab, boutiqueMode]);
-  const xpReq    = level * 100;
+  const xpReq    = level * 100 + 50;
   const xpPct    = Math.min((xp/xpReq)*100, 100);
   const canCheckin = lastCheckin !== new Date().toDateString();
   /* lastQuiz est désormais un timestamp ; on tolère l'ancien format string (legacy) en l'ignorant */
@@ -307,7 +307,7 @@ export default function CookiMiner() {
     const cur = xpRef.current;
 
     /* Niveau max OU sous le seuil → pas de level up, XP avance normalement */
-    if(lv>=6 || cur+amount < lv*100){
+    if(lv>=6 || cur+amount < lv*100 + 50){
       const next = cur+amount;
       setXp(next); xpRef.current = next;
       return;

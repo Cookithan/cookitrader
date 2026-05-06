@@ -69,7 +69,7 @@ Chaque fichier a un bandeau d'en-tête `══════` qui décrit son rôl
 | `coins` | number | `0` | Monnaie active (jamais négative) |
 | `totalEarned` | number | `0` | Total cumulé (n'est jamais dépensé) — sert au stat affiché sur la carte niveau |
 | `level` | number | `1` | Niveau actuel, max 6 |
-| `xp` | number | `0` | XP dans le niveau courant. Seuil = `level * 100` |
+| `xp` | number | `0` | XP dans le niveau courant. Seuil = `level * 100 + 50` (niv 1 → 150, niv 2 → 250, etc.) |
 | `streak` | number | `0` | Jours consécutifs de check-in |
 | `clickRecord` | number | `0` | Meilleur score au défi de clics |
 | `unlocked` | string[] | `[]` | IDs des récompenses débloquées |
@@ -83,7 +83,7 @@ Chaque fichier a un bandeau d'en-tête `══════` qui décrit son rôl
 ### Le hook clé : `addCoins(amount)`
 - Si `amount <= 0` → décrémente sans toucher au total ni à l'XP
 - Si `amount > 0` → incrémente `coins`, `totalEarned`, et `xp`
-- Détecte le passage de niveau : si `xp+amount >= level*100`, **monte de UN seul niveau** (peu importe la taille du gain) et déclenche `pendingLvUp`. L'XP excédentaire est volontairement perdue pour éviter qu'un gros gain (ex : +200 à la roue) saute plusieurs paliers d'un coup.
+- Détecte le passage de niveau : si `xp+amount >= level*100 + 50`, **monte de UN seul niveau** (peu importe la taille du gain) et déclenche `pendingLvUp`. L'XP excédentaire est volontairement perdue pour éviter qu'un gros gain (ex : +200 à la roue) saute plusieurs paliers d'un coup.
 - Bonus de level-up versé après 700ms : `10 * newLevel` cookies
 
 `lvRef.current = level` et `xpRef.current = xp` sont mis à jour à chaque render — on lit le niveau et l'XP courants directement depuis ces refs dans le handler, **sans nester de side-effects dans un updater `setXp(prev=>...)`** (qui peut être rejoué en mode strict React et désynchroniser le state).
