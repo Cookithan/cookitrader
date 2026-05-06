@@ -11,6 +11,11 @@
 
 export const GLOBAL_CSS = `
   *{box-sizing:border-box;margin:0;padding:0}
+  /* Mobile : désactive la sélection de texte et le menu contextuel
+     (rectangle bleu / "Copier / Tout sélectionner") sur appui long.
+     On réactive sur input/textarea pour la saisie/copie utile. */
+  html,body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  input,textarea,[contenteditable="true"]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
   button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit;-webkit-tap-highlight-color:transparent;transition:transform .12s ease}
   button:active{transform:scale(.96)}
 
