@@ -5,7 +5,7 @@ import { GOLD } from "../../data/themes.js";
 
 /* ════════════════════════════════════════════════════
    OnboardingModal — premier lancement
-   - 3 étapes : Prénom → Avatar → Tips
+   - 3 étapes : Pseudo → Avatar → Tips
    - z-index 200, fond noir blur
    - onComplete(name, avatarIndex) est appelé à la fin
    - Le code dev "cookithan" (dans CookiMiner > setShowOnboarding) accorde un bonus
@@ -45,11 +45,11 @@ export function OnboardingModal({ onComplete, C }) {
             <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>Bienvenue dans CookiTrader !</div>
             <div style={{ fontSize:13, color:C.muted, marginBottom:22, lineHeight:1.5 }}>L'app qui récompense ta passion pour le café et les cookies</div>
             <div style={{ textAlign:'left', marginBottom:18 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5 }}>Comment t'appelles-tu ?</label>
+              <label style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5 }}>Choisis ton pseudo</label>
               <input
                 value={name}
                 onChange={e=>setName(e.target.value)}
-                placeholder="Ton prénom..."
+                placeholder="Ton pseudo..."
                 maxLength={20}
                 autoFocus
                 style={{

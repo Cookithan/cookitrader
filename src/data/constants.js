@@ -7,9 +7,18 @@
    - ACHIEVEMENTS: succès (avec un caché : master_succes)
    - QUESTIONS   : pool quiz, chacune a difficulty + reward + 4 choices
    - QUIZ_COOLDOWN_MS : 5h entre deux quiz
+   - NAME_CHANGE_PRICES : tarif progressif du changement de prénom
 ════════════════════════════════════════════════════ */
 
 export const LEVEL_NAMES = ['','Barista','Torréfacteur','Maître','Grand Barista','Chef Pâtissier','Légende'];
+
+/* Tarif du changement de prénom — le 1er (onboarding) est gratuit,
+   ensuite le compteur démarre à 0 et le prix grimpe à chaque modif.
+   Plafonné à 1000 🍪 dès le 4e changement. */
+export const NAME_CHANGE_PRICES = [100, 250, 500, 1000];
+export function getNameChangePrice(count){
+  return NAME_CHANGE_PRICES[Math.min(count, NAME_CHANGE_PRICES.length - 1)];
+}
 
 /* Roue 100% cookie & café : pertes = sombres (espresso/mocha), gains = clairs (caramel/miel/or) */
 export const SEGMENTS = [

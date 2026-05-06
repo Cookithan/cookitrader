@@ -4,26 +4,31 @@ import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
+import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 
 /* ════════════════════════════════════════════════════
    ProfileOverlay — plein écran z-index 60
    - Mode normal : carte identité, niveau (avec bouton "Voir les niveaux"),
-     stats, équipement, titres, badges, bouton "Modifier"
-   - Mode édition : prénom + grille avatars (base + premium débloqués)
+     stats, équipement, titres, badges, boutons "Modifier mon prénom"
+     (ouvre ChangeNameModal payante) et "Modifier mon avatar"
+   - Mode édition : grille avatars (base + premium débloqués)
+   - Le prénom n'est PLUS modifiable depuis le mode édition — passe par
+     la modale payante ChangeNameModal (PHASE 1 du brief améliorations)
    - Le compte d'achievementsTotal ignore master_succes si non révélé
 ═══════════════════════════════════════════════════════ */
 
 export function ProfileOverlay({
   onClose, onOpenLevels, onOpenSettings,
   userName, setUserName, userAvatar, setUserAvatar, joinDate,
+  coins, spendCoins, nameChangeCount, setNameChangeCount,
   level, xp, xpReq, totalEarned, streak, unlocked,
   earnedAchievements, achievementsTotal,
   activeTheme, activeSkin, activeRoue,
   C
 }) {
   const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(userName);
   const [editAvatar, setEditAvatar] = useState(userAvatar);
+  const [showChangeName, setShowChangeName] = useState(false);
 
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
@@ -44,11 +49,16 @@ export function ProfileOverlay({
   ];
 
   const saveEdit = () => {
-    const trimmed = editName.trim();
-    if(!trimmed || editAvatar===null) return;
-    setUserName(trimmed);
+    if(editAvatar===null) return;
     setUserAvatar(editAvatar);
     setEditing(false);
+  };
+
+  const confirmNameChange = (newName, price) => {
+    spendCoins(price);
+    setUserName(newName);
+    setNameChangeCount(c => c + 1);
+    setShowChangeName(false);
   };
 
   return (
@@ -57,7 +67,7 @@ export function ProfileOverlay({
         <button onClick={onClose} style={{ width:36, height:36, borderRadius:12, background:C.card2, display:'flex', alignItems:'center', justifyContent:'center', color:C.text }}>
           <ChevronLeft size={20} />
         </button>
-        <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1 }}>{editing ? 'Modifier mon profil' : 'Mon profil'}</span>
+        <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1 }}>{editing ? 'Modifier mon avatar' : 'Mon profil'}</span>
         {!editing && (
           <button onClick={onOpenSettings} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />
@@ -69,15 +79,6 @@ export function ProfileOverlay({
 
         {editing ? (
           <>
-            <section>
-              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>PRÉNOM</div>
-              <input
-                value={editName}
-                onChange={e=>setEditName(e.target.value)}
-                maxLength={20}
-                style={{ width:'100%', padding:'14px 16px', borderRadius:14, border:`2px solid ${C.border}`, background:C.card, color:C.text, fontSize:15, fontWeight:600, outline:'none', fontFamily:'inherit' }}
-              />
-            </section>
             <section>
               <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:8 }}>AVATAR</div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10 }}>
@@ -99,10 +100,10 @@ export function ProfileOverlay({
               )}
             </section>
             <div style={{ display:'flex', gap:10, marginTop:'auto' }}>
-              <button onClick={()=>{ setEditing(false); setEditName(userName); setEditAvatar(userAvatar); }} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:14, fontWeight:700 }}>
+              <button onClick={()=>{ setEditing(false); setEditAvatar(userAvatar); }} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:14, fontWeight:700 }}>
                 Annuler
               </button>
-              <button onClick={saveEdit} disabled={!editName.trim() || editAvatar===null} style={{ flex:1, padding:'13px 0', borderRadius:14, background: (!editName.trim()||editAvatar===null) ? C.card2 : GOLD, color: (!editName.trim()||editAvatar===null) ? C.muted : '#fff', border:'none', fontSize:14, fontWeight:800, cursor:(!editName.trim()||editAvatar===null)?'not-allowed':'pointer' }}>
+              <button onClick={saveEdit} disabled={editAvatar===null} style={{ flex:1, padding:'13px 0', borderRadius:14, background: editAvatar===null ? C.card2 : GOLD, color: editAvatar===null ? C.muted : '#fff', border:'none', fontSize:14, fontWeight:800, cursor:editAvatar===null?'not-allowed':'pointer' }}>
                 Enregistrer
               </button>
             </div>
@@ -210,13 +211,30 @@ export function ProfileOverlay({
               )}
             </section>
 
-            <button onClick={()=>setEditing(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700, marginTop:6 }}>
-              Modifier mon profil
-            </button>
+            <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
+              <button onClick={()=>setShowChangeName(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                <span>Modifier mon pseudo</span>
+                <span style={{ fontSize:11, fontWeight:800, color:'#D4A017' }}>· payant 🍪</span>
+              </button>
+              <button onClick={()=>{ setEditAvatar(userAvatar); setEditing(true); }} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700 }}>
+                Modifier mon avatar
+              </button>
+            </div>
           </>
         )}
 
       </div>
+
+      {showChangeName && (
+        <ChangeNameModal
+          currentName={userName}
+          coins={coins}
+          nameChangeCount={nameChangeCount}
+          onConfirm={confirmNameChange}
+          onClose={()=>setShowChangeName(false)}
+          C={C}
+        />
+      )}
     </div>
   );
 }
