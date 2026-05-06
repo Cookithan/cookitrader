@@ -14,7 +14,7 @@ import { EventRewardModal } from "./components/modals/EventRewardModal.jsx";
 import { TutorialOverlay } from "./components/tutorial/TutorialOverlay.jsx";
 import { ContextHint, CONTEXT_HINTS } from "./components/tutorial/ContextHint.jsx";
 import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
-import { InstallBanner } from "./components/InstallBanner.jsx";
+import { useInstallPrompt } from "./hooks/useInstallPrompt.js";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -230,6 +230,9 @@ export default function CookiMiner() {
     cafeToastTimerRef.current = setTimeout(()=>setCafeToast(null), 2200);
   },[]);
   const [showOnboarding, setShowOnboarding] = useState(!userName);
+
+  /* Hook PWA : exposé aux paramètres pour le bouton "Installer" */
+  const installPrompt = useInstallPrompt();
 
   /* ── TUTORIEL : démarrage / wires ─────────────── */
 
@@ -987,6 +990,7 @@ export default function CookiMiner() {
           activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
           activeRoue={activeRoue}   setActiveRoue={setActiveRoue}
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
+          install={installPrompt}
           C={C}
         />
       )}
@@ -1097,9 +1101,6 @@ export default function CookiMiner() {
       )}
       {/* Bulle contextuelle (1re ouverture jeu/onglet) */}
       <ContextHint hint={activeHint} onClose={()=>setActiveHint(null)} />
-
-      {/* Bannière d'installation PWA (Android/Desktop seulement) */}
-      <InstallBanner />
     </div>
   );
 }

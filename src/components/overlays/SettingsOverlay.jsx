@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Check, Lock, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, COOKIE_SKINS, LT, GOLD } from "../../data/themes.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
@@ -13,7 +13,7 @@ import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
    - L'item premium (applyAs:'theme'/'skin') s'affiche aussi dans son onglet
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, activeSkin, setActiveSkin, activeRoue, setActiveRoue, onReset, C }) {
+export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, activeSkin, setActiveSkin, activeRoue, setActiveRoue, onReset, install, C }) {
   const [appearanceTab, setAppearanceTab] = useState('themes'); // 'themes' | 'skins' | 'roues'
 
   const unlockedThemes = REWARDS.filter(r => unlocked.includes(r.id) && (r.type==='Thème' || (r.type==='Premium' && r.applyAs==='theme')));
@@ -187,6 +187,51 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             </div>
           </div>
         </section>
+
+        {/* Installation PWA — bouton si Android/Desktop, instruction si iOS,
+            badge "déjà installée" si standalone, rien sinon. */}
+        {install && (install.canInstall || install.isIos || install.isStandalone) && (
+          <section>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>INSTALLATION</div>
+            <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16 }}>
+              {install.isStandalone ? (
+                <div style={{ display:'flex', alignItems:'center', gap:10, color:'#D4A017', fontSize:13, fontWeight:700 }}>
+                  <Check size={18} /> App installée sur ton appareil ✓
+                </div>
+              ) : install.canInstall ? (
+                <>
+                  <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>Installer CookiMiner 🍪</div>
+                  <div style={{ fontSize:11, color:C.muted, lineHeight:1.5, marginBottom:12 }}>
+                    Ajoute l'app à ton écran d'accueil pour la lancer en plein écran, comme une vraie app native.
+                  </div>
+                  <button
+                    onClick={()=>install.install()}
+                    style={{
+                      width:'100%', padding:'12px 0', borderRadius:14,
+                      background:GOLD, color:'#fff',
+                      fontSize:13, fontWeight:800, letterSpacing:.3,
+                      border:'none',
+                      boxShadow:'0 4px 12px rgba(212,160,23,.4)',
+                      cursor:'pointer',
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                    }}
+                  >
+                    <Download size={16} /> Installer l'application
+                  </button>
+                </>
+              ) : install.isIos ? (
+                <>
+                  <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>Installer CookiMiner sur iOS</div>
+                  <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>
+                    Sur Safari : appuie sur <strong style={{ color:'#D4A017' }}>
+                      <Share size={11} style={{ display:'inline', verticalAlign:'middle' }} /> Partager
+                    </strong> en bas de l'écran, puis <strong style={{ color:'#D4A017' }}>« Sur l'écran d'accueil »</strong>.
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </section>
+        )}
 
         {/* Zone à risque — repoussée tout en bas, palette espresso, double validation */}
         <section style={{ marginTop:'auto', paddingTop:14, borderTop:`1px dashed ${C.border}` }}>
