@@ -75,7 +75,7 @@ export function InstallBanner(){
     >
       <span style={{ fontSize:28 }}>🍪</span>
       <div style={{ flex:1, fontSize:13, lineHeight:1.3 }}>
-        <div style={{ fontWeight:800 }}>Installe CookiTrading</div>
+        <div style={{ fontWeight:800 }}>Installe CookiMiner</div>
         <div style={{ opacity:.85, fontSize:12 }}>Sur ton écran d'accueil, en 1 clic</div>
       </div>
       <button

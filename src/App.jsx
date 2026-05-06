@@ -65,7 +65,7 @@ import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
 ═══════════════════════════════════════════════════════ */
 
 /* Formatage compact pour les compteurs du header (cafés / cookies) :
-   évite que des grands nombres écrasent le titre "CookiTrading".
+   évite que des grands nombres écrasent le titre "CookiMiner".
    - < 10 000 : nombre brut (jusqu'à 4 chiffres OK dans le pill)
    - 10 000 – 999 999 : "12K" ou "12.3K" selon précision
    - 1 000 000+ : "1.2M"
@@ -624,7 +624,7 @@ export default function CookiMiner() {
       <style>{GLOBAL_CSS}</style>
 
       {/* HEADER — la zone gauche (avatar + titre) est protégée du
-          rétrécissement (flexShrink:0) pour que "CookiTrading" reste
+          rétrécissement (flexShrink:0) pour que "CookiMiner" reste
           toujours lisible. Le sous-label "BONJOUR XYZ" peut être
           ellipsé s'il est trop long ; le titre lui ne l'est plus.
           La zone droite (pills cafés/cookies) reste à largeur naturelle
@@ -638,7 +638,7 @@ export default function CookiMiner() {
           )}
           <div style={{ minWidth:0 }}>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:3, marginBottom:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:140 }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap' }}>Cooki<span style={{ color:'#C17F3C' }}>Trading</span></div>
+            <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap' }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:1, minWidth:0 }}>

@@ -40,10 +40,10 @@ export const DAILY_REWARDS = [15, 20, 30, 40, 55, 75, 200];
 
 export const REWARDS = [
   // BADGES
-  { id:'badge_debutant', name:'Badge Débutant', desc:'Premier pas dans CookiTrading', cost:30,   type:'Badge', emoji:'🌱', levelRequired:1 },
+  { id:'badge_debutant', name:'Badge Débutant', desc:'Premier pas dans CookiMiner', cost:30,   type:'Badge', emoji:'🌱', levelRequired:1 },
   { id:'badge_barista',  name:'Badge Barista',  desc:'Maîtrise de base du café',    cost:120,  type:'Badge', emoji:'☕', levelRequired:2 },
   { id:'badge_chef',     name:'Badge Chef',     desc:'Pour les acharnés du cookie', cost:500,  type:'Badge', emoji:'👨‍🍳', levelRequired:5 },
-  { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiTrading',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
+  { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiMiner',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
   // TITRES
   { id:'titre_grand_cru',    name:'Titre "Grand Cru"',         desc:'Affichez votre prestige', cost:200,  type:'Titre', emoji:'🏅', levelRequired:2 },
   { id:'titre_torrefacteur', name:'Titre "Torréfacteur"',      desc:'Maître de la torréfaction', cost:400, type:'Titre', emoji:'🔥', levelRequired:3 },
@@ -116,14 +116,14 @@ export const QUESTIONS = [
   { q:"Un cookie 'chewy' est un cookie ?", choices:["Très dur et croquant","Moelleux et fondant","Sans sucre","Salé"], answer:1, reward:20, difficulty:'Facile' },
   { q:"Comment appelle-t-on la mousse crémeuse sur un espresso ?", choices:["Mousse","Crema","Écume","Latte"], answer:1, reward:20, difficulty:'Facile' },
 
-  // FACILE — questions sur CookiTrading
-  { q:"Quelle est la monnaie principale de CookiTrading ?", choices:["L'euro","Le café (CF)","Le cookie","La pièce d'or"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Combien y a-t-il de niveaux dans CookiTrading ?", choices:["3","6","10","Infini"], answer:1, reward:20, difficulty:'Facile' },
+  // FACILE — questions sur CookiMiner
+  { q:"Quelle est la monnaie principale de CookiMiner ?", choices:["L'euro","Le café (CF)","Le cookie","La pièce d'or"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Combien y a-t-il de niveaux dans CookiMiner ?", choices:["3","6","10","Infini"], answer:1, reward:20, difficulty:'Facile' },
   { q:"Quel mini-jeu te demande de relâcher au bon moment ?", choices:["Quiz café","Roue de la fortune","Stop le café","Défi de clics"], answer:2, reward:20, difficulty:'Facile' },
   { q:"Combien de cookies obtient-on pour 2 clics dans le défi de clics ?", choices:["0","1","2","5"], answer:1, reward:20, difficulty:'Facile' },
   { q:"Comment s'appelle la monnaie premium (rare) du jeu ?", choices:["Le diamant","Le café (CF)","La gemme","Le pépite"], answer:1, reward:20, difficulty:'Facile' },
   { q:"À quel niveau s'ouvre le marché $CKM ?", choices:["Niveau 1","Niveau 3","Niveau 5","Niveau 6"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quel est le titre du niveau 1 dans CookiTrading ?", choices:["Légende","Maître","Barista","Chef Pâtissier"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Quel est le titre du niveau 1 dans CookiMiner ?", choices:["Légende","Maître","Barista","Chef Pâtissier"], answer:2, reward:20, difficulty:'Facile' },
   { q:"Comment gagne-t-on des CF (cafés) dans le jeu ?", choices:["En cliquant le cookie","Au level-up et aux succès","En achetant des skins","Toutes les heures"], answer:1, reward:20, difficulty:'Facile' },
 
   // MOYEN (reward: 35)
@@ -141,12 +141,12 @@ export const QUESTIONS = [
   { q:"Qu'est-ce que le 'bloom' lors de la préparation d'un café filtre ?", choices:["La couleur du café dans la tasse","Un pré-mouillage du café pour libérer le CO2","Le bruit de la machine","L'écume qui se forme"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Quel sucre donne un goût de caramel et d'humidité aux cookies ?", choices:["Sucre blanc","Sucre roux (cassonade)","Sucre glace","Sirop d'érable"], answer:1, reward:35, difficulty:'Moyen' },
 
-  // MOYEN — questions sur CookiTrading
+  // MOYEN — questions sur CookiMiner
   { q:"Combien de cookies coûte le défi de clics ?", choices:["3","5","10","20"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Combien de questions sont posées par session de quiz ?", choices:["1","3","5","10"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Combien de temps entre deux quiz café ?", choices:["1 heure","5 heures","12 heures","24 heures"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Quel mini-jeu coûte 20 cookies pour jouer ?", choices:["Quiz café","Roue de la fortune","Stop le café","Défi de clics"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Combien de mini-jeux différents existent dans CookiTrading ?", choices:["3","5","8","10"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Combien de mini-jeux différents existent dans CookiMiner ?", choices:["3","5","8","10"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Quel niveau requis pour débloquer le titre Maestro ?", choices:["Niveau 2","Niveau 3","Niveau 5","Niveau 6"], answer:2, reward:35, difficulty:'Moyen' },
 
   // EXPERT (reward: 60)
@@ -156,7 +156,7 @@ export const QUESTIONS = [
   { q:"La réaction de Maillard dans un cookie, c'est quoi ?", choices:["La fonte du chocolat à haute température","La réaction entre sucres et protéines qui crée la couleur dorée","La levée de la pâte au four","La cristallisation du sucre en refroidissant"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Pourquoi utilise-t-on levure chimique ET bicarbonate dans certains cookies ?", choices:["Pour doubler la levée","Bicarbonate pour l'étalement/dorure, levure pour la hauteur","C'est redondant","Pour neutraliser l'acidité du cacao"], answer:1, reward:60, difficulty:'Expert' },
 
-  // EXPERT — questions sur CookiTrading
+  // EXPERT — questions sur CookiMiner
   { q:"Quelle est la valeur de référence du marché $CKM ?", choices:["50","100","200","500"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel pourcentage max de tes cookies peux-tu investir d'un coup ?", choices:["50 %","60 %","80 %","100 %"], answer:2, reward:60, difficulty:'Expert' },
   { q:"Combien de cookies rapporte un level-up (formule) ?", choices:["Toujours 50","10 × le nouveau niveau","100","Variable"], answer:1, reward:60, difficulty:'Expert' },

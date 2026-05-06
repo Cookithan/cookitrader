@@ -1,6 +1,6 @@
 {
-  "name": "CookiTrading",
-  "short_name": "CookiTrading",
+  "name": "CookiMiner",
+  "short_name": "CookiMiner",
   "description": "App mobile de récompenses café & cookies — mini-jeux, marché simulé, classement",
   "start_url": "/",
   "display": "standalone",
