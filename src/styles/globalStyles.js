@@ -78,4 +78,36 @@ export const GLOBAL_CSS = `
   .stagger-1{animation-delay:.05s}.stagger-2{animation-delay:.1s}.stagger-3{animation-delay:.15s}.stagger-4{animation-delay:.2s}
   .confetti-piece{position:absolute;font-size:20px;pointer-events:none;animation:confetti 1.4s ease-out forwards}
   ::-webkit-scrollbar{width:0}
+
+  /* ── CAFE SCENE (GuessGame) ─────────────────────── */
+  .cafe-scene{width:100%;aspect-ratio:1;border-radius:18px;overflow:hidden;position:relative;margin-bottom:14px;box-shadow:0 12px 32px rgba(74,44,23,.25);border:2px solid #E8DDD0}
+  .cs-wall{position:absolute;top:0;left:0;right:0;height:60%;background:linear-gradient(180deg,#F0D8B0 0%,#E5C088 50%,#D4A572 100%)}
+  .cs-floor{position:absolute;bottom:0;left:-10%;right:-10%;height:50%;background:linear-gradient(180deg,#C8A878 0%,#B89868 30%,#A88858 60%,#987848 100%);transform:rotateX(60deg);transform-origin:bottom center;z-index:1}
+  .cs-floor::before{content:'';position:absolute;inset:0;background-image:linear-gradient(90deg,transparent 24%,rgba(74,44,23,.25) 25%,transparent 26%),linear-gradient(90deg,transparent 49%,rgba(74,44,23,.25) 50%,transparent 51%),linear-gradient(90deg,transparent 74%,rgba(74,44,23,.25) 75%,transparent 76%),linear-gradient(180deg,transparent 33%,rgba(74,44,23,.2) 33.5%,transparent 34%),linear-gradient(180deg,transparent 66%,rgba(74,44,23,.15) 66.5%,transparent 67%)}
+  .cs-picture{position:absolute;top:8%;left:8%;width:50px;height:38px;background:#2C1810;border:3px solid #5C3317;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 3px 8px rgba(0,0,0,.3);z-index:2}
+  .cs-picture::after{content:'';position:absolute;top:100%;left:50%;width:1px;height:8px;background:#5C3317}
+  .cs-lamp{position:absolute;top:0;left:50%;transform:translateX(-50%);width:2px;height:22%;background:#3D2010;z-index:2}
+  .cs-lamp::after{content:'';position:absolute;bottom:-8px;left:-14px;width:30px;height:18px;background:linear-gradient(180deg,#D4A017,#8B6914);border-radius:0 0 16px 16px;box-shadow:0 0 24px rgba(255,200,100,.7);border:1.5px solid #5C3317}
+  .cs-shelf{position:absolute;top:12%;right:5%;width:90px;height:28px;background:linear-gradient(180deg,#5C3317 0%,#3D2010 100%);border-radius:2px;box-shadow:0 4px 8px rgba(0,0,0,.3);display:flex;justify-content:space-around;align-items:flex-end;padding:0 4px 2px;z-index:2}
+  .cs-cup-mini{width:14px;height:16px;background:linear-gradient(180deg,#F0E4D0 0%,#DCC8A8 100%);border-radius:2px 2px 4px 4px;border:1px solid #A0784E;position:relative}
+  .cs-cup-mini::after{content:'';position:absolute;right:-3px;top:4px;width:4px;height:6px;border:1px solid #A0784E;border-left:none;border-radius:0 4px 4px 0}
+  .cs-plant{position:absolute;bottom:38%;left:4%;width:35px;z-index:2}
+  .cs-table-bg{position:absolute;bottom:36%;right:6%;width:50px;z-index:2;transform:scale(.85);opacity:.95}
+  .cs-customer{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);width:110px;z-index:3;animation:csCustomerWalkIn .8s ease-out;transform-origin:bottom center}
+  @keyframes csCustomerWalkIn{from{transform:translateX(180%);opacity:0}to{transform:translateX(-50%);opacity:1}}
+  .cs-bubble{position:absolute;bottom:105%;left:50%;transform:translateX(-25%);background:#FBF3E2;border:1.5px solid #C8A878;border-radius:14px;padding:9px 13px;font-size:11px;color:#2C1810;font-weight:600;line-height:1.35;box-shadow:0 6px 16px rgba(74,44,23,.3);width:165px;animation:csBubblePop .35s ease-out both;z-index:6}
+  .cs-bubble::after{content:'';position:absolute;bottom:-8px;left:30%;width:0;height:0;border-left:8px solid transparent;border-right:8px solid transparent;border-top:8px solid #FBF3E2}
+  @keyframes csBubblePop{0%{transform:translateX(-25%) scale(0);opacity:0}70%{transform:translateX(-25%) scale(1.05);opacity:1}100%{transform:translateX(-25%) scale(1);opacity:1}}
+  .cs-steam{position:absolute;bottom:32%;left:18%;width:4px;height:14px;background:rgba(255,255,255,.7);border-radius:50%;filter:blur(2px);animation:csSteamFloat 1.8s ease-in-out infinite;z-index:7}
+  .cs-steam.s2{left:22%;animation-delay:.4s}
+  @keyframes csSteamFloat{0%{transform:translateY(0) scale(1);opacity:.8}100%{transform:translateY(-30px) scale(1.6);opacity:0}}
+  .cs-counter-items{position:absolute;bottom:26%;left:0;right:0;z-index:6;pointer-events:none;height:64px}
+  .cs-machine{position:absolute;bottom:0;left:8%;width:56px;height:64px}
+  .cs-pastry{position:absolute;bottom:0;right:32%;width:36px;height:30px}
+  .cs-register{position:absolute;bottom:2px;right:8%;width:42px;height:38px}
+  .cs-counter{position:absolute;bottom:0;left:-5%;right:-5%;height:32%;z-index:5}
+  .cs-counter-top{position:absolute;top:0;left:0;right:0;height:28px;background:linear-gradient(180deg,#E5C088 0%,#C8A878 25%,#8B6A4E 70%,#5C3317 100%);box-shadow:inset 0 2px 4px rgba(255,230,180,.6),inset 0 -2px 4px rgba(0,0,0,.3);transform:perspective(400px) rotateX(35deg);transform-origin:bottom;border-top:2px solid rgba(255,240,200,.7)}
+  .cs-counter-top::before{content:'';position:absolute;top:4px;left:5%;right:5%;height:4px;background:linear-gradient(90deg,transparent 0%,rgba(255,245,220,.8) 30%,rgba(255,245,220,.8) 70%,transparent 100%);border-radius:50%;filter:blur(2px)}
+  .cs-counter-front{position:absolute;top:24px;left:0;right:0;bottom:0;background:linear-gradient(180deg,#5C3317 0%,#3D2010 100%);background-image:linear-gradient(90deg,transparent 19%,rgba(0,0,0,.4) 20%,transparent 21%),linear-gradient(90deg,transparent 39%,rgba(0,0,0,.4) 40%,transparent 41%),linear-gradient(90deg,transparent 59%,rgba(0,0,0,.4) 60%,transparent 61%),linear-gradient(90deg,transparent 79%,rgba(0,0,0,.4) 80%,transparent 81%),linear-gradient(180deg,#5C3317 0%,#3D2010 100%);box-shadow:inset 0 6px 12px rgba(0,0,0,.4),inset 0 -2px 4px rgba(0,0,0,.5);border-top:1px solid rgba(0,0,0,.6)}
+  .cs-counter-front::after{content:'';position:absolute;bottom:-6px;left:5%;right:5%;height:8px;background:rgba(0,0,0,.4);filter:blur(4px);border-radius:50%}
 `;

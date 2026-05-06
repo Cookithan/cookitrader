@@ -1,23 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { COMMANDES } from "../../data/commandes.js";
+import { CafeScene, CUSTOMERS } from "./CafeScene.jsx";
 
 /* ════════════════════════════════════════════════════
-   GuessGame — Devine la commande (PHASE 6C)
+   GuessGame — Devine la commande (PHASE 6C — refonte visuelle)
    ────────────────────────────────────────────────────
-   Le joueur tient le comptoir d'un café. Un client entre par la droite,
-   marche jusqu'au comptoir, puis énonce sa demande dans une bulle (texte
-   tapé caractère par caractère). Le joueur choisit la bonne réponse
-   parmi 4. À la réponse, le client repart par la gauche et le suivant
-   arrive. 5 clients par partie.
+   Le joueur tient le comptoir d'un café. À chaque question, un client
+   différent (parmi les 5 dessinés en SVG dans CafeScene) arrive depuis
+   la droite, énonce sa demande dans une bulle (texte progressif), le
+   joueur choisit parmi 4 réponses. 5 questions par partie.
 
    - COST   = 5 cookies
    - Phases globales : idle → playing → done
    - Sous-phases d'une question (`subPhase`) :
-       'entering' (1.5s anim walk-in) →
-       'speaking' (bulle apparaît, texte progressif, choix actifs) →
-       'leaving'  (.8s anim walk-out après réponse) → question suivante
-   - Pas de répétition dans la même partie (5 indices distincts).
+       'entering' (.8s anim walk-in synchronisée avec le CSS de
+        CafeScene) → 'speaking' (bulle visible, texte progressif,
+        choix actifs)
+   - Pas de phase 'leaving' explicite : le `key` du customer change
+     au passage à la question suivante, ce qui retrigger l'anim
+     csCustomerWalkIn dans CafeScene.
+   - Pas de répétition de question ni de client dans la même partie
+     (5 indices distincts pour chaque banque).
 
    Récompenses :
      5/5 → +60   ·   4/5 → +35   ·   3/5 → +15   ·   0-2/5 → 0
@@ -25,7 +29,8 @@ import { COMMANDES } from "../../data/commandes.js";
    Choix : grille 2×2.
    - Bonne réponse cliquée  → fond #FBEFD4 + ✓ caramel
    - Mauvaise cliquée       → fond #E8DCC8 + ✗ + révéler la bonne
-     (palette café-only, pas de rouge ni de vert)
+     (palette café-only pour l'UI fonctionnelle ; les illustrations
+     des personnages dans CafeScene utilisent des couleurs réalistes)
 
    Props : coins, onEarn, onSpend, C
 ═══════════════════════════════════════════════════════ */
@@ -33,10 +38,8 @@ import { COMMANDES } from "../../data/commandes.js";
 export const GUESS_COST = 5;
 const NB_QUESTIONS = 5;
 const TYPE_SPEED_MS = 28;
-const WALK_IN_MS    = 1500;
-const WALK_OUT_MS   = 800;
-const ANSWER_HOLD_MS = 700;
-const CLIENT_EMOJIS = ['🧑','👩','🧓','👵','🧔','👨','🧑‍🦱','👩‍🦰','👨‍🦱','🧑‍🎓'];
+const WALK_IN_MS    = 800;          // synchronisé avec csCustomerWalkIn (.8s)
+const ANSWER_HOLD_MS = 1100;        // temps avant de passer au client suivant
 
 function pickQuestions(){
   const indices = [];
@@ -54,18 +57,28 @@ function rewardFor(score){
   return 0;
 }
 
+/* Tire `n` indices distincts dans [0, max[, mélangés. */
+function pickCustomerIndices(n, max){
+  const all = Array.from({ length: max }, (_, i) => i);
+  for(let i = all.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i+1));
+    [all[i], all[j]] = [all[j], all[i]];
+  }
+  return all.slice(0, n);
+}
+
 export function GuessGame({ coins, onEarn, onSpend, C }){
   const [phase,    setPhase]    = useState('idle');         // idle | playing | done
   const [questions,setQuestions]= useState([]);              // 5 commandes tirées
-  const [clients,  setClients]  = useState([]);              // 5 emojis (un par client)
+  const [customerIndices, setCustomerIndices] = useState([]); // 5 indices dans CUSTOMERS
   const [qIndex,   setQIndex]   = useState(0);
   const [score,    setScore]    = useState(0);
   const [picked,   setPicked]   = useState(null);            // index choix sélectionné (null si pas encore)
   const [typed,    setTyped]    = useState('');              // texte affiché en bulle (progressif)
-  const [subPhase, setSubPhase] = useState('entering');      // entering | speaking | leaving
-  const typeRef     = useRef(null);
-  const enterRef    = useRef(null);
-  const leaveRef    = useRef(null);
+  const [subPhase, setSubPhase] = useState('entering');      // entering | speaking
+  const typeRef    = useRef(null);
+  const enterRef   = useRef(null);
+  const advanceRef = useRef(null);
 
   /* Démarrage de chaque question : on lance l'animation d'entrée puis,
      après WALK_IN_MS, on passe en 'speaking' (la bulle s'ouvre). */
@@ -95,9 +108,9 @@ export function GuessGame({ coins, onEarn, onSpend, C }){
 
   /* Cleanup global */
   useEffect(()=>()=>{
-    if(typeRef.current)  clearInterval(typeRef.current);
-    if(enterRef.current) clearTimeout(enterRef.current);
-    if(leaveRef.current) clearTimeout(leaveRef.current);
+    if(typeRef.current)    clearInterval(typeRef.current);
+    if(enterRef.current)   clearTimeout(enterRef.current);
+    if(advanceRef.current) clearTimeout(advanceRef.current);
   },[]);
 
   const startGame = () => {
@@ -105,7 +118,7 @@ export function GuessGame({ coins, onEarn, onSpend, C }){
     onSpend(GUESS_COST);
     const qs = pickQuestions();
     setQuestions(qs);
-    setClients(qs.map(()=>CLIENT_EMOJIS[Math.floor(Math.random()*CLIENT_EMOJIS.length)]));
+    setCustomerIndices(pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length));
     setQIndex(0);
     setScore(0);
     setPicked(null);
@@ -118,7 +131,7 @@ export function GuessGame({ coins, onEarn, onSpend, C }){
   const onPick = (idx) => {
     if(picked !== null) return;            // déjà choisi
     if(phase !== 'playing') return;
-    if(subPhase !== 'speaking') return;    // pas pendant l'entrée/sortie
+    if(subPhase !== 'speaking') return;    // pas pendant l'entrée
     if(typeRef.current) clearInterval(typeRef.current);
     setTyped(questions[qIndex].desc);      // affiche le texte complet
     setPicked(idx);
@@ -127,22 +140,19 @@ export function GuessGame({ coins, onEarn, onSpend, C }){
     const isRight = idx === correct;
     if(isRight) setScore(s => s + 1);
 
-    /* Séquence : on garde 700ms pour voir le résultat,
-       puis 800ms d'animation de sortie, puis question suivante. */
-    leaveRef.current = setTimeout(()=>{
-      setSubPhase('leaving');
-      leaveRef.current = setTimeout(()=>{
-        const nextIdx = qIndex + 1;
-        if(nextIdx >= NB_QUESTIONS){
-          const finalScore = score + (isRight ? 1 : 0);
-          const earned = rewardFor(finalScore);
-          if(earned > 0) onEarn(earned);
-          setPhase('done');
-        } else {
-          setQIndex(nextIdx);
-          /* le useEffect [phase, qIndex] redémarre subPhase='entering' */
-        }
-      }, WALK_OUT_MS);
+    /* On garde ANSWER_HOLD_MS pour laisser voir ✓/✗, puis on incrémente
+       qIndex. Le `key` du customer change → l'anim csCustomerWalkIn se
+       rejoue (le brief précise que ça suffit visuellement). */
+    advanceRef.current = setTimeout(()=>{
+      const nextIdx = qIndex + 1;
+      if(nextIdx >= NB_QUESTIONS){
+        const finalScore = score + (isRight ? 1 : 0);
+        const earned = rewardFor(finalScore);
+        if(earned > 0) onEarn(earned);
+        setPhase('done');
+      } else {
+        setQIndex(nextIdx);
+      }
     }, ANSWER_HOLD_MS);
   };
 
@@ -225,81 +235,17 @@ export function GuessGame({ coins, onEarn, onSpend, C }){
         }} />
       </div>
 
-      {/* Scène comptoir : sol, comptoir, machine à café, serveur (gauche),
-          client qui marche depuis la droite. La bulle apparaît au-dessus
-          du client une fois qu'il s'est arrêté. */}
-      {phase === 'playing' && current && (
-        <div style={{
-          position:'relative', width:'100%', maxWidth:360, height:200,
-          borderRadius:18, overflow:'hidden',
-          border:`1px solid ${C.border}`,
-          background:'linear-gradient(180deg,#F5E5C8 0%,#FBEFD4 58%,#D8B98F 58%,#C8A878 100%)',
-          boxShadow:'inset 0 -8px 18px rgba(74,44,23,.15)',
-        }}>
-          {/* Étagère arrière-plan : tasses suspendues */}
-          <div style={{ position:'absolute', top:6, left:'4%', right:'4%', height:18, display:'flex', justifyContent:'space-around', fontSize:13, opacity:.7, color:'#8B5A2B' }}>
-            <span>☕</span><span>🍪</span><span>☕</span><span>🥐</span><span>☕</span>
-          </div>
-
-          {/* Comptoir (rectangle marron qui occupe la moitié gauche, posé au sol) */}
-          <div style={{
-            position:'absolute', left:0, bottom:0, width:'48%', height:'42%',
-            background:'linear-gradient(180deg,#7D4E1F 0%,#5A3520 35%,#4A2C17 100%)',
-            borderTop:'3px solid #3D2010',
-            borderRight:'2px solid #3D2010',
-            boxShadow:'4px 0 12px rgba(0,0,0,.18)',
-          }}>
-            {/* Reflet sur le plan de travail */}
-            <div style={{ position:'absolute', top:0, left:0, right:0, height:4, background:'linear-gradient(90deg,rgba(212,160,23,.3),rgba(255,255,255,.5),rgba(212,160,23,.3))' }} />
-          </div>
-
-          {/* Machine à café derrière le comptoir */}
-          <div style={{ position:'absolute', left:'6%', bottom:'42%', fontSize:24, lineHeight:1, filter:'drop-shadow(0 2px 3px rgba(0,0,0,.25))' }}>
-            ☕
-          </div>
-
-          {/* Serveur (le joueur) — derrière le comptoir, mi-corps */}
-          <div style={{ position:'absolute', left:'24%', bottom:'38%', fontSize:38, lineHeight:1, filter:'drop-shadow(0 3px 4px rgba(0,0,0,.22))' }}>
-            👨‍🍳
-          </div>
-
-          {/* Client qui marche : son origin est right:8% bottom:6%,
-              et l'animation translateX s'applique relativement à cette
-              position (commence hors-écran à droite, finit à right:8%). */}
-          <div
-            key={`${qIndex}-${subPhase}`}
-            style={{
-              position:'absolute', right:'8%', bottom:'6%',
-              fontSize:42, lineHeight:1,
-              filter:'drop-shadow(0 3px 4px rgba(0,0,0,.22))',
-              animation:
-                subPhase==='entering' ? `clientWalkIn ${WALK_IN_MS}ms cubic-bezier(.4,.05,.3,1) forwards` :
-                subPhase==='leaving'  ? `clientWalkOut ${WALK_OUT_MS}ms ease-in forwards` :
-                'none',
-              willChange:'transform',
-            }}
-          >
-            {clients[qIndex]}
-          </div>
-
-          {/* Bulle de dialogue (apparaît quand le client s'est arrêté) */}
-          {subPhase === 'speaking' && (
-            <div style={{
-              position:'absolute', right:'4%', bottom:'58%',
-              maxWidth:'62%',
-              padding:'10px 13px',
-              borderRadius:'14px 14px 4px 14px',
-              background:'#FBF3E2',
-              border:'1.5px solid #C8A878',
-              color:'#4A2C17',
-              fontSize:12, lineHeight:1.4, fontStyle:'italic',
-              boxShadow:'0 4px 12px rgba(74,44,23,.22)',
-              animation:'bubblePopIn .35s cubic-bezier(.36,.07,.19,.97) both',
-              zIndex:5,
-            }}>
-              « {typed}<span style={{ opacity: typed.length === current.desc.length ? 0 : 1, color:'#D4A017', fontWeight:900 }}>|</span> »
-            </div>
-          )}
+      {/* Scène café POV barista — voir CafeScene.jsx pour le détail.
+          Le `key` du customer change à chaque qIndex → React démonte/
+          remonte la div .cs-customer et l'anim csCustomerWalkIn se
+          rejoue. La bulle ne s'affiche qu'en sub-phase 'speaking'. */}
+      {phase === 'playing' && current && customerIndices.length > 0 && (
+        <div style={{ width:'100%', maxWidth:360 }}>
+          <CafeScene
+            customer={CUSTOMERS[customerIndices[qIndex]]}
+            dialogText={typed}
+            subPhase={subPhase}
+          />
         </div>
       )}
 
