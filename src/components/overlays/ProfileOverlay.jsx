@@ -220,6 +220,14 @@ export function ProfileOverlay({
                 Modifier mon avatar
               </button>
             </div>
+
+            {/* Crédit auteur — toujours en pied de profil (PHASE 2) */}
+            <div style={{ textAlign:'center', marginTop:32, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
+              Réalisé avec <strong style={{ color:'#C17F3C' }}>Claude Code</strong> par <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
+              <div style={{ fontSize:10, marginTop:2, opacity:0.7 }}>
+                CookiTrader v1.0
+              </div>
+            </div>
           </>
         )}
 

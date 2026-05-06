@@ -45,9 +45,9 @@ export const REWARDS = [
   { id:'badge_chef',     name:'Badge Chef',     desc:'Pour les acharnés du cookie', cost:500,  type:'Badge', emoji:'👨‍🍳', levelRequired:5 },
   { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiTrader',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
   // TITRES
-  { id:'titre_grand_cru', name:'Titre "Grand Cru"',         desc:'Affichez votre prestige', cost:200,  type:'Titre', emoji:'🏅', levelRequired:2 },
-  { id:'titre_maestro',   name:'Titre "Maestro"',           desc:'Au sommet de l\'art',     cost:700,  type:'Titre', emoji:'🎯', levelRequired:5 },
-  { id:'titre_legende',   name:'Titre "Légende du Cookie"', desc:'Le titre ultime',         cost:1500, type:'Titre', emoji:'✨', levelRequired:6 },
+  { id:'titre_grand_cru',    name:'Titre "Grand Cru"',         desc:'Affichez votre prestige', cost:200,  type:'Titre', emoji:'🏅', levelRequired:2 },
+  { id:'titre_torrefacteur', name:'Titre "Torréfacteur"',      desc:'Maître de la torréfaction', cost:400, type:'Titre', emoji:'🔥', levelRequired:3 },
+  { id:'titre_legende',      name:'Titre "Légende du Cookie"', desc:'Le titre ultime',         cost:1500, type:'Titre', emoji:'✨', levelRequired:6 },
   // THÈMES
   { id:'theme_creme',      name:'Thème Cappuccino Mousseux', desc:'Fond rosé crème chaud',     cost:80,   type:'Thème', emoji:'☁️', levelRequired:1 },
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
@@ -58,9 +58,8 @@ export const REWARDS = [
   { id:'avatar_chef',   name:'Avatar Chef',     desc:'Toque du grand chef',      cost:400,  type:'Avatar', emoji:'👨‍🍳', levelRequired:4 },
   { id:'avatar_legend', name:'Avatar Légende',  desc:'Couronne dorée animée',    cost:1000, type:'Avatar', emoji:'👑', levelRequired:6 },
   // SKINS COOKIE
-  { id:'skin_glace',   name:'Cookie Fraise',     desc:'Pépites de fraise gorgées',   cost:150,  type:'Skin', emoji:'🍓', levelRequired:2 },
-  { id:'skin_dore',    name:'Cookie Doré',       desc:'Brillance animée',            cost:700,  type:'Skin', emoji:'⭐', levelRequired:5 },
-  { id:'skin_legende', name:'Cookie Légendaire', desc:'Cookie qui pulse en caramel', cost:1500, type:'Skin', emoji:'💎', levelRequired:6 },
+  { id:'skin_chocolat', name:'Cookie Chocolat', desc:'Tout chocolat avec éclats', cost:250, type:'Skin', emoji:'🍫', levelRequired:3 },
+  { id:'skin_dore',     name:'Cookie Doré',     desc:'Brillance animée',          cost:700, type:'Skin', emoji:'⭐', levelRequired:5 },
   // SKINS ROUE
   { id:'roue_chocolat', name:'Roue Chocolat',   desc:'Segments cacao et moka profond', cost:200,  type:'Roue', emoji:'🍫', levelRequired:2 },
   { id:'roue_caramel',  name:'Roue Caramel',    desc:'Tons dorés et ambrés chauds',    cost:350,  type:'Roue', emoji:'🍯', levelRequired:3 },
