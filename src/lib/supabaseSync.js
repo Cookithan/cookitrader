@@ -1,4 +1,5 @@
 import { supabase, isSupabaseEnabled } from './supabase';
+import { notifySupabaseError } from './supabaseError';
 
 /* ════════════════════════════════════════════════════
    supabaseSync — opérations sur la table public.users
@@ -30,7 +31,7 @@ export async function addFriend(myUserCode, friendCode){
       .select('id, user_code, user_name, user_avatar, level, total_earned, cookies, last_active')
       .eq('user_code', friendCode)
       .maybeSingle();
-    if(lookupErr) return { ok:false, error:'Erreur réseau' };
+    if(lookupErr){ notifySupabaseError(); return { ok:false, error:'Erreur réseau' }; }
     if(!friend)   return { ok:false, error:"Ce code n'existe pas." };
 
     const myId = await getMyId(myUserCode);
@@ -45,6 +46,7 @@ export async function addFriend(myUserCode, friendCode){
     }
     return { ok:true, friend };
   }catch(e){
+    notifySupabaseError();
     return { ok:false, error:'Erreur réseau' };
   }
 }
@@ -63,9 +65,9 @@ export async function getFriends(myUserCode){
       .from('users')
       .select('user_code, user_name, user_avatar, level, total_earned, cookies, streak, last_active')
       .in('user_code', codes);
-    if(error) return [];
+    if(error){ notifySupabaseError(); return []; }
     return profiles || [];
-  }catch{ return []; }
+  }catch{ notifySupabaseError(); return []; }
 }
 
 /* Top N des joueurs par total_earned décroissant. */
@@ -80,10 +82,11 @@ export async function getLeaderboard(limit = 50){
     if(error){
       // eslint-disable-next-line no-console
       console.warn('[supabase] getLeaderboard error:', error);
+      notifySupabaseError();
       return [];
     }
     return data || [];
-  }catch{ return []; }
+  }catch{ notifySupabaseError(); return []; }
 }
 
 /* Mon rang (1-based) parmi tous les joueurs : compte les utilisateurs
@@ -151,12 +154,14 @@ export async function upsertProfile(p){
     if(error){
       // eslint-disable-next-line no-console
       console.warn('[supabase] upsertProfile error:', error);
+      notifySupabaseError();
       return { ok:false, reason:'error', error };
     }
     return { ok:true, data };
   }catch(e){
     // eslint-disable-next-line no-console
     console.warn('[supabase] upsertProfile threw:', e);
+    notifySupabaseError();
     return { ok:false, reason:'exception', error:e };
   }
 }

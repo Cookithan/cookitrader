@@ -20,6 +20,7 @@ import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
 import { upsertProfile } from "./lib/supabaseSync.js";
+import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -1210,6 +1211,9 @@ export default function CookiMiner() {
       )}
       {/* Bulle contextuelle (1re ouverture jeu/onglet) */}
       <ContextHint hint={activeHint} onClose={()=>setActiveHint(null)} />
+
+      {/* Toast d'erreur réseau Supabase (auto-close 4s) */}
+      <NetworkErrorToast />
 
       {/* Splash custom à chaque mount (ouverture + F5). En mode fast
           si c'est un refresh détecté via Performance API. */}
