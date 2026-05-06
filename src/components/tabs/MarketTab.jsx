@@ -80,7 +80,10 @@ export function MarketTab({ coins, currentPrice, priceHistory, ckmShares, setCkm
     setMarketTrades(t => t + 1);
     const pnl = proceeds - Math.round(basisOut);
     setMarketRealized(r => r + pnl);
-    onEarn(proceeds);
+    /* On crédite proceeds aux coins (capital + plus-value) mais on ne
+       compte que la plus-value (pnl positif) comme "gain" pour XP +
+       totalEarned. Récupérer son capital ne fait pas progresser. */
+    onEarn(proceeds, Math.max(0, pnl));
     pushHistory({ type:'sell', proceeds, parts, price:currentPrice, pnl });
     setTrade(null);
   };

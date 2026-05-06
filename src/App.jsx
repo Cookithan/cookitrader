@@ -371,17 +371,27 @@ export default function CookiMiner() {
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
   /* actions */
-  const addCoins = useCallback((amount)=>{
+  /* `amount`     : delta appliqué aux coins (peut être négatif → perte)
+     `gainAmount` : delta compté comme "vrai gain" (XP + totalEarned).
+                    Par défaut = amount. Sert pour la vente $CKM : on
+                    récupère proceeds en coins mais on ne progresse
+                    qu'à hauteur de la plus-value (pnl). */
+  const addCoins = useCallback((amount, gainAmount = amount)=>{
     if(amount<=0){ setCoins(c=>Math.max(0,c+amount)); return; }
     setCoins(c=>c+amount);
-    setTotalEarned(t=>t+amount);
+
+    /* Si on n'est pas sur un "vrai gain", on n'avance pas XP/totalEarned */
+    const xpDelta = Math.max(0, gainAmount);
+    if(xpDelta <= 0) return;
+
+    setTotalEarned(t=>t+xpDelta);
 
     const lv  = lvRef.current;
     const cur = xpRef.current;
 
     /* Niveau max OU sous le seuil → pas de level up, XP avance normalement */
-    if(lv>=6 || cur+amount < lv*100 + 50){
-      const next = cur+amount;
+    if(lv>=6 || cur+xpDelta < lv*100 + 50){
+      const next = cur+xpDelta;
       setXp(next); xpRef.current = next;
       return;
     }
