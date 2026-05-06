@@ -16,6 +16,7 @@ import { ContextHint, CONTEXT_HINTS } from "./components/tutorial/ContextHint.js
 import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
 import { useInstallPrompt } from "./hooks/useInstallPrompt.js";
 import { useSwipe } from "./hooks/useSwipe.js";
+import { useBackToClose } from "./hooks/useBackToClose.js";
 import { AppSplash } from "./components/AppSplash.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -235,6 +236,17 @@ export default function CookiMiner() {
 
   /* Hook PWA : exposé aux paramètres pour le bouton "Installer" */
   const installPrompt = useInstallPrompt();
+
+  /* Bouton retour Android : ferme l'overlay courant au lieu de quitter
+     l'app. Pas appliqué à : showOnboarding, tutorialStep, pendingLvUp,
+     pendingAchievement (l'utilisateur DOIT les voir / interagir). */
+  useBackToClose(!!gameView,        () => setGameView(null));
+  useBackToClose(showSettings,      () => setShowSettings(false));
+  useBackToClose(showProfile,       () => setShowProfile(false));
+  useBackToClose(showLevels,        () => setShowLevels(false));
+  useBackToClose(showSkipConfirm,   () => setShowSkipConfirm(false));
+  useBackToClose(showEventModal,    () => setShowEventModal(false));
+  useBackToClose(!!eventReward,     () => setEventReward(null));
 
   /* Swipe horizontal pour changer d'onglet — désactivé tant qu'un
      overlay/modal/jeu/tuto est ouvert, pour éviter les conflits.
