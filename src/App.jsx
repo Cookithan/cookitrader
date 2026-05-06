@@ -11,6 +11,9 @@ import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, E
 import { EventBanner } from "./components/EventBanner.jsx";
 import { EventAnnounceModal } from "./components/modals/EventAnnounceModal.jsx";
 import { EventRewardModal } from "./components/modals/EventRewardModal.jsx";
+import { TutorialOverlay } from "./components/tutorial/TutorialOverlay.jsx";
+import { ContextHint, CONTEXT_HINTS } from "./components/tutorial/ContextHint.jsx";
+import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
@@ -98,6 +101,15 @@ export default function CookiMiner() {
   const [completedEvents, setCompletedEvents] = useLocalStorage('completedEvents', []);
   const [showEventModal,  setShowEventModal]  = useState(false);
   const [eventReward,     setEventReward]     = useState(null);
+
+  /* Tutoriel guidé (BRIEF_TUTORIEL) — 6 étapes, déclenché au 1er
+     lancement après l'onboarding. tutorialStep est volatile (volontaire :
+     une session = un tuto), seul `tutorialCompleted` est persisté en LS.
+     `seenHints` (array d'ids) tracke les bulles contextuelles déjà vues. */
+  const [tutorialStep,    setTutorialStep]    = useState(0);
+  const [showSkipConfirm, setShowSkipConfirm] = useState(false);
+  const [seenHints,       setSeenHints]       = useLocalStorage('seenHints', []);
+  const [activeHint,      setActiveHint]      = useState(null);
 
   /* Génère le code ami au premier lancement (post-onboarding ou refresh sans code en LS).
      Reset → on remet à '' dans resetProgress, cet effet régénère un nouveau code propre. */
@@ -201,6 +213,66 @@ export default function CookiMiner() {
     cafeToastTimerRef.current = setTimeout(()=>setCafeToast(null), 2200);
   },[]);
   const [showOnboarding, setShowOnboarding] = useState(!userName);
+
+  /* ── TUTORIEL : démarrage / wires ─────────────── */
+
+  /* Démarre le tuto au 1er lancement (après l'onboarding nom+avatar).
+     Si l'utilisateur a déjà joué (totalEarned > 0) sans voir le tuto,
+     on le marque comme complété pour ne pas l'embêter rétroactivement. */
+  useEffect(()=>{
+    if(showOnboarding) return;
+    if(tutorialStep > 0) return;
+    let completed = false;
+    try{ completed = window.localStorage.getItem('cookiminer:tutorialCompleted') === '1'; }catch{}
+    if(completed) return;
+    if(totalEarned > 0){
+      try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
+      return;
+    }
+    setTutorialStep(1);
+  }, [showOnboarding, totalEarned, tutorialStep]);
+
+  /* Bulles contextuelles : 1re ouverture des jeux et onglets concernés.
+     Bloqué tant que le tuto principal est actif (priorité). */
+  useEffect(()=>{
+    if(tutorialStep > 0) return;
+    if(!gameView) return;
+    const map = { quiz:'first-quiz', spin:'first-spin', click:'first-click', pour:'first-stop-cafe' };
+    const id = map[gameView];
+    if(!id || !CONTEXT_HINTS[id]) return;
+    if(seenHints.includes(id)) return;
+    setActiveHint(CONTEXT_HINTS[id]);
+    setSeenHints(s => s.includes(id) ? s : [...s, id]);
+  }, [gameView, tutorialStep, seenHints, setSeenHints]);
+
+  useEffect(()=>{
+    if(tutorialStep > 0) return;
+    const map = { marche:'first-marche', boutique:'first-boutique' };
+    const id = map[tab];
+    if(!id || !CONTEXT_HINTS[id]) return;
+    if(seenHints.includes(id)) return;
+    setActiveHint(CONTEXT_HINTS[id]);
+    setSeenHints(s => s.includes(id) ? s : [...s, id]);
+  }, [tab, tutorialStep, seenHints, setSeenHints]);
+
+  /* Avance d'une étape du tuto (avec auto-marquage à la fin) */
+  const TUTORIAL_TOTAL_STEPS = 5;
+  const tutorialNext = () => {
+    setTutorialStep(s => {
+      const next = s + 1;
+      if(next > TUTORIAL_TOTAL_STEPS){
+        try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
+        return 0;
+      }
+      return next;
+    });
+  };
+
+  const tutorialConfirmSkip = () => {
+    setShowSkipConfirm(false);
+    setTutorialStep(0);
+    try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
+  };
 
   const lvRef = useRef(level); lvRef.current = level;
   const xpRef = useRef(xp);    xpRef.current = xp;
@@ -410,6 +482,10 @@ export default function CookiMiner() {
     setActiveTheme(''); setActiveSkin(''); setActiveRoue('');
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
+    /* Tuto : reset complet pour qu'un reset rejoue le tuto au démarrage */
+    setTutorialStep(0); setShowSkipConfirm(false);
+    setSeenHints([]); setActiveHint(null);
+    try{ window.localStorage.removeItem('cookiminer:tutorialCompleted'); }catch{}
     setPendingLvUp(null); setGameView(null); setTab('accueil');
     setShowOnboarding(true);
   };
@@ -550,7 +626,7 @@ export default function CookiMiner() {
             <Coffee size={14} color="#F0C050" />
             <span key={cafes} className="coin-pop" style={{ fontWeight:800, fontSize:15, color:'#F0C050', display:'inline-block', minWidth:10, textAlign:'center' }}>{cafes}</span>
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:6, background:GOLD, borderRadius:20, padding:'8px 14px', boxShadow:'0 4px 12px rgba(212,160,23,.35)' }} className="gradient-anim">
+          <div id="cookie-counter" style={{ display:'flex', alignItems:'center', gap:6, background:GOLD, borderRadius:20, padding:'8px 14px', boxShadow:'0 4px 12px rgba(212,160,23,.35)' }} className="gradient-anim">
             <Cookie size={16} color="#fff" />
             <span key={coins} className="coin-pop" style={{ fontWeight:800, fontSize:18, color:'#fff', display:'inline-block', minWidth:14, textAlign:'center' }}>{coins}</span>
           </div>
@@ -573,7 +649,7 @@ export default function CookiMiner() {
               />
             )}
             {/* Level card */}
-            <button onClick={()=>setShowLevels(true)} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
+            <button id="card-niveau" onClick={()=>setShowLevels(true)} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
               <div style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)' }} />
               <div style={{ position:'absolute', top:14, right:16, fontSize:10, color:'rgba(255,255,255,.45)', display:'flex', alignItems:'center', gap:3, fontWeight:600 }}>
                 Voir tous <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
@@ -624,7 +700,7 @@ export default function CookiMiner() {
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>TON CAFÉ DU JOUR</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {GAMES.filter(g => g.id === 'checkin' || g.id === 'quiz').map((g,i)=>(
-                <button key={g.id} onClick={()=>setGameView(g.id)} className={`su stagger-${i+1}`} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 16px', ...s.card, textAlign:'left' }}>
+                <button key={g.id} id={g.id === 'checkin' ? 'card-checkin' : undefined} onClick={()=>setGameView(g.id)} className={`su stagger-${i+1}`} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 16px', ...s.card, textAlign:'left' }}>
                   <div className={g.avail?'float-anim':''} style={{ width:46, height:46, borderRadius:13, background:g.color, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:g.avail?'0 4px 12px rgba(0,0,0,.15)':'none' }}>
                     <g.Icon size={22} color="#fff" />
                   </div>
@@ -801,7 +877,7 @@ export default function CookiMiner() {
           {[{id:'accueil',Icon:Home,label:'Accueil'},{id:'jeux',Icon:Gamepad2,label:'Jeux'},{id:'classement',Icon:Trophy,label:'Classement'},{id:'marche',Icon:TrendingUp,label:'Marché'},{id:'boutique',Icon:ShoppingBag,label:'Boutique'}].map(item=>{
             const showDot = item.id==='accueil' && (canCheckin || canQuiz);
             return (
-              <button key={item.id} onClick={()=>setTab(item.id)} style={s.pill(tab===item.id)}>
+              <button key={item.id} id={item.id === 'jeux' ? 'nav-jeux' : item.id === 'boutique' ? 'nav-boutique' : undefined} onClick={()=>setTab(item.id)} style={s.pill(tab===item.id)}>
                 <span style={{ position:'relative', display:'inline-flex', lineHeight:0 }}>
                   <item.Icon size={20} />
                   {showDot && (
@@ -954,6 +1030,24 @@ export default function CookiMiner() {
           }}
         />
       )}
+
+      {/* TUTORIEL GUIDÉ — déclenché au 1er lancement après onboarding */}
+      {tutorialStep > 0 && (
+        <TutorialOverlay
+          step={tutorialStep}
+          onNext={tutorialNext}
+          onSkip={()=>setShowSkipConfirm(true)}
+        />
+      )}
+      {showSkipConfirm && (
+        <SkipConfirmModal
+          onCancel={()=>setShowSkipConfirm(false)}
+          onConfirm={tutorialConfirmSkip}
+          C={C}
+        />
+      )}
+      {/* Bulle contextuelle (1re ouverture jeu/onglet) */}
+      <ContextHint hint={activeHint} onClose={()=>setActiveHint(null)} />
     </div>
   );
 }

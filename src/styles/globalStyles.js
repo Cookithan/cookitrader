@@ -57,6 +57,7 @@ export const GLOBAL_CSS = `
   @keyframes clientWalkIn{0%{transform:translateX(180%) translateY(0)}20%{transform:translateX(140%) translateY(-3px)}40%{transform:translateX(95%) translateY(0)}60%{transform:translateX(55%) translateY(-3px)}80%{transform:translateX(20%) translateY(0)}100%{transform:translateX(0) translateY(0)}}
   @keyframes clientWalkOut{0%{transform:translateX(0) translateY(0)}25%{transform:translateX(-50%) translateY(-3px)}50%{transform:translateX(-100%) translateY(0)}75%{transform:translateX(-160%) translateY(-3px);opacity:.7}100%{transform:translateX(-220%) translateY(0);opacity:0}}
   @keyframes bubblePopIn{0%{transform:scale(.6) translateY(8px);opacity:0}55%{transform:scale(1.05) translateY(0);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
+  @keyframes spotlightPulse{0%,100%{stroke-width:3;opacity:.7}50%{stroke-width:5;opacity:1}}
 
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}
