@@ -939,7 +939,7 @@ export default function CookiMiner() {
      - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
        le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title:'Check-in quotidien',  desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'checkin', Icon:Gift,              title:'Série du jour',       desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C', levelRequired:1 },
     { id:'quiz',    Icon:Star,              title:'Quiz du jour',         desc:'Toutes les 5h', reward:'20 à 60 cookies', avail:canQuiz, color:'#D4A017', levelRequired:1 },
     { id:'spin',    Icon:CircleDot,         title:'Roue de la fortune',   desc:'Tentez votre chance',       reward:'Variable (coût 20🍪)',avail:coins>=20,   color:'#4A2C17', levelRequired:1 },
     { id:'click',   Icon:MousePointerClick, title:'Défi de clics',        desc:'Tapotez le cookie !',       reward:'1 cookie / 2 clics',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
