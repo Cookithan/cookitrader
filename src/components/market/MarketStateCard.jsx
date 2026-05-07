@@ -11,7 +11,7 @@ import { useState } from 'react';
 export function MarketStateCard({ state, dayChange }) {
   const [showHelp, setShowHelp] = useState(false);
   const available = state?.available_shares ?? 0;
-  const total = state?.total_shares_supply ?? 10000;
+  const total = state?.total_shares_supply ?? 1000;
   const availablePct = (available / total) * 100;
 
   let trendText, trendColor, arrow;

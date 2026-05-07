@@ -22,7 +22,7 @@ export function MarketWelcomeModal({ onClose }) {
     {
       icon: '💎',
       title: 'Stock limité',
-      text: 'Il n\'y a que 10 000 actions au total. Plus les gens achètent, plus c\'est rare et plus le prix monte. Bon trade !',
+      text: 'Il n\'y a que 1 000 actions au total. Plus les gens achètent, plus c\'est rare et plus le prix monte. Bon trade !',
     },
   ];
   const cur = steps[step];
