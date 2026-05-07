@@ -1108,21 +1108,16 @@ export default function CookiMiner() {
               )}
             </button>
 
-            {/* Stats */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:14 }}>
-              {[
-                { Icon:Flame, label:'Série',        value:streak,      sub:`jour${streak>1?'s':''} consécutif${streak>1?'s':''}`, col:'#E07040' },
-                { Icon:Zap,   label:'Record clics', value:clickRecord, sub:'en 10 secondes',                                       col:'#D4A017' },
-              ].map(({Icon,label,value,sub,col})=>(
-                <div key={label} style={{ ...s.card, padding:16 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
-                    <Icon size={14} color={col} />
-                    <span style={{ fontSize:11, color:C.muted, fontWeight:700 }}>{label}</span>
-                  </div>
-                  <div style={{ fontSize:28, fontWeight:800, color:C.text }}>{value}</div>
-                  <div style={{ fontSize:11, color:C.muted }}>{sub}</div>
+            {/* Stats — Série uniquement (Record clics retiré) */}
+            <div style={{ marginBottom:14 }}>
+              <div style={{ ...s.card, padding:16 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+                  <Flame size={14} color="#E07040" />
+                  <span style={{ fontSize:11, color:C.muted, fontWeight:700 }}>Série</span>
                 </div>
-              ))}
+                <div style={{ fontSize:28, fontWeight:800, color:C.text }}>{streak}</div>
+                <div style={{ fontSize:11, color:C.muted }}>jour{streak>1?'s':''} consécutif{streak>1?'s':''}</div>
+              </div>
             </div>
 
             {/* Games */}
