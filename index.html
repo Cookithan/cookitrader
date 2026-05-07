@@ -33,6 +33,29 @@
         color: #E8C896;
       }
     </style>
+    <!-- Kill-switch SW : si l'ancien service worker (bloqué après le
+         renommage Vercel cookitrader→cookiminer) sert un cache cassé,
+         on l'unregister + on vide tous les caches + on reload une fois.
+         sessionStorage.kill-switch-1 empêche de boucler. -->
+    <script>
+      (async function(){
+        try{
+          if(sessionStorage.getItem('kill-switch-1') === 'done') return;
+          if('serviceWorker' in navigator){
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for(const r of regs){ try{ await r.unregister(); }catch{} }
+          }
+          if('caches' in window){
+            const keys = await caches.keys();
+            for(const k of keys){ try{ await caches.delete(k); }catch{} }
+          }
+          sessionStorage.setItem('kill-switch-1', 'done');
+          if((await navigator.serviceWorker?.getRegistrations?.())?.length || 0) {
+            window.location.reload();
+          }
+        }catch{}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

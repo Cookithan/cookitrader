@@ -12,6 +12,12 @@ export default defineConfig({
       manifest: false, // on utilise notre /public/manifest.webmanifest custom
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        // skipWaiting + clientsClaim → nouveau SW prend immédiatement le
+        // contrôle sans attendre que tous les onglets soient fermés. Évite
+        // que les utilisateurs restent coincés sur une vieille version.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
