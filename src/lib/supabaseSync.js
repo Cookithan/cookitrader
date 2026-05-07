@@ -349,11 +349,18 @@ export async function acceptFriendRequest(myUserCode, requestId){
       .maybeSingle();
     if(!me) return { error:'Mon profil introuvable' };
 
-    /* Marque la demande acceptée */
-    await supabase
+    /* Marque la demande acceptée. En cas d'échec (RLS, réseau), on
+       remonte l'erreur — sinon la ligne reste en pending et le user
+       n'apparaît pas chez l'expéditeur (bug observé une fois). */
+    const { error: updErr } = await supabase
       .from('friendships')
       .update({ status:'accepted' })
       .eq('id', requestId);
+    if(updErr){
+      console.warn('[acceptFriendRequest] update error:', updErr);
+      notifySupabaseError();
+      return { error:'Erreur réseau' };
+    }
 
     /* Crée la relation inverse (moi → lui) en accepted, ou met à jour
        si une demande de moi vers lui existait déjà en pending. */
@@ -364,13 +371,24 @@ export async function acceptFriendRequest(myUserCode, requestId){
       .eq('friend_code', sender.user_code)
       .maybeSingle();
     if(!existing){
-      await supabase.from('friendships').insert({
+      const { error: insErr } = await supabase.from('friendships').insert({
         user_id: me.id,
         friend_code: sender.user_code,
         status: 'accepted',
       });
+      if(insErr){
+        console.warn('[acceptFriendRequest] insert reverse error:', insErr);
+        /* On ne fail pas la fonction : l'amitié côté expéditeur est OK,
+           celle côté moi sera ré-essayée au prochain accept. */
+      }
     } else if(existing.status === 'pending'){
-      await supabase.from('friendships').update({ status:'accepted' }).eq('id', existing.id);
+      const { error: revUpdErr } = await supabase
+        .from('friendships')
+        .update({ status:'accepted' })
+        .eq('id', existing.id);
+      if(revUpdErr){
+        console.warn('[acceptFriendRequest] update reverse error:', revUpdErr);
+      }
     }
 
     /* Inbox côté expéditeur — best effort */
