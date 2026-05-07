@@ -47,6 +47,7 @@ export function ProfileOverlay({
   supabaseSyncOk  = false,
   unreadInboxCount = 0,
   onOpenInbox,
+  onOpenFriendProfile,
   C
 }) {
   const [editing, setEditing] = useState(false);
@@ -330,7 +331,7 @@ export function ProfileOverlay({
             </section>
 
             {/* 5. Mes Amis */}
-            <FriendsSection userCode={userCode} myCoins={coins} C={C} />
+            <FriendsSection userCode={userCode} myCoins={coins} onOpenProfile={onOpenFriendProfile} C={C} />
 
             {/* 6. Boutons d'édition (pseudo / avatar / bio) */}
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
