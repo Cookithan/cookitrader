@@ -13,19 +13,21 @@ import { useEffect, useRef } from "react";
    appelle nous-même history.back() pour rééquilibrer l'historique
    (sinon il aurait un appui de retour "vide" qui ne ferait rien).
 
-   ⚠️ Bug sous-overlays — quand un overlay B est ouvert PAR-DESSUS un
-   overlay A, fermer B via X déclenche history.back(), qui émet popstate
-   reçu par TOUS les listeners — y compris celui de A (qui se fermerait
-   indûment). Solution : flag `suppressNextPop` partagé au niveau module
-   pour ignorer le popstate synthétique qu'on déclenche nous-même.
+   ⚠️ Bug sous-overlays (BRIEF_DEMANDES_AMIS) — quand un overlay B est
+   ouvert PAR-DESSUS un overlay A, fermer B via X déclenchait history.back()
+   qui émet popstate reçu par TOUS les listeners — y compris celui de A
+   (qui se fermait indûment). Solution : compteur partagé `pendingSuppress`
+   incrémenté juste avant notre back() et consommé par le listener qui
+   reçoit le pop synthétique. Synchrone, donc pas de race avec le timing
+   du dispatch popstate.
 
    Usage : useBackToClose(showFoo, () => setShowFoo(false));
 ═══════════════════════════════════════════════════════ */
 
-/* Flag partagé entre instances : true pendant un history.back()
-   déclenché par notre propre cleanup. Le listener popstate l'observe
-   et ignore l'événement, puis on remet à false au tick suivant. */
-let suppressNextPop = false;
+/* Compteur de pops à ignorer (synthétiques, déclenchés par notre back).
+   Le 1er listener qui reçoit le popstate après un suppress décrémente
+   et early-return. Pas de timing fragile vs setTimeout. */
+let pendingSuppress = 0;
 
 export function useBackToClose(open, onClose){
   const handlerRef = useRef(onClose);
@@ -41,23 +43,19 @@ export function useBackToClose(open, onClose){
     }catch{ /* environnements exotiques sans history API */ }
 
     const onPop = () => {
-      if(suppressNextPop) return;
+      if(pendingSuppress > 0){ pendingSuppress--; return; }
       handlerRef.current?.();
     };
     window.addEventListener('popstate', onPop);
 
     return () => {
       window.removeEventListener('popstate', onPop);
-      /* Fermeture volontaire (bouton X, click ailleurs, etc.) : on
-         dépile l'entrée qu'on avait poussée. Si la fermeture vient
-         déjà d'un popstate, le state courant n'a plus pwaOverlay et
-         on ne fait rien. Le flag suppressNextPop empêche les autres
-         instances actives de réagir à notre propre history.back(). */
+      /* Fermeture volontaire (X, click ailleurs…) : on dépile l'entrée
+         qu'on avait poussée. Le compteur empêche les autres instances
+         actives (overlay parent par ex.) de réagir à notre back(). */
       if(pushed && window.history.state && window.history.state.pwaOverlay){
-        suppressNextPop = true;
-        try{ window.history.back(); }catch{}
-        /* Reset asynchrone : popstate est émis sur le tick suivant. */
-        setTimeout(()=>{ suppressNextPop = false; }, 0);
+        pendingSuppress++;
+        try{ window.history.back(); }catch{ pendingSuppress--; }
       }
     };
   }, [open]);
