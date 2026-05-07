@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Cookie } from "lucide-react";
 import { QUESTIONS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    QuizGame — 3 questions tirées dans la difficulté choisie
@@ -175,6 +176,7 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     if(hiddenChoices.includes(i)) return;
     setSel(i);
     const isCorrect = i === q.answer;
+    playSound(isCorrect ? 'success' : 'error');
     if(isCorrect){
       onEarn(q.reward);
       setScore(s=>s+q.reward);

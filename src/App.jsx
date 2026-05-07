@@ -592,6 +592,7 @@ export default function CookiMiner() {
     setLevel(nl);   lvRef.current = nl;
     setXp(0);       xpRef.current = 0;
     setPendingLvUp(nl);
+    playSound('success');
     if(nl >= 6){
       setTimeout(()=>{ setCafes(c=>c+1); }, 700);
     } else {
@@ -876,7 +877,7 @@ export default function CookiMiner() {
     } catch {}
     setShowOnboarding(true);
   };
-  const doCheckin    = ()=>{ addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
+  const doCheckin    = ()=>{ playSound('success'); addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
   const unlockReward = (id)=>{
     const r=REWARDS.find(x=>x.id===id);
     if(!r||unlocked.includes(id)) return;
