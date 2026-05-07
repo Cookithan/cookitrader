@@ -3,6 +3,15 @@ import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share } from "lucide
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, COOKIE_SKINS, LT, GOLD } from "../../data/themes.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
+import {
+  MUSICS,
+  getAudioSettings,
+  setUiSoundEnabled,
+  setMusicEnabled,
+  playMusic,
+  playSound,
+  getCurrentMusicId,
+} from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    SettingsOverlay — plein écran z-index 60
@@ -15,6 +24,36 @@ import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 
 export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, activeSkin, setActiveSkin, activeRoue, setActiveRoue, onReset, install, C }) {
   const [appearanceTab, setAppearanceTab] = useState('themes'); // 'themes' | 'skins' | 'roues'
+
+  /* État audio synchronisé avec audio.js (LS). Re-render local à chaque
+     changement pour refléter le toggle / la musique en lecture. */
+  const [audio, setAudio] = useState(() => ({
+    ...getAudioSettings(),
+    currentMusicId: getCurrentMusicId(),
+  }));
+  const toggleUi = () => {
+    const next = !audio.uiSoundEnabled;
+    setUiSoundEnabled(next);
+    setAudio(a => ({ ...a, uiSoundEnabled: next }));
+    if(next) playSound('toggle');
+  };
+  const toggleMusic = () => {
+    const next = !audio.musicEnabled;
+    setMusicEnabled(next);
+    setAudio(a => ({ ...a, musicEnabled: next, currentMusicId: getCurrentMusicId() }));
+    playSound('toggle');
+  };
+  const chooseMusic = (id) => {
+    playSound('tap');
+    playMusic(id);
+    setAudio(a => ({ ...a, currentMusicId: id }));
+  };
+
+  /* Musiques disponibles : la gratuite + celles débloquées via items
+     boutique 'music_<key>' → MUSICS[key]. */
+  const availableMusics = Object.values(MUSICS).filter(m =>
+    m.free || unlocked.includes('music_' + m.id)
+  );
 
   const unlockedThemes = REWARDS.filter(r => unlocked.includes(r.id) && (r.type==='Thème' || (r.type==='Premium' && r.applyAs==='theme')));
   const unlockedSkins  = REWARDS.filter(r => unlocked.includes(r.id) && (r.type==='Skin'  || (r.type==='Premium' && r.applyAs==='skin')));
@@ -177,6 +216,88 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
           </div>
         </section>
 
+        {/* Audio (BRIEF_AUDIO) */}
+        <section>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>AUDIO</div>
+          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
+
+            {/* Toggle sons UI */}
+            <button
+              onClick={toggleUi}
+              style={{
+                width:'100%', padding:'10px 4px', display:'flex',
+                alignItems:'center', justifyContent:'space-between',
+                background:'transparent', border:'none', cursor:'pointer',
+              }}
+            >
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Sons d'interface</div>
+                <div style={{ fontSize:11, color:C.muted }}>Petits sons sur les boutons</div>
+              </div>
+              <Switch enabled={audio.uiSoundEnabled} />
+            </button>
+
+            <div style={{ height:1, background:C.border, opacity:.5, margin:'4px 0' }} />
+
+            {/* Toggle musique */}
+            <button
+              onClick={toggleMusic}
+              style={{
+                width:'100%', padding:'10px 4px', display:'flex',
+                alignItems:'center', justifyContent:'space-between',
+                background:'transparent', border:'none', cursor:'pointer',
+              }}
+            >
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Musique d'ambiance</div>
+                <div style={{ fontSize:11, color:C.muted }}>Musique de fond pendant le jeu</div>
+              </div>
+              <Switch enabled={audio.musicEnabled} />
+            </button>
+
+            {/* Sélecteur de musique (si musique activée) */}
+            {audio.musicEnabled && (
+              <div style={{ marginTop:10, paddingTop:12, borderTop:`1px dashed ${C.border}` }}>
+                <div style={{ fontSize:11, color:C.muted, marginBottom:8, textTransform:'uppercase', letterSpacing:1.5, fontWeight:700 }}>
+                  Musique en cours
+                </div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {availableMusics.map(m => {
+                    const active = audio.currentMusicId === m.id;
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={()=>chooseMusic(m.id)}
+                        style={{
+                          padding:'10px 12px', borderRadius:11,
+                          border: active ? '2px solid #D4A017' : `1.5px solid ${C.border}`,
+                          background: active
+                            ? 'linear-gradient(135deg, rgba(212,160,23,.12), rgba(193,127,60,.12))'
+                            : 'transparent',
+                          color:C.text,
+                          fontSize:13, fontWeight:700,
+                          display:'flex', alignItems:'center', justifyContent:'space-between',
+                          cursor:'pointer', textAlign:'left',
+                        }}
+                      >
+                        <span>{m.emoji} {m.name}</span>
+                        {active && (
+                          <span style={{ fontSize:10, fontWeight:800, color:'#D4A017', letterSpacing:.3 }}>● En lecture</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {availableMusics.length === 1 && (
+                  <div style={{ fontSize:11, color:C.muted, marginTop:10, fontStyle:'italic', textAlign:'center', lineHeight:1.45 }}>
+                    💡 Débloque d'autres musiques dans la boutique
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+
         {/* Données */}
         <section>
           <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>DONNÉES</div>
@@ -243,6 +364,28 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
         </section>
 
       </div>
+    </div>
+  );
+}
+
+/* Toggle visuel iOS-like — palette café (or quand activé, gris quand off) */
+function Switch({ enabled }){
+  return (
+    <div style={{
+      width:44, height:26, borderRadius:13,
+      position:'relative', flexShrink:0,
+      background: enabled ? 'linear-gradient(135deg,#D4A017,#C17F3C)' : '#E8DDD0',
+      transition:'background .2s',
+      boxShadow: enabled ? '0 2px 8px rgba(212,160,23,.35)' : 'inset 0 1px 2px rgba(0,0,0,.08)',
+    }}>
+      <div style={{
+        position:'absolute', top:3,
+        left: enabled ? 21 : 3,
+        width:20, height:20, borderRadius:'50%',
+        background:'#fff',
+        boxShadow:'0 2px 4px rgba(0,0,0,.25)',
+        transition:'left .2s',
+      }} />
     </div>
   );
 }
