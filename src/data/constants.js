@@ -107,70 +107,47 @@ export const ACHIEVEMENTS = [
   { id:'master_succes',  name:'Maître Des Succès',  desc:'Tu as tout débloqué',                       emoji:'🎖️', bonus:200, cafesBonus:10, hidden:true },
 ];
 
+/* Pool Quiz du jour — culture générale fun. 32 questions tirées au
+   sort 3 par session (cf QUIZ_QUESTIONS_PER_SESSION dans QuizGame).
+   3 niveaux : Facile (20 🍪), Moyen (35 🍪), Expert (60 🍪). */
 export const QUESTIONS = [
   // FACILE (reward: 20)
-  { q:"De quelle couleur est un espresso bien préparé ?", choices:["Noir avec une mousse dorée","Blanc","Marron clair","Bleu"], answer:0, reward:20, difficulty:'Facile' },
-  { q:"Qu'est-ce qu'un cappuccino ?", choices:["Un café avec de la crème fouettée","Un café avec du lait moussé en parts égales","Un café glacé","Un café sans sucre"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quelle est la forme classique d'un cookie américain ?", choices:["Carré","Triangulaire","Rond et plat","En forme d'étoile"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Quel ingrédient donne son goût amer au café ?", choices:["Le sucre","La caféine","Le lait","La vanille"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Le café pousse sur quel type de plante ?", choices:["Un arbre fruitier","Un arbuste","Une liane","Un cactus"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quelle boisson contient du café et du lait chaud ?", choices:["Thé au lait","Café au lait","Chocolat chaud","Limonade"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quel est l'ingrédient principal d'un cookie classique ?", choices:["Farine, beurre, sucre","Lait, œufs, sel","Levure, eau, miel","Cacao, crème, fécule"], answer:0, reward:20, difficulty:'Facile' },
-  { q:"À quelle température boit-on un café chaud idéalement ?", choices:["20-30°C","40-50°C","60-70°C","90-100°C"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Qu'est-ce qu'un décaféiné ?", choices:["Un café très fort","Un café dont la caféine a été retirée","Un café sucré","Un café froid"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Les pépites dans un cookie au chocolat sont faites de ?", choices:["Caramel durci","Chocolat","Noisettes","Sucre caramélisé"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Que signifie 'latte' en italien ?", choices:["Café","Lait","Crème","Sucre"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quel pays est le plus grand producteur de café au monde ?", choices:["Colombie","Éthiopie","Brésil","Vietnam"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Un cookie 'chewy' est un cookie ?", choices:["Très dur et croquant","Moelleux et fondant","Sans sucre","Salé"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Comment appelle-t-on la mousse crémeuse sur un espresso ?", choices:["Mousse","Crema","Écume","Latte"], answer:1, reward:20, difficulty:'Facile' },
-
-  // FACILE — questions sur CookiMiner
-  { q:"Quelle est la monnaie principale de CookiMiner ?", choices:["L'euro","Le café (CF)","Le cookie","La pièce d'or"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Combien y a-t-il de niveaux dans CookiMiner ?", choices:["3","6","10","Infini"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Quel mini-jeu te demande de relâcher au bon moment ?", choices:["Quiz café","Roue de la fortune","Stop le café","Défi de clics"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Combien de cookies obtient-on pour 2 clics dans le défi de clics ?", choices:["0","1","2","5"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Comment s'appelle la monnaie premium (rare) du jeu ?", choices:["Le diamant","Le café (CF)","La gemme","Le pépite"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"À quel niveau s'ouvre le marché $CKM ?", choices:["Niveau 1","Niveau 3","Niveau 5","Niveau 6"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quel est le titre du niveau 1 dans CookiMiner ?", choices:["Légende","Maître","Barista","Chef Pâtissier"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Comment gagne-t-on des CF (cafés) dans le jeu ?", choices:["En cliquant le cookie","Au level-up et aux succès","En achetant des skins","Toutes les heures"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Combien de pattes a une araignée ?", choices:["6","8","10","12"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle planète est surnommée 'la planète rouge' ?", choices:["Vénus","Mars","Jupiter","Saturne"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle est la capitale de l'Australie ?", choices:["Sydney","Melbourne","Canberra","Perth"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Combien de minutes y a-t-il dans une journée ?", choices:["1 200","1 440","1 800","2 400"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel animal est le symbole national du Canada ?", choices:["L'élan","Le castor","L'ours polaire","L'aigle"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle couleur obtient-on en mélangeant bleu et jaune ?", choices:["Violet","Vert","Orange","Marron"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel est le plus grand océan du monde ?", choices:["Atlantique","Indien","Arctique","Pacifique"], answer:3, reward:20, difficulty:'Facile' },
+  { q:"Combien de continents y a-t-il ?", choices:["5","6","7","8"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Quelle langue est la plus parlée au monde (en natifs) ?", choices:["Anglais","Mandarin","Espagnol","Hindi"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel fruit a la peau jaune et un cœur acide ?", choices:["Orange","Ananas","Citron","Pamplemousse"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Combien de joueurs dans une équipe de foot sur le terrain ?", choices:["9","10","11","12"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Quel élément chimique a pour symbole 'O' ?", choices:["Or","Oxygène","Osmium","Olive"], answer:1, reward:20, difficulty:'Facile' },
 
   // MOYEN (reward: 35)
-  { q:"Quelle est la différence entre un Arabica et un Robusta ?", choices:["L'Arabica est plus amer et fort","L'Arabica est plus doux et aromatique","Le Robusta est plus cher","Il n'y a aucune différence"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Le 'cold brew' se prépare comment ?", choices:["Café versé sur des glaçons","Infusion à froid pendant 12-24h","Espresso refroidi au réfrigérateur","Café mixé avec de la glace"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quel est le rôle du beurre dans un cookie ?", choices:["Donner du croquant uniquement","Apporter du moelleux, du goût et lier les ingrédients","Remplacer les œufs","Faire lever la pâte"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"D'où vient originellement le mot 'cookie' ?", choices:["De l'anglais 'cook'","Du néerlandais 'koekje' (petit gâteau)","Du français 'coquille'","De l'italien 'cucina'"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Qu'est-ce qu'un 'flat white' ?", choices:["Un café allongé à l'eau","Un espresso avec peu de lait micro-moussé","Un café froid avec crème","Un café sans mousse"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Pourquoi met-on du sel dans les cookies ?", choices:["Pour les conserver plus longtemps","Pour équilibrer et rehausser le goût sucré","Pour les rendre croustillants","C'est une erreur de recette"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Le café Kopi Luwak est célèbre pour quoi ?", choices:["C'est le café le moins cher du monde","Il est produit à partir de grains digérés par une civette","Il contient 3x plus de caféine","Il pousse uniquement en France"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quelle farine est généralement utilisée pour les cookies ?", choices:["Farine de riz","Farine de blé tout usage","Farine de maïs","Farine de seigle"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Qu'est-ce que le 'latte art' ?", choices:["Une marque de café","Des dessins créés dans la mousse de lait","Un type de café glacé","La décoration du café en boutique"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Un cookie 'snickerdoodle' est parfumé à quoi ?", choices:["Chocolat et noisette","Cannelle et sucre","Citron et pavot","Vanille et noix de coco"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Combien de grammes de caféine contient un espresso moyen ?", choices:["5-10 mg","60-80 mg","150-200 mg","300 mg"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Qu'est-ce que le 'bloom' lors de la préparation d'un café filtre ?", choices:["La couleur du café dans la tasse","Un pré-mouillage du café pour libérer le CO2","Le bruit de la machine","L'écume qui se forme"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quel sucre donne un goût de caramel et d'humidité aux cookies ?", choices:["Sucre blanc","Sucre roux (cassonade)","Sucre glace","Sirop d'érable"], answer:1, reward:35, difficulty:'Moyen' },
-
-  // MOYEN — questions sur CookiMiner
-  { q:"Combien de cookies coûte le défi de clics ?", choices:["3","5","10","20"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Combien de questions sont posées par session de quiz ?", choices:["1","3","5","10"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Combien de temps entre deux quiz café ?", choices:["1 heure","5 heures","12 heures","24 heures"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quel mini-jeu coûte 20 cookies pour jouer ?", choices:["Quiz café","Roue de la fortune","Stop le café","Défi de clics"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Combien de mini-jeux différents existent dans CookiMiner ?", choices:["3","5","8","10"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quel niveau requis pour débloquer le titre Maestro ?", choices:["Niveau 2","Niveau 3","Niveau 5","Niveau 6"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"En quelle année est tombé le mur de Berlin ?", choices:["1987","1989","1991","1993"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel est le plus long fleuve du monde ?", choices:["Amazone","Nil","Mississippi","Yangtsé"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Qui a peint la Joconde ?", choices:["Michel-Ange","Léonard de Vinci","Raphaël","Botticelli"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Combien d'os a un humain adulte ?", choices:["186","206","226","256"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quelle est la monnaie du Japon ?", choices:["Le won","Le yen","Le baht","Le yuan"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel pays a inventé les sushis ?", choices:["Chine","Corée","Japon","Vietnam"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"Quel animal peut vivre sans tête pendant plusieurs jours ?", choices:["La fourmi","Le cafard","La grenouille","L'escargot"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Combien de cordes a une guitare classique standard ?", choices:["4","5","6","7"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"Quelle est l'unité de mesure de la pression atmosphérique ?", choices:["Joule","Pascal","Watt","Newton"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Le miel ne se périme jamais : vrai ou faux ?", choices:["Vrai","Faux, il périme en 1 an","Faux, il périme en 5 ans","Faux, il périme en 50 ans"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel auteur a écrit 'Les Misérables' ?", choices:["Émile Zola","Victor Hugo","Gustave Flaubert","Honoré de Balzac"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel est le plus petit pays du monde ?", choices:["Monaco","Saint-Marin","Vatican","Liechtenstein"], answer:2, reward:35, difficulty:'Moyen' },
 
   // EXPERT (reward: 60)
-  { q:"Qu'est-ce que la 'troisième vague' du café ?", choices:["La 3e tasse de la journée","Un mouvement qui traite le café comme un produit artisanal de terroir","Une technique d'extraction à la vague","Le 3e pays producteur mondial"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Que signifie 'single origin' sur un sac de café ?", choices:["Le café vient d'une seule plantation ou région","Le café n'a qu'une seule torréfaction","Il y a un seul grain par tasse","C'est un café bio certifié"], answer:0, reward:60, difficulty:'Expert' },
-  { q:"Pourquoi réfrigérer la pâte à cookies avant cuisson ?", choices:["Pour accélérer la cuisson","Pour solidifier le beurre et développer les arômes","Pour éviter que ça colle","C'est une légende, ça ne change rien"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"La réaction de Maillard dans un cookie, c'est quoi ?", choices:["La fonte du chocolat à haute température","La réaction entre sucres et protéines qui crée la couleur dorée","La levée de la pâte au four","La cristallisation du sucre en refroidissant"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Pourquoi utilise-t-on levure chimique ET bicarbonate dans certains cookies ?", choices:["Pour doubler la levée","Bicarbonate pour l'étalement/dorure, levure pour la hauteur","C'est redondant","Pour neutraliser l'acidité du cacao"], answer:1, reward:60, difficulty:'Expert' },
-
-  // EXPERT — questions sur CookiMiner
-  { q:"Quelle est la valeur de référence du marché $CKM ?", choices:["50","100","200","500"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quel pourcentage max de tes cookies peux-tu investir d'un coup ?", choices:["50 %","60 %","80 %","100 %"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"Combien de cookies rapporte un level-up entre les niveaux 2 et 5 ?", choices:["Toujours 50","10 × le nouveau niveau","100","Variable"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quel est le prix maximum atteignable sur le marché $CKM ?", choices:["200","350","500","1000"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"Combien de cafés (CF) coûte le Thème Cosmos ?", choices:["3","5","8","12"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quelle est la pénalité si le café déborde dans 'Stop le café' ?", choices:["0 cookies","−2 cookies","−5 cookies","−10 cookies"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"En quelle année a eu lieu le premier vol des frères Wright ?", choices:["1899","1903","1908","1912"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel est l'élément chimique le plus abondant dans l'univers ?", choices:["Hélium","Oxygène","Hydrogène","Carbone"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Combien de temps met la lumière du Soleil à atteindre la Terre ?", choices:["8 secondes","8 minutes","8 heures","8 jours"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel animal a le cœur le plus gros du règne animal ?", choices:["L'éléphant","Le rorqual bleu","La girafe","Le requin baleine"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel philosophe a écrit 'Ainsi parlait Zarathoustra' ?", choices:["Kant","Schopenhauer","Nietzsche","Heidegger"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quelle est la vitesse approximative de la lumière dans le vide ?", choices:["100 000 km/s","300 000 km/s","500 000 km/s","1 000 000 km/s"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel est le seul nombre premier pair ?", choices:["0","1","2","Aucun"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"En quelle année l'euro est-il devenu la monnaie officielle de la France ?", choices:["1999","2000","2001","2002"], answer:3, reward:60, difficulty:'Expert' },
 ];
 
 /* Quiz : 1 disponible toutes les 5h */
