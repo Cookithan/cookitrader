@@ -39,6 +39,7 @@ export const AVATAR_PREMIUM_LIST = [
   { id:'avatar_dragon',  art:'avDragon',  name:'Dragon Espresso', bg:'linear-gradient(140deg,#3D1C02,#7D4E1F)' },
   { id:'avatar_or',      art:'avOr',      name:'Or Massif',       bg:'linear-gradient(140deg,#D4A017,#FFE89A)', glow:true },
   { id:'avatar_legende', art:'avLegende', name:'Légende',         bg:'linear-gradient(140deg,#4A2C17,#D4A017)', glow:true },
+  { id:'avatar_eternel', art:'avEternel', name:'Éternel',         bg:'linear-gradient(140deg,#5A4014,#FFE89A)', glow:true },
 ];
 
 export const AVATAR_PREMIUM = AVATAR_PREMIUM_LIST.reduce((acc, a) => { acc[a.id] = a; return acc; }, {});

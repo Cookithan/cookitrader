@@ -419,6 +419,33 @@ const AvLegende = () => (
   </svg>
 );
 
+/* avatar_eternel — Halo infini scintillant (récompense level 10) */
+const AvEternel = () => (
+  <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    {/* Halos concentriques */}
+    <circle cx="50" cy="50" r="44" fill="none" stroke="#FFE89A" strokeWidth=".8" opacity=".3" />
+    <circle cx="50" cy="50" r="38" fill="none" stroke="#FFE89A" strokeWidth="1.2" opacity=".5" />
+    <circle cx="50" cy="50" r="32" fill="none" stroke="#FFE89A" strokeWidth="1.8" opacity=".75" />
+    {/* Étoiles autour */}
+    <circle cx="22" cy="22" r="1.6" fill="#FFE89A" />
+    <circle cx="78" cy="22" r="1.4" fill="#FFE89A" />
+    <circle cx="20" cy="78" r="1.4" fill="#FFE89A" />
+    <circle cx="80" cy="80" r="1.6" fill="#FFE89A" />
+    <circle cx="50" cy="12" r="1.2" fill="#FFE89A" />
+    <circle cx="50" cy="88" r="1.2" fill="#FFE89A" />
+    <circle cx="12" cy="50" r="1" fill="#FFE89A" />
+    <circle cx="88" cy="50" r="1" fill="#FFE89A" />
+    {/* Visage doré central */}
+    <circle cx="50" cy="50" r="22" fill="#F0C050" stroke="#8B6914" strokeWidth="2" />
+    {/* Reflet */}
+    <ellipse cx="42" cy="42" rx="7" ry="10" fill="#FFE89A" opacity=".55" transform="rotate(-25 42 42)" />
+    {/* Symbole infini ∞ — deux boucles entrelacées */}
+    <path d="M 36 50 C 36 44 42 44 45 47 L 50 52 L 55 47 C 58 44 64 44 64 50 C 64 56 58 56 55 53 L 50 48 L 45 53 C 42 56 36 56 36 50 Z" fill="#FFFFFF" stroke="#5A4014" strokeWidth="1.1" opacity=".95" />
+    {/* étincelle bonus */}
+    <path d="M 70 32 L 71 35 L 74 36 L 71 37 L 70 40 L 69 37 L 66 36 L 69 35 Z" fill="#FFFFFF" />
+  </svg>
+);
+
 /* Legacy — Cosmos (avatar_aurore) gardé pour profils existants */
 const Cosmos = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
@@ -464,6 +491,7 @@ export function AvatarArtwork({ art }){
     case 'avDragon':  return <AvDragon />;
     case 'avOr':      return <AvOr />;
     case 'avLegende': return <AvLegende />;
+    case 'avEternel': return <AvEternel />;
     /* legacy */
     case 'cosmos':    return <Cosmos />;
     default:          return <Cookie />;
