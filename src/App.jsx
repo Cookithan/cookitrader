@@ -355,28 +355,6 @@ export default function CookiMiner() {
     return () => { alive = false; clearInterval(t); };
   }, [userCode]);
 
-  /* Détection des 3 badges secrets (BRIEF_BADGES_SECRETS).
-     Chaque useEffect tape unlockSecretBadge(...) qui no-op si déjà unlocked.
-
-     Mode test : si userName='Admin', Noctambule est débloqué peu importe
-     l'heure → permet de tester sans changer l'horloge du téléphone. */
-  useEffect(() => {
-    if(!userName || showOnboarding) return;
-    const hour = new Date().getHours();
-    const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
-    if(isAdmin || hour < 4){
-      unlockSecretBadge('noctambule');
-    }
-  }, [userName, showOnboarding, unlockSecretBadge]);
-
-  useEffect(() => {
-    if(marketRealized >= 1000) unlockSecretBadge('investisseur');
-  }, [marketRealized, unlockSecretBadge]);
-
-  useEffect(() => {
-    if(friendCodes.length >= 3) unlockSecretBadge('amical');
-  }, [friendCodes, unlockSecretBadge]);
-
   /* Refresh friendCodes : au mount + à chaque ouverture de la modale
      UserProfile (pour que les nouveaux amis acceptés dans la session
      soient bien reconnus → ReactionBar visible). */
@@ -615,10 +593,10 @@ export default function CookiMiner() {
 
   /* ── BADGES SECRETS (BRIEF_BADGES_SECRETS) ──────────
      Helper de déblocage : ajoute l'id à `unlocked`, ouvre la modale
-     festive, crédite SECRET_BADGE_BONUS (+100 🍪) après 700ms (aligné
-     sur le pattern level-up).
+     festive, crédite SECRET_BADGE_BONUS (+100 🍪) après 700ms.
      Ref `unlockedRef` synchronisée à chaque render → garde anti-doublon
-     même en mode strict React où les effets peuvent être rejoués. */
+     même en mode strict React où les effets peuvent être rejoués.
+     ⚠️ Doit être déclaré APRÈS addCoins (utilisé en deps), sinon TDZ. */
   const unlockedRef = useRef(unlocked); unlockedRef.current = unlocked;
   const unlockSecretBadge = useCallback((key) => {
     const badge = SECRET_BADGES[key];
@@ -629,6 +607,27 @@ export default function CookiMiner() {
     setSecretBadgeReward(badge);
     setTimeout(() => addCoins(SECRET_BADGE_BONUS), 700);
   }, [setUnlocked, addCoins]);
+
+  /* Détection des 3 badges secrets — chaque useEffect tape
+     unlockSecretBadge(...) qui no-op si déjà unlocked.
+     Mode test : si userName='Admin', Noctambule est débloqué peu importe
+     l'heure → permet de tester sans changer l'horloge du téléphone. */
+  useEffect(() => {
+    if(!userName || showOnboarding) return;
+    const hour = new Date().getHours();
+    const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
+    if(isAdmin || hour < 4){
+      unlockSecretBadge('noctambule');
+    }
+  }, [userName, showOnboarding, unlockSecretBadge]);
+
+  useEffect(() => {
+    if(marketRealized >= 1000) unlockSecretBadge('investisseur');
+  }, [marketRealized, unlockSecretBadge]);
+
+  useEffect(() => {
+    if(friendCodes.length >= 3) unlockSecretBadge('amical');
+  }, [friendCodes, unlockSecretBadge]);
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
