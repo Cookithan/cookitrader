@@ -238,9 +238,12 @@ export default function CookiMiner() {
      refléter les amitiés acceptées dans la session courante. */
   const [friendCodes, setFriendCodes] = useState([]);
 
-  /* Badge secret en cours d'animation (BRIEF_BADGES_SECRETS).
-     null si aucun, sinon objet SECRET_BADGES.* à afficher dans la modale. */
-  const [secretBadgeReward, setSecretBadgeReward] = useState(null);
+  /* File des badges secrets à afficher (BRIEF_BADGES_SECRETS).
+     File FIFO : on dépile une modale à la fois. Permet de gérer le
+     cas Admin qui déclenche les 3 d'un coup, ou un cas réel où 2
+     conditions deviendraient vraies en même temps. */
+  const [secretBadgeQueue, setSecretBadgeQueue] = useState([]);
+  const secretBadgeReward = secretBadgeQueue[0] ?? null;
 
   /* Génère le leaderboard fictif au premier accès, après reset, ou si schéma obsolète */
   useEffect(()=>{
@@ -339,7 +342,7 @@ export default function CookiMiner() {
   useBackToClose(showInbox,         () => setShowInbox(false));
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
   useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
-  useBackToClose(!!secretBadgeReward, () => setSecretBadgeReward(null));
+  useBackToClose(!!secretBadgeReward, () => setSecretBadgeQueue(q => q.slice(1)));
 
   /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
      Ne tape Supabase que si activé ; sinon le compteur reste à 0. */
@@ -604,19 +607,29 @@ export default function CookiMiner() {
     if(unlockedRef.current.includes(badge.id)) return;
     unlockedRef.current = [...unlockedRef.current, badge.id];
     setUnlocked(unlockedRef.current);
-    setSecretBadgeReward(badge);
+    setSecretBadgeQueue(q => [...q, badge]);
     setTimeout(() => addCoins(SECRET_BADGE_BONUS), 700);
   }, [setUnlocked, addCoins]);
 
   /* Détection des 3 badges secrets — chaque useEffect tape
      unlockSecretBadge(...) qui no-op si déjà unlocked.
-     Mode test : si userName='Admin', Noctambule est débloqué peu importe
-     l'heure → permet de tester sans changer l'horloge du téléphone. */
+
+     Mode test Admin : si userName='Admin', les 3 badges sont débloqués
+     d'office au mount (modales en cascade via la queue) — permet de
+     tester l'affichage sans avoir à attendre 0h-4h, à faire +1000 🍪
+     de profit ou à ajouter 3 amis. */
   useEffect(() => {
     if(!userName || showOnboarding) return;
-    const hour = new Date().getHours();
     const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
-    if(isAdmin || hour < 4){
+    if(isAdmin){
+      unlockSecretBadge('noctambule');
+      unlockSecretBadge('investisseur');
+      unlockSecretBadge('amical');
+      return;
+    }
+    /* Cas normal : Noctambule selon l'heure. */
+    const hour = new Date().getHours();
+    if(hour < 4){
       unlockSecretBadge('noctambule');
     }
   }, [userName, showOnboarding, unlockSecretBadge]);
@@ -847,7 +860,7 @@ export default function CookiMiner() {
     setShowInbox(false); setUnreadInboxCount(0);
     setPendingFriendNotifs([]);
     setViewingProfile(null);
-    setSecretBadgeReward(null);
+    setSecretBadgeQueue([]);
     unlockedRef.current = [];
     try {
       window.localStorage.removeItem('cookiminer:knownFriendCodes');
@@ -1422,12 +1435,14 @@ export default function CookiMiner() {
         />
       )}
 
-      {/* BADGE SECRET DÉBLOQUÉ — modale festive (BRIEF_BADGES_SECRETS) */}
+      {/* BADGE SECRET DÉBLOQUÉ — modale festive en file FIFO
+          (BRIEF_BADGES_SECRETS). Mode Admin enchaîne les 3. */}
       {secretBadgeReward && (
         <SecretBadgeUnlockModal
+          key={secretBadgeReward.id}
           badge={secretBadgeReward}
           bonus={SECRET_BADGE_BONUS}
-          onClose={()=>setSecretBadgeReward(null)}
+          onClose={()=>setSecretBadgeQueue(q => q.slice(1))}
         />
       )}
 
