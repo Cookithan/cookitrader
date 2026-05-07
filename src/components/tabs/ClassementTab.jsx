@@ -23,7 +23,9 @@ import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSy
    - userCode    : pour getMyRank et highlight
    - userName    : utilisé en fallback si profil pas encore sync serveur
    - userAvatar  : idem
-   - onOpenProfile : tap sur ma carte sticky → ouvre l'overlay profil
+   - onOpenProfile      : tap sur ma carte sticky → ouvre MON ProfileOverlay
+   - onOpenUserProfile  : tap sur la ligne du top 1 → ouvre la modale
+                          UserProfileModal de cet autre joueur (BRIEF_PROFIL_VISIBLE)
 ═══════════════════════════════════════════════════════ */
 
 const REFRESH_MS = 30_000;
@@ -40,7 +42,7 @@ function saveCache(payload){
   try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload)); }catch{}
 }
 
-export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C }){
+export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, onOpenUserProfile, C }){
   const enabled = isSupabaseEnabled();
   const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
 
@@ -162,6 +164,7 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
               rank={i + 1}
               p={p}
               isMe={p.user_code === userCode}
+              onOpenUserProfile={onOpenUserProfile}
               C={C}
             />
           ))}
@@ -174,19 +177,26 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
 /* Une ligne du classement. Tous les rangs en #N (pas d'emojis médaille).
    Seul le 1er a une bannière distincte : gradient or doux + bordure
    dorée + petit pictogramme 🏆. Mon profil garde une bordure dorée
-   et un ✦ après le nom. */
-function LeaderRow({ rank, p, isMe, C }){
+   et un ✦ après le nom.
+
+   Le top 1 (s'il n'est pas moi-même) est cliquable → ouvre la modale
+   UserProfileModal avec le bandeau "👑 Roi du classement". */
+function LeaderRow({ rank, p, isMe, onOpenUserProfile, C }){
   const isFirst = rank === 1;
+  const clickable = isFirst && !isMe && !!onOpenUserProfile;
 
   return (
-    <div style={{
-      display:'flex', alignItems:'center', gap:12,
-      padding:'12px 14px', borderRadius:14,
-      background: isFirst ? 'linear-gradient(135deg,#FBEFD4,#F0C050)' : C.card,
-      border: (isFirst || isMe) ? '2px solid #D4A017' : `1px solid ${C.border}`,
-      boxShadow: isFirst ? '0 6px 18px rgba(212,160,23,.28)' : 'none',
-      position:'relative',
-    }}>
+    <div
+      onClick={clickable ? () => onOpenUserProfile(p.user_code) : undefined}
+      style={{
+        display:'flex', alignItems:'center', gap:12,
+        padding:'12px 14px', borderRadius:14,
+        background: isFirst ? 'linear-gradient(135deg,#FBEFD4,#F0C050)' : C.card,
+        border: (isFirst || isMe) ? '2px solid #D4A017' : `1px solid ${C.border}`,
+        boxShadow: isFirst ? '0 6px 18px rgba(212,160,23,.28)' : 'none',
+        position:'relative',
+        cursor: clickable ? 'pointer' : 'default',
+      }}>
       {isFirst && (
         <span style={{
           position:'absolute', top:-9, right:12,
@@ -232,6 +242,11 @@ function LeaderRow({ rank, p, isMe, C }){
         </div>
         <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: isFirst ? 'rgba(61,32,16,.65)' : C.muted }}>🍪 cumulés</div>
       </div>
+      {clickable && (
+        <span aria-hidden style={{ fontSize:14, color:'#5D3A1F', opacity:.8, lineHeight:1, marginLeft:2 }}>
+          👁️
+        </span>
+      )}
     </div>
   );
 }
