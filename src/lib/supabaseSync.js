@@ -419,6 +419,86 @@ export async function getNewlyAcceptedFriends(myUserCode, knownFriendCodes = [])
   return current.filter(f => !known.has(f.user_code));
 }
 
+/* ════════════════════════════════════════════════════
+   PROFIL PUBLIC (BRIEF_PROFIL_VISIBLE)
+   ────────────────────────────────────────────────────
+   Récupère le profil enrichi d'un user_code (utilisé pour la modale
+   UserProfileModal — vue d'un ami ou du top 1 du classement).
+
+   Inclut :
+     · toutes les colonnes de public.users
+     · cookies_rank : rang dans le classement Cookies (Admin exclu pour
+       cohérence avec getLeaderboard/getMyRank). null si l'utilisateur
+       consulté est Admin.
+     · market_rank / market_shares / market_value : tentés via les tables
+       market_portfolio + market_state. Si elles n'existent pas (le brief
+       marché online n'est pas encore appliqué), tout reste à 0/null —
+       try/catch silencieux.
+═══════════════════════════════════════════════════════ */
+export async function getPublicProfile(userCode){
+  if(!isSupabaseEnabled() || !userCode) return null;
+  try{
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_code', userCode)
+      .maybeSingle();
+    if(error || !user) return null;
+
+    /* Rang Cookies — Admin exclu, cohérent avec le reste du fichier.
+       Si l'utilisateur consulté est Admin lui-même → null (hors classement). */
+    let cookiesRank = null;
+    const isAdmin = (user.user_name || '').trim().toLowerCase() === 'admin';
+    if(!isAdmin){
+      const { count } = await supabase
+        .from('users')
+        .select('*', { count:'exact', head:true })
+        .not('user_name', 'ilike', 'admin')
+        .gt('total_earned', user.total_earned ?? 0);
+      cookiesRank = (count ?? 0) + 1;
+    }
+
+    /* Rang Marché — best effort, ignore si tables absentes */
+    let marketRank   = null;
+    let marketShares = 0;
+    let marketValue  = 0;
+    try{
+      const { data: portfolio } = await supabase
+        .from('market_portfolio')
+        .select('shares')
+        .eq('user_code', userCode)
+        .maybeSingle();
+      if(portfolio && portfolio.shares > 0){
+        marketShares = portfolio.shares;
+        const { data: state } = await supabase
+          .from('market_state')
+          .select('current_price')
+          .eq('id', 1)
+          .maybeSingle();
+        if(state){
+          marketValue = Math.floor(parseFloat(state.current_price) * portfolio.shares);
+        }
+        const { count: marketCount } = await supabase
+          .from('market_portfolio')
+          .select('*', { count:'exact', head:true })
+          .gt('shares', portfolio.shares);
+        marketRank = (marketCount ?? 0) + 1;
+      }
+    }catch{ /* tables marché non créées encore — silencieux */ }
+
+    return {
+      ...user,
+      cookies_rank: cookiesRank,
+      market_rank:  marketRank,
+      market_shares: marketShares,
+      market_value:  marketValue,
+    };
+  }catch{
+    notifySupabaseError();
+    return null;
+  }
+}
+
 export async function upsertProfile(p){
   if(!isSupabaseEnabled()) return { ok:false, reason:'disabled' };
   try{

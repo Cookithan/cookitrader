@@ -48,7 +48,7 @@ function timeAgo(iso){
   return `il y a ${d} j`;
 }
 
-export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, C }){
+export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, onOpenProfile, C }){
   const [copied,    setCopied]    = useState(false);
   const [inputCode, setInputCode] = useState('');
   const [sending,   setSending]   = useState(false);
@@ -361,12 +361,18 @@ export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, C
                     diff > 0 ? { txt:`💪 +${diff} cookies par rapport à toi`, col:'#D4A017' } :
                     diff < 0 ? { txt:`🎯 ${diff} cookies par rapport à toi`, col:'#8B5A2B' } :
                                { txt:'🤝 Vous êtes à égalité', col:C.muted };
+                  const clickable = !!onOpenProfile;
                   return (
-                    <div key={f.user_code} style={{
-                      display:'flex', alignItems:'center', gap:12,
-                      padding:'10px 12px', borderRadius:14,
-                      background:C.card, border:`1px solid ${C.border}`,
-                    }}>
+                    <div
+                      key={f.user_code}
+                      onClick={clickable ? () => onOpenProfile(f.user_code) : undefined}
+                      style={{
+                        display:'flex', alignItems:'center', gap:12,
+                        padding:'10px 12px', borderRadius:14,
+                        background:C.card, border:`1px solid ${C.border}`,
+                        cursor: clickable ? 'pointer' : 'default',
+                      }}
+                    >
                       <AvatarFigure value={Number(f.user_avatar)} size={42} />
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
@@ -386,8 +392,13 @@ export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, C
                           </div>
                         )}
                       </div>
+                      {clickable && (
+                        <span aria-hidden style={{ fontSize:14, color:'#D4A017', opacity:.7, lineHeight:1 }}>
+                          👁️
+                        </span>
+                      )}
                       <button
-                        onClick={()=>handleRemove(f.user_code)}
+                        onClick={(e)=>{ e.stopPropagation(); handleRemove(f.user_code); }}
                         aria-label="Retirer"
                         style={{
                           width:30, height:30, borderRadius:9,

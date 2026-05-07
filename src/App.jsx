@@ -40,6 +40,7 @@ import { getUnreadInboxCount } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
+import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -212,6 +213,14 @@ export default function CookiMiner() {
      déjà notifiés pour ne pas re-popper la même demande à chaque ouverture. */
   const [pendingFriendNotifs, setPendingFriendNotifs] = useState([]);
 
+  /* Profil public d'un autre joueur (BRIEF_PROFIL_VISIBLE).
+     viewingProfile = { userCode, isCrown } | null. */
+  const [viewingProfile, setViewingProfile] = useState(null);
+  const openUserProfile = useCallback((code, isCrown = false) => {
+    if(!code) return;
+    setViewingProfile({ userCode: code, isCrown });
+  }, []);
+
   /* Génère le leaderboard fictif au premier accès, après reset, ou si schéma obsolète */
   useEffect(()=>{
     const stale = !leaderboard
@@ -308,6 +317,7 @@ export default function CookiMiner() {
   useBackToClose(!!eventReward,     () => setEventReward(null));
   useBackToClose(showInbox,         () => setShowInbox(false));
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
+  useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
 
   /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
      Ne tape Supabase que si activé ; sinon le compteur reste à 0. */
@@ -405,7 +415,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || viewingProfile || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -763,6 +773,7 @@ export default function CookiMiner() {
     setPendingLvUp(null); setGameView(null); setTab('accueil');
     setShowInbox(false); setUnreadInboxCount(0);
     setPendingFriendNotifs([]);
+    setViewingProfile(null);
     try {
       window.localStorage.removeItem('cookiminer:knownFriendCodes');
       window.localStorage.removeItem('cookiminer:notifiedRequestIds');
@@ -1155,6 +1166,7 @@ export default function CookiMiner() {
             userName={userName}
             userAvatar={userAvatar}
             onOpenProfile={()=>setShowProfile(true)}
+            onOpenUserProfile={(code)=>openUserProfile(code, true)}
             C={C}
           />
         )}
@@ -1292,6 +1304,7 @@ export default function CookiMiner() {
           supabaseSyncOk={!supabaseError}
           unreadInboxCount={unreadInboxCount}
           onOpenInbox={()=>setShowInbox(true)}
+          onOpenFriendProfile={(code)=>openUserProfile(code, false)}
           C={C}
         />
       )}
@@ -1317,6 +1330,16 @@ export default function CookiMiner() {
             setPendingFriendNotifs(n => n.slice(1));
             setShowProfile(true);
           }}
+        />
+      )}
+
+      {/* PROFIL PUBLIC — vue d'un ami / du top 1 (BRIEF_PROFIL_VISIBLE) */}
+      {viewingProfile && (
+        <UserProfileModal
+          userCode={viewingProfile.userCode}
+          isCrown={viewingProfile.isCrown}
+          onClose={()=>setViewingProfile(null)}
+          C={C}
         />
       )}
 
