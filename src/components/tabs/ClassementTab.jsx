@@ -7,45 +7,49 @@ import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSy
 /* ════════════════════════════════════════════════════
    ClassementTab — vrai classement Supabase (BRIEF_SUPABASE phase 5)
    ────────────────────────────────────────────────────
-   Plus aucun bot fictif. Le classement est une liste live des vrais
-   joueurs ordonnés par total_earned décroissant.
+   4 classements via un sélecteur d'onglets en haut :
+   - Cookies     : total_earned (tri par défaut, classement principal)
+   - Badges      : badges_count (le plus de badges débloqués)
+   - Marché      : total_invested (le plus gros investisseur)
+   - Série       : streak (la plus longue série de jours consécutifs)
 
-   - Carte sticky en haut : mon rang #N sur M joueurs (mise en évidence
-     gradient ESPRESSO + or)
-   - Top 3 : style spécial avec gradient or/bronze/cuivre (palette café)
-   - Mon profil dans la liste : bordure dorée + ✦
-   - Refresh auto toutes les 30s
-   - Cache via sessionStorage : la liste s'affiche instantanément à
-     l'ouverture du tab même hors-ligne (phase 6)
-   - Si Supabase off : placeholder "Hors ligne" sans bots fictifs
-
-   Props :
-   - userCode    : pour getMyRank et highlight
-   - userName    : utilisé en fallback si profil pas encore sync serveur
-   - userAvatar  : idem
-   - onOpenProfile : tap sur ma carte sticky → ouvre l'overlay profil
+   Plus aucun bot fictif. Le compte "Admin" est filtré côté serveur.
+   - Carte sticky : mon rang #N selon le critère courant
+   - Top 1 : carte distincte (gradient or doux + badge "🏆 Champion")
+   - Mon profil : bordure dorée + ✦
+   - Refresh auto 30s + cache sessionStorage par critère
+   - Si Supabase off : placeholder "Hors ligne"
 ═══════════════════════════════════════════════════════ */
 
 const REFRESH_MS = 30_000;
-const CACHE_KEY = 'leaderboard:cache';
+const CACHE_PREFIX = 'leaderboard:cache:';
 
-function loadCache(){
+const CRITERIA = [
+  { id:'total_earned',   label:'Cookies', icon:'🍪', unitShort:'🍪 cumulés',  fmt:(v)=>(v ?? 0).toLocaleString('fr-FR') },
+  { id:'badges_count',   label:'Badges',  icon:'🎖️', unitShort:'badge(s)',     fmt:(v)=>String(v ?? 0) },
+  { id:'total_invested', label:'Marché',  icon:'📈', unitShort:'🍪 investis',  fmt:(v)=>(v ?? 0).toLocaleString('fr-FR') },
+  { id:'streak',         label:'Série',   icon:'🔥', unitShort:'jour(s)',      fmt:(v)=>String(v ?? 0) },
+];
+
+function loadCache(criterion){
   try{
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    if(!raw) return null;
-    return JSON.parse(raw);
+    const raw = sessionStorage.getItem(CACHE_PREFIX + criterion);
+    return raw ? JSON.parse(raw) : null;
   }catch{ return null; }
 }
-function saveCache(payload){
-  try{ sessionStorage.setItem(CACHE_KEY, JSON.stringify(payload)); }catch{}
+function saveCache(criterion, payload){
+  try{ sessionStorage.setItem(CACHE_PREFIX + criterion, JSON.stringify(payload)); }catch{}
 }
 
 export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C }){
   const enabled = isSupabaseEnabled();
   const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
 
-  /* État initialisé depuis le cache pour un affichage instantané */
-  const cached = loadCache();
+  const [criterion, setCriterion] = useState('total_earned');
+  const cur = CRITERIA.find(c => c.id === criterion) || CRITERIA[0];
+
+  /* État initialisé depuis le cache du critère courant */
+  const cached = loadCache(criterion);
   const [list,    setList]    = useState(cached?.list  ?? []);
   const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
   const [total,   setTotal]   = useState(cached?.total ?? null);
@@ -54,12 +58,18 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
 
   useEffect(()=>{
     aliveRef.current = true;
+    /* À chaque changement de critère, on tente d'abord d'afficher le cache
+       correspondant pour éviter le flash "Chargement…" */
+    const c = loadCache(criterion);
+    if(c){ setList(c.list); setMyRank(c.myRank); setTotal(c.total); setLoading(false); }
+    else  { setLoading(true); }
+
     if(!enabled){ setLoading(false); return; }
 
     const fetchAll = async () => {
       const [leaderboard, rank, count] = await Promise.all([
-        getLeaderboard(50),
-        userCode ? getMyRank(userCode) : Promise.resolve(null),
+        getLeaderboard(criterion, 50),
+        userCode ? getMyRank(userCode, criterion) : Promise.resolve(null),
         getTotalPlayers(),
       ]);
       if(!aliveRef.current) return;
@@ -67,13 +77,13 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
       setMyRank(rank);
       setTotal(count);
       setLoading(false);
-      saveCache({ list:leaderboard, myRank:rank, total:count });
+      saveCache(criterion, { list:leaderboard, myRank:rank, total:count });
     };
 
     fetchAll();
     const id = setInterval(fetchAll, REFRESH_MS);
     return ()=>{ aliveRef.current = false; clearInterval(id); };
-  }, [enabled, userCode]);
+  }, [enabled, userCode, criterion]);
 
   /* Cas Supabase off : placeholder, pas de bots fictifs */
   if(!enabled){
@@ -97,11 +107,36 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
 
   return (
     <div className="su" style={{ paddingTop:4, paddingBottom:8 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
         <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>CLASSEMENT</div>
         <div style={{ fontSize:11, fontWeight:600, color:C.muted }}>
           {total !== null ? `${total} joueur${total>1?'s':''}` : '…'}
         </div>
+      </div>
+
+      {/* Sélecteur de critère */}
+      <div style={{ display:'flex', gap:6, padding:4, borderRadius:14, background:C.card2, marginBottom:12 }}>
+        {CRITERIA.map(c => {
+          const active = c.id === criterion;
+          return (
+            <button
+              key={c.id}
+              onClick={()=>setCriterion(c.id)}
+              style={{
+                flex:1, padding:'8px 4px', borderRadius:10,
+                fontSize:11, fontWeight:800, letterSpacing:.3,
+                background: active ? GOLD : 'transparent',
+                color: active ? '#fff' : C.text,
+                boxShadow: active ? '0 4px 10px rgba(212,160,23,.35)' : 'none',
+                cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+              }}
+            >
+              <span style={{ fontSize:13 }}>{c.icon}</span>
+              <span>{c.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Carte sticky : mon rang */}
@@ -118,7 +153,9 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
       >
         <AvatarFigure value={userAvatar ?? 0} size={48} />
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>Ton rang</div>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>
+            Ton rang · {cur.label}
+          </div>
           <div style={{ fontSize:15, fontWeight:800, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             {userName || 'Joueur'}
           </div>
@@ -152,7 +189,7 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
           background:C.card, border:`1px dashed ${C.border}`,
           borderRadius:14, padding:20, textAlign:'center', color:C.muted, fontSize:12,
         }}>
-          Pas encore de joueurs. Sois le premier !
+          Pas encore de joueurs sur ce classement.
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -161,6 +198,7 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
               key={p.user_code}
               rank={i + 1}
               p={p}
+              criterion={cur}
               isMe={p.user_code === userCode}
               C={C}
             />
@@ -173,10 +211,11 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
 
 /* Une ligne du classement. Tous les rangs en #N (pas d'emojis médaille).
    Seul le 1er a une bannière distincte : gradient or doux + bordure
-   dorée + petit pictogramme 🏆. Mon profil garde une bordure dorée
-   et un ✦ après le nom. */
-function LeaderRow({ rank, p, isMe, C }){
+   dorée + petit pictogramme 🏆 CHAMPION. Mon profil garde une bordure
+   dorée et un ✦ après le nom. */
+function LeaderRow({ rank, p, criterion, isMe, C }){
   const isFirst = rank === 1;
+  const value = p[criterion.id] ?? 0;
 
   return (
     <div style={{
@@ -220,17 +259,14 @@ function LeaderRow({ rank, p, isMe, C }){
             Niv.{p.level}
           </span>
         </div>
-        {p.streak > 0 && (
-          <div style={{ fontSize:10, fontWeight:600, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
-            🔥 {p.streak}j de série
-          </div>
-        )}
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
         <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: isFirst ? '#5D3A1F' : '#D4A017' }}>
-          {(p.total_earned ?? 0).toLocaleString('fr-FR')}
+          {criterion.fmt(value)}
         </div>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: isFirst ? 'rgba(61,32,16,.65)' : C.muted }}>🍪 cumulés</div>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: isFirst ? 'rgba(61,32,16,.65)' : C.muted }}>
+          {criterion.unitShort}
+        </div>
       </div>
     </div>
   );

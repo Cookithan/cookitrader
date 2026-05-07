@@ -165,18 +165,23 @@ export default function CookiMiner() {
      à `error` que si un upsert échoue (réseau, RLS, etc.). Ça évite
      l'effet "Hors ligne" pendant les 5s du debounce initial. */
   const [supabaseError, setSupabaseError] = useState(false);
+  /* Compte les badges débloqués (pour le classement "le plus de badges") */
+  const badgesCount = unlocked.filter(id => {
+    const r = REWARDS.find(x => x.id === id);
+    return r && r.type === 'Badge';
+  }).length;
   useEffect(()=>{
     if(!isSupabaseEnabled()) return;
     if(!userCode || !userName) return;
     const t = setTimeout(async ()=>{
       const res = await upsertProfile({
         userCode, userName, userAvatar, level, totalEarned,
-        coins, streak, userBio,
+        coins, streak, userBio, badgesCount, totalInvested,
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio]);
+  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, badgesCount, totalInvested]);
   const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);

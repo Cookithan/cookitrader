@@ -70,17 +70,25 @@ export async function getFriends(myUserCode){
   }catch{ notifySupabaseError(); return []; }
 }
 
-/* Top N des joueurs par total_earned décroissant.
+/* Top N des joueurs trié par le critère demandé (descendant).
    Le compte technique "Admin" est exclu du classement public
-   (filtre case-insensitive via ilike). */
-export async function getLeaderboard(limit = 50){
+   (filtre case-insensitive via ilike).
+
+   Critères supportés :
+   - 'total_earned'   : total cookies gagnés (par défaut)
+   - 'badges_count'   : nombre de badges débloqués
+   - 'total_invested' : cookies investis sur le marché
+   - 'streak'         : jours consécutifs de check-in */
+export async function getLeaderboard(criterion = 'total_earned', limit = 50){
   if(!isSupabaseEnabled()) return [];
+  const allowed = ['total_earned','badges_count','total_invested','streak'];
+  const orderBy = allowed.includes(criterion) ? criterion : 'total_earned';
   try{
     const { data, error } = await supabase
       .from('users')
-      .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active')
+      .select('user_code, user_name, user_avatar, level, total_earned, streak, badges_count, total_invested, last_active')
       .not('user_name', 'ilike', 'admin')
-      .order('total_earned', { ascending:false })
+      .order(orderBy, { ascending:false })
       .limit(limit);
     if(error){
       // eslint-disable-next-line no-console
@@ -92,22 +100,23 @@ export async function getLeaderboard(limit = 50){
   }catch{ notifySupabaseError(); return []; }
 }
 
-/* Mon rang (1-based) parmi les joueurs publics : compte les profils
-   ayant un total_earned strictement supérieur, +1. Admin exclu du
-   compte (cohérent avec getLeaderboard). */
-export async function getMyRank(myUserCode){
+/* Mon rang (1-based) selon le critère choisi. Admin exclu du compte.
+   Si je suis Admin moi-même, retourne null (= hors classement). */
+export async function getMyRank(myUserCode, criterion = 'total_earned'){
   if(!isSupabaseEnabled()) return null;
+  const allowed = ['total_earned','badges_count','total_invested','streak'];
+  const col = allowed.includes(criterion) ? criterion : 'total_earned';
   try{
     const { data: me } = await supabase
-      .from('users').select('total_earned, user_name').eq('user_code', myUserCode).single();
+      .from('users').select(`${col}, user_name`).eq('user_code', myUserCode).single();
     if(!me) return null;
-    /* Si je suis Admin moi-même, je suis hors classement → null */
     if((me.user_name || '').trim().toLowerCase() === 'admin') return null;
+    const myValue = me[col] ?? 0;
     const { count, error } = await supabase
       .from('users')
       .select('*', { count:'exact', head:true })
       .not('user_name', 'ilike', 'admin')
-      .gt('total_earned', me.total_earned);
+      .gt(col, myValue);
     if(error) return null;
     return (count ?? 0) + 1;
   }catch{ return null; }
@@ -166,15 +175,17 @@ export async function upsertProfile(p){
     const { data, error } = await supabase
       .from('users')
       .upsert({
-        user_code:    p.userCode,
-        user_name:    p.userName,
-        user_avatar:  String(p.userAvatar ?? '0'),
-        level:        p.level,
-        total_earned: p.totalEarned,
-        cookies:      p.coins,
-        streak:       p.streak,
-        user_bio:     p.userBio || '',
-        last_active:  new Date().toISOString(),
+        user_code:      p.userCode,
+        user_name:      p.userName,
+        user_avatar:    String(p.userAvatar ?? '0'),
+        level:          p.level,
+        total_earned:   p.totalEarned,
+        cookies:        p.coins,
+        streak:         p.streak,
+        badges_count:   p.badgesCount    ?? 0,
+        total_invested: p.totalInvested ?? 0,
+        user_bio:       p.userBio || '',
+        last_active:    new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()
       .single();
