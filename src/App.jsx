@@ -44,6 +44,7 @@ import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
 import { UpgradeNoticeModal } from "./components/modals/UpgradeNoticeModal.jsx";
 import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
+import { setupAudioOnFirstInteraction, playSound } from "./lib/audio.js";
 
 /* ⚠️ Avis de maintenance affiché à CHAQUE ouverture de l'app jusqu'à
    nouvel ordre du user (pas de persistance LS volontaire).
@@ -172,6 +173,12 @@ export default function CookiMiner() {
   useEffect(()=>{
     if(!userCode) setUserCode(generateUserCode());
   },[userCode, setUserCode]);
+
+  /* Audio (BRIEF_AUDIO) — branche les listeners pour lancer la musique
+     d'ambiance dès le 1er tap (autoplay mobile bloqué sinon). */
+  useEffect(() => {
+    setupAudioOnFirstInteraction();
+  }, []);
 
   /* Sync Supabase debouncé (5s). Crée OU met à jour le profil via upsert
      selon que user_code existe déjà ou non — pas de logique séparée
@@ -449,6 +456,7 @@ export default function CookiMiner() {
     const i = TAB_ORDER.indexOf(tab);
     const j = TAB_ORDER.indexOf(target);
     if(j === -1 || j === i) { setTab(target); return; }
+    playSound('tab');
     setSlideDir(j > i ? 'next' : 'prev');
     setTab(target);
   };
@@ -994,7 +1002,7 @@ export default function CookiMiner() {
       <header style={{ padding:'18px 16px 10px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0, gap:8 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flexShrink:0 }}>
           {userName && userAvatar !== null && (
-            <button onClick={()=>setShowProfile(true)} aria-label="Profil" style={{ padding:0, background:'transparent', border:'none', flexShrink:0 }}>
+            <button onClick={()=>{ playSound('modal'); setShowProfile(true); }} aria-label="Profil" style={{ padding:0, background:'transparent', border:'none', flexShrink:0 }}>
               <AvatarFigure value={userAvatar} size={42} />
             </button>
           )}
@@ -1004,7 +1012,7 @@ export default function CookiMiner() {
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:1, minWidth:0 }}>
-          <button onClick={()=>setShowSettings(true)} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card, border:`1px solid ${C.border}`, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <button onClick={()=>{ playSound('modal'); setShowSettings(true); }} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card, border:`1px solid ${C.border}`, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />
           </button>
           <div style={{ display:'flex', alignItems:'center', gap:5, background:ESPRESSO, borderRadius:20, padding:'8px 12px', border:'1.5px solid rgba(212,160,23,.5)', boxShadow:'0 4px 12px rgba(74,44,23,.4)' }} title={`${cafes} cafés`}>
@@ -1046,7 +1054,7 @@ export default function CookiMiner() {
               />
             )}
             {/* Level card */}
-            <button id="card-niveau" onClick={()=>setShowLevels(true)} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
+            <button id="card-niveau" onClick={()=>{ playSound('modal'); setShowLevels(true); }} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
               <div style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)' }} />
               {/* Bannière Cookies premium — overlay décoratif (floating cookies) */}
               {activeBanner === 'banner_cookies' && (
@@ -1253,8 +1261,8 @@ export default function CookiMiner() {
             userCode={userCode}
             userName={userName}
             userAvatar={userAvatar}
-            onOpenProfile={()=>setShowProfile(true)}
-            onOpenUserProfile={(code)=>openUserProfile(code, true)}
+            onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
+            onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
             C={C}
           />
         )}
@@ -1391,8 +1399,8 @@ export default function CookiMiner() {
           supabaseEnabled={isSupabaseEnabled()}
           supabaseSyncOk={!supabaseError}
           unreadInboxCount={unreadInboxCount}
-          onOpenInbox={()=>setShowInbox(true)}
-          onOpenFriendProfile={(code)=>openUserProfile(code, false)}
+          onOpenInbox={()=>{ playSound('modal'); setShowInbox(true); }}
+          onOpenFriendProfile={(code)=>{ playSound('modal'); openUserProfile(code, false); }}
           C={C}
         />
       )}
