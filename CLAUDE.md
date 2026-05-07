@@ -62,6 +62,14 @@ Chaque fichier a un bandeau d'en-tête `══════` qui décrit son rôl
 
 ---
 
+## Design system
+
+Toutes les conventions visuelles (palette café-only, contraintes de contraste, format des thèmes, invariants `GOLD`/`ESPRESSO`/cookie central) et les briefs design en cours vivent dans **`DESIGN.md`** à la racine. Ce fichier est partagé avec **Claude Design** (workflow externe) — c'est la source de vérité pour tout changement de couleur, thème ou refonte visuelle.
+
+Avant toute modification visuelle (palette, thème, ajout d'écran), lis `DESIGN.md`. Pour un nouveau cycle design, on met à jour la section **§3 Demande en cours** ; le reste est stable.
+
+---
+
 ## État global (dans `CookiMiner`)
 
 | State | Type | Reset par défaut | Rôle |
