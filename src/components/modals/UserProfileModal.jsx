@@ -178,15 +178,20 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         </div>
       )}
 
-      {/* En-tête : avatar + identité */}
-      <div style={{ textAlign:'center', marginBottom:14 }}>
+      {/* En-tête : avatar + identité — flex column pour vraiment centrer
+          l'avatar (textAlign:center ne centre que les inline). */}
+      <div style={{
+        display:'flex', flexDirection:'column', alignItems:'center',
+        marginBottom:14,
+      }}>
         <AvatarFigure value={Number(profile.user_avatar)} size={92} />
-        <div style={{ fontSize:22, fontWeight:900, color:C.text, marginTop:12 }}>
+        <div style={{ fontSize:22, fontWeight:900, color:C.text, marginTop:12, textAlign:'center' }}>
           {profile.user_name || 'Joueur'}
         </div>
         <div style={{
           fontSize:11, color:'#D4A017', fontWeight:800,
           textTransform:'uppercase', letterSpacing:2, marginTop:5,
+          textAlign:'center',
         }}>
           {levelTitle}
         </div>
