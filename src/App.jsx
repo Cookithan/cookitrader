@@ -40,15 +40,9 @@ import { useToast } from "./components/Toaster.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
-import { UpgradeNoticeModal } from "./components/modals/UpgradeNoticeModal.jsx";
 import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
 import { setupAudioOnFirstInteraction, playSound } from "./lib/audio.js";
-
-/* ⚠️ Avis de maintenance affiché à CHAQUE ouverture de l'app jusqu'à
-   nouvel ordre du user (pas de persistance LS volontaire).
-   Pour le désactiver : retire la prop dans le JSX en bas de App.jsx
-   (ou supprime carrément l'import et le composant). */
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -147,10 +141,6 @@ export default function CookiMiner() {
   const [nameChangeCount, setNameChangeCount] = useLocalStorage('nameChangeCount', 0);
   const [userCode,    setUserCode]    = useLocalStorage('userCode', '');
   const [userBio,     setUserBio]     = useLocalStorage('userBio',  '');
-  /* Volatil : repart toujours à false au mount → popup réaffichée à
-     chaque ouverture de l'app jusqu'à nouvel ordre. */
-  const [upgradeNoticeAck, setUpgradeNoticeAck] = useState(false);
-
   /* Événements spéciaux (PHASE 6E) — cycle waiting (1-24h) → active
      (1h, 3 essais) → repeat. Persistés pour survivre au refresh. */
   const [activeEvent,     setActiveEvent]     = useLocalStorage('activeEvent',     null);
@@ -1499,12 +1489,6 @@ export default function CookiMiner() {
           si c'est un refresh détecté via Performance API. */}
       {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
 
-      {/* Avis de maintenance — réaffiché à CHAQUE ouverture de l'app
-          (pas de persistance LS). Tap "j'ai compris" → cache jusqu'au
-          prochain refresh. À retirer quand le user le demande. */}
-      {!showSplash && !showOnboarding && !upgradeNoticeAck && (
-        <UpgradeNoticeModal onAck={()=>setUpgradeNoticeAck(true)} />
-      )}
     </div>
   );
 }
