@@ -57,10 +57,6 @@ export const REWARDS = [
   { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiMiner',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
   { id:'badge_eternel',  name:'Badge Éternel',  desc:'Au-delà de la Légende',       cost:2500, type:'Badge', emoji:'🌟', levelRequired:10 },
   // TITRES
-  { id:'titre_grand_cru',    name:'Titre "Grand Cru"',         desc:'Affichez votre prestige', cost:200,  type:'Titre', emoji:'🏅', levelRequired:2 },
-  { id:'titre_torrefacteur', name:'Titre "Torréfacteur"',      desc:'Maître de la torréfaction', cost:400, type:'Titre', emoji:'🔥', levelRequired:3 },
-  { id:'titre_legende',      name:'Titre "Légende du Cookie"', desc:'Le titre ultime',         cost:1500, type:'Titre', emoji:'✨', levelRequired:6 },
-  { id:'titre_eternel',      name:'Titre "Éternel du Cookie"', desc:'Le palier ultime',        cost:3000, type:'Titre', emoji:'♾️', levelRequired:10 },
   // THÈMES
   { id:'theme_creme',      name:'Thème Cappuccino Mousseux', desc:'Fond rosé crème chaud',     cost:80,   type:'Thème', emoji:'☁️', levelRequired:1 },
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
@@ -85,13 +81,6 @@ export const REWARDS = [
   { id:'avatar_or',      name:'Avatar Or Massif',       desc:'Visage doré scintillant',        cost:1500, type:'Avatar', emoji:'✨',   levelRequired:6 },
   { id:'avatar_legende', name:'Avatar Légende',         desc:'Couronne + cookie magique',      cost:2500, type:'Avatar', emoji:'👑',   levelRequired:6 },
   { id:'avatar_eternel', name:'Avatar Éternel',         desc:'Halo infini scintillant',        cost:4500, type:'Avatar', emoji:'♾️',   levelRequired:10 },
-  // SKINS COOKIE
-  { id:'skin_chocolat', name:'Cookie Chocolat', desc:'Tout chocolat avec éclats', cost:250, type:'Skin', emoji:'🍫', levelRequired:3 },
-  { id:'skin_dore',     name:'Cookie Doré',     desc:'Brillance animée',          cost:700, type:'Skin', emoji:'⭐', levelRequired:5 },
-  // SKINS ROUE
-  { id:'roue_chocolat', name:'Roue Chocolat',   desc:'Segments cacao et moka profond', cost:200,  type:'Roue', emoji:'🍫', levelRequired:2 },
-  { id:'roue_caramel',  name:'Roue Caramel',    desc:'Tons dorés et ambrés chauds',    cost:350,  type:'Roue', emoji:'🍯', levelRequired:3 },
-  { id:'roue_legende',  name:'Roue Légendaire', desc:'Or massif avec effet brillant',  cost:1000, type:'Roue', emoji:'👑', levelRequired:6 },
   // MUSIQUES (BRIEF_AUDIO) — débloquent les musiques d'ambiance ; mapping
   // id:'music_<key>' → MUSICS.<key> côté src/lib/audio.js
   { id:'music_lofi',  name:'Musique Lofi Hip-Hop', desc:'Ambiance étudiant chill',   cost:1000, type:'Musique', emoji:'🎵', levelRequired:5 },
@@ -99,7 +88,6 @@ export const REWARDS = [
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
   { id:'avatar_aurore', currency:'cafe', applyAs:'avatar',      name:'Avatar Cosmos',         desc:'Reflets galactiques',          cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'theme_cosmos',  currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:9,  type:'Premium', emoji:'🌌', levelRequired:1 },
-  { id:'skin_mystique', currency:'cafe', applyAs:'skin',        name:'Cookie Cosmos',         desc:'Cookie qui pulse en violet',   cost:4,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'reveal_master', currency:'cafe', applyAs:'achievement', name:'Dernier Succès Caché',  desc:'Révèle un succès secret',      cost:15, type:'Premium', emoji:'🔮', levelRequired:1 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',     name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau',  cost:7,  type:'Premium', emoji:'🍪', levelRequired:1 },
   { id:'music_royale',   currency:'cafe', applyAs:'music',      name:'Symphonie Royale',      desc:'Musique classique baroque',     cost:3,  type:'Premium', emoji:'💎', levelRequired:1 },
