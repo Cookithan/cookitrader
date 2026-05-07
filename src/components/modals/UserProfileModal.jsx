@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getPublicProfile } from "../../lib/supabaseSync.js";
+import { getPublicProfile, sendReaction } from "../../lib/supabaseSync.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { LEVEL_NAMES } from "../../data/constants.js";
 
@@ -40,7 +40,8 @@ function formatJoinDate(raw){
   }
 }
 
-export function UserProfileModal({ userCode, isCrown = false, onClose, C }){
+export function UserProfileModal({ userCode, isCrown = false, currentUserCode, friendCodes = [], onClose, C }){
+  const isFriend = !!(currentUserCode && userCode && currentUserCode !== userCode && friendCodes.includes(userCode));
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
@@ -132,6 +133,8 @@ export function UserProfileModal({ userCode, isCrown = false, onClose, C }){
             <ProfileContent
               profile={profile}
               isCrown={isCrown}
+              isFriend={isFriend}
+              currentUserCode={currentUserCode}
               copied={copied}
               onCopy={handleCopy}
               C={C}
@@ -143,7 +146,7 @@ export function UserProfileModal({ userCode, isCrown = false, onClose, C }){
   );
 }
 
-function ProfileContent({ profile, isCrown, copied, onCopy, C }){
+function ProfileContent({ profile, isCrown, isFriend, currentUserCode, copied, onCopy, C }){
   const joinDate = formatJoinDate(profile.join_date);
   const levelTitle = LEVEL_NAMES[profile.level] || `Niveau ${profile.level ?? 1}`;
   const cookies     = Number(profile.cookies)      || 0;
@@ -241,6 +244,16 @@ function ProfileContent({ profile, isCrown, copied, onCopy, C }){
         </div>
       </div>
 
+      {/* Réactions emoji — uniquement pour les amis (BRIEF_REACTIONS) */}
+      {isFriend && (
+        <ReactionBar
+          senderCode={currentUserCode}
+          recipientCode={profile.user_code}
+          recipientName={profile.user_name || 'ton ami'}
+          C={C}
+        />
+      )}
+
       {/* Code ami + bouton copier */}
       <div style={{
         background:C.card, borderRadius:14, padding:'12px 14px',
@@ -306,6 +319,83 @@ function StatBlock({ icon, value, label, C }){
       }}>
         {label}
       </div>
+    </div>
+  );
+}
+
+const REACTIONS = [
+  { emoji:'👏', label:'Bravo' },
+  { emoji:'☕', label:'Café'  },
+  { emoji:'🔥', label:'Feu'   },
+  { emoji:'🍪', label:'Cookie'},
+];
+
+function ReactionBar({ senderCode, recipientCode, recipientName, C }){
+  const [feedback, setFeedback] = useState(null); // { type:'ok'|'err', msg }
+  const [sending,  setSending]  = useState(false);
+
+  const handleSend = async (emoji) => {
+    if(sending) return;
+    setSending(true);
+    setFeedback(null);
+    const result = await sendReaction(senderCode, recipientCode, emoji);
+    setSending(false);
+    if(result.error){
+      setFeedback({ type:'err', msg: result.error });
+    } else {
+      setFeedback({ type:'ok', msg:`${emoji} envoyé à ${recipientName} !` });
+    }
+    setTimeout(() => setFeedback(null), 3500);
+  };
+
+  return (
+    <div style={{
+      background:C.card, borderRadius:14, padding:'14px 14px 12px',
+      border:`1.5px solid ${C.border}`, marginBottom:12,
+    }}>
+      <div style={{
+        fontSize:11, color:C.muted, fontWeight:700,
+        textTransform:'uppercase', letterSpacing:2,
+        marginBottom:10, textAlign:'center',
+      }}>
+        💬 Envoie une réaction
+      </div>
+
+      <div style={{ display:'flex', justifyContent:'space-around', gap:8 }}>
+        {REACTIONS.map(r => (
+          <button
+            key={r.emoji}
+            onClick={() => handleSend(r.emoji)}
+            disabled={sending}
+            aria-label={`Envoyer ${r.label}`}
+            title={r.label}
+            style={{
+              width:56, height:56, borderRadius:14,
+              background:C.bg,
+              border:`1.5px solid ${C.border}`,
+              fontSize:28, lineHeight:1,
+              cursor: sending ? 'not-allowed' : 'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              transition:'transform .12s ease',
+            }}
+          >
+            {r.emoji}
+          </button>
+        ))}
+      </div>
+
+      {/* Feedback café-only : or pour succès, moka pour erreur */}
+      {feedback && (
+        <div style={{
+          marginTop:10, padding:'7px 10px',
+          borderRadius:10, fontSize:12, fontWeight:700,
+          textAlign:'center',
+          background: feedback.type === 'ok' ? 'rgba(212,160,23,.15)' : 'rgba(125,78,31,.15)',
+          color:      feedback.type === 'ok' ? '#C8960C' : '#7D4E1F',
+        }}>
+          {feedback.msg}
+        </div>
+      )}
     </div>
   );
 }
