@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Settings, Lock } from "lucide-react";
+import { ChevronLeft, Settings, Lock, Mail } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
@@ -45,6 +45,8 @@ export function ProfileOverlay({
   onReset,
   supabaseEnabled = false,
   supabaseSyncOk  = false,
+  unreadInboxCount = 0,
+  onOpenInbox,
   C
 }) {
   const [editing, setEditing] = useState(false);
@@ -104,6 +106,38 @@ export function ProfileOverlay({
             )
           )}
         </span>
+        {!editing && onOpenInbox && (
+          <button
+            onClick={onOpenInbox}
+            aria-label={unreadInboxCount > 0 ? `Boîte de réception (${unreadInboxCount} non lus)` : 'Boîte de réception'}
+            className={unreadInboxCount > 0 ? 'inbox-pulse' : undefined}
+            style={{
+              position:'relative',
+              width:34, height:34, borderRadius:11,
+              background:C.card2, color:C.muted,
+              display:'flex', alignItems:'center', justifyContent:'center',
+            }}
+          >
+            <Mail size={15} />
+            {unreadInboxCount > 0 && (
+              <span
+                className="inbox-badge-pulse"
+                style={{
+                  position:'absolute', top:-4, right:-4,
+                  minWidth:18, height:18, padding:'0 5px',
+                  borderRadius:9,
+                  background:'#D4A017', color:'#fff',
+                  fontSize:10, fontWeight:800,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  border:`2px solid ${C.card}`,
+                  boxShadow:'0 2px 6px rgba(212,160,23,.5)',
+                }}
+              >
+                {unreadInboxCount > 99 ? '99+' : unreadInboxCount}
+              </span>
+            )}
+          </button>
+        )}
         {!editing && (
           <button onClick={onOpenSettings} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />
