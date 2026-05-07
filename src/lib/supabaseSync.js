@@ -1,5 +1,6 @@
 import { supabase, isSupabaseEnabled } from './supabase';
 import { notifySupabaseError } from './supabaseError';
+import { createInboxMessage } from './inbox.js';
 
 /* ════════════════════════════════════════════════════
    supabaseSync — opérations sur la table public.users
@@ -19,10 +20,9 @@ async function getMyId(myUserCode){
   return data?.id ?? null;
 }
 
-/* Ajoute friendCode à mes amis. Vérifie d'abord que le code existe.
-   Retourne :
-   - { ok:true, friend:{...} } si OK
-   - { ok:false, error:'...' } sinon (code inexistant, déjà ami, …) */
+/* @deprecated — remplacé par sendFriendRequest (BRIEF_DEMANDES_AMIS).
+   Conservé pour rétro-compat le temps que toute l'UI bascule.
+   Ajoute friendCode directement (status='accepted', skip le flow demande). */
 export async function addFriend(myUserCode, friendCode){
   if(!isSupabaseEnabled()) return { ok:false, error:'Hors ligne' };
   try{
@@ -51,14 +51,15 @@ export async function addFriend(myUserCode, friendCode){
   }
 }
 
-/* Retourne la liste des profils amis (snapshot des données serveur). */
+/* Retourne la liste des profils amis (status='accepted' uniquement —
+   les demandes pending sont gérées via getReceivedFriendRequests). */
 export async function getFriends(myUserCode){
   if(!isSupabaseEnabled()) return [];
   try{
     const myId = await getMyId(myUserCode);
     if(!myId) return [];
     const { data: links, error: linksErr } = await supabase
-      .from('friendships').select('friend_code').eq('user_id', myId);
+      .from('friendships').select('friend_code').eq('user_id', myId).eq('status','accepted');
     if(linksErr || !links || links.length === 0) return [];
     const codes = links.map(l => l.friend_code);
     const { data: profiles, error } = await supabase
@@ -164,6 +165,258 @@ export async function removeFriend(myUserCode, friendCode){
       .eq('friend_code', friendCode);
     return !error;
   }catch{ return false; }
+}
+
+/* ════════════════════════════════════════════════════
+   DEMANDES D'AMIS bilatérales (BRIEF_DEMANDES_AMIS)
+   ────────────────────────────────────────────────────
+   Une amitié naît en `pending` (demande), passe en `accepted` à
+   l'acceptation. À l'acceptation on crée la relation INVERSE en
+   accepted pour que `getFriends` marche des 2 côtés.
+
+   À chaque envoi/acceptation, on dépose un message dans l'inbox du
+   destinataire (BRIEF_INBOX) — best effort, pas bloquant si l'inbox
+   plante (le flow d'amitié reste prioritaire).
+
+   Anti-spam :
+     · MAX_PENDING : 50 demandes en attente (côté envoyeur)
+     · COOLDOWN_MS : 30s entre 2 demandes vers le MÊME code (cache mémoire,
+       reset au refresh — acceptable pour CookiMiner)
+═══════════════════════════════════════════════════════ */
+
+const FRIEND_REQUEST_LIMITS = {
+  MAX_PENDING: 50,
+  COOLDOWN_MS: 30 * 1000,
+};
+const lastRequestSent = {}; // friendCode -> timestamp ms
+
+export async function sendFriendRequest(myUserCode, friendCode){
+  if(!isSupabaseEnabled()) return { error:'Hors ligne' };
+
+  if(!friendCode || !/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(friendCode)){
+    return { error:'Format invalide (ex: B4R-1ST)' };
+  }
+  if(friendCode === myUserCode){
+    return { error:"C'est ton propre code 😄" };
+  }
+
+  /* Cooldown 30s vers le même code */
+  const elapsed = Date.now() - (lastRequestSent[friendCode] ?? 0);
+  if(elapsed < FRIEND_REQUEST_LIMITS.COOLDOWN_MS){
+    const remaining = Math.ceil((FRIEND_REQUEST_LIMITS.COOLDOWN_MS - elapsed) / 1000);
+    return { error:`Attends ${remaining}s avant de réessayer` };
+  }
+
+  try{
+    /* 1. Le code cible existe ? */
+    const { data: friend, error: lookupErr } = await supabase
+      .from('users')
+      .select('id, user_code, user_name, user_avatar, level')
+      .eq('user_code', friendCode)
+      .maybeSingle();
+    if(lookupErr){ notifySupabaseError(); return { error:'Erreur réseau' }; }
+    if(!friend)   return { error:"Ce code n'existe pas" };
+
+    /* 2. Mon profil */
+    const { data: me } = await supabase
+      .from('users')
+      .select('id, user_name, level')
+      .eq('user_code', myUserCode)
+      .maybeSingle();
+    if(!me) return { error:'Profil non trouvé' };
+
+    /* 3. Pas déjà une relation (pending ou accepted) ? */
+    const { data: existing } = await supabase
+      .from('friendships')
+      .select('id, status')
+      .eq('user_id', me.id)
+      .eq('friend_code', friendCode)
+      .maybeSingle();
+    if(existing){
+      if(existing.status === 'accepted') return { error:'Déjà dans tes amis' };
+      if(existing.status === 'pending')  return { error:'Demande déjà envoyée' };
+    }
+
+    /* 4. Limite 50 pending */
+    const { count: pendingCount } = await supabase
+      .from('friendships')
+      .select('*', { count:'exact', head:true })
+      .eq('user_id', me.id)
+      .eq('status', 'pending');
+    if((pendingCount ?? 0) >= FRIEND_REQUEST_LIMITS.MAX_PENDING){
+      return { error:'Trop de demandes en attente (max 50)' };
+    }
+
+    /* 5. Insert pending */
+    const { error: insertErr } = await supabase
+      .from('friendships')
+      .insert({ user_id: me.id, friend_code: friendCode, status: 'pending' });
+    if(insertErr){
+      if(insertErr.code === '23505') return { error:'Demande déjà envoyée' };
+      return { error: insertErr.message || 'Erreur' };
+    }
+
+    lastRequestSent[friendCode] = Date.now();
+
+    /* 6. Inbox côté destinataire — best effort, non bloquant */
+    const senderName = me.user_name || 'Quelqu\'un';
+    createInboxMessage(
+      friendCode,
+      'friend_request',
+      `📬 Demande d'ami de ${senderName}`,
+      `${senderName} (Niveau ${me.level ?? 1}) veut être ton ami. Va dans Mon profil pour répondre.`,
+      null,
+    ).catch(() => {});
+
+    return { success:true, friend };
+  }catch(e){
+    notifySupabaseError();
+    return { error:'Erreur réseau' };
+  }
+}
+
+/* Demandes REÇUES (autres → moi, status='pending'). */
+export async function getReceivedFriendRequests(myUserCode){
+  if(!isSupabaseEnabled() || !myUserCode) return [];
+  try{
+    const { data: requests, error } = await supabase
+      .from('friendships')
+      .select('id, user_id, added_at')
+      .eq('friend_code', myUserCode)
+      .eq('status', 'pending')
+      .order('added_at', { ascending:false });
+    if(error || !requests || requests.length === 0) return [];
+
+    const userIds = requests.map(r => r.user_id);
+    const { data: senders } = await supabase
+      .from('users')
+      .select('id, user_code, user_name, user_avatar, level')
+      .in('id', userIds);
+    const senderMap = {};
+    (senders || []).forEach(s => { senderMap[s.id] = s; });
+
+    return requests
+      .map(r => ({
+        request_id: r.id,
+        added_at: r.added_at,
+        ...senderMap[r.user_id],
+      }))
+      .filter(r => r.user_code); // expéditeur supprimé entre-temps
+  }catch{ return []; }
+}
+
+/* Demandes ENVOYÉES par moi (info, pas annulables). */
+export async function getSentFriendRequests(myUserCode){
+  if(!isSupabaseEnabled() || !myUserCode) return [];
+  try{
+    const myId = await getMyId(myUserCode);
+    if(!myId) return [];
+    const { data } = await supabase
+      .from('friendships')
+      .select('id, friend_code, added_at')
+      .eq('user_id', myId)
+      .eq('status', 'pending');
+    return data || [];
+  }catch{ return []; }
+}
+
+/* Accepter une demande reçue : passe la pending en accepted, crée
+   la relation inverse (moi → expéditeur) en accepted, dépose un
+   inbox `friend_accepted` chez l'expéditeur. */
+export async function acceptFriendRequest(myUserCode, requestId){
+  if(!isSupabaseEnabled()) return { error:'Hors ligne' };
+  try{
+    const { data: request } = await supabase
+      .from('friendships')
+      .select('id, user_id, friend_code')
+      .eq('id', requestId)
+      .eq('status', 'pending')
+      .maybeSingle();
+    if(!request) return { error:'Demande introuvable' };
+    if(request.friend_code !== myUserCode) return { error:'Pas autorisé' };
+
+    const { data: sender } = await supabase
+      .from('users')
+      .select('user_code, user_name')
+      .eq('id', request.user_id)
+      .maybeSingle();
+    if(!sender) return { error:'Expéditeur introuvable' };
+
+    const { data: me } = await supabase
+      .from('users')
+      .select('id, user_name, level')
+      .eq('user_code', myUserCode)
+      .maybeSingle();
+    if(!me) return { error:'Mon profil introuvable' };
+
+    /* Marque la demande acceptée */
+    await supabase
+      .from('friendships')
+      .update({ status:'accepted' })
+      .eq('id', requestId);
+
+    /* Crée la relation inverse (moi → lui) en accepted, ou met à jour
+       si une demande de moi vers lui existait déjà en pending. */
+    const { data: existing } = await supabase
+      .from('friendships')
+      .select('id, status')
+      .eq('user_id', me.id)
+      .eq('friend_code', sender.user_code)
+      .maybeSingle();
+    if(!existing){
+      await supabase.from('friendships').insert({
+        user_id: me.id,
+        friend_code: sender.user_code,
+        status: 'accepted',
+      });
+    } else if(existing.status === 'pending'){
+      await supabase.from('friendships').update({ status:'accepted' }).eq('id', existing.id);
+    }
+
+    /* Inbox côté expéditeur — best effort */
+    const myName = me.user_name || 'Quelqu\'un';
+    createInboxMessage(
+      sender.user_code,
+      'friend_accepted',
+      `🎉 ${myName} a accepté ta demande`,
+      `Vous êtes maintenant amis. Tu peux retrouver ${myName} dans tes amis.`,
+      null,
+    ).catch(() => {});
+
+    return { success:true, friendName: sender.user_name || sender.user_code };
+  }catch{
+    notifySupabaseError();
+    return { error:'Erreur réseau' };
+  }
+}
+
+/* Refuser une demande = la supprimer (silencieux côté expéditeur). */
+export async function declineFriendRequest(myUserCode, requestId){
+  if(!isSupabaseEnabled()) return { error:'Hors ligne' };
+  try{
+    const { data: request } = await supabase
+      .from('friendships')
+      .select('id, friend_code')
+      .eq('id', requestId)
+      .eq('status', 'pending')
+      .maybeSingle();
+    if(!request) return { error:'Demande introuvable' };
+    if(request.friend_code !== myUserCode) return { error:'Pas autorisé' };
+
+    await supabase.from('friendships').delete().eq('id', requestId);
+    return { success:true };
+  }catch{
+    notifySupabaseError();
+    return { error:'Erreur réseau' };
+  }
+}
+
+/* Détecte les amis devenus accepted depuis la dernière connexion.
+   knownFriendCodes : array des codes amis stocké en localStorage. */
+export async function getNewlyAcceptedFriends(myUserCode, knownFriendCodes = []){
+  const current = await getFriends(myUserCode);
+  const known = new Set(knownFriendCodes || []);
+  return current.filter(f => !known.has(f.user_code));
 }
 
 export async function upsertProfile(p){

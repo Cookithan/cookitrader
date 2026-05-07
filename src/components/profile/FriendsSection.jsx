@@ -1,25 +1,36 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ESPRESSO } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
-import { addFriend, getFriends, removeFriend } from "../../lib/supabaseSync.js";
+import {
+  getFriends,
+  removeFriend,
+  sendFriendRequest,
+  getReceivedFriendRequests,
+  acceptFriendRequest,
+  declineFriendRequest,
+} from "../../lib/supabaseSync.js";
 
 /* ════════════════════════════════════════════════════
-   FriendsSection — section "Mes Amis" du Profil (BRIEF_SUPABASE phase 4)
+   FriendsSection — section "Mes Amis" du Profil
    ────────────────────────────────────────────────────
-   - En haut : carte ESPRESSO avec mon code ami + bouton "Copier"
-   - Au milieu : input pour ajouter un ami via son code (XXX-XXX),
-     feedback success/error
-   - En bas : liste des profils amis chargés depuis Supabase, avec
-     comparaison du nombre de cookies et bouton ✕ pour retirer
+   Système bilatéral (BRIEF_DEMANDES_AMIS) :
+     - mon code ami + bouton Copier
+     - input + bouton "Envoyer la demande" (sendFriendRequest)
+     - 📬 Demandes reçues (N) — cachée si 0, cartes Accepter/Refuser
+     - 👥 Mes amis (N) — uniquement les amitiés status='accepted'
 
-   Si Supabase est off (pas de vars d'env), la section affiche un
-   placeholder "Hors ligne — fonctionnalité indisponible".
+   Pas de rouge ni de vert : Accepter = gradient or, Refuser = beige neutre.
+
+   Si Supabase est off, placeholder "Hors ligne".
 
    Props :
-   - userCode : mon code "XXX-XXX" (généré dans App.jsx)
-   - myCoins  : mon solde courant pour la comparaison
-   - C        : palette
+     userCode             — mon code "XXX-XXX"
+     myCoins              — solde courant (comparaison)
+     C                    — palette
+     onRequestsCountChange (n) — optionnel, sync l'app si elle veut afficher
+                                  un badge global au-delà de l'inbox (non utilisé
+                                  pour le moment, mais permet de hook plus tard)
 ═══════════════════════════════════════════════════════ */
 
 const CODE_RE = /^[A-Z0-9]{3}-[A-Z0-9]{3}$/;
@@ -37,80 +48,115 @@ function timeAgo(iso){
   return `il y a ${d} j`;
 }
 
-export function FriendsSection({ userCode, myCoins = 0, C }){
+export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, C }){
   const [copied,    setCopied]    = useState(false);
   const [inputCode, setInputCode] = useState('');
-  const [adding,    setAdding]    = useState(false);
+  const [sending,   setSending]   = useState(false);
   const [feedback,  setFeedback]  = useState(null); // { type:'ok'|'err', msg }
   const [friends,   setFriends]   = useState([]);
+  const [requests,  setRequests]  = useState([]);   // demandes reçues pending
   const [loading,   setLoading]   = useState(false);
 
   const enabled = isSupabaseEnabled();
 
-  /* Chargement initial + après chaque ajout/retrait. Annulé proprement
-     si le composant se démonte pendant la requête. */
-  useEffect(()=>{
+  /* Reload combiné amis + demandes reçues */
+  const reloadAll = useCallback(async () => {
+    if(!enabled || !userCode) return;
+    const [list, reqs] = await Promise.all([
+      getFriends(userCode),
+      getReceivedFriendRequests(userCode),
+    ]);
+    setFriends(list);
+    setRequests(reqs);
+    if(onRequestsCountChange) onRequestsCountChange(reqs.length);
+  }, [enabled, userCode, onRequestsCountChange]);
+
+  useEffect(() => {
     if(!enabled || !userCode) return;
     let alive = true;
     setLoading(true);
-    (async ()=>{
-      const list = await getFriends(userCode);
-      if(alive){
-        setFriends(list);
-        setLoading(false);
-      }
+    (async () => {
+      const [list, reqs] = await Promise.all([
+        getFriends(userCode),
+        getReceivedFriendRequests(userCode),
+      ]);
+      if(!alive) return;
+      setFriends(list);
+      setRequests(reqs);
+      setLoading(false);
+      if(onRequestsCountChange) onRequestsCountChange(reqs.length);
     })();
-    return ()=>{ alive = false; };
-  }, [enabled, userCode]);
+    return () => { alive = false; };
+  }, [enabled, userCode, onRequestsCountChange]);
 
-  /* Auto-clear du feedback après 3.5s pour ne pas rester visible */
-  useEffect(()=>{
+  /* Auto-clear feedback après 4s */
+  useEffect(() => {
     if(!feedback) return;
-    const t = setTimeout(()=>setFeedback(null), 3500);
-    return ()=>clearTimeout(t);
+    const t = setTimeout(() => setFeedback(null), 4000);
+    return () => clearTimeout(t);
   }, [feedback]);
-
-  const refreshList = async () => {
-    if(!enabled || !userCode) return;
-    const list = await getFriends(userCode);
-    setFriends(list);
-  };
 
   const copyCode = async () => {
     if(!userCode) return;
     try{
       await navigator.clipboard.writeText(userCode);
       setCopied(true);
-      setTimeout(()=>setCopied(false), 1600);
+      setTimeout(() => setCopied(false), 1600);
     }catch{}
   };
 
-  const handleAdd = async () => {
+  const handleSend = async () => {
     const code = inputCode.trim().toUpperCase();
     if(!CODE_RE.test(code)){
       setFeedback({ type:'err', msg:'Format invalide (ex : B4R-1ST)' });
       return;
     }
-    if(code === userCode){
-      setFeedback({ type:'err', msg:'C\'est ton propre code 😄' });
+    setSending(true);
+    const res = await sendFriendRequest(userCode, code);
+    setSending(false);
+    if(res.error){
+      setFeedback({ type:'err', msg: res.error });
       return;
     }
-    setAdding(true);
-    const res = await addFriend(userCode, code);
-    setAdding(false);
-    if(!res.ok){
-      setFeedback({ type:'err', msg: res.error || 'Erreur' });
-      return;
-    }
-    setFeedback({ type:'ok', msg: `✓ ${res.friend.user_name} ajouté !` });
+    setFeedback({ type:'ok', msg:`📬 Demande envoyée à ${res.friend?.user_name || code}` });
     setInputCode('');
-    refreshList();
+  };
+
+  const handleAccept = async (requestId) => {
+    /* Optimistic : on retire de la liste tout de suite */
+    setRequests(rs => rs.filter(r => r.request_id !== requestId));
+    const res = await acceptFriendRequest(userCode, requestId);
+    if(res.error){
+      /* Rollback : on recharge pour rétablir l'état réel */
+      setFeedback({ type:'err', msg: res.error });
+      reloadAll();
+      return;
+    }
+    setFeedback({ type:'ok', msg:`✓ ${res.friendName || 'Ami'} ajouté !` });
+    /* Recharge les amis pour intégrer le nouveau */
+    const list = await getFriends(userCode);
+    setFriends(list);
+    if(onRequestsCountChange) onRequestsCountChange(requests.length - 1);
+  };
+
+  const handleDecline = async (requestId) => {
+    setRequests(rs => rs.filter(r => r.request_id !== requestId));
+    const res = await declineFriendRequest(userCode, requestId);
+    if(res.error){
+      setFeedback({ type:'err', msg: res.error });
+      reloadAll();
+      return;
+    }
+    if(onRequestsCountChange) onRequestsCountChange(requests.length - 1);
   };
 
   const handleRemove = async (friendCode) => {
     if(!confirm('Retirer cet ami de ta liste ?')) return;
     const ok = await removeFriend(userCode, friendCode);
-    if(ok) refreshList();
+    if(ok){
+      const list = await getFriends(userCode);
+      setFriends(list);
+    }
   };
 
   return (
@@ -146,7 +192,7 @@ export function FriendsSection({ userCode, myCoins = 0, C }){
           </button>
         </div>
         <div style={{ fontSize:10.5, color:'rgba(255,255,255,.55)', marginTop:10, lineHeight:1.45 }}>
-          Partage ce code à un ami pour qu'il t'ajoute.
+          Partage ce code à un ami pour qu'il t'envoie une demande.
         </div>
       </div>
 
@@ -165,7 +211,7 @@ export function FriendsSection({ userCode, myCoins = 0, C }){
         </div>
       ) : (
         <>
-          {/* Ajouter un ami */}
+          {/* Envoyer une demande */}
           <div style={{ marginTop:12, padding:'12px 14px', borderRadius:14, background:C.card, border:`1px solid ${C.border}` }}>
             <div style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:8 }}>
               Ajouter un ami
@@ -188,18 +234,18 @@ export function FriendsSection({ userCode, myCoins = 0, C }){
                 }}
               />
               <button
-                onClick={handleAdd}
-                disabled={adding || !inputCode}
+                onClick={handleSend}
+                disabled={sending || !inputCode}
                 style={{
                   padding:'10px 16px', borderRadius:11,
-                  background: adding || !inputCode ? C.card2 : 'linear-gradient(135deg,#D4A017,#C17F3C)',
-                  color: adding || !inputCode ? C.muted : '#fff',
+                  background: sending || !inputCode ? C.card2 : 'linear-gradient(135deg,#D4A017,#C17F3C)',
+                  color: sending || !inputCode ? C.muted : '#fff',
                   border:'none', fontSize:13, fontWeight:800,
-                  cursor: adding || !inputCode ? 'not-allowed' : 'pointer',
+                  cursor: sending || !inputCode ? 'not-allowed' : 'pointer',
                   whiteSpace:'nowrap',
                 }}
               >
-                {adding ? '…' : 'Ajouter'}
+                {sending ? '…' : 'Envoyer'}
               </button>
             </div>
             {feedback && (
@@ -212,8 +258,88 @@ export function FriendsSection({ userCode, myCoins = 0, C }){
             )}
           </div>
 
+          {/* Section : Demandes reçues — cachée si 0 */}
+          {requests.length > 0 && (
+            <div style={{ marginTop:14 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                <span style={{ fontSize:11, fontWeight:800, color:C.text, textTransform:'uppercase', letterSpacing:1.5 }}>
+                  📬 Demandes reçues
+                </span>
+                <span style={{
+                  background:'linear-gradient(135deg,#D4A017,#C17F3C)',
+                  color:'#fff', fontWeight:800, fontSize:11,
+                  padding:'2px 9px', borderRadius:100,
+                  minWidth:22, textAlign:'center', letterSpacing:.3,
+                }}>
+                  {requests.length}
+                </span>
+              </div>
+
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {requests.map(req => (
+                  <div
+                    key={req.request_id}
+                    style={{
+                      background:C.card,
+                      borderRadius:14,
+                      padding:12,
+                      border:'2px solid #D4A017',
+                      boxShadow:'0 4px 12px rgba(212,160,23,.18)',
+                    }}
+                  >
+                    <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
+                      <AvatarFigure value={Number(req.user_avatar)} size={42} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:14, fontWeight:800, color:C.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                          {req.user_name || 'Joueur'}
+                        </div>
+                        <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>
+                          Niveau {req.level ?? 1} · veut être ton ami
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button
+                        onClick={()=>handleAccept(req.request_id)}
+                        style={{
+                          flex:1, padding:'10px 0',
+                          background:'linear-gradient(135deg,#D4A017,#C17F3C)',
+                          color:'#fff', border:'none', borderRadius:10,
+                          fontWeight:800, fontSize:13, cursor:'pointer',
+                        }}
+                      >
+                        ✓ Accepter
+                      </button>
+                      <button
+                        onClick={()=>handleDecline(req.request_id)}
+                        style={{
+                          flex:1, padding:'10px 0',
+                          background:'#F5EFE6', color:'#5C3317',
+                          border:'1.5px solid #E8DDD0', borderRadius:10,
+                          fontWeight:700, fontSize:13, cursor:'pointer',
+                        }}
+                      >
+                        ✗ Refuser
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Liste d'amis */}
-          <div style={{ marginTop:12 }}>
+          <div style={{ marginTop:14 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+              <span style={{ fontSize:11, fontWeight:800, color:C.text, textTransform:'uppercase', letterSpacing:1.5 }}>
+                👥 Mes amis
+              </span>
+              {friends.length > 0 && (
+                <span style={{ fontSize:11, color:C.muted, fontWeight:700 }}>
+                  {friends.length}
+                </span>
+              )}
+            </div>
             {loading ? (
               <div style={{ fontSize:12, color:C.muted, textAlign:'center', padding:18, fontStyle:'italic' }}>
                 Chargement…
@@ -223,7 +349,7 @@ export function FriendsSection({ userCode, myCoins = 0, C }){
                 background:C.card, border:`1px dashed ${C.border}`,
                 borderRadius:14, padding:18, textAlign:'center', color:C.muted, fontSize:12,
               }}>
-                Pas encore d'amis. Partage ton code pour qu'on t'ajoute !
+                Pas encore d'amis. Partage ton code pour qu'on t'envoie une demande !
               </div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
