@@ -81,6 +81,12 @@ export const GLOBAL_CSS = `
   .inbox-overlay-in{animation:inboxOverlayIn .25s ease-out both}
   .inbox-overlay-out{animation:inboxOverlayOut .25s ease-in both}
 
+  /* ── BADGES SECRETS (BRIEF_BADGES_SECRETS) ─────────── */
+  @keyframes badgePop{0%{transform:scale(0) rotate(-180deg);opacity:0}60%{transform:scale(1.1) rotate(10deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+  @keyframes badgeIcon{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.12) rotate(5deg)}}
+  .badge-pop{animation:badgePop .6s cubic-bezier(.34,1.56,.64,1) both}
+  .badge-icon-bounce{animation:badgeIcon 1.6s ease-in-out infinite}
+
   /* ── TOASTER global (BRIEF_INBOX phase 2) ────────── */
   @keyframes toastIn{from{opacity:0;transform:translateY(-12px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
   @keyframes toastOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-12px) scale(.94)}}
