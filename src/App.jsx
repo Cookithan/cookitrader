@@ -38,6 +38,8 @@ import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
 import { InboxModal } from "./components/modals/InboxModal.jsx";
 import { getUnreadInboxCount } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
+import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
+import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -204,6 +206,12 @@ export default function CookiMiner() {
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
   const { showToast } = useToast();
 
+  /* Notifs amis au lancement (BRIEF_DEMANDES_AMIS) — file de notifs popées
+     une à une. Détection au mount via getReceivedFriendRequests +
+     getNewlyAcceptedFriends. Anti-spam : LS notifiedRequestIds garde les IDs
+     déjà notifiés pour ne pas re-popper la même demande à chaque ouverture. */
+  const [pendingFriendNotifs, setPendingFriendNotifs] = useState([]);
+
   /* Génère le leaderboard fictif au premier accès, après reset, ou si schéma obsolète */
   useEffect(()=>{
     const stale = !leaderboard
@@ -299,6 +307,7 @@ export default function CookiMiner() {
   useBackToClose(showEventModal,    () => setShowEventModal(false));
   useBackToClose(!!eventReward,     () => setEventReward(null));
   useBackToClose(showInbox,         () => setShowInbox(false));
+  useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
 
   /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
      Ne tape Supabase que si activé ; sinon le compteur reste à 0. */
@@ -313,6 +322,73 @@ export default function CookiMiner() {
     const t = setInterval(refresh, 30_000);
     return () => { alive = false; clearInterval(t); };
   }, [userCode]);
+
+  /* Détection au lancement : demandes reçues pending + amitiés
+     fraîchement acceptées. Empile les notifs trouvées dans une file ;
+     elles s'affichent une par une via FriendNotificationModal.
+
+     Anti-spam :
+       - notifiedRequestIds (LS) : IDs des demandes déjà signalées,
+         pour qu'une demande pending ne re-popmodale à chaque mount.
+       - knownFriendCodes (LS)   : codes amis déjà connus localement ;
+         tout nouveau code → notif "X t'a accepté". Mis à jour APRÈS
+         détection pour ne plus la repopulariser.
+     Tourne 1 fois quand userCode + showOnboarding=false (sinon la
+     modale onboarding cache la nôtre). */
+  useEffect(() => {
+    if(!userCode || !isSupabaseEnabled()) return;
+    if(showOnboarding) return;
+    let alive = true;
+
+    (async () => {
+      const received = await getReceivedFriendRequests(userCode);
+
+      let knownCodes = [];
+      try { knownCodes = JSON.parse(window.localStorage.getItem('cookiminer:knownFriendCodes') || '[]'); }
+      catch { knownCodes = []; }
+
+      let notifiedIds = [];
+      try { notifiedIds = JSON.parse(window.localStorage.getItem('cookiminer:notifiedRequestIds') || '[]'); }
+      catch { notifiedIds = []; }
+
+      const newRequests = received.filter(r => !notifiedIds.includes(r.request_id));
+      const newlyAccepted = await getNewlyAcceptedFriends(userCode, knownCodes);
+      if(!alive) return;
+
+      const queue = [];
+      if(newRequests.length > 0){
+        queue.push({
+          type:'received',
+          count: newRequests.length,
+          firstName: newRequests[0].user_name || 'Quelqu\'un',
+        });
+      }
+      newlyAccepted.forEach(f => {
+        queue.push({ type:'accepted', friendName: f.user_name || 'Un ami' });
+      });
+
+      /* Met à jour les caches LS APRÈS détection pour éviter la re-notif.
+         Pour notifiedRequestIds : on garde les IDs reçus aujourd'hui (pas
+         tous les anciens — la table inbox conserve l'historique). */
+      try {
+        const ids = received.map(r => r.request_id);
+        window.localStorage.setItem('cookiminer:notifiedRequestIds', JSON.stringify(ids));
+      } catch {}
+      try {
+        const allFriends = await getFriends(userCode);
+        if(alive){
+          window.localStorage.setItem(
+            'cookiminer:knownFriendCodes',
+            JSON.stringify(allFriends.map(f => f.user_code)),
+          );
+        }
+      } catch {}
+
+      if(alive && queue.length > 0) setPendingFriendNotifs(queue);
+    })();
+
+    return () => { alive = false; };
+  }, [userCode, showOnboarding]);
 
   /* Swipe horizontal pour changer d'onglet — désactivé tant qu'un
      overlay/modal/jeu/tuto est ouvert, pour éviter les conflits.
@@ -329,7 +405,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -686,6 +762,11 @@ export default function CookiMiner() {
     try{ window.localStorage.removeItem('cookiminer:tutorialCompleted'); }catch{}
     setPendingLvUp(null); setGameView(null); setTab('accueil');
     setShowInbox(false); setUnreadInboxCount(0);
+    setPendingFriendNotifs([]);
+    try {
+      window.localStorage.removeItem('cookiminer:knownFriendCodes');
+      window.localStorage.removeItem('cookiminer:notifiedRequestIds');
+    } catch {}
     setShowOnboarding(true);
   };
   const doCheckin    = ()=>{ addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
@@ -1223,6 +1304,19 @@ export default function CookiMiner() {
           onApplyReward={handleApplyReward}
           onUnreadCountChange={setUnreadInboxCount}
           C={C}
+        />
+      )}
+
+      {/* NOTIF AMIS (au lancement) — file FIFO, on dépile une notif à la fois.
+          'Voir' (received) → ferme la modale et ouvre le profil. */}
+      {pendingFriendNotifs.length > 0 && (
+        <FriendNotificationModal
+          notification={pendingFriendNotifs[0]}
+          onClose={()=>setPendingFriendNotifs(n => n.slice(1))}
+          onSeeRequests={()=>{
+            setPendingFriendNotifs(n => n.slice(1));
+            setShowProfile(true);
+          }}
         />
       )}
 
