@@ -701,7 +701,7 @@ export default function CookiMiner() {
 
   /* ── ÉVÉNEMENTS SPÉCIAUX (PHASE 6E) ─────────────── */
 
-  /* Tire le prochain event en phase 'waiting' (timer 1h-48h aléatoire,
+  /* Tire le prochain event en phase 'waiting' (timer 1h-24h aléatoire,
      ou 1-3 min en mode dev "Admin"). Si tous les events ont déjà
      été complétés → setActiveEvent(null) : plus de cycle. */
   const triggerNextEvent = () => {

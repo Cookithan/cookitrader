@@ -3,7 +3,7 @@
    ────────────────────────────────────────────────────
    Cycle en 2 phases pour chaque événement :
 
-   1. PHASE 'waiting' (mystère) — durée aléatoire 1h..48h (WAIT_MIN_MS..WAIT_MAX_MS)
+   1. PHASE 'waiting' (mystère) — durée aléatoire 1h..24h (WAIT_MIN_MS..WAIT_MAX_MS)
       Une bannière "🎁 Prochain événement dans Xh XXmin" est affichée
       sur l'accueil, mais le challenge n'est pas révélé.
 
@@ -39,7 +39,7 @@
 
 export const EVENT_LEVEL_MIN     = 4;
 export const WAIT_MIN_MS         =  1 * 3600 * 1000;
-export const WAIT_MAX_MS         = 48 * 3600 * 1000;
+export const WAIT_MAX_MS         = 24 * 3600 * 1000;
 export const ACTIVE_DURATION_MS  =  1 * 3600 * 1000;
 export const MAX_ATTEMPTS        = 3;
 
@@ -81,7 +81,7 @@ export function pickRandomEvent(completedIds = []){
 
    Si `devMode` est vrai (mode dev "cookithan" dans App.jsx), la fenêtre
    d'attente est raccourcie à 1-3 minutes pour faciliter les tests.
-   Mode normal : 1h-48h. */
+   Mode normal : 1h-24h. */
 export function buildWaitingEvent(template, devMode = false){
   const minMs = devMode ? 60_000     : WAIT_MIN_MS;          // 1 min en dev
   const maxMs = devMode ? 3 * 60_000 : WAIT_MAX_MS;          // 3 min en dev
