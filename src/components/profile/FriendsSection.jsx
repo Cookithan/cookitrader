@@ -288,7 +288,7 @@ export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, o
                     }}
                   >
                     <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
-                      <AvatarFigure value={Number(req.user_avatar)} size={42} />
+                      <AvatarFigure value={req.user_avatar} size={42} />
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:14, fontWeight:800, color:C.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                           {req.user_name || 'Joueur'}
@@ -373,7 +373,7 @@ export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, o
                         cursor: clickable ? 'pointer' : 'default',
                       }}
                     >
-                      <AvatarFigure value={Number(f.user_avatar)} size={42} />
+                      <AvatarFigure value={f.user_avatar} size={42} />
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
                           <span style={{ fontSize:13, fontWeight:800, color:C.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>

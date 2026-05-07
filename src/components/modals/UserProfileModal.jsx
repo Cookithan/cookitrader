@@ -184,7 +184,7 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         display:'flex', flexDirection:'column', alignItems:'center',
         marginBottom:14,
       }}>
-        <AvatarFigure value={Number(profile.user_avatar)} size={92} />
+        <AvatarFigure value={profile.user_avatar} size={92} />
         <div style={{ fontSize:22, fontWeight:900, color:C.text, marginTop:12, textAlign:'center' }}>
           {profile.user_name || 'Joueur'}
         </div>

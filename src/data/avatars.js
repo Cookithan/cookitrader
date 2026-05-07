@@ -51,7 +51,12 @@ AVATAR_PREMIUM.avatar_legend = { id:'avatar_legend', art:'avOr',    name:'Légen
 AVATAR_PREMIUM.avatar_aurore = { id:'avatar_aurore', art:'cosmos',  name:'Cosmos',  bg:'transparent', glow:true, full:true };
 
 export function getAvatar(value){
-  if(typeof value === 'number') return ONBOARDING_AVATARS[value] || ONBOARDING_AVATARS[0];
+  /* Premium avatars : ID string ('avatar_chef', 'avatar_eternel'...). */
   if(typeof value === 'string' && AVATAR_PREMIUM[value]) return AVATAR_PREMIUM[value];
+  /* Onboarding avatars : index 0..11. Supabase peut renvoyer ce nombre
+     comme string (user_avatar est une colonne text) — on coerce sans
+     casser les IDs string déjà gérés au-dessus. */
+  const n = typeof value === 'number' ? value : parseInt(value, 10);
+  if(Number.isInteger(n) && ONBOARDING_AVATARS[n]) return ONBOARDING_AVATARS[n];
   return ONBOARDING_AVATARS[0];
 }

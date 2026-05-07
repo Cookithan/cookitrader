@@ -216,7 +216,7 @@ function LeaderRow({ rank, p, isMe, onOpenUserProfile, C }){
       }}>
         #{rank}
       </div>
-      <AvatarFigure value={Number(p.user_avatar) || 0} size={40} />
+      <AvatarFigure value={p.user_avatar} size={40} />
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
