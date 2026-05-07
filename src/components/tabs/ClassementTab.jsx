@@ -44,7 +44,7 @@ function saveCache(payload){
 
 export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, onOpenUserProfile, C }){
   const enabled = isSupabaseEnabled();
-  const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
+  const isAdmin = (userName || '').trim().toLowerCase() === 'admin123';
 
   /* État initialisé depuis le cache pour un affichage instantané */
   const cached = loadCache();

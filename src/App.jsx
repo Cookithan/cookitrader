@@ -87,6 +87,10 @@ import { setupAudioOnFirstInteraction, playSound } from "./lib/audio.js";
    - 10 000 – 999 999 : "12K" ou "12.3K" selon précision
    - 1 000 000+ : "1.2M"
    Le tooltip natif (title="...") affiche la valeur exacte. */
+/* Pseudo dev — un seul endroit à changer pour rebaptiser le mode admin.
+   Comparaison case-insensitive partout (toLowerCase à l'usage). */
+const ADMIN_NAME = 'admin123';
+
 function fmtCompact(n){
   if(n < 10_000) return String(n);
   if(n < 1_000_000){
@@ -632,19 +636,12 @@ export default function CookiMiner() {
   /* Détection des 3 badges secrets — chaque useEffect tape
      unlockSecretBadge(...) qui no-op si déjà unlocked.
 
-     Mode test Admin : si userName='Admin', les 3 badges sont débloqués
-     d'office au mount (modales en cascade via la queue) — permet de
-     tester l'affichage sans avoir à attendre 0h-4h, à faire +1000 🍪
-     de profit ou à ajouter 3 amis. */
+     Mode test Admin (`admin123`) : ne reçoit AUCUN badge ni succès —
+     compte de test pur, sans pollution du système d'unlocks. */
   useEffect(() => {
     if(!userName || showOnboarding) return;
-    const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
-    if(isAdmin){
-      unlockSecretBadge('noctambule');
-      unlockSecretBadge('investisseur');
-      unlockSecretBadge('amical');
-      return;
-    }
+    const isAdmin = (userName || '').trim().toLowerCase() === ADMIN_NAME;
+    if(isAdmin) return;  /* admin → aucun badge */
     /* Cas normal : Noctambule selon l'heure. */
     const hour = new Date().getHours();
     if(hour < 4){
@@ -653,12 +650,14 @@ export default function CookiMiner() {
   }, [userName, showOnboarding, unlockSecretBadge]);
 
   useEffect(() => {
+    if((userName || '').trim().toLowerCase() === ADMIN_NAME) return;
     if(marketRealized >= 1000) unlockSecretBadge('investisseur');
-  }, [marketRealized, unlockSecretBadge]);
+  }, [marketRealized, unlockSecretBadge, userName]);
 
   useEffect(() => {
+    if((userName || '').trim().toLowerCase() === ADMIN_NAME) return;
     if(friendCodes.length >= 3) unlockSecretBadge('amical');
-  }, [friendCodes, unlockSecretBadge]);
+  }, [friendCodes, unlockSecretBadge, userName]);
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
@@ -707,7 +706,7 @@ export default function CookiMiner() {
   const triggerNextEvent = () => {
     const tpl = pickRandomEvent(completedEvents);
     if(!tpl){ setActiveEvent(null); return; }
-    const devMode = (userName || '').trim().toLowerCase() === 'admin';
+    const devMode = (userName || '').trim().toLowerCase() === ADMIN_NAME;
     setActiveEvent(buildWaitingEvent(tpl, devMode));
   };
 
@@ -889,6 +888,8 @@ export default function CookiMiner() {
 
   useEffect(()=>{
     if(showOnboarding) return;
+    /* Mode admin → aucun succès attribué (compte de test). */
+    if((userName || '').trim().toLowerCase() === ADMIN_NAME) return;
     /* "master_succes" : caché tant que reveal_master n'est pas acheté.
        Se déclenche si TOUS les autres succès sont gagnés. */
     const otherIds = ACHIEVEMENTS.filter(a => a.id !== 'master_succes').map(a => a.id);
@@ -907,7 +908,7 @@ export default function CookiMiner() {
     for(const [id,ok] of checks){
       if(ok && !earnedAchievements.includes(id)){ triggerAchievement(id); break; }
     }
-  },[totalEarned, streak, clickRecord, unlocked, level, coins, totalInvested, showOnboarding, earnedAchievements, triggerAchievement, masterRevealed]);
+  },[totalEarned, streak, clickRecord, unlocked, level, coins, totalInvested, showOnboarding, earnedAchievements, triggerAchievement, masterRevealed, userName]);
 
   const collectAchievement = ()=>{
     const a = pendingAchievement;
@@ -1253,6 +1254,7 @@ export default function CookiMiner() {
               userCode={userCode}
               coins={coins}
               addCoins={addCoins}
+              tradingDisabled={(userName || '').trim().toLowerCase() === ADMIN_NAME}
               onTradeComplete={(result)=>{
                 if(result.type === 'buy'){
                   /* L'achievement 'trader' attend totalInvested >= 500 cookies */
@@ -1486,18 +1488,17 @@ export default function CookiMiner() {
             setUserName(name);
             setUserAvatar(avatarIndex);
             if(!joinDate) setJoinDate(new Date().toLocaleDateString('fr-FR'));
-            /* 🔑 Code dev — bonus de test si prénom == "Admin" (et compte
-               filtré du classement public côté Supabase) */
-            if(name.trim().toLowerCase() === 'admin'){
-              setCoins(c => c + 1000);
-              setTotalEarned(t => t + 1000);
-              addCafes(30);
-              /* Niveau max sans bonus de level-up qui s'enchaîne */
+            /* 🔑 Code dev — pseudo `admin123` : dotation de test 10 000 🍪 +
+               100 ☕, niveau max, classement filtré côté Supabase, et tous les
+               succès / badges désactivés (cf. useEffects + checks ailleurs). */
+            if(name.trim().toLowerCase() === ADMIN_NAME){
+              setCoins(10000);
+              setTotalEarned(10000);
+              setCafes(100);
               setLevel(10);
               setXp(0);
-              /* Débloque aussi la révélation du succès caché et le marque gagné */
-              setUnlocked(u => u.includes('reveal_master') ? u : [...u, 'reveal_master']);
-              /* Tous les succès marqués comme déjà gagnés → pas de modale en cascade */
+              /* Tous les succès marqués gagnés pour qu'aucune modale ne pop
+                 si l'admin remplit accidentellement une condition. */
               setEarnedAchievements(ACHIEVEMENTS.map(a => a.id));
               setPendingAchievement(null);
             }
