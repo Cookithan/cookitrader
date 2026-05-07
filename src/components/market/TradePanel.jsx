@@ -10,7 +10,14 @@ import { buyShares, sellShares, MAX_SHARES_PER_USER, MARKET_CONFIG } from '../..
    - max calculé dynamiquement : min(stock dispo, cookies/prix, limite user)
 ═══════════════════════════════════════════════════════ */
 
-export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, C }) {
+function fmtHM(date) {
+  if (!date) return '';
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  return `${h}h${m}`;
+}
+
+export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, marketStatus, C }) {
   const [quantity, setQuantity] = useState(1);
   const [mode, setMode] = useState('buy');
   const [loading, setLoading] = useState(false);
@@ -46,9 +53,10 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
 
   const maxBuyable = computeMaxBuyable();
   const maxSellable = portfolio?.shares ?? 0;
+  const isClosed = marketStatus && !marketStatus.open;
 
   const max = mode === 'buy' ? maxBuyable : maxSellable;
-  const canTrade = max >= 1 && quantity <= max;
+  const canTrade = !isClosed && max >= 1 && quantity <= max;
 
   const handleTrade = async () => {
     if (loading || !canTrade) return;
@@ -86,6 +94,19 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
       marginBottom: 12,
       border: `1.5px solid ${C.border}`,
     }}>
+      {/* Bandeau marché fermé */}
+      {isClosed && (
+        <div style={{
+          padding: '10px 12px', borderRadius: 12, marginBottom: 12,
+          background: 'rgba(125, 78, 31, 0.12)',
+          border: '1.5px solid rgba(125, 78, 31, 0.35)',
+          color: '#7D4E1F', fontSize: 12, fontWeight: 700,
+          textAlign: 'center', lineHeight: 1.4,
+        }}>
+          🔒 Marché fermé — réouverture à {fmtHM(marketStatus?.nextChange)}
+        </div>
+      )}
+
       {/* Tabs Buy/Sell */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <button

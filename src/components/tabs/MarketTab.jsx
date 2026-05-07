@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   getMarketState, getMarketHistory,
-  getUserPortfolio, maintenanceTick,
+  getUserPortfolio, maintenanceTick, getMarketStatus,
 } from '../../lib/market';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
@@ -29,6 +29,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
   const [portfolio, setPortfolio] = useState(null);
   const [dayChange, setDayChange] = useState(0);
   const [chartRange, setChartRange] = useState(5);  /* minutes — défaut 5m */
+  const [marketStatus, setMarketStatus] = useState(() => getMarketStatus());
   const [welcomeSeen, setWelcomeSeen] = useLocalStorage('marketWelcomeSeen', false);
   const [showWelcome, setShowWelcome] = useState(!welcomeSeen);
 
@@ -50,6 +51,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
     setState(s);
     setHistory(hRange);
     setPortfolio(p);
+    setMarketStatus(getMarketStatus());
 
     if (s && h24.length > 0) {
       const oldPrice = h24[0].price;
@@ -124,7 +126,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
         <div style={{ fontSize:11, color:C.muted }}>Partagé entre tous les joueurs</div>
       </div>
 
-      <MarketStateCard state={state} dayChange={dayChange} />
+      <MarketStateCard state={state} dayChange={dayChange} marketStatus={marketStatus} />
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
       <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
       <TradePanel
@@ -133,6 +135,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
         userCode={userCode}
         coins={coins}
         onTradeSuccess={handleTradeSuccess}
+        marketStatus={marketStatus}
         C={C}
       />
 

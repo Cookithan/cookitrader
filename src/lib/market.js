@@ -32,7 +32,46 @@ export const MARKET_CONFIG = {
   MAX_SHARES_PER_USER_PCT: 0.10,  // 10% du total = 1000 actions max par user
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
+  /* Horaires d'ouverture (heure locale du joueur). Ouvert quand
+     openHour ≤ heure < closeHour. closeHour = 24 → ferme à minuit pile. */
+  HOURS: { openHour: 6, closeHour: 24 },
 };
+
+/* Statut du marché (ouvert / fermé) basé sur l'heure LOCALE du client.
+   Retourne { open, nextChange } où nextChange est la prochaine bascule
+   (date de fermeture si ouvert, date de réouverture si fermé). */
+export function getMarketStatus(now = new Date()) {
+  const { openHour, closeHour } = MARKET_CONFIG.HOURS;
+  const hour = now.getHours();
+  const open = hour >= openHour && hour < closeHour;
+
+  const nextChange = new Date(now);
+  nextChange.setMinutes(0, 0, 0);
+  if (open) {
+    /* prochaine bascule = fermeture (closeHour aujourd'hui, ou minuit si 24) */
+    if (closeHour >= 24) {
+      nextChange.setHours(0);
+      nextChange.setDate(nextChange.getDate() + 1);
+    } else {
+      nextChange.setHours(closeHour);
+    }
+  } else {
+    /* prochaine bascule = réouverture (openHour aujourd'hui ou demain) */
+    if (hour < openHour) {
+      nextChange.setHours(openHour);
+    } else {
+      nextChange.setHours(openHour);
+      nextChange.setDate(nextChange.getDate() + 1);
+    }
+  }
+  return { open, nextChange };
+}
+
+function formatHour(date) {
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  return `${h}h${m}`;
+}
 
 export const MAX_SHARES_PER_USER = Math.floor(
   MARKET_CONFIG.TOTAL_SHARES * MARKET_CONFIG.MAX_SHARES_PER_USER_PCT
@@ -111,6 +150,11 @@ export async function buyShares(userCode, shares) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
 
+  const status = getMarketStatus();
+  if (!status.open) {
+    return { error: `Marché fermé. Réouverture à ${formatHour(status.nextChange)}` };
+  }
+
   const state = await getMarketState();
   if (!state) return { error: 'Marché indisponible' };
 
@@ -180,6 +224,11 @@ export async function buyShares(userCode, shares) {
 export async function sellShares(userCode, shares) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
+
+  const status = getMarketStatus();
+  if (!status.open) {
+    return { error: `Marché fermé. Réouverture à ${formatHour(status.nextChange)}` };
+  }
 
   const portfolio = await getUserPortfolio(userCode);
   if (portfolio.shares < shares) {
@@ -257,8 +306,7 @@ export async function maintenanceTick() {
   if (!state) return;
 
   /* Bootstrap : si aucun historique n'existe encore, on insère un
-     premier snapshot tout de suite. Une seule vérif par session client
-     grâce au cache `bootstrapChecked`. */
+     premier snapshot (autorisé même en heures fermées — initialisation). */
   if (!bootstrapChecked) {
     const { count: historyCount } = await supabase
       .from('market_history')
@@ -273,6 +321,10 @@ export async function maintenanceTick() {
     }
     bootstrapChecked = true;
   }
+
+  /* Marché fermé → on ne pousse plus de snapshot. Le prix reste figé sur
+     la dernière valeur jusqu'à la réouverture. */
+  if (!getMarketStatus().open) return;
 
   const now = Date.now();
   const lastInflation = new Date(state.last_inflation_at).getTime();

@@ -8,7 +8,14 @@ import { useState } from 'react';
    affiché côté joueur (UX simplifiée). Bulle d'aide (?) explique la mécanique.
 ═══════════════════════════════════════════════════════ */
 
-export function MarketStateCard({ state, dayChange }) {
+function fmtHM(date) {
+  if (!date) return '';
+  const h = date.getHours().toString().padStart(2, '0');
+  const m = date.getMinutes().toString().padStart(2, '0');
+  return `${h}h${m}`;
+}
+
+export function MarketStateCard({ state, dayChange, marketStatus }) {
   const [showHelp, setShowHelp] = useState(false);
   const available = state?.available_shares ?? 0;
   const total = state?.total_shares_supply ?? 1000;
@@ -45,19 +52,33 @@ export function MarketStateCard({ state, dayChange }) {
             {arrow} {trendText}
           </div>
         </div>
-        <div style={{
-          background: 'rgba(212, 160, 23, 0.2)',
-          border: '1.5px solid rgba(212, 160, 23, 0.5)',
-          borderRadius: 12,
-          padding: '6px 12px',
-          fontSize: 11,
-          fontWeight: 700,
-          color: '#D4A017',
-          display: 'flex', alignItems: 'center', gap: 6,
-        }}>
-          <span className="live-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#D4A017', display: 'inline-block' }} />
-          LIVE
-        </div>
+        {(() => {
+          const open = marketStatus?.open ?? true;
+          const next = marketStatus?.nextChange;
+          return (
+            <div style={{
+              background: open ? 'rgba(212, 160, 23, 0.2)' : 'rgba(120, 90, 60, 0.25)',
+              border: `1.5px solid ${open ? 'rgba(212, 160, 23, 0.5)' : 'rgba(160, 130, 100, 0.5)'}`,
+              borderRadius: 12,
+              padding: '6px 12px',
+              fontSize: 11,
+              fontWeight: 700,
+              color: open ? '#D4A017' : '#D8C8B0',
+              display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2,
+              minWidth: 92,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {open && <span className="live-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#D4A017', display: 'inline-block' }} />}
+                {open ? 'OUVERT' : 'FERMÉ'}
+              </div>
+              {next && (
+                <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, letterSpacing: 0.3 }}>
+                  {open ? 'ferme' : 'ouvre'} {fmtHM(next)}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ marginTop: 18 }}>
