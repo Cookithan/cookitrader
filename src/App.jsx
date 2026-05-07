@@ -230,6 +230,12 @@ export default function CookiMiner() {
     setViewingProfile({ userCode: code, isCrown });
   }, []);
 
+  /* Liste des codes amis (status='accepted') — sert à savoir si la
+     ReactionBar doit s'afficher dans UserProfileModal (BRIEF_REACTIONS).
+     Rafraîchie au mount + à chaque ouverture d'un profil public, pour
+     refléter les amitiés acceptées dans la session courante. */
+  const [friendCodes, setFriendCodes] = useState([]);
+
   /* Génère le leaderboard fictif au premier accès, après reset, ou si schéma obsolète */
   useEffect(()=>{
     const stale = !leaderboard
@@ -341,6 +347,19 @@ export default function CookiMiner() {
     const t = setInterval(refresh, 30_000);
     return () => { alive = false; clearInterval(t); };
   }, [userCode]);
+
+  /* Refresh friendCodes : au mount + à chaque ouverture de la modale
+     UserProfile (pour que les nouveaux amis acceptés dans la session
+     soient bien reconnus → ReactionBar visible). */
+  useEffect(() => {
+    if(!userCode || !isSupabaseEnabled()){ setFriendCodes([]); return; }
+    let alive = true;
+    (async () => {
+      const list = await getFriends(userCode);
+      if(alive) setFriendCodes(list.map(f => f.user_code));
+    })();
+    return () => { alive = false; };
+  }, [userCode, viewingProfile]);
 
   /* Détection au lancement : demandes reçues pending + amitiés
      fraîchement acceptées. Empile les notifs trouvées dans une file ;
@@ -1342,11 +1361,15 @@ export default function CookiMiner() {
         />
       )}
 
-      {/* PROFIL PUBLIC — vue d'un ami / du top 1 (BRIEF_PROFIL_VISIBLE) */}
+      {/* PROFIL PUBLIC — vue d'un ami / du top 1 (BRIEF_PROFIL_VISIBLE).
+          friendCodes + currentUserCode → la modale active la ReactionBar
+          si le profil consulté est dans mes amis (BRIEF_REACTIONS). */}
       {viewingProfile && (
         <UserProfileModal
           userCode={viewingProfile.userCode}
           isCrown={viewingProfile.isCrown}
+          currentUserCode={userCode}
+          friendCodes={friendCodes}
           onClose={()=>setViewingProfile(null)}
           C={C}
         />
