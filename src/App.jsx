@@ -208,6 +208,7 @@ export default function CookiMiner() {
   const [activeSkin,   setActiveSkin]   = useLocalStorage('activeSkin',  '');
   const [activeRoue,   setActiveRoue]   = useLocalStorage('activeRoue',  '');
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
+  const [activeTitle,  setActiveTitle]  = useLocalStorage('activeTitle', '');
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
@@ -858,7 +859,7 @@ export default function CookiMiner() {
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
-    setActiveTheme(''); setActiveSkin(''); setActiveRoue(''); setActiveBanner('');
+    setActiveTheme(''); setActiveSkin(''); setActiveRoue(''); setActiveBanner(''); setActiveTitle('');
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
     /* Tuto : reset complet pour qu'un reset rejoue le tuto au démarrage */
@@ -1299,6 +1300,7 @@ export default function CookiMiner() {
             activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
             activeRoue={activeRoue}     setActiveRoue={setActiveRoue}
             activeBanner={activeBanner} setActiveBanner={setActiveBanner}
+            activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
             userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
             C={C}
           />
@@ -1396,6 +1398,7 @@ export default function CookiMiner() {
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed).length}
           marketRealized={marketRealized}
           activeTheme={activeTheme} activeSkin={activeSkin} activeRoue={activeRoue}
+          activeTitle={activeTitle}
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
           supabaseEnabled={isSupabaseEnabled()}
           supabaseSyncOk={!supabaseError}

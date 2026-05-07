@@ -17,7 +17,7 @@ import { playMusic, getCurrentMusicId } from "../../lib/audio.js";
                 Avatar : pas de désactivation, juste switch.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeSkin, activeRoue, activeBanner, userAvatar, setActiveTheme, setActiveSkin, setActiveRoue, setActiveBanner, setUserAvatar, C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeSkin, activeRoue, activeBanner, activeTitle, userAvatar, setActiveTheme, setActiveSkin, setActiveRoue, setActiveBanner, setActiveTitle, setUserAvatar, C }) {
   const [filter, setFilter] = useState('Tous');
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
@@ -39,6 +39,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     'Skin'    :[activeSkin,   setActiveSkin],
     'Roue'    :[activeRoue,   setActiveRoue],
     'Bannière':[activeBanner, setActiveBanner],
+    'Titre'   :[activeTitle,  setActiveTitle],
     /* Avatar : pas de désactivation possible, juste switch (gère plus bas) */
     'Avatar'  :[userAvatar,   setUserAvatar],
     /* Musique : pas de "désactivation" depuis la boutique — on switch
