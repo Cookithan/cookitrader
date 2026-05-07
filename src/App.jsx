@@ -1490,13 +1490,17 @@ export default function CookiMiner() {
             if(!joinDate) setJoinDate(new Date().toLocaleDateString('fr-FR'));
             /* 🔑 Code dev — pseudo `admin123` : dotation de test 10 000 🍪 +
                100 ☕, niveau max, classement filtré côté Supabase, et tous les
-               succès / badges désactivés (cf. useEffects + checks ailleurs). */
+               succès / badges désactivés (cf. useEffects + checks ailleurs).
+               TOUS les thèmes (achetables + édition limitée events) sont
+               unlock pour pouvoir les essayer immédiatement. */
             if(name.trim().toLowerCase() === ADMIN_NAME){
               setCoins(10000);
               setTotalEarned(10000);
               setCafes(100);
               setLevel(10);
               setXp(0);
+              const allThemeIds = REWARDS.filter(r => r.type === 'Thème').map(r => r.id);
+              setUnlocked(u => Array.from(new Set([...(u || []), ...allThemeIds])));
               /* Tous les succès marqués gagnés pour qu'aucune modale ne pop
                  si l'admin remplit accidentellement une condition. */
               setEarnedAchievements(ACHIEVEMENTS.map(a => a.id));
