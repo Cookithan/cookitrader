@@ -736,9 +736,9 @@ export default function CookiMiner() {
     if(type !== ev.challenge) return;       // pas une tentative pour cet event
 
     let success = false;
-    if(type === 'quiz_perfect') success = value >= 3;       // 3/3 sur quiz Expert (filtré côté QuizGame)
-    if(type === 'spin_jackpot') success = value >= 200;
-    if(type === 'click_50')     success = value >= 50;
+    if(type === 'spin_jackpot')   success = value >= 200;
+    if(type === 'market_profit')  success = value >= 100;   // +100 🍪 PnL en 1 vente
+    if(type === 'streak_check')   success = value >= 5;     // 5 jours consécutifs
 
     if(success){
       setUnlocked(u => u.includes(ev.reward.id) ? u : [...u, ev.reward.id]);
@@ -765,6 +765,17 @@ export default function CookiMiner() {
     triggerNextEvent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level]);
+
+  /* Auto-check pour event_streak : si l'event actif est streak_check et
+     que la série est déjà ≥ 5, on succède immédiatement. Se redéclenche
+     aussi au prochain check-in si la condition devient vraie en cours
+     d'event. */
+  useEffect(()=>{
+    if(activeEvent?.phase === 'active' && activeEvent.challenge === 'streak_check'){
+      if(streak >= 5) checkEventChallenge('streak_check', streak);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeEvent?.phase, activeEvent?.challenge, streak]);
 
   /* Tick périodique (5s) pour gérer les transitions de phase :
      - waiting → active : quand revealAt atteint
@@ -1250,6 +1261,8 @@ export default function CookiMiner() {
                   /* Le badge secret 'investisseur' attend marketRealized >= 1000 */
                   const profit = Math.max(0, Math.round(result.profit || 0));
                   if(profit > 0) setMarketRealized(r => r + profit);
+                  /* Event 'market_profit' : succès si plus-value en 1 vente >= 100 🍪 */
+                  checkEventChallenge('market_profit', profit);
                 }
               }}
               C={C}

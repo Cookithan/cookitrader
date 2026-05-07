@@ -27,18 +27,14 @@
    }
 
    challenge supportés (déclenchés par checkEventChallenge dans App.jsx) :
-   - 'quiz_perfect' → 1 essai = 1 quiz Expert terminé. Succès si parfait (3/3).
-                      QuizGame filtre en interne et ne notifie que sur Expert.
-                      event_chocolat n'a qu'1 essai à cause du cooldown 5h
-                      entre quiz (template.attempts:1 surcharge MAX_ATTEMPTS).
-   - 'spin_jackpot' → 1 essai = 1 spin. Succès si valeur >= 200
-   - 'click_50'     → 1 essai = 1 défi de clics terminé. Succès si clicks >= 50
+   - 'spin_jackpot'   → 1 essai = 1 spin. Succès si valeur >= 200
+   - 'market_profit'  → déclenché à chaque vente sur le marché. Succès si la
+                        plus-value de la vente >= 100 🍪. 3 essais (3 ventes).
+   - 'streak_check'   → vérifié à l'ouverture de l'event ET à chaque check-in
+                        quotidien. Succès si streak >= 5. 1 essai (binaire).
 
    Un template peut surcharger le nombre d'essais via `attempts:N`. Sinon
    c'est MAX_ATTEMPTS qui s'applique.
-
-   event_collector ('earn_100') a été retiré : son modèle cumulatif ne
-   se prête pas au système de "3 essais".
 ═══════════════════════════════════════════════════════ */
 
 export const EVENT_LEVEL_MIN     = 4;
@@ -49,14 +45,6 @@ export const MAX_ATTEMPTS        = 3;
 
 export const SPECIAL_EVENTS = [
   {
-    id: 'event_chocolat',
-    title: '🍫 Fête du Chocolat !',
-    description: 'Réussis un quiz Expert parfait (3/3) pour gagner le thème "Chocolat Festif" !',
-    challenge: 'quiz_perfect',
-    reward: { type:'theme', id:'theme_chocolat_festif', name:'Thème Chocolat Festif' },
-    attempts: 1,
-  },
-  {
     id: 'event_jackpot',
     title: '🎰 Tour Spécial Roue !',
     description: 'Tombe sur +200 à la roue pour débloquer le thème "Or Massif Limité" !',
@@ -64,11 +52,19 @@ export const SPECIAL_EVENTS = [
     reward: { type:'theme', id:'theme_or_limite', name:'Thème Or Massif Limité' },
   },
   {
-    id: 'event_speedster',
-    title: '⚡ Défi Speedster !',
-    description: 'Atteins 50+ clics au défi de clics pour gagner le thème "Vitesse Lumière" !',
-    challenge: 'click_50',
-    reward: { type:'theme', id:'theme_vitesse', name:'Thème Vitesse Lumière' },
+    id: 'event_market_pro',
+    title: '📈 Marché en Folie !',
+    description: 'Réalise +100 🍪 de plus-value en une seule vente sur le marché pour décrocher le thème "Trader Avisé" !',
+    challenge: 'market_profit',
+    reward: { type:'theme', id:'theme_trader', name:'Thème Trader Avisé' },
+  },
+  {
+    id: 'event_streak',
+    title: '🔥 Série de Feu !',
+    description: 'Atteins une série de 5 jours d\'affilée pour gagner le thème "Flamme Vivante" !',
+    challenge: 'streak_check',
+    reward: { type:'theme', id:'theme_flamme', name:'Thème Flamme Vivante' },
+    attempts: 1,
   },
 ];
 

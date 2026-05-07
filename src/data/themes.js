@@ -25,9 +25,11 @@ export const THEMES = {
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements spéciaux,
      impossibles à acheter. Visibles dans la boutique uniquement une fois
      gagnés, avec un badge "Édition limitée". */
-  theme_chocolat_festif: { dark:true, bg:'linear-gradient(140deg,#3D1A0E,#7D3919)', card:'#5C2614', card2:'#7D3919', text:'#F5DCC8', muted:'#B89878', border:'#5C2614' },
   theme_or_limite:       { dark:true, bg:'linear-gradient(140deg,#3D2810,#8B6914)', card:'#5C4014', card2:'#8B6914', text:'#FFE4A0', muted:'#C8A878', border:'#5C4014', sparkles:true },
-  theme_vitesse:         { dark:true, bg:'linear-gradient(140deg,#1A1F30,#3D4A6A)', card:'#2A3050', card2:'#3D4A6A', text:'#E0E8FF', muted:'#9CB0D8', border:'#2A3050' },
+  /* Trader Avisé — sombre cuivré, ambiance bourse luxueuse (event_market_pro) */
+  theme_trader:          { dark:true, bg:'linear-gradient(140deg,#1A0F08 0%,#3D2010 50%,#5C3317 100%)', card:'#2D1A0E', card2:'#3D2614', text:'#F5DCB8', muted:'#B89878', border:'#5C3317' },
+  /* Flamme Vivante — clair-orangé chaleureux, ambiance brasero (event_streak) */
+  theme_flamme:          { dark:false, bg:'linear-gradient(160deg,#FFE5C8 0%,#FFCC8A 50%,#E8985A 100%)', card:'#FFF4E5', card2:'#FFE0B8', text:'#5C2810', muted:'#B86A28', border:'#FFCC8A' },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';

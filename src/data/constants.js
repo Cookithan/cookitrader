@@ -68,9 +68,9 @@ export const REWARDS = [
      La boutique les masque tant qu'ils ne sont pas dans `unlocked` ;
      une fois débloqués, ils apparaissent avec un badge "Édition limitée"
      et sont déjà marqués comme possédés. */
-  { id:'theme_chocolat_festif', name:'Thème Chocolat Festif',    desc:'Édition limitée — Fête du Chocolat',     cost:0, type:'Thème', emoji:'🍫', levelRequired:4, limited:true, event:'event_chocolat'  },
-  { id:'theme_or_limite',       name:'Thème Or Massif Limité',   desc:'Édition limitée — Tour Spécial Roue',     cost:0, type:'Thème', emoji:'🥇', levelRequired:4, limited:true, event:'event_jackpot'   },
-  { id:'theme_vitesse',         name:'Thème Vitesse Lumière',    desc:'Édition limitée — Défi Speedster',        cost:0, type:'Thème', emoji:'⚡', levelRequired:4, limited:true, event:'event_speedster' },
+  { id:'theme_or_limite', name:'Thème Or Massif Limité', desc:'Édition limitée — Tour Spécial Roue', cost:0, type:'Thème', emoji:'🥇', levelRequired:4, limited:true, event:'event_jackpot'     },
+  { id:'theme_trader',    name:'Thème Trader Avisé',     desc:'Édition limitée — Marché en Folie',   cost:0, type:'Thème', emoji:'📈', levelRequired:4, limited:true, event:'event_market_pro'  },
+  { id:'theme_flamme',    name:'Thème Flamme Vivante',   desc:'Édition limitée — Série de Feu',      cost:0, type:'Thème', emoji:'🔥', levelRequired:4, limited:true, event:'event_streak'      },
   // AVATARS premium (8 — PHASE 4)
   { id:'avatar_chef',    name:'Avatar Chef étoilé',     desc:'Toque, moustache et étoile',     cost:200,  type:'Avatar', emoji:'👨‍🍳', levelRequired:2 },
   { id:'avatar_robot',   name:'Avatar Robot Barista',   desc:'Robot mignon avec engrenages',   cost:300,  type:'Avatar', emoji:'🤖',   levelRequired:3 },
