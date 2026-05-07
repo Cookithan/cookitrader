@@ -69,8 +69,11 @@ export const GLOBAL_CSS = `
   @keyframes inboxBadgePulse{0%,100%{box-shadow:0 0 0 0 rgba(212,160,23,.7)}50%{box-shadow:0 0 0 6px rgba(212,160,23,0)}}
   @keyframes inboxSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
   @keyframes inboxSlideDown{from{transform:translateY(0)}to{transform:translateY(100%)}}
-  @keyframes inboxOverlayIn{from{opacity:0}to{opacity:1}}
-  @keyframes inboxOverlayOut{from{opacity:1}to{opacity:0}}
+  /* Anime background-color (pas opacity) pour ne pas cacher le panel
+     intérieur qui slide en parallèle — sinon l'opacity 0→1 du parent
+     masque le slide jusqu'à sa fin et le panel "saute" en place. */
+  @keyframes inboxOverlayIn{from{background-color:rgba(15,8,4,0)}to{background-color:rgba(15,8,4,.55)}}
+  @keyframes inboxOverlayOut{from{background-color:rgba(15,8,4,.55)}to{background-color:rgba(15,8,4,0)}}
   .inbox-pulse{animation:inboxPulse 1.6s ease-in-out infinite}
   .inbox-badge-pulse{animation:inboxBadgePulse 1.6s ease-in-out infinite}
   .inbox-slide-up{animation:inboxSlideUp .32s cubic-bezier(.36,.07,.19,.97) both}

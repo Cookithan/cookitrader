@@ -121,7 +121,6 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
       className={closing ? 'inbox-overlay-out' : 'inbox-overlay-in'}
       style={{
         position:'fixed', inset:0, zIndex:80,
-        background:'rgba(15,8,4,.55)',
         display:'flex', alignItems:'flex-end', justifyContent:'center',
       }}
     >

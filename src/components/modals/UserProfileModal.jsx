@@ -81,7 +81,6 @@ export function UserProfileModal({ userCode, isCrown = false, onClose, C }){
       className={closing ? 'inbox-overlay-out' : 'inbox-overlay-in'}
       style={{
         position:'fixed', inset:0, zIndex:90,
-        background:'rgba(15,8,4,.65)',
         backdropFilter:'blur(4px)',
         display:'flex', alignItems:'flex-end', justifyContent:'center',
       }}
