@@ -63,11 +63,11 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
   useEffect(() => {
     refresh();
     maintenanceTick();
-    /* Maintenance fréquente (15s) pour profiter du throttle global et
-       avoir une courbe vivante. Refresh data 10s pour voir les nouveaux
-       snapshots rapidement. */
-    const tickInt = setInterval(maintenanceTick, 15 * 1000);
-    const refreshInt = setInterval(refresh, 10 * 1000);
+    /* Maintenance + refresh à 5s pour matcher SNAPSHOT_SECONDS — courbe
+       très fluide en vue 1m (12 points/min). Le throttle global empêche
+       les doublons même avec plusieurs clients connectés. */
+    const tickInt = setInterval(maintenanceTick, 5 * 1000);
+    const refreshInt = setInterval(refresh, 5 * 1000);
     return () => {
       clearInterval(tickInt);
       clearInterval(refreshInt);

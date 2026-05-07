@@ -31,7 +31,7 @@ export const MARKET_CONFIG = {
   MEAN_REVERSION_RATE: 0.0008,
   MAX_SHARES_PER_USER_PCT: 0.10,  // 10% du total = 1000 actions max par user
   HISTORY_HOURS: 24,
-  SNAPSHOT_SECONDS: 15,           // un snapshot toutes les 15s (max — partagé entre clients)
+  SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
 };
 
 export const MAX_SHARES_PER_USER = Math.floor(
