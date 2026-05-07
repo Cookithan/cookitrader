@@ -116,7 +116,10 @@ export function playSound(name){
   }catch{ /* mobile autoplay restrictions, etc. */ }
 }
 
-/* ── PLAY MUSIC ─────────────────────────────────── */
+/* ── PLAY MUSIC ─────────────────────────────────────
+   Utilise UNE seule instance Audio réutilisée (change .src) — sinon
+   le pause+null de l'ancienne Audio + new Audio() peut laisser les
+   2 streams se chevaucher pendant un tick (bug observé). */
 export function playMusic(musicId){
   const s = getSettings();
   if(!s.musicEnabled) return;
@@ -124,15 +127,20 @@ export function playMusic(musicId){
   const music = MUSICS[musicId];
   if(!music) return;
 
-  /* Déjà la même musique → no-op (évite le hiccup) */
+  /* Déjà la même musique en lecture → no-op (évite le hiccup) */
   if(currentMusicId === musicId && musicAudio && !musicAudio.paused) return;
 
-  stopMusic();
-
   try{
-    musicAudio = new Audio(music.file);
-    musicAudio.volume = 0.25;
-    musicAudio.loop = true;
+    if(!musicAudio){
+      musicAudio = new Audio();
+      musicAudio.loop = true;
+      musicAudio.volume = 0.25;
+    }
+    /* Pause AVANT de changer le src, sinon Chrome peut throw
+       "AbortError: play() interrupted by new load request". */
+    try{ musicAudio.pause(); }catch{}
+    musicAudio.src = music.file;
+    musicAudio.load();
     musicAudio.play().catch(() => {});
     currentMusicId = musicId;
     /* Persiste le choix pour que la prochaine session le restaure */
@@ -143,8 +151,10 @@ export function playMusic(musicId){
 
 export function stopMusic(){
   if(musicAudio){
-    try{ musicAudio.pause(); }catch{}
-    musicAudio = null;
+    try{
+      musicAudio.pause();
+      musicAudio.currentTime = 0;
+    }catch{}
   }
   currentMusicId = null;
 }
