@@ -3,6 +3,7 @@ import { ChevronLeft, Settings, Lock, Mail } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
+import { SECRET_BADGES } from "../../data/secretBadges.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
@@ -57,6 +58,9 @@ export function ProfileOverlay({
 
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
+  /* Badges secrets débloqués (BRIEF_BADGES_SECRETS). Les non-débloqués
+     restent invisibles — sinon ce ne sont plus des secrets. */
+  const secretBadgesUnlocked = Object.values(SECRET_BADGES).filter(b => unlocked.includes(b.id));
 
   /* Sélecteur d'avatar (PHASE 4) :
      - "Mes avatars" : 12 de base (toujours dispos) + premium débloqués
@@ -310,16 +314,36 @@ export function ProfileOverlay({
               </div>
             </section>
 
-            {/* 4. Mes Badges */}
+            {/* 4. Mes Badges (boutique + secrets découverts) */}
             <section>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
                 <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES BADGES</div>
-                <div style={{ fontSize:11, color:C.muted }}>{badges.length}</div>
+                <div style={{ fontSize:11, color:C.muted }}>{badges.length + secretBadgesUnlocked.length}</div>
               </div>
-              {badges.length === 0 ? (
+              {badges.length === 0 && secretBadgesUnlocked.length === 0 ? (
                 <div style={{ fontSize:12, color:C.muted, fontStyle:'italic', padding:'10px 4px' }}>Aucun badge encore — direction la boutique !</div>
               ) : (
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
+                  {/* Badges secrets en premier (effet "découvert" plus marquant) */}
+                  {secretBadgesUnlocked.map(sb => (
+                    <div key={sb.id} title={sb.description} style={{
+                      borderRadius:12, padding:'10px 4px',
+                      background: sb.bgGradient,
+                      border: `2px solid ${sb.color}`,
+                      boxShadow: `0 4px 12px ${sb.color}33`,
+                      color:'#fff', textAlign:'center', position:'relative',
+                    }}>
+                      <div style={{ fontSize:24, marginBottom:4 }}>{sb.icon}</div>
+                      <div style={{ fontSize:9, fontWeight:800, lineHeight:1.2 }}>{sb.shortName}</div>
+                      <div style={{
+                        position:'absolute', top:-6, right:-6,
+                        fontSize:8, fontWeight:900, letterSpacing:.5,
+                        background:'#3D2010', color:'#F0C050',
+                        padding:'2px 6px', borderRadius:8,
+                        border:'1px solid rgba(212,160,23,.5)',
+                      }}>SECRET</div>
+                    </div>
+                  ))}
                   {badges.map(b => (
                     <div key={b.id} style={{ borderRadius:12, background:C.card, border:'1px solid rgba(212,160,23,.4)', padding:'10px 4px', textAlign:'center' }}>
                       <div style={{ fontSize:24, marginBottom:4 }}>{b.emoji}</div>
