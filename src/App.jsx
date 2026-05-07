@@ -43,9 +43,10 @@ import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
 import { UpgradeNoticeModal } from "./components/modals/UpgradeNoticeModal.jsx";
 
-/* Version de l'avis de maintenance — bumpe pour ré-afficher la popup
-   après une nouvelle phase d'évolution (ex: 'v2', 'v3'). */
-const UPGRADE_NOTICE_VERSION = 'v1';
+/* ⚠️ Avis de maintenance affiché à CHAQUE ouverture de l'app jusqu'à
+   nouvel ordre du user (pas de persistance LS volontaire).
+   Pour le désactiver : retire la prop dans le JSX en bas de App.jsx
+   (ou supprime carrément l'import et le composant). */
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -144,7 +145,9 @@ export default function CookiMiner() {
   const [nameChangeCount, setNameChangeCount] = useLocalStorage('nameChangeCount', 0);
   const [userCode,    setUserCode]    = useLocalStorage('userCode', '');
   const [userBio,     setUserBio]     = useLocalStorage('userBio',  '');
-  const [upgradeNoticeAck, setUpgradeNoticeAck] = useLocalStorage('upgradeNoticeAck', '');
+  /* Volatil : repart toujours à false au mount → popup réaffichée à
+     chaque ouverture de l'app jusqu'à nouvel ordre. */
+  const [upgradeNoticeAck, setUpgradeNoticeAck] = useState(false);
 
   /* Événements spéciaux (PHASE 6E) — cycle waiting (1-24h) → active
      (1h, 3 essais) → repeat. Persistés pour survivre au refresh. */
@@ -1441,11 +1444,11 @@ export default function CookiMiner() {
           si c'est un refresh détecté via Performance API. */}
       {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
 
-      {/* Avis de maintenance — visible 1 seule fois par version, après
-          le splash et l'onboarding. Bump UPGRADE_NOTICE_VERSION pour
-          ré-afficher après une nouvelle phase. */}
-      {!showSplash && !showOnboarding && upgradeNoticeAck !== UPGRADE_NOTICE_VERSION && (
-        <UpgradeNoticeModal onAck={()=>setUpgradeNoticeAck(UPGRADE_NOTICE_VERSION)} />
+      {/* Avis de maintenance — réaffiché à CHAQUE ouverture de l'app
+          (pas de persistance LS). Tap "j'ai compris" → cache jusqu'au
+          prochain refresh. À retirer quand le user le demande. */}
+      {!showSplash && !showOnboarding && !upgradeNoticeAck && (
+        <UpgradeNoticeModal onAck={()=>setUpgradeNoticeAck(true)} />
       )}
     </div>
   );
