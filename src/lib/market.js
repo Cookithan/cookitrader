@@ -24,7 +24,7 @@ export const MARKET_CONFIG = {
   PRICE_MAX: 1000,
   PRICE_INITIAL: 100,
   TOTAL_SHARES: 10000,
-  IMPACT_PER_SHARE: 0.005,        // +0.5% par action achetée
+  IMPACT_PER_SHARE: 0.001,        // +0.1% par action — calibré pour un faible nombre de traders
   DAILY_INFLATION: 0.001,         // +0.1% par jour
   MEAN_REVERSION_LOW: 30,
   MEAN_REVERSION_HIGH: 700,
