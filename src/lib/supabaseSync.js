@@ -130,7 +130,13 @@ export async function getTotalPlayers(){
    user_id via le ON DELETE CASCADE de la FK, mais aussi côté
    friend_code chez les autres utilisateurs qui m'avaient ajouté).
    Utilisé lors du "Réinitialiser ma progression" pour ne pas laisser
-   de profils orphelins dans le classement. */
+   de profils orphelins dans le classement.
+
+   ⚠️ Dépend d'une policy RLS DELETE sur public.users :
+     create policy "Anyone can delete own profile"
+       on public.users for delete using (true);
+   Sans cette policy, RLS bloque silencieusement (0 rows affected) et
+   le profil reste — ancien bug fantôme dans le classement. */
 export async function deleteMyProfile(myUserCode){
   if(!isSupabaseEnabled() || !myUserCode) return false;
   try{
