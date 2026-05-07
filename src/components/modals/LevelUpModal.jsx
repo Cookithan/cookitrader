@@ -4,12 +4,14 @@ import { GOLD } from "../../data/themes.js";
 
 /* ════════════════════════════════════════════════════
    LevelUpModal — popup plein écran à chaque montée de niveau
-   - Bonus cookies = 10 × niveau (versé après 700ms par addCoins, pas ici)
+   - Niveaux 2-5 : bonus cookies = 10 × niveau (versé par addCoins)
+   - Niveaux 6-10 : bonus = +1 ☕ (palier end-game, plus rare)
    - Compte les nouveaux items boutique débloqués (REWARDS où levelRequired === level)
    - z-index 100 — passe devant l'AchievementModal (z-index 90) si les deux se déclenchent
 ════════════════════════════════════════════════════ */
 
 export function LevelUpModal({ level, onCollect }) {
+  const isEndGame = level >= 6;
   const bonus = 10 * level;
   const newItems = REWARDS.filter(r => r.levelRequired === level).length;
   return (
@@ -32,7 +34,9 @@ export function LevelUpModal({ level, onCollect }) {
         <div style={{ fontSize:20, fontWeight:700, color:'#D4A017', marginBottom:20 }}>{LEVEL_NAMES[level]}</div>
         <div style={{ background:'rgba(212,160,23,.15)', borderRadius:16, padding:'12px 20px', marginBottom:14, border:'1px solid rgba(212,160,23,.3)' }}>
           <div style={{ fontSize:11, color:'rgba(255,255,255,.6)', marginBottom:4 }}>Bonus offert</div>
-          <div className="coin-pop" style={{ fontSize:26, fontWeight:800, color:'#D4A017' }}>+{bonus} 🍪</div>
+          <div className="coin-pop" style={{ fontSize:26, fontWeight:800, color:'#D4A017' }}>
+            {isEndGame ? '+1 ☕' : `+${bonus} 🍪`}
+          </div>
         </div>
         {newItems > 0 && (
           <div className="su" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:18, padding:'10px 14px', borderRadius:14, background:'rgba(255,255,255,.08)', border:'1px dashed rgba(212,160,23,.4)' }}>
@@ -43,7 +47,7 @@ export function LevelUpModal({ level, onCollect }) {
           </div>
         )}
         <button onClick={onCollect} className="glow-anim" style={{ width:'100%', padding:14, borderRadius:16, fontSize:15, fontWeight:800, background:GOLD, color:'#fff', cursor:'pointer', letterSpacing:.3 }}>
-          Récupérer les cookies 🍪
+          {isEndGame ? 'Récupérer le café ☕' : 'Récupérer les cookies 🍪'}
         </button>
       </div>
     </div>

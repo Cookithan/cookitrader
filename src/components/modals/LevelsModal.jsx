@@ -1,11 +1,11 @@
 import { ChevronLeft, Check, Lock } from "lucide-react";
-import { LEVEL_NAMES } from "../../data/constants.js";
+import { LEVEL_NAMES, xpRequired } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 
 /* ════════════════════════════════════════════════════
    LevelsModal — popup "Voir les niveaux"
    - Ouverte au clic sur la carte niveau (Accueil) ou depuis le profil
-   - Révèle les 6 paliers : passés en gold, courant pulsé avec barre XP,
+   - Révèle les 10 paliers : passés en gold, courant pulsé avec barre XP,
      futurs verrouillés "? ? ?"
    - Lock click sur l'overlay pour fermer (sauf clic à l'intérieur)
 ════════════════════════════════════════════════════ */
@@ -18,7 +18,7 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>PROGRESSION</div>
-            <div style={{ fontSize:18, fontWeight:800, color:C.text, marginTop:2 }}>Les 6 niveaux</div>
+            <div style={{ fontSize:18, fontWeight:800, color:C.text, marginTop:2 }}>Les 10 niveaux</div>
           </div>
           <button onClick={onClose} aria-label="Fermer" style={{ width:32, height:32, borderRadius:11, background:C.card2, color:C.text, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <ChevronLeft size={18} style={{ transform:'rotate(180deg)' }} />
@@ -26,11 +26,13 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
         </div>
 
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {[1,2,3,4,5,6].map(n => {
+          {[1,2,3,4,5,6,7,8,9,10].map(n => {
             const passed   = n < currentLevel;
             const isCurrent = n === currentLevel;
             const locked   = n > currentLevel;
-            const req      = n * 100;
+            /* XP exacte à gagner DANS le niveau n-1 pour passer au n.
+               Pour n=1, on affiche 0 (palier de départ). */
+            const req      = n === 1 ? 0 : xpRequired(n - 1);
 
             return (
               <div key={n} className={isCurrent ? 'pulse-ring' : ''} style={{

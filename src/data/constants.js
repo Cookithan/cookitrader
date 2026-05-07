@@ -1,6 +1,9 @@
 /* ════════════════════════════════════════════════════
    CONSTANTES GAMEPLAY
-   - LEVEL_NAMES : titre de chaque palier (1..6)
+   - LEVEL_NAMES : titre de chaque palier (1..10)
+   - xpRequired  : XP nécessaire pour passer au niveau suivant
+                    · 1..5  → level*100+50  (linéaire, montée rapide)
+                    · 6..9  → level²*50     (palier durci pour le end-game)
    - SEGMENTS    : 11 segments de la roue (valeur, label, weight, color)
    - DAILY_REWARDS : check-in J1..J7 (J7 = jackpot hebdo)
    - REWARDS     : tous les items boutique (Badge / Titre / Thème / Avatar / Skin / Roue / Premium)
@@ -10,7 +13,15 @@
    - NAME_CHANGE_PRICES : tarif progressif du changement de prénom
 ════════════════════════════════════════════════════ */
 
-export const LEVEL_NAMES = ['','Barista','Torréfacteur','Maître','Grand Barista','Chef Pâtissier','Légende'];
+export const LEVEL_NAMES = ['','Barista','Torréfacteur','Maître','Grand Barista','Chef Pâtissier','Légende','Connaisseur du Café','Virtuose Café','Maître Mythique','Éternel du Cookie'];
+
+/* XP requise dans le niveau `level` pour passer à `level+1`.
+   Discontinuité volontaire entre 5 et 6 : passage en mode "end-game"
+   où chaque palier débloque +1 ☕ (au lieu de cookies). */
+export function xpRequired(level){
+  if(level <= 5) return level * 100 + 50;
+  return level * level * 50;
+}
 
 /* Tarif du changement de prénom — le 1er (onboarding) est gratuit,
    ensuite le compteur démarre à 0 et le prix grimpe à chaque modif.
@@ -44,15 +55,18 @@ export const REWARDS = [
   { id:'badge_barista',  name:'Badge Barista',  desc:'Maîtrise de base du café',    cost:120,  type:'Badge', emoji:'☕', levelRequired:2 },
   { id:'badge_chef',     name:'Badge Chef',     desc:'Pour les acharnés du cookie', cost:500,  type:'Badge', emoji:'👨‍🍳', levelRequired:5 },
   { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiMiner',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
+  { id:'badge_eternel',  name:'Badge Éternel',  desc:'Au-delà de la Légende',       cost:2500, type:'Badge', emoji:'🌟', levelRequired:10 },
   // TITRES
   { id:'titre_grand_cru',    name:'Titre "Grand Cru"',         desc:'Affichez votre prestige', cost:200,  type:'Titre', emoji:'🏅', levelRequired:2 },
   { id:'titre_torrefacteur', name:'Titre "Torréfacteur"',      desc:'Maître de la torréfaction', cost:400, type:'Titre', emoji:'🔥', levelRequired:3 },
   { id:'titre_legende',      name:'Titre "Légende du Cookie"', desc:'Le titre ultime',         cost:1500, type:'Titre', emoji:'✨', levelRequired:6 },
+  { id:'titre_eternel',      name:'Titre "Éternel du Cookie"', desc:'Le palier ultime',        cost:3000, type:'Titre', emoji:'♾️', levelRequired:10 },
   // THÈMES
   { id:'theme_creme',      name:'Thème Cappuccino Mousseux', desc:'Fond rosé crème chaud',     cost:80,   type:'Thème', emoji:'☁️', levelRequired:1 },
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
   { id:'theme_caramel',    name:'Thème Caramel Sunrise',     desc:'Dégradé chaud animé',       cost:450,  type:'Thème', emoji:'🌅', levelRequired:3 },
   { id:'theme_legendaire', name:'Thème Légendaire',          desc:'Fond doré avec particules', cost:1200, type:'Thème', emoji:'💫', levelRequired:6 },
+  { id:'theme_aurore',     name:'Thème Aurore Boréale',      desc:'Voiles cosmiques chatoyants', cost:4000, type:'Thème', emoji:'🌌', levelRequired:10 },
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements
      spéciaux uniquement. cost:0, flag `limited:true` + `event:<id>`.
      La boutique les masque tant qu'ils ne sont pas dans `unlocked` ;
@@ -70,6 +84,7 @@ export const REWARDS = [
   { id:'avatar_dragon',  name:'Avatar Dragon Espresso', desc:'Dragon qui crache de la vapeur', cost:800,  type:'Avatar', emoji:'🐲',   levelRequired:5 },
   { id:'avatar_or',      name:'Avatar Or Massif',       desc:'Visage doré scintillant',        cost:1500, type:'Avatar', emoji:'✨',   levelRequired:6 },
   { id:'avatar_legende', name:'Avatar Légende',         desc:'Couronne + cookie magique',      cost:2500, type:'Avatar', emoji:'👑',   levelRequired:6 },
+  { id:'avatar_eternel', name:'Avatar Éternel',         desc:'Halo infini scintillant',        cost:4500, type:'Avatar', emoji:'♾️',   levelRequired:10 },
   // SKINS COOKIE
   { id:'skin_chocolat', name:'Cookie Chocolat', desc:'Tout chocolat avec éclats', cost:250, type:'Skin', emoji:'🍫', levelRequired:3 },
   { id:'skin_dore',     name:'Cookie Doré',     desc:'Brillance animée',          cost:700, type:'Skin', emoji:'⭐', levelRequired:5 },
@@ -93,7 +108,8 @@ export const ACHIEVEMENTS = [
   { id:'streak_7',       name:'En Feu !',           desc:'7 jours de check-in consécutifs',          emoji:'💥', bonus:30,  cafesBonus:1 },
   { id:'jackpot',        name:'Gros Lot !',         desc:'Tu as touché +200 à la roue',              emoji:'🎰', bonus:50,  cafesBonus:1 },
   { id:'level_3',        name:'En Progression !',   desc:'Tu as atteint le niveau 3',                emoji:'⭐', bonus:25  },
-  { id:'level_6',        name:'Légende !',          desc:'Tu as atteint le niveau maximum',          emoji:'👑', bonus:100, cafesBonus:1 },
+  { id:'level_6',        name:'Légende !',          desc:'Tu as atteint le niveau 6 — Légende',      emoji:'👑', bonus:100, cafesBonus:1 },
+  { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau maximum',          emoji:'♾️', bonus:200, cafesBonus:5 },
   { id:'trader',         name:'Trader !',           desc:'Tu as investi 500 cookies en $CKM',        emoji:'💹', bonus:40  },
   /* Caché : ne s'affiche que si l'utilisateur a acheté "Dernier Succès Caché" en boutique premium */
   { id:'master_succes',  name:'Maître Des Succès',  desc:'Tu as tout débloqué',                       emoji:'🎖️', bonus:200, cafesBonus:10, hidden:true },
@@ -118,7 +134,7 @@ export const QUESTIONS = [
 
   // FACILE — questions sur CookiMiner
   { q:"Quelle est la monnaie principale de CookiMiner ?", choices:["L'euro","Le café (CF)","Le cookie","La pièce d'or"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Combien y a-t-il de niveaux dans CookiMiner ?", choices:["3","6","10","Infini"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Combien y a-t-il de niveaux dans CookiMiner ?", choices:["3","6","10","Infini"], answer:2, reward:20, difficulty:'Facile' },
   { q:"Quel mini-jeu te demande de relâcher au bon moment ?", choices:["Quiz café","Roue de la fortune","Stop le café","Défi de clics"], answer:2, reward:20, difficulty:'Facile' },
   { q:"Combien de cookies obtient-on pour 2 clics dans le défi de clics ?", choices:["0","1","2","5"], answer:1, reward:20, difficulty:'Facile' },
   { q:"Comment s'appelle la monnaie premium (rare) du jeu ?", choices:["Le diamant","Le café (CF)","La gemme","Le pépite"], answer:1, reward:20, difficulty:'Facile' },
@@ -159,7 +175,7 @@ export const QUESTIONS = [
   // EXPERT — questions sur CookiMiner
   { q:"Quelle est la valeur de référence du marché $CKM ?", choices:["50","100","200","500"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel pourcentage max de tes cookies peux-tu investir d'un coup ?", choices:["50 %","60 %","80 %","100 %"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"Combien de cookies rapporte un level-up (formule) ?", choices:["Toujours 50","10 × le nouveau niveau","100","Variable"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Combien de cookies rapporte un level-up entre les niveaux 2 et 5 ?", choices:["Toujours 50","10 × le nouveau niveau","100","Variable"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel est le prix maximum atteignable sur le marché $CKM ?", choices:["200","350","500","1000"], answer:2, reward:60, difficulty:'Expert' },
   { q:"Combien de cafés (CF) coûte le Thème Cosmos ?", choices:["3","5","8","12"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quelle est la pénalité si le café déborde dans 'Stop le café' ?", choices:["0 cookies","−2 cookies","−5 cookies","−10 cookies"], answer:2, reward:60, difficulty:'Expert' },

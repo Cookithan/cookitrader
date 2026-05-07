@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock } from "lucide-react";
 
-import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS } from "./data/constants.js";
+import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { HISTORY_N, TICK_MS, BIG_MOVE_PCT, BIG_EVENTS, SMALL_EVENTS, MEGA_EVENTS, nextPrice } from "./data/market.js";
@@ -392,7 +392,7 @@ export default function CookiMiner() {
   useEffect(()=>{
     if(tab !== 'boutique' && boutiqueMode === 'premium') setBoutiqueMode('shop');
   },[tab, boutiqueMode]);
-  const xpReq    = level * 100 + 50;
+  const xpReq    = xpRequired(level);
   const xpPct    = Math.min((xp/xpReq)*100, 100);
   const canCheckin = lastCheckin !== new Date().toDateString();
   /* lastQuiz est désormais un timestamp ; on tolère l'ancien format string (legacy) en l'ignorant */
@@ -421,19 +421,27 @@ export default function CookiMiner() {
     const cur = xpRef.current;
 
     /* Niveau max OU sous le seuil → pas de level up, XP avance normalement */
-    if(lv>=6 || cur+xpDelta < lv*100 + 50){
+    if(lv>=10 || cur+xpDelta < xpRequired(lv)){
       const next = cur+xpDelta;
       setXp(next); xpRef.current = next;
       return;
     }
 
     /* Sinon, exactement UN niveau gagné. L'XP excédentaire est perdue
-       (cap volontaire pour éviter les sauts type +200 → 2 niveaux d'un coup). */
-    const nl = lv+1, bonus = 10*nl;
+       (cap volontaire pour éviter les sauts type +200 → 2 niveaux d'un coup).
+       À partir du niveau 6 (palier "end-game"), le bonus de level-up
+       est versé en cafés (1 ☕) au lieu de cookies. La modale LevelUpModal
+       affiche le bonus correspondant — code unique côté addCoins. */
+    const nl = lv+1;
     setLevel(nl);   lvRef.current = nl;
     setXp(0);       xpRef.current = 0;
     setPendingLvUp(nl);
-    setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
+    if(nl >= 6){
+      setTimeout(()=>{ setCafes(c=>c+1); }, 700);
+    } else {
+      const bonus = 10*nl;
+      setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
+    }
   },[]);
 
   const spendCoins   = useCallback((a)=>setCoins(c=>Math.max(0,c-a)),[]);
@@ -656,6 +664,7 @@ export default function CookiMiner() {
       ['streak_7',       streak >= 7],
       ['level_3',        level >= 3],
       ['level_6',        level >= 6],
+      ['level_10',       level >= 10],
       ['trader',         totalInvested >= 500],
       ['master_succes',  masterRevealed && allOthersDone],
     ];
@@ -1194,7 +1203,7 @@ export default function CookiMiner() {
               setTotalEarned(t => t + 1000);
               addCafes(30);
               /* Niveau max sans bonus de level-up qui s'enchaîne */
-              setLevel(6);
+              setLevel(10);
               setXp(0);
               /* Débloque aussi la révélation du succès caché et le marque gagné */
               setUnlocked(u => u.includes('reveal_master') ? u : [...u, 'reveal_master']);
