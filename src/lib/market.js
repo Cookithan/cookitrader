@@ -31,6 +31,7 @@ export const MARKET_CONFIG = {
   MEAN_REVERSION_RATE: 0.0008,
   MAX_SHARES_PER_USER_PCT: 0.10,  // 10% du total = 1000 actions max par user
   HISTORY_HOURS: 24,
+  SNAPSHOT_SECONDS: 15,           // un snapshot toutes les 15s (max — partagé entre clients)
 };
 
 export const MAX_SHARES_PER_USER = Math.floor(
@@ -59,9 +60,12 @@ export async function getMarketState() {
   };
 }
 
-export async function getMarketHistory() {
+/* rangeMinutes : fenêtre de remontée (1, 5, 60, 1440…). Permet au chart de
+   demander seulement la plage affichée — pas besoin de charger 24h pour
+   afficher les 5 dernières minutes. */
+export async function getMarketHistory(rangeMinutes = MARKET_CONFIG.HISTORY_HOURS * 60) {
   if (!isSupabaseEnabled()) return [];
-  const since = new Date(Date.now() - MARKET_CONFIG.HISTORY_HOURS * 3600 * 1000).toISOString();
+  const since = new Date(Date.now() - rangeMinutes * 60 * 1000).toISOString();
   const { data } = await supabase
     .from('market_history')
     .select('price, recorded_at')
@@ -228,35 +232,44 @@ export async function sellShares(userCode, shares) {
 }
 
 // ═══════════════════════════════════════════
-// MAINTENANCE — appelée toutes les 5 min côté client
-// (idempotente : si <1h depuis last_inflation_at, skip — sauf bootstrap)
+// MAINTENANCE — appelée fréquemment côté client (~15s)
+// Throttle global via market_state.last_inflation_at : un seul snapshot
+// est inséré par fenêtre de SNAPSHOT_SECONDS, peu importe combien de
+// clients sont connectés. Inflation + régression vers la moyenne en
+// même temps que le snapshot, proportionnelles au temps écoulé.
 // ═══════════════════════════════════════════
+let bootstrapChecked = false;  /* cache module-level — évite un count par tick */
+
 export async function maintenanceTick() {
   if (!isSupabaseEnabled()) return;
 
   const state = await getMarketState();
   if (!state) return;
 
-  /* Bootstrap : si aucun historique n'existe encore (tables fraîchement
-     créées), on insère un premier snapshot tout de suite pour que la courbe
-     ait quelque chose à afficher. Pas d'inflation/régression dans ce cas. */
-  const { count: historyCount } = await supabase
-    .from('market_history')
-    .select('*', { count: 'exact', head: true });
-
-  if ((historyCount ?? 0) === 0) {
-    await supabase.from('market_history').insert({
-      price: state.current_price,
-      shares_circulating: state.shares_in_circulation,
-    });
-    return;
+  /* Bootstrap : si aucun historique n'existe encore, on insère un
+     premier snapshot tout de suite. Une seule vérif par session client
+     grâce au cache `bootstrapChecked`. */
+  if (!bootstrapChecked) {
+    const { count: historyCount } = await supabase
+      .from('market_history')
+      .select('*', { count: 'exact', head: true });
+    if ((historyCount ?? 0) === 0) {
+      await supabase.from('market_history').insert({
+        price: state.current_price,
+        shares_circulating: state.shares_in_circulation,
+      });
+      bootstrapChecked = true;
+      return;
+    }
+    bootstrapChecked = true;
   }
 
   const now = Date.now();
   const lastInflation = new Date(state.last_inflation_at).getTime();
-  const hoursSince = (now - lastInflation) / (3600 * 1000);
+  const secondsSince = (now - lastInflation) / 1000;
 
-  if (hoursSince < 1) return;
+  if (secondsSince < MARKET_CONFIG.SNAPSHOT_SECONDS) return;
+  const hoursSince = secondsSince / 3600;
 
   let newPrice = state.current_price;
 

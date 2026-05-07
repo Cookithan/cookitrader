@@ -28,6 +28,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
   const [history, setHistory] = useState([]);
   const [portfolio, setPortfolio] = useState(null);
   const [dayChange, setDayChange] = useState(0);
+  const [chartRange, setChartRange] = useState(5);  /* minutes — défaut 5m */
   const [welcomeSeen, setWelcomeSeen] = useLocalStorage('marketWelcomeSeen', false);
   const [showWelcome, setShowWelcome] = useState(!welcomeSeen);
 
@@ -38,29 +39,35 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
 
   const refresh = useCallback(async () => {
     if (!isSupabaseEnabled()) return;
-    const [s, h, p] = await Promise.all([
+    /* Toujours récupérer 24h pour calculer dayChange (vs il y a 24h),
+       et la fenêtre choisie pour la courbe — 2 requêtes parallèles. */
+    const [s, hRange, h24, p] = await Promise.all([
       getMarketState(),
-      getMarketHistory(),
+      getMarketHistory(chartRange),
+      getMarketHistory(24 * 60),
       userCode ? getUserPortfolio(userCode) : Promise.resolve(null),
     ]);
     setState(s);
-    setHistory(h);
+    setHistory(hRange);
     setPortfolio(p);
 
-    if (s && h.length > 0) {
-      const oldPrice = h[0].price;
+    if (s && h24.length > 0) {
+      const oldPrice = h24[0].price;
       const change = ((s.current_price - oldPrice) / oldPrice) * 100;
       setDayChange(change);
     } else {
       setDayChange(0);
     }
-  }, [userCode]);
+  }, [userCode, chartRange]);
 
   useEffect(() => {
     refresh();
     maintenanceTick();
-    const tickInt = setInterval(maintenanceTick, 5 * 60 * 1000);
-    const refreshInt = setInterval(refresh, 15000);
+    /* Maintenance fréquente (15s) pour profiter du throttle global et
+       avoir une courbe vivante. Refresh data 10s pour voir les nouveaux
+       snapshots rapidement. */
+    const tickInt = setInterval(maintenanceTick, 15 * 1000);
+    const refreshInt = setInterval(refresh, 10 * 1000);
     return () => {
       clearInterval(tickInt);
       clearInterval(refreshInt);
@@ -118,7 +125,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, C }) {
       </div>
 
       <MarketStateCard state={state} dayChange={dayChange} />
-      <MarketChart history={history} C={C} />
+      <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
       <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
       <TradePanel
         state={state}
