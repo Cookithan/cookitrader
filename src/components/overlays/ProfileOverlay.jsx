@@ -49,7 +49,6 @@ export function ProfileOverlay({
   unreadInboxCount = 0,
   onOpenInbox,
   onOpenFriendProfile,
-  activeTitle = '',
   C
 }) {
   const [editing, setEditing] = useState(false);
@@ -59,10 +58,6 @@ export function ProfileOverlay({
 
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
-  /* Titre actif (BRIEF utilisateur) — affiché sur la bannière du profil
-     juste sous la pastille du niveau. Strip le préfixe "Titre " pour
-     afficher juste la valeur entre guillemets. */
-  const activeTitleItem = activeTitle ? REWARDS.find(r => r.id === activeTitle && r.type === 'Titre') : null;
   /* Badges secrets débloqués (BRIEF_BADGES_SECRETS). Les non-débloqués
      restent invisibles — sinon ce ne sont plus des secrets. */
   const secretBadgesUnlocked = Object.values(SECRET_BADGES).filter(b => unlocked.includes(b.id));
@@ -257,19 +252,6 @@ export function ProfileOverlay({
                   {LEVEL_NAMES[level]}
                 </span>
               </div>
-              {activeTitleItem && (
-                <div style={{
-                  padding:'5px 14px', borderRadius:12, marginBottom:10,
-                  background:'linear-gradient(135deg,#D4A017,#C17F3C)',
-                  boxShadow:'0 4px 12px rgba(212,160,23,.35)',
-                  display:'inline-flex', alignItems:'center', gap:6,
-                }}>
-                  <span style={{ fontSize:13 }}>{activeTitleItem.emoji}</span>
-                  <span style={{ fontSize:11, fontWeight:800, color:'#fff', letterSpacing:.4 }}>
-                    {activeTitleItem.name.replace(/^Titre\s+/, '').replace(/"/g, '')}
-                  </span>
-                </div>
-              )}
               {userCode && (
                 <div style={{ fontSize:11, color:'#8B6A5A', marginBottom:2, fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', letterSpacing:1.5 }}>
                   Code · {userCode}

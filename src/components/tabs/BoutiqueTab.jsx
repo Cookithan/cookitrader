@@ -17,13 +17,13 @@ import { playMusic, getCurrentMusicId } from "../../lib/audio.js";
                 Avatar : pas de désactivation, juste switch.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeSkin, activeRoue, activeBanner, activeTitle, userAvatar, setActiveTheme, setActiveSkin, setActiveRoue, setActiveBanner, setActiveTitle, setUserAvatar, C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, userAvatar, setActiveTheme, setActiveBanner, setUserAvatar, C }) {
   const [filter, setFilter] = useState('Tous');
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
      pendant cette session restent visibles jusqu'au prochain mount. */
   const [initialUnlocked] = useState(unlocked);
-  const FILTERS = ['Tous','Badge','Titre','Thème','Avatar','Skin','Roue','Musique'];
+  const FILTERS = ['Tous','Badge','Thème','Avatar','Musique'];
 
   /* Musique active — état local synchronisé avec le système audio (LS).
      Le bouton "Activer" sur une carte musique appelle playMusic + met à
@@ -36,10 +36,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
 
   const ACTIVATABLE = {
     'Thème'   :[activeTheme,  setActiveTheme],
-    'Skin'    :[activeSkin,   setActiveSkin],
-    'Roue'    :[activeRoue,   setActiveRoue],
     'Bannière':[activeBanner, setActiveBanner],
-    'Titre'   :[activeTitle,  setActiveTitle],
     /* Avatar : pas de désactivation possible, juste switch (gère plus bas) */
     'Avatar'  :[userAvatar,   setUserAvatar],
     /* Musique : pas de "désactivation" depuis la boutique — on switch
@@ -157,7 +154,6 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           /* Pour les premium : on regarde applyAs pour piocher le bon activator */
           const activeKey  = isPremium
             ? (r.applyAs==='theme'  ? 'Thème'
-              : r.applyAs==='skin'  ? 'Skin'
               : r.applyAs==='avatar'? 'Avatar'
               : r.applyAs==='banner'? 'Bannière'
               : r.applyAs==='music' ? 'Musique'

@@ -205,10 +205,7 @@ export default function CookiMiner() {
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeTheme,  setActiveTheme]  = useLocalStorage('activeTheme', '');
-  const [activeSkin,   setActiveSkin]   = useLocalStorage('activeSkin',  '');
-  const [activeRoue,   setActiveRoue]   = useLocalStorage('activeRoue',  '');
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
-  const [activeTitle,  setActiveTitle]  = useLocalStorage('activeTitle', '');
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
@@ -859,7 +856,7 @@ export default function CookiMiner() {
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
-    setActiveTheme(''); setActiveSkin(''); setActiveRoue(''); setActiveBanner(''); setActiveTitle('');
+    setActiveTheme(''); setActiveBanner('');
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
     /* Tuto : reset complet pour qu'un reset rejoue le tuto au démarrage */
@@ -1297,10 +1294,7 @@ export default function CookiMiner() {
             coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
             mode={boutiqueMode} setMode={setBoutiqueMode}
             activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
-            activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
-            activeRoue={activeRoue}     setActiveRoue={setActiveRoue}
             activeBanner={activeBanner} setActiveBanner={setActiveBanner}
-            activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
             userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
             C={C}
           />
@@ -1339,7 +1333,6 @@ export default function CookiMiner() {
           onClickEarn={addCoins} onUpdateRecord={s=>setClickRecord(r=>Math.max(r,s))}
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
           onEventChallenge={checkEventChallenge}
-          activeSkin={activeSkin} activeRoue={activeRoue}
           C={C}
         />
       )}
@@ -1372,8 +1365,6 @@ export default function CookiMiner() {
           onClose={()=>setShowSettings(false)}
           unlocked={unlocked}
           activeTheme={activeTheme} setActiveTheme={setActiveTheme}
-          activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
-          activeRoue={activeRoue}   setActiveRoue={setActiveRoue}
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
           install={installPrompt}
           C={C}
@@ -1397,8 +1388,7 @@ export default function CookiMiner() {
           totalEarned={totalEarned} streak={streak} unlocked={unlocked}
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed).length}
           marketRealized={marketRealized}
-          activeTheme={activeTheme} activeSkin={activeSkin} activeRoue={activeRoue}
-          activeTitle={activeTitle}
+          activeTheme={activeTheme}
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
           supabaseEnabled={isSupabaseEnabled()}
           supabaseSyncOk={!supabaseError}
