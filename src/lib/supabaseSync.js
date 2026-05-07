@@ -70,13 +70,16 @@ export async function getFriends(myUserCode){
   }catch{ notifySupabaseError(); return []; }
 }
 
-/* Top N des joueurs par total_earned décroissant. */
+/* Top N des joueurs par total_earned décroissant.
+   Le compte technique "Admin" est exclu du classement public
+   (filtre case-insensitive via ilike). */
 export async function getLeaderboard(limit = 50){
   if(!isSupabaseEnabled()) return [];
   try{
     const { data, error } = await supabase
       .from('users')
       .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active')
+      .not('user_name', 'ilike', 'admin')
       .order('total_earned', { ascending:false })
       .limit(limit);
     if(error){
@@ -89,30 +92,35 @@ export async function getLeaderboard(limit = 50){
   }catch{ notifySupabaseError(); return []; }
 }
 
-/* Mon rang (1-based) parmi tous les joueurs : compte les utilisateurs
-   ayant un total_earned strictement supérieur, +1. */
+/* Mon rang (1-based) parmi les joueurs publics : compte les profils
+   ayant un total_earned strictement supérieur, +1. Admin exclu du
+   compte (cohérent avec getLeaderboard). */
 export async function getMyRank(myUserCode){
   if(!isSupabaseEnabled()) return null;
   try{
     const { data: me } = await supabase
-      .from('users').select('total_earned').eq('user_code', myUserCode).single();
+      .from('users').select('total_earned, user_name').eq('user_code', myUserCode).single();
     if(!me) return null;
+    /* Si je suis Admin moi-même, je suis hors classement → null */
+    if((me.user_name || '').trim().toLowerCase() === 'admin') return null;
     const { count, error } = await supabase
       .from('users')
       .select('*', { count:'exact', head:true })
+      .not('user_name', 'ilike', 'admin')
       .gt('total_earned', me.total_earned);
     if(error) return null;
     return (count ?? 0) + 1;
   }catch{ return null; }
 }
 
-/* Compte total des joueurs (pour afficher "sur N joueurs"). */
+/* Compte total des joueurs publics (Admin exclu). */
 export async function getTotalPlayers(){
   if(!isSupabaseEnabled()) return null;
   try{
     const { count, error } = await supabase
       .from('users')
-      .select('*', { count:'exact', head:true });
+      .select('*', { count:'exact', head:true })
+      .not('user_name', 'ilike', 'admin');
     if(error) return null;
     return count ?? 0;
   }catch{ return null; }

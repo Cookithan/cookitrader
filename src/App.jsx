@@ -441,12 +441,12 @@ export default function CookiMiner() {
   /* ── ÉVÉNEMENTS SPÉCIAUX (PHASE 6E) ─────────────── */
 
   /* Tire le prochain event en phase 'waiting' (timer 1h-48h aléatoire,
-     ou 1-3 min en mode dev "cookithan"). Si tous les events ont déjà
+     ou 1-3 min en mode dev "Admin"). Si tous les events ont déjà
      été complétés → setActiveEvent(null) : plus de cycle. */
   const triggerNextEvent = () => {
     const tpl = pickRandomEvent(completedEvents);
     if(!tpl){ setActiveEvent(null); return; }
-    const devMode = (userName || '').trim().toLowerCase() === 'cookithan';
+    const devMode = (userName || '').trim().toLowerCase() === 'admin';
     setActiveEvent(buildWaitingEvent(tpl, devMode));
   };
 
@@ -1187,8 +1187,9 @@ export default function CookiMiner() {
             setUserName(name);
             setUserAvatar(avatarIndex);
             if(!joinDate) setJoinDate(new Date().toLocaleDateString('fr-FR'));
-            /* 🔑 Code dev — bonus de test si prénom == "cookithan" */
-            if(name.trim().toLowerCase() === 'cookithan'){
+            /* 🔑 Code dev — bonus de test si prénom == "Admin" (et compte
+               filtré du classement public côté Supabase) */
+            if(name.trim().toLowerCase() === 'admin'){
               setCoins(c => c + 1000);
               setTotalEarned(t => t + 1000);
               addCafes(30);

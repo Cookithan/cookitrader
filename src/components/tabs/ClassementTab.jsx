@@ -42,6 +42,7 @@ function saveCache(payload){
 
 export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C }){
   const enabled = isSupabaseEnabled();
+  const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
 
   /* État initialisé depuis le cache pour un affichage instantané */
   const cached = loadCache();
@@ -123,11 +124,20 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, C
           </div>
         </div>
         <div style={{ textAlign:'right' }}>
-          <div style={{ fontSize:28, fontWeight:900, color:'#F0C050', lineHeight:1, letterSpacing:'-1px' }}>
-            {myRank !== null ? `#${myRank}` : '—'}
-          </div>
-          {total !== null && myRank !== null && (
-            <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>sur {total}</div>
+          {isAdmin ? (
+            <>
+              <div style={{ fontSize:14, fontWeight:900, color:'#F0C050', lineHeight:1.1 }}>Admin</div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>hors classement</div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize:28, fontWeight:900, color:'#F0C050', lineHeight:1, letterSpacing:'-1px' }}>
+                {myRank !== null ? `#${myRank}` : '—'}
+              </div>
+              {total !== null && myRank !== null && (
+                <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>sur {total}</div>
+              )}
+            </>
           )}
         </div>
       </button>
