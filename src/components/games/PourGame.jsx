@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    PourGame — "Stop le café" : maintiens le bouton, relâche au bon moment
@@ -59,19 +60,23 @@ export function PourGame({ onEarn, onSpend, C }) {
       onSpend && onSpend(5);
       setResult({ type:'lose', title:'💧 Ça déborde !', sub:'-5 🍪 perdus' });
       showFeedback('-5 🍪', '#6B3D20');
+      playSound('error');
     } else if(pct >= PERFECT){
       setParfaits(p => p + 1);
       onEarn(15);
       setResult({ type:'perfect', title:'⭐ Parfait absolu !', sub:'+15 🍪 gagnés' });
       showFeedback('+15 🍪', '#C8960C');
+      playSound('success');
     } else if(pct >= GOLD_MIN){
       setParfaits(p => p + 1);
       onEarn(6);
       setResult({ type:'win', title:'✦ Zone dorée !', sub:'+6 🍪 gagnés' });
       showFeedback('+6 🍪', '#D4A017');
+      playSound('success');
     } else {
       setParfaits(0);
       setResult({ type:'lose', title:'Trop tôt...', sub:'Vise entre 90% et 100%' });
+      playSound('error');
     }
 
     setTimeout(reset, 2200);

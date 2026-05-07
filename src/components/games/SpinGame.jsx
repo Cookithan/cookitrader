@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { SEGMENTS } from "../../data/constants.js";
 import { ROUE_PALETTES, ROUE_GLOWS, GOLD } from "../../data/themes.js";
 import { SEG_A, SEG_C, wRandom } from "../../utils/spin.js";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    SpinGame — roue canvas avec 11 segments pondérés
@@ -79,10 +80,12 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
       if(t<1){ requestAnimationFrame(animate); }
       else {
         angleRef.current=final; setSpinning(false); setResult(SEGMENTS[idx]);
-        onEarn(SEGMENTS[idx].value);
-        if(SEGMENTS[idx].value === 200 && onJackpot) onJackpot();
+        const value = SEGMENTS[idx].value;
+        playSound(value > 0 ? 'success' : 'error');
+        onEarn(value);
+        if(value === 200 && onJackpot) onJackpot();
         /* PHASE 6E — challenge spin_jackpot : tomber sur +200 */
-        onEventChallenge?.('spin_jackpot', SEGMENTS[idx].value);
+        onEventChallenge?.('spin_jackpot', value);
       }
     };
     requestAnimationFrame(animate);
