@@ -420,6 +420,66 @@ export async function getNewlyAcceptedFriends(myUserCode, knownFriendCodes = [])
 }
 
 /* ════════════════════════════════════════════════════
+   RÉACTIONS EMOJI (BRIEF_REACTIONS)
+   ────────────────────────────────────────────────────
+   Petit signe d'amitié envoyé depuis le profil d'un ami : un emoji
+   parmi 4 (👏 ☕ 🔥 🍪) atterrit dans l'inbox du destinataire.
+
+   Anti-spam :
+     - Cooldown 1h par paire (senderCode → recipientCode), cache mémoire.
+       Reset au refresh — acceptable pour CookiMiner.
+     - Whitelist stricte côté client (en plus du check côté DB qui
+       n'existe pas, mais createInboxMessage limite déjà type='reaction').
+═══════════════════════════════════════════════════════ */
+
+const ALLOWED_REACTIONS = ['👏', '☕', '🔥', '🍪'];
+const REACTION_COOLDOWN_MS = 60 * 60 * 1000;
+const lastReactionSent = {};
+
+export async function sendReaction(senderCode, recipientCode, emoji){
+  if(!isSupabaseEnabled()) return { error:'Hors ligne' };
+  if(!ALLOWED_REACTIONS.includes(emoji)) return { error:'Emoji non autorisé' };
+  if(!senderCode || !recipientCode) return { error:'Code manquant' };
+  if(senderCode === recipientCode) return { error:'Pas à toi-même 😄' };
+
+  const cacheKey = `${senderCode}->${recipientCode}`;
+  const elapsed = Date.now() - (lastReactionSent[cacheKey] ?? 0);
+  if(elapsed < REACTION_COOLDOWN_MS){
+    const remaining = Math.ceil((REACTION_COOLDOWN_MS - elapsed) / 60000);
+    return { error:`Attends ${remaining} min avant de re-réagir` };
+  }
+
+  try{
+    /* Récupère le nom du sender pour personnaliser le message inbox */
+    const { data: sender } = await supabase
+      .from('users')
+      .select('user_name')
+      .eq('user_code', senderCode)
+      .maybeSingle();
+    const senderName = sender?.user_name || 'Un ami';
+
+    /* Insère le message inbox côté destinataire — best effort */
+    const { error: insertErr } = await supabase.from('inbox_messages').insert({
+      user_code: recipientCode,
+      type: 'reaction',
+      title: `${emoji} Réaction de ${senderName}`,
+      body:  `${senderName} t'a envoyé un ${emoji} sur ton profil.`,
+      payload: JSON.stringify({ emoji, senderCode }),
+    });
+    if(insertErr){
+      notifySupabaseError();
+      return { error:'Erreur réseau' };
+    }
+
+    lastReactionSent[cacheKey] = Date.now();
+    return { success:true };
+  }catch{
+    notifySupabaseError();
+    return { error:'Erreur réseau' };
+  }
+}
+
+/* ════════════════════════════════════════════════════
    PROFIL PUBLIC (BRIEF_PROFIL_VISIBLE)
    ────────────────────────────────────────────────────
    Récupère le profil enrichi d'un user_code (utilisé pour la modale
