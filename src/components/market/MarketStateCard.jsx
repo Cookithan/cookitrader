@@ -42,7 +42,7 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 2 }}>
-            $CKM · Action Cookie
+            $CKM · Action CookiMiner
           </div>
           <div style={{ fontSize: 36, fontWeight: 900, color: '#D4A017', marginTop: 4, lineHeight: 1 }}>
             {state ? state.current_price.toFixed(0) : '—'}
