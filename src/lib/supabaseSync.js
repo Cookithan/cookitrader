@@ -591,6 +591,9 @@ export async function upsertProfile(p){
         cookies:      p.coins,
         streak:       p.streak,
         user_bio:     p.userBio || '',
+        /* Badges (BRIEF — visibilité cross-device) : liste d'IDs séparés
+           par virgule (badges classiques REWARDS + badges secrets). */
+        badges:       (p.badgeIds || []).join(','),
         last_active:  new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()

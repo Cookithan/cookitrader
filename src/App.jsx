@@ -186,14 +186,22 @@ export default function CookiMiner() {
     if(!isSupabaseEnabled()) return;
     if(!userCode || !userName) return;
     const t = setTimeout(async ()=>{
+      /* Filtre `unlocked` aux IDs de badges (REWARDS type='Badge' + secrets)
+         pour que les amis voient ma collection sans bloater la requête avec
+         tous les thèmes / avatars / musiques unlock. */
+      const secretIds = Object.values(SECRET_BADGES).map(b => b.id);
+      const badgeIds = (unlocked || []).filter(id =>
+        REWARDS.find(r => r.id === id && r.type === 'Badge') ||
+        secretIds.includes(id)
+      );
       const res = await upsertProfile({
         userCode, userName, userAvatar, level, totalEarned,
-        coins, streak, userBio,
+        coins, streak, userBio, badgeIds,
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio]);
+  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked]);
   const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);

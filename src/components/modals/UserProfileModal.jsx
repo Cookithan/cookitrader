@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { getPublicProfile, sendReaction } from "../../lib/supabaseSync.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
-import { LEVEL_NAMES } from "../../data/constants.js";
+import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
+import { SECRET_BADGES } from "../../data/secretBadges.js";
 
 /* ════════════════════════════════════════════════════
    UserProfileModal — vue résumée d'un ami / du top 1 (BRIEF_PROFIL_VISIBLE)
@@ -161,6 +162,12 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
   const level       = Number(profile.level)        || 1;
   const userBio     = (profile.user_bio || '').trim();
 
+  /* Badges débloqués (sync via colonne `badges` text comma-separated).
+     On croise avec REWARDS (badges classiques) + SECRET_BADGES (secrets). */
+  const badgeIds = (profile.badges || '').split(',').filter(Boolean);
+  const badges = REWARDS.filter(r => r.type === 'Badge' && badgeIds.includes(r.id));
+  const secretBadges = Object.values(SECRET_BADGES).filter(b => badgeIds.includes(b.id));
+
   return (
     <div style={{ paddingTop:6 }}>
       {/* Bandeau 👑 (top 1 uniquement) */}
@@ -254,6 +261,49 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
           </div>
         </div>
       </div>
+
+      {/* Badges — uniquement si l'utilisateur en a au moins un */}
+      {(badges.length > 0 || secretBadges.length > 0) && (
+        <div style={{
+          background:C.card, borderRadius:14, padding:'12px 14px',
+          border:`1.5px solid ${C.border}`, marginBottom:12,
+        }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>BADGES</div>
+            <div style={{ fontSize:11, color:C.muted }}>{badges.length + secretBadges.length}</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
+            {/* Secrets en premier */}
+            {secretBadges.map(sb => (
+              <div key={sb.id} title={sb.description} style={{
+                borderRadius:12, padding:'10px 4px',
+                background: sb.bgGradient,
+                border: `2px solid ${sb.color}`,
+                boxShadow: `0 4px 12px ${sb.color}33`,
+                color:'#fff', textAlign:'center', position:'relative',
+              }}>
+                <div style={{ fontSize:24, marginBottom:4 }}>{sb.icon}</div>
+                <div style={{ fontSize:9, fontWeight:800, lineHeight:1.2 }}>{sb.shortName}</div>
+                <div style={{
+                  position:'absolute', top:-6, right:-6,
+                  fontSize:8, fontWeight:900, letterSpacing:.5,
+                  background:'#3D2010', color:'#F0C050',
+                  padding:'2px 6px', borderRadius:8,
+                  border:'1px solid rgba(212,160,23,.5)',
+                }}>SECRET</div>
+              </div>
+            ))}
+            {badges.map(b => (
+              <div key={b.id} title={b.desc || b.name} style={{
+                borderRadius:12, background:C.card2, border:'1px solid rgba(212,160,23,.4)', padding:'10px 4px', textAlign:'center'
+              }}>
+                <div style={{ fontSize:24, marginBottom:4 }}>{b.emoji}</div>
+                <div style={{ fontSize:9, fontWeight:700, color:C.text, lineHeight:1.2 }}>{b.name.replace(/^Badge\s+/, '')}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Réactions emoji — pour les amis ET le top 1 (BRIEF_REACTIONS) */}
       {canReact && (
