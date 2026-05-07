@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Cookie, Coffee, Check, Lock } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { playMusic, getCurrentMusicId } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    BoutiqueTab — onglet boutique (mode 'shop' | 'premium')
@@ -22,7 +23,16 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
      pendant cette session restent visibles jusqu'au prochain mount. */
   const [initialUnlocked] = useState(unlocked);
-  const FILTERS = ['Tous','Badge','Titre','Thème','Avatar','Skin','Roue'];
+  const FILTERS = ['Tous','Badge','Titre','Thème','Avatar','Skin','Roue','Musique'];
+
+  /* Musique active — état local synchronisé avec le système audio (LS).
+     Le bouton "Activer" sur une carte musique appelle playMusic + met à
+     jour ce state pour rafraîchir le visuel "● Activé". */
+  const [activeMusicId, setActiveMusicIdState] = useState(getCurrentMusicId());
+  const setActiveMusic = (id) => {
+    if(id){ playMusic(id); }
+    setActiveMusicIdState(id || getCurrentMusicId());
+  };
 
   const ACTIVATABLE = {
     'Thème'   :[activeTheme,  setActiveTheme],
@@ -31,6 +41,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     'Bannière':[activeBanner, setActiveBanner],
     /* Avatar : pas de désactivation possible, juste switch (gère plus bas) */
     'Avatar'  :[userAvatar,   setUserAvatar],
+    /* Musique : pas de "désactivation" depuis la boutique — on switch
+       vers la musique sélectionnée. La désactivation passe par Settings. */
+    'Musique' :[activeMusicId, setActiveMusic],
   };
 
   /* Révèle un niveau de plus uniquement quand tout celui en cours est acheté
@@ -146,6 +159,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               : r.applyAs==='skin'  ? 'Skin'
               : r.applyAs==='avatar'? 'Avatar'
               : r.applyAs==='banner'? 'Bannière'
+              : r.applyAs==='music' ? 'Musique'
               : null)
             : r.type;
           const activatable = ACTIVATABLE[activeKey];
@@ -178,20 +192,20 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
                 activatable ? (
                   <button
                     onClick={()=>{
-                      const isAvatar = activeKey === 'Avatar';
-                      if(isAvatar){ if(!isActive) activatable[1](r.id); }
+                      const noToggle = activeKey === 'Avatar' || activeKey === 'Musique';
+                      if(noToggle){ if(!isActive) activatable[1](r.id); }
                       else activatable[1](isActive ? '' : r.id);
                     }}
-                    disabled={activeKey === 'Avatar' && isActive}
+                    disabled={(activeKey === 'Avatar' || activeKey === 'Musique') && isActive}
                     style={{
                       width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:700,
                       background: isActive ? GOLD : 'transparent',
                       color: isActive ? '#fff' : '#D4A017',
                       border: `1.5px solid ${isActive ? 'transparent' : '#D4A017'}`,
-                      display:'flex', alignItems:'center', justifyContent:'center', gap:5, cursor: activeKey === 'Avatar' && isActive ? 'default' : 'pointer'
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:5, cursor: ((activeKey === 'Avatar' || activeKey === 'Musique') && isActive) ? 'default' : 'pointer'
                     }}
                   >
-                    {isActive ? <><Check size={12} color="#fff" /> {activeKey === 'Avatar' ? 'Porté' : 'Activé'}</> : 'Activer'}
+                    {isActive ? <><Check size={12} color="#fff" /> {activeKey === 'Avatar' ? 'Porté' : activeKey === 'Musique' ? 'En lecture' : 'Activé'}</> : 'Activer'}
                   </button>
                 ) : (
                   <div style={{ fontSize:12, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:4 }}><Check size={12} color="#D4A017" /> Débloqué</div>
