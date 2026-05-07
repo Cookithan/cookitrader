@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { buyShares, sellShares, MAX_SHARES_PER_USER } from '../../lib/market';
+import { buyShares, sellShares, MAX_SHARES_PER_USER, MARKET_CONFIG } from '../../lib/market';
 
 /* ════════════════════════════════════════════════════
    TradePanel — onglets Acheter / Vendre + sélecteur quantité
@@ -17,14 +17,34 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
   const [feedback, setFeedback] = useState(null);
 
   const price = state?.current_price ?? 100;
-  const totalCost = Math.ceil(price * quantity);
-  const totalGain = Math.floor(price * quantity);
+  const IPS = MARKET_CONFIG.IMPACT_PER_SHARE;
 
-  const maxBuyable = Math.min(
-    state?.available_shares ?? 0,
-    Math.floor(coins / price),
-    MAX_SHARES_PER_USER - (portfolio?.shares ?? 0)
-  );
+  /* Slippage symétrique : on facture / verse au prix POST-impact.
+     Aller-retour instantané = perte ≈ 2 × IPS × qty (anti-exploit). */
+  const buyPrice  = price * (1 + IPS * quantity);
+  const sellPrice = Math.max(MARKET_CONFIG.PRICE_MIN, price * (1 - IPS * quantity));
+  const totalCost = Math.ceil(buyPrice * quantity);
+  const totalGain = Math.floor(sellPrice * quantity);
+
+  /* Max achetable en tenant compte du slippage : résolution quadratique
+     ceil(price × (1 + IPS × n) × n) ≤ coins puis fine-tune pour le ceil. */
+  const computeMaxBuyable = () => {
+    if (price <= 0 || coins <= 0) return 0;
+    const a = price * IPS;
+    const b = price;
+    const disc = b * b + 4 * a * coins;
+    let n = Math.floor((-b + Math.sqrt(disc)) / (2 * a));
+    n = Math.min(n, state?.available_shares ?? 0, MAX_SHARES_PER_USER - (portfolio?.shares ?? 0));
+    /* Sûreté : ajuste de 1-2 si le ceil fait passer au-dessus de coins */
+    while (n > 0) {
+      const cost = Math.ceil(price * (1 + IPS * n) * n);
+      if (cost <= coins) break;
+      n--;
+    }
+    return Math.max(0, n);
+  };
+
+  const maxBuyable = computeMaxBuyable();
   const maxSellable = portfolio?.shares ?? 0;
 
   const max = mode === 'buy' ? maxBuyable : maxSellable;

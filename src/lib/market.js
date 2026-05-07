@@ -127,11 +127,16 @@ export async function buyShares(userCode, shares) {
   }
 
   const currentPrice = state.current_price;
-  const totalCost = Math.ceil(currentPrice * shares);
 
+  /* Slippage symétrique anti-exploit : on calcule d'abord le prix POST-impact
+     (le prix qui sera affiché APRÈS l'achat) et on facture l'utilisateur à
+     CE prix-là. Sinon un aller-retour instantané ferait gagner gratuitement
+     l'impact (acheté à 100, prix monte à 105, revendu à 105 = +5% gratuit). */
   const priceImpact = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
   let newPrice = currentPrice * (1 + priceImpact);
   newPrice = Math.min(MARKET_CONFIG.PRICE_MAX, newPrice);
+
+  const totalCost = Math.ceil(newPrice * shares);
 
   const { error: updateErr } = await supabase
     .from('market_state')
@@ -148,7 +153,7 @@ export async function buyShares(userCode, shares) {
     user_code: userCode,
     type: 'buy',
     shares,
-    price_per_share: currentPrice,
+    price_per_share: newPrice,
     total_amount: totalCost,
   });
 
@@ -163,7 +168,7 @@ export async function buyShares(userCode, shares) {
     success: true,
     type: 'buy',
     cost: totalCost,
-    pricePaid: currentPrice,
+    pricePaid: newPrice,
     newPrice,
     sharesNow: portfolio.shares + shares,
   };
@@ -185,11 +190,16 @@ export async function sellShares(userCode, shares) {
   if (!state) return { error: 'Marché indisponible' };
 
   const currentPrice = state.current_price;
-  const totalGained = Math.floor(currentPrice * shares);
 
+  /* Slippage symétrique anti-exploit (cf. buyShares) : on vend au prix
+     POST-impact (plus bas), pas au prix avant impact. Sinon revendre
+     immédiatement après avoir acheté capturerait l'impact de son propre
+     achat. */
   const priceImpact = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
   let newPrice = currentPrice * (1 - priceImpact);
   newPrice = Math.max(MARKET_CONFIG.PRICE_MIN, newPrice);
+
+  const totalGained = Math.floor(newPrice * shares);
 
   /* Coût de base proportionnel libéré : sert au calcul du profit */
   const ratio = shares / portfolio.shares;
@@ -208,7 +218,7 @@ export async function sellShares(userCode, shares) {
     user_code: userCode,
     type: 'sell',
     shares,
-    price_per_share: currentPrice,
+    price_per_share: newPrice,
     total_amount: totalGained,
   });
 
@@ -224,7 +234,7 @@ export async function sellShares(userCode, shares) {
     success: true,
     type: 'sell',
     gained: totalGained,
-    pricePaid: currentPrice,
+    pricePaid: newPrice,
     newPrice,
     sharesNow: newShares,
     profit: totalGained - investedReleased,
