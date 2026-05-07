@@ -35,6 +35,9 @@ import { BoutiqueTab } from "./components/tabs/BoutiqueTab.jsx";
 import { ClassementTab } from "./components/tabs/ClassementTab.jsx";
 import { MarketTab } from "./components/tabs/MarketTab.jsx";
 import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
+import { InboxModal } from "./components/modals/InboxModal.jsx";
+import { getUnreadInboxCount } from "./lib/inbox.js";
+import { useToast } from "./components/Toaster.jsx";
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -195,6 +198,12 @@ export default function CookiMiner() {
   const [cafeToast,    setCafeToast]    = useState(null);   // { amount, key } | null
   const cafeToastTimerRef = useRef(null);
 
+  /* Inbox (BRIEF_INBOX) — modale + compteur de non-lus.
+     Compteur rafraîchi toutes les 30s tant qu'on a un userCode + Supabase actif. */
+  const [showInbox,        setShowInbox]        = useState(false);
+  const [unreadInboxCount, setUnreadInboxCount] = useState(0);
+  const { showToast } = useToast();
+
   /* Génère le leaderboard fictif au premier accès, après reset, ou si schéma obsolète */
   useEffect(()=>{
     const stale = !leaderboard
@@ -289,6 +298,21 @@ export default function CookiMiner() {
   useBackToClose(showSkipConfirm,   () => setShowSkipConfirm(false));
   useBackToClose(showEventModal,    () => setShowEventModal(false));
   useBackToClose(!!eventReward,     () => setEventReward(null));
+  useBackToClose(showInbox,         () => setShowInbox(false));
+
+  /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
+     Ne tape Supabase que si activé ; sinon le compteur reste à 0. */
+  useEffect(() => {
+    if(!userCode || !isSupabaseEnabled()) { setUnreadInboxCount(0); return; }
+    let alive = true;
+    const refresh = async () => {
+      const c = await getUnreadInboxCount(userCode);
+      if(alive) setUnreadInboxCount(c);
+    };
+    refresh();
+    const t = setInterval(refresh, 30_000);
+    return () => { alive = false; clearInterval(t); };
+  }, [userCode]);
 
   /* Swipe horizontal pour changer d'onglet — désactivé tant qu'un
      overlay/modal/jeu/tuto est ouvert, pour éviter les conflits.
@@ -305,7 +329,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || tutorialStep > 0 || pendingLvUp || pendingAchievement);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -445,6 +469,45 @@ export default function CookiMiner() {
   },[]);
 
   const spendCoins   = useCallback((a)=>setCoins(c=>Math.max(0,c-a)),[]);
+
+  /* Inbox — applique une récompense quand on ouvre un message pour la 1re
+     fois (gift / tournament_reward / referral_reward). InboxModal garantit
+     l'unicité via is_processed côté Supabase, donc pas de garde ici.
+     showToast (système global) annonce l'application en haut d'écran. */
+  const handleApplyReward = useCallback((type, payload) => {
+    if(!payload) return;
+    if(type === 'gift'){
+      if(payload.type === 'cookies' && payload.amount){
+        addCoins(payload.amount);
+        showToast(`🎁 +${payload.amount} 🍪 reçu !`);
+      } else if(payload.type === 'cf' && payload.amount){
+        addCafes(payload.amount);
+        showToast(`🎁 +${payload.amount} ☕ reçu !`);
+      }
+      return;
+    }
+    if(type === 'tournament_reward'){
+      const ck = payload.cookies ?? 0;
+      const cf = payload.cf ?? 0;
+      if(ck) addCoins(ck);
+      if(cf) addCafes(cf);
+      const parts = [];
+      if(ck) parts.push(`+${ck} 🍪`);
+      if(cf) parts.push(`+${cf} ☕`);
+      if(parts.length) showToast(`🏆 ${parts.join('  ')}`);
+      return;
+    }
+    if(type === 'referral_reward'){
+      const ck = payload.cookies ?? 0;
+      const cf = payload.cf ?? 0;
+      if(ck) addCoins(ck);
+      if(cf) addCafes(cf);
+      const parts = [];
+      if(ck) parts.push(`+${ck} 🍪`);
+      if(cf) parts.push(`+${cf} ☕`);
+      if(parts.length) showToast(`🎁 Bonus parrainage : ${parts.join('  ')}`);
+    }
+  }, [addCoins, addCafes, showToast]);
 
   /* ── ÉVÉNEMENTS SPÉCIAUX (PHASE 6E) ─────────────── */
 
@@ -622,6 +685,7 @@ export default function CookiMiner() {
     setSeenHints([]); setActiveHint(null);
     try{ window.localStorage.removeItem('cookiminer:tutorialCompleted'); }catch{}
     setPendingLvUp(null); setGameView(null); setTab('accueil');
+    setShowInbox(false); setUnreadInboxCount(0);
     setShowOnboarding(true);
   };
   const doCheckin    = ()=>{ addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
@@ -1145,6 +1209,19 @@ export default function CookiMiner() {
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
           supabaseEnabled={isSupabaseEnabled()}
           supabaseSyncOk={!supabaseError}
+          unreadInboxCount={unreadInboxCount}
+          onOpenInbox={()=>setShowInbox(true)}
+          C={C}
+        />
+      )}
+
+      {/* INBOX MODAL */}
+      {showInbox && (
+        <InboxModal
+          userCode={userCode}
+          onClose={()=>setShowInbox(false)}
+          onApplyReward={handleApplyReward}
+          onUnreadCountChange={setUnreadInboxCount}
           C={C}
         />
       )}

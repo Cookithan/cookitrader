@@ -64,6 +64,26 @@ export const GLOBAL_CSS = `
   @keyframes bubblePopIn{0%{transform:scale(.6) translateY(8px);opacity:0}55%{transform:scale(1.05) translateY(0);opacity:1}100%{transform:scale(1) translateY(0);opacity:1}}
   @keyframes spotlightPulse{0%,100%{stroke-width:3;opacity:.7}50%{stroke-width:5;opacity:1}}
 
+  /* ── INBOX (BRIEF_INBOX) ───────────────────────────── */
+  @keyframes inboxPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  @keyframes inboxBadgePulse{0%,100%{box-shadow:0 0 0 0 rgba(212,160,23,.7)}50%{box-shadow:0 0 0 6px rgba(212,160,23,0)}}
+  @keyframes inboxSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+  @keyframes inboxSlideDown{from{transform:translateY(0)}to{transform:translateY(100%)}}
+  @keyframes inboxOverlayIn{from{opacity:0}to{opacity:1}}
+  @keyframes inboxOverlayOut{from{opacity:1}to{opacity:0}}
+  .inbox-pulse{animation:inboxPulse 1.6s ease-in-out infinite}
+  .inbox-badge-pulse{animation:inboxBadgePulse 1.6s ease-in-out infinite}
+  .inbox-slide-up{animation:inboxSlideUp .32s cubic-bezier(.36,.07,.19,.97) both}
+  .inbox-slide-down{animation:inboxSlideDown .28s ease-in both}
+  .inbox-overlay-in{animation:inboxOverlayIn .25s ease-out both}
+  .inbox-overlay-out{animation:inboxOverlayOut .25s ease-in both}
+
+  /* ── TOASTER global (BRIEF_INBOX phase 2) ────────── */
+  @keyframes toastIn{from{opacity:0;transform:translateY(-12px) scale(.94)}to{opacity:1;transform:translateY(0) scale(1)}}
+  @keyframes toastOut{from{opacity:1;transform:translateY(0) scale(1)}to{opacity:0;transform:translateY(-12px) scale(.94)}}
+  .toast-in{animation:toastIn .25s cubic-bezier(.36,.07,.19,.97) both}
+  .toast-out{animation:toastOut .25s ease-in both}
+
   /* ── SPLASH SCREEN ───────────────────────────────── */
   .splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,#4A2C17 0%,#3D2010 50%,#2C1810 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;z-index:9999;transition:opacity .5s ease;overflow:hidden}
   .splash-screen.fade-out{opacity:0;pointer-events:none}
