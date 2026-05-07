@@ -1084,8 +1084,8 @@ export default function CookiMiner() {
 
             {/* Stats — Série uniquement (Record clics retiré) */}
             <div style={{ marginBottom:14 }}>
-              <div style={{ ...s.card, padding:16 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:6 }}>
+              <div style={{ ...s.card, padding:16, textAlign:'center' }}>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginBottom:6 }}>
                   <Flame size={14} color="#E07040" />
                   <span style={{ fontSize:11, color:C.muted, fontWeight:700 }}>Série</span>
                 </div>
