@@ -13,12 +13,19 @@ import { useEffect, useRef } from "react";
    appelle nous-même history.back() pour rééquilibrer l'historique
    (sinon il aurait un appui de retour "vide" qui ne ferait rien).
 
-   Usage : useBackToClose(showFoo, () => setShowFoo(false));
+   ⚠️ Bug sous-overlays — quand un overlay B est ouvert PAR-DESSUS un
+   overlay A, fermer B via X déclenche history.back(), qui émet popstate
+   reçu par TOUS les listeners — y compris celui de A (qui se fermerait
+   indûment). Solution : flag `suppressNextPop` partagé au niveau module
+   pour ignorer le popstate synthétique qu'on déclenche nous-même.
 
-   ⚠️ Si plusieurs overlays peuvent se superposer simultanément, chaque
-   appel push son propre état → pile cohérente. Évite quand même les
-   ouvertures simultanées non-essentielles.
+   Usage : useBackToClose(showFoo, () => setShowFoo(false));
 ═══════════════════════════════════════════════════════ */
+
+/* Flag partagé entre instances : true pendant un history.back()
+   déclenché par notre propre cleanup. Le listener popstate l'observe
+   et ignore l'événement, puis on remet à false au tick suivant. */
+let suppressNextPop = false;
 
 export function useBackToClose(open, onClose){
   const handlerRef = useRef(onClose);
@@ -33,7 +40,10 @@ export function useBackToClose(open, onClose){
       pushed = true;
     }catch{ /* environnements exotiques sans history API */ }
 
-    const onPop = () => { handlerRef.current?.(); };
+    const onPop = () => {
+      if(suppressNextPop) return;
+      handlerRef.current?.();
+    };
     window.addEventListener('popstate', onPop);
 
     return () => {
@@ -41,9 +51,13 @@ export function useBackToClose(open, onClose){
       /* Fermeture volontaire (bouton X, click ailleurs, etc.) : on
          dépile l'entrée qu'on avait poussée. Si la fermeture vient
          déjà d'un popstate, le state courant n'a plus pwaOverlay et
-         on ne fait rien. */
+         on ne fait rien. Le flag suppressNextPop empêche les autres
+         instances actives de réagir à notre propre history.back(). */
       if(pushed && window.history.state && window.history.state.pwaOverlay){
+        suppressNextPop = true;
         try{ window.history.back(); }catch{}
+        /* Reset asynchrone : popstate est émis sur le tick suivant. */
+        setTimeout(()=>{ suppressNextPop = false; }, 0);
       }
     };
   }, [open]);
