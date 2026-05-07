@@ -17,9 +17,9 @@ import { GOLD } from "../../data/themes.js";
      150ms après
 
    Récompenses :
-     25+ tapés → +50 cookies
-     15–24     → +25
-     5–14      → +10
+     20+ tapés → +50 cookies
+     10–19     → +25
+     5–9       → +10
      0–4       → 0
 
    On utilise scoreRef en parallèle de setScore : les setTimeout/
@@ -38,7 +38,7 @@ const RESPAWN_MISS_MS = 220;
 
 /* Paliers calibrés pour une partie de 15s */
 function rewardFor(score){
-  if(score >= 15) return 50;
+  if(score >= 20) return 50;
   if(score >= 10) return 25;
   if(score >= 5)  return 10;
   return 0;
@@ -250,7 +250,7 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
   /* Bannière de fin */
   const earnedFinal = rewardFor(score);
   const banner = phase === 'done'
-    ? (score >= 15
+    ? (score >= 20
         ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:`🏆 ${score} cookies !` }
         : score >= 10
           ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`Bien joué ! ${score} cookies` }
@@ -467,7 +467,7 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
 
       {/* Tip card */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 <strong style={{ color:'#D4A017' }}>15+ tapés = +50 🍪</strong> · 10-14 = +25 · 5-9 = +10 · ça s'accélère !
+        💡 <strong style={{ color:'#D4A017' }}>20+ tapés = +50 🍪</strong> · 10-19 = +25 · 5-9 = +10 · ça s'accélère !
       </div>
     </div>
   );
