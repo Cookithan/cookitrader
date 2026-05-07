@@ -7,7 +7,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export function MarketChart({ history, C }) {
-  if (!history || history.length < 2) {
+  if (!history || history.length === 0) {
     return (
       <div style={{
         background: C.card,
@@ -20,6 +20,30 @@ export function MarketChart({ history, C }) {
         border: `1.5px solid ${C.border}`,
       }}>
         📊 En attente de données du marché...
+      </div>
+    );
+  }
+  /* Avec 1 seul point, pas encore de courbe possible — message d'attente
+     avec le prix de départ pour que l'utilisateur sache que ça démarre. */
+  if (history.length === 1) {
+    return (
+      <div style={{
+        background: C.card,
+        borderRadius: 16,
+        padding: 24,
+        textAlign: 'center',
+        color: C.muted,
+        fontSize: 12,
+        marginBottom: 12,
+        border: `1.5px solid ${C.border}`,
+      }}>
+        <div style={{ fontSize: 28, marginBottom: 6 }}>📈</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+          Prix de départ : {history[0].price.toFixed(0)} 🍪
+        </div>
+        <div style={{ marginTop: 4, lineHeight: 1.4 }}>
+          La courbe se dessinera au fil des prochains snapshots (1 / heure).
+        </div>
       </div>
     );
   }

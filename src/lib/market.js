@@ -229,13 +229,28 @@ export async function sellShares(userCode, shares) {
 
 // ═══════════════════════════════════════════
 // MAINTENANCE — appelée toutes les 5 min côté client
-// (idempotente : si <1h depuis last_inflation_at, skip)
+// (idempotente : si <1h depuis last_inflation_at, skip — sauf bootstrap)
 // ═══════════════════════════════════════════
 export async function maintenanceTick() {
   if (!isSupabaseEnabled()) return;
 
   const state = await getMarketState();
   if (!state) return;
+
+  /* Bootstrap : si aucun historique n'existe encore (tables fraîchement
+     créées), on insère un premier snapshot tout de suite pour que la courbe
+     ait quelque chose à afficher. Pas d'inflation/régression dans ce cas. */
+  const { count: historyCount } = await supabase
+    .from('market_history')
+    .select('*', { count: 'exact', head: true });
+
+  if ((historyCount ?? 0) === 0) {
+    await supabase.from('market_history').insert({
+      price: state.current_price,
+      shares_circulating: state.shares_in_circulation,
+    });
+    return;
+  }
 
   const now = Date.now();
   const lastInflation = new Date(state.last_inflation_at).getTime();
