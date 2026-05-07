@@ -211,6 +211,9 @@ export default function CookiMiner() {
   const [showInbox,        setShowInbox]        = useState(false);
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
   const { showToast } = useToast();
+  /* Ref synchronisée → permet à addCoins (useCallback deps=[]) d'appeler
+     le showToast courant sans avoir à se rebuilder à chaque render. */
+  const showToastRef = useRef(showToast); showToastRef.current = showToast;
 
   /* Notifs amis au lancement (BRIEF_DEMANDES_AMIS) — file de notifs popées
      une à une. Détection au mount via getReceivedFriendRequests +
@@ -563,8 +566,27 @@ export default function CookiMiner() {
     const lv  = lvRef.current;
     const cur = xpRef.current;
 
-    /* Niveau max OU sous le seuil → pas de level up, XP avance normalement */
-    if(lv>=10 || cur+xpDelta < xpRequired(lv)){
+    /* Endgame : à partir du niveau 10 (max), chaque palier de 1000 XP
+       gagnés rapporte 1 ☕. L'XP visible repart de 0 à chaque palier
+       (xp = total % 1000). Multi-CF possible si xpDelta très gros. */
+    const ENDGAME_XP_TIER = 1000;
+    if(lv>=10){
+      const total = cur + xpDelta;
+      const cfsEarned = Math.floor(total / ENDGAME_XP_TIER);
+      const remainder = total - cfsEarned * ENDGAME_XP_TIER;
+      setXp(remainder); xpRef.current = remainder;
+      if(cfsEarned > 0){
+        setTimeout(()=>{
+          setCafes(c=>c+cfsEarned);
+          playSound('success');
+          showToastRef.current?.(`🎉 Palier endgame ! +${cfsEarned} ☕`);
+        }, 700);
+      }
+      return;
+    }
+
+    /* Sous le seuil → pas de level up, XP avance normalement */
+    if(cur+xpDelta < xpRequired(lv)){
       const next = cur+xpDelta;
       setXp(next); xpRef.current = next;
       return;
