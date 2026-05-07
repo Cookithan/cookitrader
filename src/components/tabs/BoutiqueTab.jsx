@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Cookie, Coffee, Check, Lock } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
-import { playMusic, getCurrentMusicId } from "../../lib/audio.js";
+import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    BoutiqueTab — onglet boutique (mode 'shop' | 'premium')
@@ -89,7 +89,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
       {/* Toggle Boutique / Premium */}
       <div style={{ display:'flex', gap:6, padding:4, borderRadius:14, background:C.card2, marginBottom:14 }}>
         <button
-          onClick={()=>setMode('shop')}
+          onClick={()=>{ if(mode!=='shop'){ playSound('tab'); setMode('shop'); } }}
           style={{
             flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:800, letterSpacing:.4,
             background: mode==='shop' ? GOLD : 'transparent',
@@ -102,7 +102,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           BOUTIQUE
         </button>
         <button
-          onClick={()=>setMode('premium')}
+          onClick={()=>{ if(mode!=='premium'){ playSound('tab'); setMode('premium'); } }}
           style={{
             flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:800, letterSpacing:.4,
             background: mode==='premium' ? ESPRESSO : 'transparent',
