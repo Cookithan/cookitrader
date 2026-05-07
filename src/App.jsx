@@ -42,6 +42,8 @@ import { FriendNotificationModal } from "./components/modals/FriendNotificationM
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
 import { UpgradeNoticeModal } from "./components/modals/UpgradeNoticeModal.jsx";
+import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
+import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
 
 /* ⚠️ Avis de maintenance affiché à CHAQUE ouverture de l'app jusqu'à
    nouvel ordre du user (pas de persistance LS volontaire).
@@ -236,6 +238,10 @@ export default function CookiMiner() {
      refléter les amitiés acceptées dans la session courante. */
   const [friendCodes, setFriendCodes] = useState([]);
 
+  /* Badge secret en cours d'animation (BRIEF_BADGES_SECRETS).
+     null si aucun, sinon objet SECRET_BADGES.* à afficher dans la modale. */
+  const [secretBadgeReward, setSecretBadgeReward] = useState(null);
+
   /* Génère le leaderboard fictif au premier accès, après reset, ou si schéma obsolète */
   useEffect(()=>{
     const stale = !leaderboard
@@ -333,6 +339,7 @@ export default function CookiMiner() {
   useBackToClose(showInbox,         () => setShowInbox(false));
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
   useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
+  useBackToClose(!!secretBadgeReward, () => setSecretBadgeReward(null));
 
   /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
      Ne tape Supabase que si activé ; sinon le compteur reste à 0. */
@@ -347,6 +354,28 @@ export default function CookiMiner() {
     const t = setInterval(refresh, 30_000);
     return () => { alive = false; clearInterval(t); };
   }, [userCode]);
+
+  /* Détection des 3 badges secrets (BRIEF_BADGES_SECRETS).
+     Chaque useEffect tape unlockSecretBadge(...) qui no-op si déjà unlocked.
+
+     Mode test : si userName='Admin', Noctambule est débloqué peu importe
+     l'heure → permet de tester sans changer l'horloge du téléphone. */
+  useEffect(() => {
+    if(!userName || showOnboarding) return;
+    const hour = new Date().getHours();
+    const isAdmin = (userName || '').trim().toLowerCase() === 'admin';
+    if(isAdmin || hour < 4){
+      unlockSecretBadge('noctambule');
+    }
+  }, [userName, showOnboarding, unlockSecretBadge]);
+
+  useEffect(() => {
+    if(marketRealized >= 1000) unlockSecretBadge('investisseur');
+  }, [marketRealized, unlockSecretBadge]);
+
+  useEffect(() => {
+    if(friendCodes.length >= 3) unlockSecretBadge('amical');
+  }, [friendCodes, unlockSecretBadge]);
 
   /* Refresh friendCodes : au mount + à chaque ouverture de la modale
      UserProfile (pour que les nouveaux amis acceptés dans la session
@@ -443,7 +472,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || viewingProfile || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -583,6 +612,23 @@ export default function CookiMiner() {
   },[]);
 
   const spendCoins   = useCallback((a)=>setCoins(c=>Math.max(0,c-a)),[]);
+
+  /* ── BADGES SECRETS (BRIEF_BADGES_SECRETS) ──────────
+     Helper de déblocage : ajoute l'id à `unlocked`, ouvre la modale
+     festive, crédite SECRET_BADGE_BONUS (+100 🍪) après 700ms (aligné
+     sur le pattern level-up).
+     Ref `unlockedRef` synchronisée à chaque render → garde anti-doublon
+     même en mode strict React où les effets peuvent être rejoués. */
+  const unlockedRef = useRef(unlocked); unlockedRef.current = unlocked;
+  const unlockSecretBadge = useCallback((key) => {
+    const badge = SECRET_BADGES[key];
+    if(!badge) return;
+    if(unlockedRef.current.includes(badge.id)) return;
+    unlockedRef.current = [...unlockedRef.current, badge.id];
+    setUnlocked(unlockedRef.current);
+    setSecretBadgeReward(badge);
+    setTimeout(() => addCoins(SECRET_BADGE_BONUS), 700);
+  }, [setUnlocked, addCoins]);
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
@@ -802,6 +848,8 @@ export default function CookiMiner() {
     setShowInbox(false); setUnreadInboxCount(0);
     setPendingFriendNotifs([]);
     setViewingProfile(null);
+    setSecretBadgeReward(null);
+    unlockedRef.current = [];
     try {
       window.localStorage.removeItem('cookiminer:knownFriendCodes');
       window.localStorage.removeItem('cookiminer:notifiedRequestIds');
@@ -1372,6 +1420,15 @@ export default function CookiMiner() {
           friendCodes={friendCodes}
           onClose={()=>setViewingProfile(null)}
           C={C}
+        />
+      )}
+
+      {/* BADGE SECRET DÉBLOQUÉ — modale festive (BRIEF_BADGES_SECRETS) */}
+      {secretBadgeReward && (
+        <SecretBadgeUnlockModal
+          badge={secretBadgeReward}
+          bonus={SECRET_BADGE_BONUS}
+          onClose={()=>setSecretBadgeReward(null)}
         />
       )}
 
