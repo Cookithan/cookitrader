@@ -41,6 +41,11 @@ import { useToast } from "./components/Toaster.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
+import { UpgradeNoticeModal } from "./components/modals/UpgradeNoticeModal.jsx";
+
+/* Version de l'avis de maintenance — bumpe pour ré-afficher la popup
+   après une nouvelle phase d'évolution (ex: 'v2', 'v3'). */
+const UPGRADE_NOTICE_VERSION = 'v1';
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -139,6 +144,7 @@ export default function CookiMiner() {
   const [nameChangeCount, setNameChangeCount] = useLocalStorage('nameChangeCount', 0);
   const [userCode,    setUserCode]    = useLocalStorage('userCode', '');
   const [userBio,     setUserBio]     = useLocalStorage('userBio',  '');
+  const [upgradeNoticeAck, setUpgradeNoticeAck] = useLocalStorage('upgradeNoticeAck', '');
 
   /* Événements spéciaux (PHASE 6E) — cycle waiting (1-24h) → active
      (1h, 3 essais) → repeat. Persistés pour survivre au refresh. */
@@ -1434,6 +1440,13 @@ export default function CookiMiner() {
       {/* Splash custom à chaque mount (ouverture + F5). En mode fast
           si c'est un refresh détecté via Performance API. */}
       {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
+
+      {/* Avis de maintenance — visible 1 seule fois par version, après
+          le splash et l'onboarding. Bump UPGRADE_NOTICE_VERSION pour
+          ré-afficher après une nouvelle phase. */}
+      {!showSplash && !showOnboarding && upgradeNoticeAck !== UPGRADE_NOTICE_VERSION && (
+        <UpgradeNoticeModal onAck={()=>setUpgradeNoticeAck(UPGRADE_NOTICE_VERSION)} />
+      )}
     </div>
   );
 }
