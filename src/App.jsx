@@ -4,7 +4,6 @@ import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointe
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
-import { HISTORY_N, TICK_MS, BIG_MOVE_PCT, BIG_EVENTS, SMALL_EVENTS, MEGA_EVENTS, nextPrice } from "./data/market.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { generateUserCode } from "./utils/userCode.js";
 import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, EVENT_LEVEL_MIN } from "./data/events.js";
@@ -66,16 +65,19 @@ import { setupAudioOnFirstInteraction, playSound } from "./lib/audio.js";
        themes.js      — DK, LT, THEMES, GOLD, ESPRESSO, ROUE_PALETTES, COOKIE_SKINS, PREMIUM_PALETTE
        avatars.js     — ONBOARDING_AVATARS, AVATAR_PREMIUM, getAvatar()
        leaderboard.js — BOT_NAMES, BOT_LEVELS, generateLeaderboard, leaderboardScore
-       market.js      — PRICE_*, TICK_MS, MARKET_EVENTS, nextPrice(), fmt()
+     lib/
+       market.js      — logique du marché online (Supabase) : getMarketState,
+                        buyShares, sellShares, maintenanceTick…
      hooks/useLocalStorage.js  — persistance auto (clé préfixée 'cookiminer:')
      utils/spin.js             — TW, SEG_A, SEG_C, wRandom (géométrie roue)
      styles/globalStyles.js    — bloc <style> global (keyframes + classes utilitaires)
      components/
-       AvatarFigure.jsx · Sparkline.jsx
+       AvatarFigure.jsx
        cookies/   — PremiumCookie · SkinnedCookie
-       modals/    — LevelsModal · LevelUpModal · AchievementModal · OnboardingModal · TradeModal
+       modals/    — LevelsModal · LevelUpModal · AchievementModal · OnboardingModal
        overlays/  — SettingsOverlay · ProfileOverlay · GameOverlay
        games/     — CheckinGame · QuizGame · SpinGame · ClickGame · PourGame
+       market/    — MarketStateCard · MarketChart · TradePanel · PortfolioCard · MarketWelcomeModal
        tabs/      — BoutiqueTab · ClassementTab · MarketTab · MarketLocked
 
    Conventions :
@@ -129,19 +131,16 @@ export default function CookiMiner() {
   const [lastCheckin, setLastCheckin] = useLocalStorage('lastCheckin', null);
   const [lastQuiz,    setLastQuiz]    = useLocalStorage('lastQuiz',    null);
   const [dark,        setDark]        = useLocalStorage('dark',        false);
-  const [currentPrice, setCurrentPrice] = useLocalStorage('ckmPrice',    100);
-  const [priceHistory, setPriceHistory] = useLocalStorage('ckmHistory',  [100]);
-  const [ckmShares,    setCkmShares]    = useLocalStorage('ckmShares',   0);
-  const [ckmCostBasis, setCkmCostBasis] = useLocalStorage('ckmBasis',    0);
-  const [marketTrades,   setMarketTrades]   = useLocalStorage('marketTrades',   0);
+  /* MARCHÉ ONLINE (BRIEF_MARCHE_ONLINE) — l'état du marché (prix, stock,
+     historique 24h, portfolio) vit côté Supabase et est lu par MarketTab.
+     Ici on ne garde que les compteurs LOCAUX qui alimentent les badges
+     et achievements : `marketRealized` (plus-value cumulée → Investisseur)
+     et `totalInvested` (cookies investis cumulés → 'trader' achievement,
+     déclaré plus bas dans le bloc des achievements). */
   const [marketRealized, setMarketRealized] = useLocalStorage('marketRealized', 0);
-  const [marketHistory,  setMarketHistory]  = useLocalStorage('marketHistory',  []);
   const [leaderboard,    setLeaderboard]    = useLocalStorage('leaderboard',    null);
   const [leaderboardLastBoost, setLeaderboardLastBoost] = useLocalStorage('leaderboardLastBoost', '');
   const [leaderboardLastHourly, setLeaderboardLastHourly] = useLocalStorage('leaderboardLastHourly', 0);
-  const [marketEvent,      setMarketEvent]      = useState(null);
-  const [marketEventTicks, setMarketEventTicks] = useState(0);
-  const [marketBigMoveAt,  setMarketBigMoveAt]  = useState(0);
   const [userName,    setUserName]    = useLocalStorage('userName',   '');
   const [userAvatar,  setUserAvatar]  = useLocalStorage('userAvatar', null);
   const [joinDate,    setJoinDate]    = useLocalStorage('joinDate',   '');
@@ -774,64 +773,23 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeEvent, level]);
 
-  /* === Tick global du marché — tourne en arrière-plan dès le niveau 3 === */
-  const eventRefGlobal = useRef(null);
-  const eventTicksRefGlobal = useRef(0);
-  const lastEventIdRef = useRef(null);
-  const priceRef = useRef(currentPrice);
-  eventRefGlobal.current = marketEvent;
-  eventTicksRefGlobal.current = marketEventTicks;
-  priceRef.current = currentPrice;
+  /* Cleanup one-shot des anciennes clés du marché local v1 (pré-Brief 9).
+     Le marché est désormais entièrement online (Supabase) — voir lib/market.js
+     et components/tabs/MarketTab.jsx. Les anciennes entrées localStorage
+     sont retirées une seule fois par utilisateur. Flag persisté pour ne pas
+     re-jouer à chaque mount. `marketRealized` est aussi remis à 0 car son
+     ancien total reposait sur la simulation locale. */
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem('cookiminer:marketV2Cleaned') === '1') return;
+      ['ckmPrice', 'ckmHistory', 'ckmShares', 'ckmBasis', 'marketTrades', 'marketHistory']
+        .forEach(k => window.localStorage.removeItem('cookiminer:' + k));
+      setMarketRealized(0);
+      window.localStorage.setItem('cookiminer:marketV2Cleaned', '1');
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  useEffect(()=>{
-    if(level < 3) return;
-    const BIG_BEARS = BIG_EVENTS.filter(e => e.biasPct < 0);
-    const BIG_BULLS = BIG_EVENTS.filter(e => e.biasPct > 0);
-    const pickFrom = (pool) => {
-      if(!pool || pool.length === 0) return null;
-      if(pool.length === 1) return pool[0];
-      const filtered = pool.filter(e => e.id !== lastEventIdRef.current);
-      return (filtered.length ? filtered : pool)[Math.floor(Math.random()*(filtered.length || pool.length))];
-    };
-    const id = setInterval(()=>{
-      let ev = eventRefGlobal.current;
-      let ticksRemaining = eventTicksRefGlobal.current;
-      if(ev){
-        ticksRemaining -= 1;
-        if(ticksRemaining <= 0){ lastEventIdRef.current = ev.id; setMarketEvent(null); setMarketEventTicks(0); ev = null; }
-        else setMarketEventTicks(ticksRemaining);
-      } else {
-        /* Correction d'extrêmes : si le prix est très éloigné de 100, on force une big news
-           dans le sens opposé pour ramener le marché vers sa valeur de base. */
-        const p = priceRef.current;
-        if(p > 200 && Math.random() < 0.10){
-          ev = pickFrom(BIG_BEARS);
-        } else if(p < 50 && Math.random() < 0.10){
-          ev = pickFrom(BIG_BULLS);
-        } else {
-          /* Tirage normal : ~1 news par minute (40 ticks à 1.5s)
-             0.2% mega · 0.4% big · 2% small → ~2.6%/tick total */
-          const r = Math.random();
-          if(r < 0.002)            ev = pickFrom(MEGA_EVENTS);
-          else if(r < 0.006)       ev = pickFrom(BIG_EVENTS);
-          else if(r < 0.026)       ev = pickFrom(SMALL_EVENTS);
-        }
-        if(ev){ setMarketEvent(ev); setMarketEventTicks(ev.ticks); }
-      }
-      const bias = ev ? ev.biasPct : 0;
-      setCurrentPrice(prev => {
-        const np = nextPrice(prev, bias);
-        const deltaPct = Math.abs((np - prev) / prev * 100);
-        if(deltaPct >= BIG_MOVE_PCT) setMarketBigMoveAt(Date.now());
-        setPriceHistory(h => {
-          const next = [...h, np];
-          return next.length > HISTORY_N ? next.slice(next.length - HISTORY_N) : next;
-        });
-        return np;
-      });
-    }, TICK_MS);
-    return () => clearInterval(id);
-  }, [level]);
   const checkinReward = DAILY_REWARDS[streak % 7];
   const resetProgress = () => {
     /* Supabase : supprime le profil online en arrière-plan pour qu'il
@@ -849,11 +807,15 @@ export default function CookiMiner() {
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
     setStreak(0); setClickRecord(0); setUnlocked([]);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
-    setCurrentPrice(100); setPriceHistory([100]);
-    setCkmShares(0); setCkmCostBasis(0);
-    setMarketTrades(0); setMarketRealized(0); setMarketHistory([]);
-    setMarketEvent(null); setMarketEventTicks(0); setMarketBigMoveAt(0);
+    setMarketRealized(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
+    /* Marché v2 : reset du tutoriel + flag de cleanup pour qu'un éventuel
+       re-init redéclenche bien le mini-tutoriel. La portfolio Supabase
+       de l'user n'est PAS supprimée (low-impact, persiste sous son code). */
+    try {
+      window.localStorage.removeItem('cookiminer:marketWelcomeSeen');
+      window.localStorage.removeItem('cookiminer:marketV2Cleaned');
+    } catch {}
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
     setActiveTheme(''); setActiveBanner('');
@@ -1261,21 +1223,23 @@ export default function CookiMiner() {
           />
         )}
 
-        {/* ── MARCHÉ ── */}
+        {/* ── MARCHÉ ── (online via Supabase, BRIEF_MARCHE_ONLINE) */}
         {tab==='marche' && (
           level >= 3 ? (
             <MarketTab
+              userCode={userCode}
               coins={coins}
-              currentPrice={currentPrice}
-              priceHistory={priceHistory}
-              ckmShares={ckmShares} setCkmShares={setCkmShares}
-              ckmCostBasis={ckmCostBasis} setCkmCostBasis={setCkmCostBasis}
-              marketTrades={marketTrades} setMarketTrades={setMarketTrades}
-              marketRealized={marketRealized} setMarketRealized={setMarketRealized}
-              marketHistory={marketHistory} setMarketHistory={setMarketHistory}
-              event={marketEvent} eventTicks={marketEventTicks} bigMoveAt={marketBigMoveAt}
-              onSpend={spendCoins} onEarn={addCoins} onAddCafe={addCafes}
-              onInvest={(amount)=>setTotalInvested(t=>t+amount)}
+              addCoins={addCoins}
+              onTradeComplete={(result)=>{
+                if(result.type === 'buy'){
+                  /* L'achievement 'trader' attend totalInvested >= 500 cookies */
+                  setTotalInvested(t => t + result.cost);
+                } else if(result.type === 'sell'){
+                  /* Le badge secret 'investisseur' attend marketRealized >= 1000 */
+                  const profit = Math.max(0, Math.round(result.profit || 0));
+                  if(profit > 0) setMarketRealized(r => r + profit);
+                }
+              }}
               C={C}
             />
           ) : (
