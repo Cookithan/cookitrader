@@ -41,7 +41,13 @@ function formatJoinDate(raw){
 }
 
 export function UserProfileModal({ userCode, isCrown = false, currentUserCode, friendCodes = [], onClose, C }){
-  const isFriend = !!(currentUserCode && userCode && currentUserCode !== userCode && friendCodes.includes(userCode));
+  /* Barre de réactions visible si l'utilisateur consulté est :
+     - un ami (status='accepted'), OU
+     - le top 1 du classement (isCrown=true)
+     Et jamais soi-même. */
+  const isOther  = !!(currentUserCode && userCode && currentUserCode !== userCode);
+  const isFriend = isOther && friendCodes.includes(userCode);
+  const canReact = isOther && (isFriend || isCrown);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [closing, setClosing] = useState(false);
@@ -133,7 +139,7 @@ export function UserProfileModal({ userCode, isCrown = false, currentUserCode, f
             <ProfileContent
               profile={profile}
               isCrown={isCrown}
-              isFriend={isFriend}
+              canReact={canReact}
               currentUserCode={currentUserCode}
               copied={copied}
               onCopy={handleCopy}
@@ -146,7 +152,7 @@ export function UserProfileModal({ userCode, isCrown = false, currentUserCode, f
   );
 }
 
-function ProfileContent({ profile, isCrown, isFriend, currentUserCode, copied, onCopy, C }){
+function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, onCopy, C }){
   const joinDate = formatJoinDate(profile.join_date);
   const levelTitle = LEVEL_NAMES[profile.level] || `Niveau ${profile.level ?? 1}`;
   const cookies     = Number(profile.cookies)      || 0;
@@ -244,12 +250,12 @@ function ProfileContent({ profile, isCrown, isFriend, currentUserCode, copied, o
         </div>
       </div>
 
-      {/* Réactions emoji — uniquement pour les amis (BRIEF_REACTIONS) */}
-      {isFriend && (
+      {/* Réactions emoji — pour les amis ET le top 1 (BRIEF_REACTIONS) */}
+      {canReact && (
         <ReactionBar
           senderCode={currentUserCode}
           recipientCode={profile.user_code}
-          recipientName={profile.user_name || 'ton ami'}
+          recipientName={profile.user_name || 'ce joueur'}
           C={C}
         />
       )}
