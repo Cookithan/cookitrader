@@ -51,9 +51,9 @@ function pickQuestions(){
 }
 
 function rewardFor(score){
-  if(score === 5) return 60;
-  if(score === 4) return 35;
-  if(score === 3) return 15;
+  if(score === 5) return 100;
+  if(score === 4) return 60;
+  if(score === 3) return 25;
   return 0;
 }
 
