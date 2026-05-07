@@ -1331,6 +1331,13 @@ export default function CookiMiner() {
           event={activeEvent}
           completedEvents={completedEvents}
           onClose={()=>setShowEventModal(false)}
+          onGoToChallenge={()=>{
+            /* Mappe le challenge → zone à ouvrir. Si inconnu, ne fait rien. */
+            const c = activeEvent?.challenge;
+            if(c === 'spin_jackpot')   { setTab('jeux'); setGameView('spin'); }
+            else if(c === 'streak_check'){ setTab('jeux'); setGameView('checkin'); }
+            else if(c === 'market_profit'){ setTab('marche'); }
+          }}
           C={C}
         />
       )}

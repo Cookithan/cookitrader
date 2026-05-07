@@ -22,6 +22,9 @@ import { formatTimeLeft, MAX_ATTEMPTS, SPECIAL_EVENTS } from "../../data/events.
    - event            : activeEvent
    - completedEvents  : string[] des ids d'events déjà complétés
    - onClose          : ferme la modale
+   - onGoToChallenge  : optionnel — appelé en mode 'active' au clic
+                        "C'est parti", AVANT onClose. Sert à naviguer
+                        vers la zone du défi (jeux/spin, marché, check-in…).
    - C                : palette
 ═══════════════════════════════════════════════════════ */
 
@@ -38,7 +41,7 @@ function teaseFor(seed){
   return TEASES[Math.abs(seed | 0) % TEASES.length];
 }
 
-export function EventAnnounceModal({ event, completedEvents = [], onClose, C }){
+export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoToChallenge, C }){
   const [now, setNow] = useState(()=>Date.now());
 
   /* Tick de countdown chaque seconde — rafraîchit le timer uniquement
@@ -172,7 +175,10 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, C }){
           )}
 
           <button
-            onClick={onClose}
+            onClick={() => {
+              if(!isWaiting && onGoToChallenge) onGoToChallenge();
+              onClose();
+            }}
             className={isWaiting ? '' : 'glow-anim'}
             style={{
               width:'100%', padding:'14px 0', borderRadius:18,
