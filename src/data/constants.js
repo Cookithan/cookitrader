@@ -153,47 +153,48 @@ export const ACHIEVEMENTS = [
   { id:'end_game',       name:'Légende Vivante !',  desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:25 },
 ];
 
-/* Pool Quiz du jour — culture générale fun. 32 questions tirées au
-   sort 3 par session (cf QUIZ_QUESTIONS_PER_SESSION dans QuizGame).
+/* Pool Quiz du jour — questions sur CookiMiner et le thème café/cookie.
+   32 questions tirées 3 par session (cf QUIZ_QUESTIONS_PER_SESSION).
+   Mix ~50% mécaniques de l'app, ~50% culture café/pâtisserie.
    3 niveaux : Facile (20 🍪), Moyen (35 🍪), Expert (60 🍪). */
 export const QUESTIONS = [
   // FACILE (reward: 20)
-  { q:"Combien de pattes a une araignée ?", choices:["6","8","10","12"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quelle planète est surnommée 'la planète rouge' ?", choices:["Vénus","Mars","Jupiter","Saturne"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quelle est la capitale de l'Australie ?", choices:["Sydney","Melbourne","Canberra","Perth"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Combien de minutes y a-t-il dans une journée ?", choices:["1 200","1 440","1 800","2 400"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quel animal est le symbole national du Canada ?", choices:["L'élan","Le castor","L'ours polaire","L'aigle"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quelle couleur obtient-on en mélangeant bleu et jaune ?", choices:["Violet","Vert","Orange","Marron"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quel est le plus grand océan du monde ?", choices:["Atlantique","Indien","Arctique","Pacifique"], answer:3, reward:20, difficulty:'Facile' },
-  { q:"Combien de continents y a-t-il ?", choices:["5","6","7","8"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Quelle langue est la plus parlée au monde (en natifs) ?", choices:["Anglais","Mandarin","Espagnol","Hindi"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Quel fruit a la peau jaune et un cœur acide ?", choices:["Orange","Ananas","Citron","Pamplemousse"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Combien de joueurs dans une équipe de foot sur le terrain ?", choices:["9","10","11","12"], answer:2, reward:20, difficulty:'Facile' },
-  { q:"Quel élément chimique a pour symbole 'O' ?", choices:["Or","Oxygène","Osmium","Olive"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel pays est l'origine historique du café ?", choices:["Italie","Éthiopie","Brésil","Yémen"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle plante produit les grains de café ?", choices:["Théier","Caféier","Cacaoyer","Olivier"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Combien de niveaux a CookiMiner ?", choices:["10","12","15","20"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Quel est le titre du niveau 1 dans CookiMiner ?", choices:["Apprenti","Barista","Maître","Légende"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"De quelle couleur est un grain de café AVANT torréfaction ?", choices:["Brun","Noir","Vert","Jaune"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Comment se nomme la mousse dorée à la surface d'un espresso ?", choices:["Mousse","Crema","Schiuma","Latte"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel pays est le 1er producteur mondial de café ?", choices:["Colombie","Brésil","Vietnam","Éthiopie"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Combien de questions tirées par session au Quiz du jour ?", choices:["1","3","5","10"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel mini-jeu fait deviner les commandes des clients ?", choices:["Quiz","Devine la commande","Memory Café","Réflexes"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle est la monnaie premium dans CookiMiner ?", choices:["Cookies","Cafés","Diamants","Étoiles"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel emoji représente la monnaie principale CookiMiner ?", choices:["🍰","🥐","🍪","☕"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Quel ingrédient principal du chocolat chaud ?", choices:["Caféine","Cacao","Cannelle","Curcuma"], answer:1, reward:20, difficulty:'Facile' },
 
   // MOYEN (reward: 35)
-  { q:"En quelle année est tombé le mur de Berlin ?", choices:["1987","1989","1991","1993"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quel est le plus long fleuve du monde ?", choices:["Amazone","Nil","Mississippi","Yangtsé"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Qui a peint la Joconde ?", choices:["Michel-Ange","Léonard de Vinci","Raphaël","Botticelli"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Combien d'os a un humain adulte ?", choices:["186","206","226","256"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quelle est la monnaie du Japon ?", choices:["Le won","Le yen","Le baht","Le yuan"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quel pays a inventé les sushis ?", choices:["Chine","Corée","Japon","Vietnam"], answer:2, reward:35, difficulty:'Moyen' },
-  { q:"Quel animal peut vivre sans tête pendant plusieurs jours ?", choices:["La fourmi","Le cafard","La grenouille","L'escargot"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Combien de cordes a une guitare classique standard ?", choices:["4","5","6","7"], answer:2, reward:35, difficulty:'Moyen' },
-  { q:"Quelle est l'unité de mesure de la pression atmosphérique ?", choices:["Joule","Pascal","Watt","Newton"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Le miel ne se périme jamais : vrai ou faux ?", choices:["Vrai","Faux, il périme en 1 an","Faux, il périme en 5 ans","Faux, il périme en 50 ans"], answer:0, reward:35, difficulty:'Moyen' },
-  { q:"Quel auteur a écrit 'Les Misérables' ?", choices:["Émile Zola","Victor Hugo","Gustave Flaubert","Honoré de Balzac"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quel est le plus petit pays du monde ?", choices:["Monaco","Saint-Marin","Vatican","Liechtenstein"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"Combien de variétés principales de café cultivées commercialement ?", choices:["1","2","3","5"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel mini-jeu est débloqué au niveau 8 ?", choices:["Memory","Pile de Tasses","Machine à Sous","Réflexes"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Comment se nomme le succès final apex de CookiMiner ?", choices:["Maître Café","Légende Vivante","Empereur","Cookie Roi"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quelle ville est le berceau de la chaîne Starbucks ?", choices:["Seattle","New York","San Francisco","Chicago"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quelle variété de café contient le plus de caféine ?", choices:["Arabica","Robusta","Liberica","Excelsa"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel pays a inventé le cappuccino ?", choices:["France","Italie","Autriche","Suisse"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Combien de récompenses événements pour décrocher Légende Vivante ?", choices:["5","7","10","15"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"À quel niveau débloque la Machine à Sous dans CookiMiner ?", choices:["10","12","13","15"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"Quel pays est considéré comme le berceau du moka ?", choices:["Brésil","Colombie","Yémen","Éthiopie"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"Quel mini-jeu est débloqué dès le niveau 1 ?", choices:["Pile de Tasses","Stop le café","Devine la commande","Machine à Sous"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel ticker représente l'action de CookiMiner sur le marché ?", choices:["$CKM","$CKO","$CKC","$CMK"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel cookie classique américain a été inventé par Ruth Wakefield en 1938 ?", choices:["Cookie nature","Cookie aux pépites de chocolat","Brownie","Sablé"], answer:1, reward:35, difficulty:'Moyen' },
 
   // EXPERT (reward: 60)
-  { q:"En quelle année a eu lieu le premier vol des frères Wright ?", choices:["1899","1903","1908","1912"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quel est l'élément chimique le plus abondant dans l'univers ?", choices:["Hélium","Oxygène","Hydrogène","Carbone"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"Combien de temps met la lumière du Soleil à atteindre la Terre ?", choices:["8 secondes","8 minutes","8 heures","8 jours"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quel animal a le cœur le plus gros du règne animal ?", choices:["L'éléphant","Le rorqual bleu","La girafe","Le requin baleine"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quel philosophe a écrit 'Ainsi parlait Zarathoustra' ?", choices:["Kant","Schopenhauer","Nietzsche","Heidegger"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"Quelle est la vitesse approximative de la lumière dans le vide ?", choices:["100 000 km/s","300 000 km/s","500 000 km/s","1 000 000 km/s"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quel est le seul nombre premier pair ?", choices:["0","1","2","Aucun"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"En quelle année l'euro est-il devenu la monnaie officielle de la France ?", choices:["1999","2000","2001","2002"], answer:3, reward:60, difficulty:'Expert' },
+  { q:"Quelle légende attribue la découverte du café à un berger ?", choices:["Pythagore","Kaldi","Marco Polo","Saladin"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel ordre religieux a inspiré le nom 'cappuccino' ?", choices:["Bénédictins","Franciscains","Capucins","Jésuites"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quel pays a la plus haute consommation de café par habitant ?", choices:["Italie","Finlande","Brésil","France"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Combien de spins de roue maximum par jour dès le niveau 10 ?", choices:["10","20","30","50"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel niveau CookiMiner s'appelle 'Phoenix du Café' ?", choices:["12","13","14","15"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quelle variété de café est la plus résistante aux maladies ?", choices:["Arabica","Robusta","Liberica","Geisha"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel pourcentage approximatif de la production mondiale est de l'Arabica ?", choices:["30%","60%","80%","95%"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Combien de tours bonus donne le Jeton VIP +50 dans CookiMiner ?", choices:["20","30","50","100"], answer:2, reward:60, difficulty:'Expert' },
 ];
 
 /* Quiz : 1 disponible toutes les 5h */
