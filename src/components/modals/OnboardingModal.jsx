@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronLeft } from "lucide-react";
-import { ONBOARDING_AVATARS } from "../../data/avatars.js";
+import { ONBOARDING_AVATARS, getVisibleOnboardingAvatars } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 
@@ -73,7 +73,8 @@ export function OnboardingModal({ onComplete, C }) {
             <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>Choisis ton avatar</div>
             <div style={{ fontSize:12, color:C.muted, marginBottom:18 }}>Tu pourras le changer plus tard</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:22, justifyItems:'center' }}>
-              {ONBOARDING_AVATARS.map((av, i) => {
+              {getVisibleOnboardingAvatars().map((av) => {
+                const i = av.id;
                 const selected = avatar === i;
                 return (
                   <button

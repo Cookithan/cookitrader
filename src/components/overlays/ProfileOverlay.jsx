@@ -65,7 +65,12 @@ export function ProfileOverlay({
   /* Sélecteur d'avatar (PHASE 4) :
      - "Mes avatars" : 12 de base (toujours dispos) + premium débloqués
      - "À débloquer" : premium non débloqués, grisés avec cadenas */
-  const myBaseAvatars = ONBOARDING_AVATARS.map((a,i)=>({ value:i, art:a.art, bg:a.bg, name:a.name, owned:true }));
+  /* Filtre les onboarding `hidden:true` (Tasse / Théière / Croissant
+     retirés du shop mais conservés en data pour compat profils existants).
+     On garde l'index original via a.id pour ne pas remapper les valeurs. */
+  const myBaseAvatars = ONBOARDING_AVATARS
+    .filter(a => !a.hidden)
+    .map(a => ({ value:a.id, art:a.art, bg:a.bg, name:a.name, owned:true }));
   const myPremiumAvatars = AVATAR_PREMIUM_LIST
     .filter(a => unlocked.includes(a.id))
     .map(a => ({ value:a.id, art:a.art, bg:a.bg, name:a.name, owned:true }));
