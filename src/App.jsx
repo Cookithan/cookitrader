@@ -28,6 +28,7 @@ import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
+import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { BoutiqueTab } from "./components/tabs/BoutiqueTab.jsx";
@@ -223,6 +224,7 @@ export default function CookiMiner() {
   /* Inbox (BRIEF_INBOX) — modale + compteur de non-lus.
      Compteur rafraîchi toutes les 30s tant qu'on a un userCode + Supabase actif. */
   const [showInbox,        setShowInbox]        = useState(false);
+  const [showAbout,        setShowAbout]        = useState(false);
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
   const { showToast } = useToast();
   /* Ref synchronisée → permet à addCoins (useCallback deps=[]) d'appeler
@@ -351,6 +353,7 @@ export default function CookiMiner() {
   useBackToClose(showEventModal,    () => setShowEventModal(false));
   useBackToClose(!!eventReward,     () => setEventReward(null));
   useBackToClose(showInbox,         () => setShowInbox(false));
+  useBackToClose(showAbout,         () => setShowAbout(false));
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
   useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
   useBackToClose(!!secretBadgeReward, () => setSecretBadgeQueue(q => q.slice(1)));
@@ -465,7 +468,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -1395,6 +1398,15 @@ export default function CookiMiner() {
           activeTheme={activeTheme} setActiveTheme={setActiveTheme}
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
           install={installPrompt}
+          onOpenAbout={()=>setShowAbout(true)}
+          C={C}
+        />
+      )}
+
+      {/* ABOUT MODAL — slide-up depuis le bas, par-dessus Settings */}
+      {showAbout && (
+        <AboutModal
+          onClose={()=>setShowAbout(false)}
           C={C}
         />
       )}
