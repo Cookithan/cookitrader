@@ -1,11 +1,11 @@
 /* ════════════════════════════════════════════════════
    COMMANDES — banque de questions pour GuessGame (PHASE 6C)
    ────────────────────────────────────────────────────
-   45 entrées au total :
-   - 30 questions standard (mode normal)
-   - 15 questions DIFFICILES (flag `difficult:true`) — méthodes de
+   65 entrées au total :
+   - 40 questions standard (mode normal)
+   - 25 questions DIFFICILES (flag `difficult:true`) — méthodes de
      préparation niches, pâtisseries rares, distinctions ultra-fines
-     entre boissons proches.
+     entre boissons proches, vocabulaire de barista, variétés rares.
 
    Mode Expert (joueur niv 7+) : GuessGame ne tire que les questions
    difficiles. Sinon : seulement les questions standard (compatibilité
@@ -83,7 +83,29 @@ export const COMMANDES = [
   { desc:"Café avec mousse épaisse et crémeuse, très généreuse.",
     choices:['Cappuccino','Latte','Macchiato','Cortado'], answer:0 },
 
-  /* ═══════════ MODE EXPERT (15 questions, flag `difficult:true`) ═══════════
+  /* ─── 10 standards ajoutées 09/05/2026 ─── */
+  { desc:"Petit pain rond et brioché, légèrement sucré, populaire au petit-déj.",
+    choices:['Brioche','Pain au lait','Pain au chocolat','Madeleine'], answer:1 },
+  { desc:"Boisson au thé avec des perles de tapioca au fond du gobelet.",
+    choices:['Bubble tea','Frappé','Thé glacé','Smoothie'], answer:0 },
+  { desc:"Boisson chaude crémeuse à base de cacao et de lait, sans café.",
+    choices:['Mocha','Chocolat chaud','Chai','Caramel latte'], answer:1 },
+  { desc:"Café français traditionnel, servi en bol au petit-déjeuner.",
+    choices:['Latte','Café au lait','Cappuccino','Cortado'], answer:1 },
+  { desc:"Boisson lait + sirop caramel + espresso, popularisée par Starbucks.",
+    choices:['Latte caramel','Caramel macchiato','Mocha','Cappuccino'], answer:1 },
+  { desc:"Cookie moelleux aux flocons d'avoine et raisins secs.",
+    choices:['Cookie classique','Cookie avoine','Brownie','Sablé'], answer:1 },
+  { desc:"Dessert italien aux biscuits imbibés de café et mascarpone.",
+    choices:['Tiramisu','Panna cotta','Profiterole','Affogato'], answer:0 },
+  { desc:"Pâtisserie acidulée à la crème jaune et meringue blanche dessus.",
+    choices:['Tarte au citron','Tartelette aux fraises','Crème brûlée','Macaron'], answer:0 },
+  { desc:"Viennoiserie en escargot fourrée de crème pâtissière et raisins secs.",
+    choices:['Brioche','Pain au raisin','Chausson','Croissant'], answer:1 },
+  { desc:"Boisson froide italienne : espresso shaké avec glace et sucre, mousseux.",
+    choices:['Espresso freddo','Iced Latte','Cold Brew','Frappé'], answer:0 },
+
+  /* ═══════════ MODE EXPERT (25 questions, flag `difficult:true`) ═══════════
      Pour les joueurs niveau 7+ uniquement. Distinctions très fines, méthodes
      rares, vocabulaire spécialisé. */
 
@@ -117,4 +139,26 @@ export const COMMANDES = [
     choices:['Geisha','Bourbon','SL28','Pacamara'], answer:0, difficult:true },
   { desc:"Méthode où le café est extrait sous très haute pression dans un percolateur italien.",
     choices:['Espresso','Moka','Lungo','Filtre'], answer:1, difficult:true },
+
+  /* ─── 10 difficiles ajoutées 09/05/2026 ─── */
+  { desc:"Variété d'arabica éthiopienne, notes fruitées et florales prononcées.",
+    choices:['Yirgacheffe','Bourbon','Geisha','Typica'], answer:0, difficult:true },
+  { desc:"Café finement moulu bouilli dans une cezve, avec mousse en surface.",
+    choices:['Café turc','Café grec','Café arabe','Café égyptien'], answer:0, difficult:true },
+  { desc:"Espresso et lait à parts égales, servi dans un petit verre.",
+    choices:['Macchiato','Cortado','Flat White','Piccolo'], answer:1, difficult:true },
+  { desc:"Boisson infusée à partir de la cerise séchée du café (la peau du grain).",
+    choices:['Cascara','Cold Brew','Cibo','Coffee tea'], answer:0, difficult:true },
+  { desc:"Café indonésien rare obtenu après digestion par une civette asiatique.",
+    choices:['Kopi Luwak','Mandheling','Sumatra','Java'], answer:0, difficult:true },
+  { desc:"Motif de feuille tracé dans la mousse de lait par le barista.",
+    choices:['Rosetta','Tulipe','Cygne','Cœur'], answer:0, difficult:true },
+  { desc:"Outil de barista pour tasser le café moulu dans le porte-filtre.",
+    choices:['Tamper','Knock box','Distributeur','Pichet'], answer:0, difficult:true },
+  { desc:"Couche de mousse dorée à la surface d'un espresso bien tiré.",
+    choices:['Crema','Mousse','Schaum','Cremina'], answer:0, difficult:true },
+  { desc:"Café provenant d'une seule plantation et d'un seul lot, non blendé.",
+    choices:['Single origin','Blend','Robusta blend','Aged coffee'], answer:0, difficult:true },
+  { desc:"Café espresso versé sur de la glace pilée, servi avec une cuillère.",
+    choices:['Granita','Affogato','Espresso freddo','Mazagran'], answer:0, difficult:true },
 ];
