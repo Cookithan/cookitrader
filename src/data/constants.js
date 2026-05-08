@@ -86,9 +86,9 @@ export const REWARDS = [
   { id:'music_bossa',  name:'Musique Bossa Nova',   desc:'Soleil brésilien',          cost:1500, type:'Musique', emoji:'🇧🇷', levelRequired:5 },
   { id:'music_royale', name:'Symphonie Royale',     desc:'Musique classique baroque', cost:2000, type:'Musique', emoji:'💎', levelRequired:5 },
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
-  { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:9,  type:'Premium', emoji:'🌌', levelRequired:1 },
-  { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Dernier Succès Caché',  desc:'Révèle un succès secret',      cost:15, type:'Premium', emoji:'🔮', levelRequired:1 },
-  { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:7,  type:'Premium', emoji:'🍪', levelRequired:1 },
+  { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
+  { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Dernier Succès Caché',  desc:'Révèle un succès secret',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:1 },
+  { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },
   { id:'music_lofi',     currency:'cafe', applyAs:'music',       name:'Musique Lofi Hip-Hop', desc:'Ambiance étudiant chill',      cost:3,  type:'Premium', emoji:'🎵', levelRequired:1 },
 ];
 
