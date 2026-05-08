@@ -27,9 +27,21 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
   /* draw wheel */
   const draw = useCallback((deg) => {
     const canvas = canvasRef.current; if(!canvas) return;
+    /* HiDPI : ajuste la résolution interne au devicePixelRatio pour éviter
+       le flou sur mobile (Retina iOS, écrans Android haute densité). On
+       laisse le CSS gérer l'affichage (maxWidth:90vw inline) — le browser
+       downscale depuis la résolution interne sans perte. */
+    const dpr = window.devicePixelRatio || 1;
+    const cssSize = 340;
+    const intSize = Math.round(cssSize * dpr);
+    if(canvas.width !== intSize){
+      canvas.width  = intSize;
+      canvas.height = intSize;
+    }
     const ctx = canvas.getContext('2d');
-    const sz=canvas.width, cx=sz/2, cy=sz/2, r=cx-6;
-    ctx.clearRect(0,0,sz,sz);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const sz = cssSize, cx = sz/2, cy = sz/2, r = cx - 6;
+    ctx.clearRect(0, 0, sz, sz);
     let startRad = (deg*Math.PI)/180;
     SEGMENTS.forEach((sg,i)=>{
       const sweep=(SEG_A[i]*Math.PI)/180;

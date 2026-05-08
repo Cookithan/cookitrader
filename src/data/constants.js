@@ -48,11 +48,11 @@ export function getNameChangePrice(count){
   return NAME_CHANGE_PRICES[Math.min(count, NAME_CHANGE_PRICES.length - 1)];
 }
 
-/* Roue 100% cookie & café : pertes = sombres (espresso/mocha), gains = clairs (caramel/miel/or) */
+/* Roue 100% cookie & café : pertes = sombres (espresso/mocha), gains = clairs (caramel/miel/or)
+   9 segments — -25 et +300 retirés le 09/05/2026 (équilibrage demandé par user). */
 export const SEGMENTS = [
-  { value: -25, label:'-25',  weight:12, color:'#3D1F0E' },  // brun foncé café
   { value:  10, label:'+10',  weight:12, color:'#C17F3C' },  // caramel
-  { value: 200, label:'+200', weight: 2, color:'#F5DC8A' },  // or crème (jackpot) — éloigné du +300
+  { value: 200, label:'+200', weight: 2, color:'#F5DC8A' },  // or crème (jackpot)
   { value: -10, label:'-10',  weight:14, color:'#5A3520' },  // café au lait foncé
   { value:  20, label:'+20',  weight:10, color:'#D4A017' },  // caramel doré
   { value:  -5, label:'-5',   weight:14, color:'#6B4530' },  // moka clair
@@ -60,7 +60,6 @@ export const SEGMENTS = [
   { value: -15, label:'-15',  weight:17, color:'#4A2A14' },  // moka foncé
   { value: 100, label:'+100', weight: 7, color:'#F0C050' },  // miel
   { value:-100, label:'-100', weight: 2, color:'#2A1606' },  // espresso brûlé (catastrophe)
-  { value: 300, label:'+300', weight: 2, color:'#FFE89A' },  // or pur (super jackpot)
 ];
 
 /* Récompenses check-in : index = jour dans la semaine (0..6). Jour 7 = jackpot. */
