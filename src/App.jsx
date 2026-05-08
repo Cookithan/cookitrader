@@ -131,9 +131,11 @@ export default function CookiMiner() {
   const [lastCheckin, setLastCheckin] = useLocalStorage('lastCheckin', null);
   const [lastQuiz,    setLastQuiz]    = useLocalStorage('lastQuiz',    null);
   /* Cap quotidien de spins : 50 (niv 1-10) ou 20 (niv 11-15). spinsDate
-     = toDateString() du dernier spin → reset à 0 au passage minuit. */
-  const [spinsToday,  setSpinsToday]  = useLocalStorage('spinsToday', 0);
-  const [spinsDate,   setSpinsDate]   = useLocalStorage('spinsDate', null);
+     = toDateString() du dernier spin → reset à 0 au passage minuit.
+     spinBonusToday = tours bonus accumulés via Jetons VIP premium boutique. */
+  const [spinsToday,    setSpinsToday]    = useLocalStorage('spinsToday', 0);
+  const [spinsDate,     setSpinsDate]     = useLocalStorage('spinsDate', null);
+  const [spinBonusToday, setSpinBonusToday] = useLocalStorage('spinBonusToday', 0);
   const [dark,        setDark]        = useLocalStorage('dark',        false);
   /* MARCHÉ ONLINE (BRIEF_MARCHE_ONLINE) — l'état du marché (prix, stock,
      historique 24h, portfolio) vit côté Supabase et est lu par MarketTab.
@@ -615,18 +617,34 @@ export default function CookiMiner() {
   const canQuiz    = quizMsLeft === 0;
 
   /* Cap quotidien de spins (50 niv 1-10, 20 niv 11+). Reset au passage
-     minuit local : si spinsDate ≠ today, on traite spinsToday comme 0
-     pour le calcul de spinsLeft. La consommation effective remet
-     spinsDate=today ET reset le compteur dans consumeSpin(). */
+     minuit local : si spinsDate ≠ today, on traite spinsToday + bonus
+     comme remis à 0 pour le calcul de spinsLeft. */
   const todayStr   = new Date().toDateString();
   const spinsCap   = level <= 10 ? 50 : 20;
   const isFreshDay = spinsDate !== todayStr;
-  const spinsLeft  = isFreshDay ? spinsCap : Math.max(0, spinsCap - spinsToday);
+  const effBonus   = isFreshDay ? 0 : (spinBonusToday || 0);
+  const effUsed    = isFreshDay ? 0 : (spinsToday || 0);
+  const spinsLeft  = Math.max(0, spinsCap + effBonus - effUsed);
   const consumeSpin = useCallback(() => {
     const t = new Date().toDateString();
-    setSpinsDate(prev => prev === t ? prev : t);
-    setSpinsToday(n => (spinsDate === t ? n + 1 : 1));
-  }, [spinsDate, setSpinsDate, setSpinsToday]);
+    if(spinsDate !== t){
+      setSpinsDate(t);
+      setSpinsToday(1);
+      setSpinBonusToday(0);   // reset bonus aussi au new day
+    } else {
+      setSpinsToday(n => n + 1);
+    }
+  }, [spinsDate, setSpinsDate, setSpinsToday, setSpinBonusToday]);
+  const addSpinPass = useCallback((amount) => {
+    const t = new Date().toDateString();
+    if(spinsDate !== t){
+      setSpinsDate(t);
+      setSpinsToday(0);
+      setSpinBonusToday(amount);
+    } else {
+      setSpinBonusToday(n => (n || 0) + amount);
+    }
+  }, [spinsDate, setSpinsDate, setSpinsToday, setSpinBonusToday]);
 
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
@@ -1138,7 +1156,20 @@ export default function CookiMiner() {
   const doCheckin    = ()=>{ playSound('success'); addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
   const unlockReward = (id)=>{
     const r=REWARDS.find(x=>x.id===id);
-    if(!r||unlocked.includes(id)) return;
+    if(!r) return;
+    /* Items premium CONSOMMABLES (Jetons VIP) — pas d'ajout à `unlocked`,
+       l'utilisateur peut les racheter à volonté tant qu'il a les cafés.
+       L'effet (bonus de tours roue) est appliqué directement. */
+    if(r.applyAs === 'spin_pass'){
+      if(cafes < r.cost) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      addSpinPass(r.spinPassAmount || 0);
+      playSound('success');
+      showToast(`🎟️ +${r.spinPassAmount} tours de roue ajoutés !`);
+      return;
+    }
+    /* Items normaux : un seul achat, ajout à unlocked */
+    if(unlocked.includes(id)) return;
     if(r.currency==='cafe'){
       if(cafes < r.cost) return;
       setCafes(c=>Math.max(0, c - r.cost));

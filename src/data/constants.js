@@ -120,6 +120,12 @@ export const REWARDS = [
   { id:'music_bossa',  name:'Musique Bossa Nova',   desc:'Soleil brésilien',          cost:1500, type:'Musique', emoji:'🇧🇷', levelRequired:5 },
   { id:'music_royale', name:'Symphonie Royale',     desc:'Musique classique baroque', cost:2000, type:'Musique', emoji:'💎', levelRequired:5 },
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
+  /* Jetons VIP — items premium CONSOMMABLES (pas d'ajout à unlocked).
+     À l'achat, ajoute des tours bonus à la roue pour la journée en
+     cours. Le bonus reset à minuit en même temps que le compteur normal. */
+  { id:'spin_pass_20',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:20, name:'Jeton VIP +20 tours', desc:'+20 tours de roue aujourd\'hui',   cost:4, type:'Premium', emoji:'🎟️', levelRequired:1 },
+  { id:'spin_pass_50',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:50, name:'Jeton VIP +50 tours', desc:'+50 tours de roue aujourd\'hui',   cost:9, type:'Premium', emoji:'🎫', levelRequired:1 },
+
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Révéler le Succès Café',  desc:'Débloque la visibilité du succès secret',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:1 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },
