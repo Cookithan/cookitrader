@@ -1385,7 +1385,14 @@ export default function CookiMiner() {
             {(() => {
               const visibleAchievements = ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed);
               const half = Math.ceil(visibleAchievements.length/2);
-              const list = showAllAchievements ? visibleAchievements : visibleAchievements.slice(0, half);
+              /* Si la liste est tronquée (showAllAchievements=false), on
+                 force end_game à apparaître quand même — c'est l'apex
+                 final, le user doit voir ce qu'il lui reste à faire. */
+              let list = showAllAchievements ? visibleAchievements : visibleAchievements.slice(0, half);
+              if(!showAllAchievements){
+                const endGame = visibleAchievements.find(a => a.id === 'end_game');
+                if(endGame && !list.includes(endGame)) list = [...list, endGame];
+              }
               return (
                 <>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:22, marginBottom:10 }}>
@@ -1395,13 +1402,60 @@ export default function CookiMiner() {
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
                     {list.map(a=>{
                       const got = earnedAchievements.includes(a.id);
+                      const isEndGame = a.id === 'end_game';
+                      const isApex = a.id === 'master_succes' || isEndGame;
+                      /* Pour end_game (apex final), on calcule la progression
+                         visible pour que le user sache exactement ce qu'il
+                         lui manque. master_succes compte uniquement si visible
+                         (reveal_master acheté). */
+                      let endGamePrereqs = null;
+                      if(isEndGame && !got){
+                        const prereqs = ACHIEVEMENTS.filter(x =>
+                          x.id !== 'end_game' &&
+                          (!x.hidden || (x.id === 'master_succes' && masterRevealed))
+                        );
+                        const doneCount = prereqs.filter(p => earnedAchievements.includes(p.id)).length;
+                        endGamePrereqs = {
+                          levelOk:    level >= 15,
+                          succesDone: doneCount,
+                          succesTotal:prereqs.length,
+                          succesOk:   doneCount === prereqs.length,
+                        };
+                      }
                       return (
-                        <div key={a.id} style={{ ...s.card, padding:'12px 12px', display:'flex', alignItems:'center', gap:10, opacity:got?1:.55, position:'relative', border:a.id==='master_succes' ? '1.5px solid rgba(212,160,23,.55)' : undefined }}>
-                          <div style={{ fontSize:24, flexShrink:0, filter: got?'none':'grayscale(.7)' }}>{got?a.emoji:'🔒'}</div>
+                        <div key={a.id} style={{
+                          ...s.card,
+                          padding:'12px 12px',
+                          display:'flex', alignItems:'flex-start', gap:10,
+                          opacity:got ? 1 : (isEndGame ? .85 : .55),
+                          position:'relative',
+                          gridColumn: isEndGame ? 'span 2' : undefined,
+                          border: isApex ? '1.5px solid rgba(212,160,23,.55)' : undefined,
+                        }}>
+                          <div style={{ fontSize:24, flexShrink:0, filter: got?'none':'grayscale(.7)' }}>
+                            {got ? a.emoji : (isEndGame ? '🏆' : '🔒')}
+                          </div>
                           <div style={{ minWidth:0, flex:1 }}>
                             <div style={{ fontSize:11, fontWeight:800, color:C.text, lineHeight:1.2, marginBottom:2 }}>{a.name}</div>
                             <div style={{ fontSize:10, color:C.muted, lineHeight:1.3 }}>{a.desc}</div>
-                            <div style={{ fontSize:10, color:'#D4A017', fontWeight:700, marginTop:3 }}>+{a.bonus} 🍪</div>
+                            {endGamePrereqs && (
+                              <div style={{
+                                marginTop:6, padding:'6px 8px', borderRadius:8,
+                                background:'rgba(212,160,23,.08)',
+                                border:'1px dashed rgba(212,160,23,.3)',
+                                fontSize:10, lineHeight:1.6, fontWeight:600,
+                              }}>
+                                <div style={{ color: endGamePrereqs.levelOk ? '#D4A017' : C.muted }}>
+                                  {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/15
+                                </div>
+                                <div style={{ color: endGamePrereqs.succesOk ? '#D4A017' : C.muted }}>
+                                  {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès débloqués
+                                </div>
+                              </div>
+                            )}
+                            <div style={{ fontSize:10, color:'#D4A017', fontWeight:700, marginTop:4 }}>
+                              +{a.bonus} 🍪{a.cafesBonus ? ` · +${a.cafesBonus} ☕` : ''}
+                            </div>
                           </div>
                         </div>
                       );
