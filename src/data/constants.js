@@ -13,7 +13,24 @@
    - NAME_CHANGE_PRICES : tarif progressif du changement de prénom
 ════════════════════════════════════════════════════ */
 
-export const LEVEL_NAMES = ['','Barista','Torréfacteur','Maître','Grand Barista','Chef Pâtissier','Légende','Connaisseur du Café','Virtuose Café','Maître Mythique','Éternel du Cookie'];
+export const LEVEL_NAMES = [
+  '',
+  'Barista',                    // 1
+  'Torréfacteur',               // 2
+  'Maître',                     // 3
+  'Grand Barista',              // 4
+  'Chef Pâtissier',             // 5
+  'Légende',                    // 6
+  'Connaisseur du Café',        // 7
+  'Virtuose Café',              // 8
+  'Maître Mythique',            // 9
+  'Éternel du Cookie',          // 10
+  'Empereur Caféiné',           // 11
+  'Alchimiste du Cookie',       // 12
+  'Gardien des Saveurs',        // 13 — débloque la Machine à Sous
+  'Phoenix du Café',            // 14
+  'Avatar du Cookie Originel',  // 15 — niveau max, endgame XP→☕ démarre ici
+];
 
 /* XP requise dans le niveau `level` pour passer à `level+1`.
    Discontinuité volontaire entre 5 et 6 : passage en mode "end-game"
@@ -57,7 +74,10 @@ export const REWARDS = [
   { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiMiner',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
   { id:'badge_connaisseur', name:'Badge Connaisseur', desc:'Tu maîtrises l\'art du café',  cost:600,  type:'Badge', emoji:'🎓', levelRequired:7 },
   { id:'badge_mythique',    name:'Badge Mythique',    desc:'Sur le seuil de l\'éternité',  cost:1500, type:'Badge', emoji:'🔱', levelRequired:9 },
-  { id:'badge_eternel',  name:'Badge Éternel',  desc:'Au-delà de la Légende',       cost:2500, type:'Badge', emoji:'🌟', levelRequired:10 },
+  { id:'badge_eternel',   name:'Badge Éternel',   desc:'Au-delà de la Légende',         cost:2500, type:'Badge', emoji:'🌟', levelRequired:10 },
+  { id:'badge_empereur',  name:'Badge Empereur',  desc:'Règne du café absolu',          cost:1800, type:'Badge', emoji:'👑', levelRequired:11 },
+  { id:'badge_gardien',   name:'Badge Gardien',   desc:'Protecteur des saveurs',        cost:2000, type:'Badge', emoji:'🛡️', levelRequired:13 },
+  { id:'badge_originel',  name:'Badge Originel',  desc:'Incarnation du premier cookie', cost:4000, type:'Badge', emoji:'🌌', levelRequired:15 },
   // TITRES
   // THÈMES
   { id:'theme_creme',      name:'Thème Cappuccino Mousseux', desc:'Fond rosé crème chaud',     cost:80,   type:'Thème', emoji:'☁️', levelRequired:1 },
@@ -66,6 +86,8 @@ export const REWARDS = [
   { id:'theme_legendaire', name:'Thème Légendaire',          desc:'Fond doré avec particules', cost:1200, type:'Thème', emoji:'💫', levelRequired:6 },
   { id:'theme_mocha_cosmique', name:'Thème Mocha Cosmique',  desc:'Volutes café et étoiles',   cost:900, type:'Thème', emoji:'🪐', levelRequired:8 },
   { id:'theme_aurore',     name:'Thème Aurore Boréale',      desc:'Voiles cosmiques chatoyants', cost:4000, type:'Thème', emoji:'🌌', levelRequired:10 },
+  { id:'theme_elixir',     name:'Thème Élixir Doré',         desc:'Or liquide en fusion',        cost:1500, type:'Thème', emoji:'🧪', levelRequired:12 },
+  { id:'theme_renaissance', name:'Thème Renaissance',         desc:'Flammes de phénix orangées',  cost:2500, type:'Thème', emoji:'🔥', levelRequired:14 },
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements
      spéciaux uniquement. cost:0, flag `limited:true` + `event:<id>`.
      La boutique les masque tant qu'ils ne sont pas dans `unlocked` ;
@@ -105,7 +127,8 @@ export const ACHIEVEMENTS = [
   { id:'jackpot',        name:'Gros Lot !',         desc:'Tu as touché +200 à la roue',              emoji:'🎰', bonus:50,  cafesBonus:1 },
   { id:'level_3',        name:'En Progression !',   desc:'Tu as atteint le niveau 3',                emoji:'⭐', bonus:25  },
   { id:'level_6',        name:'Légende !',          desc:'Tu as atteint le niveau 6 — Légende',      emoji:'👑', bonus:100, cafesBonus:1 },
-  { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau maximum',          emoji:'♾️', bonus:200, cafesBonus:5 },
+  { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau 10 — Éternel',     emoji:'♾️', bonus:200, cafesBonus:5 },
+  { id:'level_15',       name:'Cookie Originel !',  desc:'Tu as atteint le niveau maximum',          emoji:'🌌', bonus:500, cafesBonus:10 },
   { id:'trader',         name:'Trader !',           desc:'Tu as investi 500 cookies en $CKM',        emoji:'💹', bonus:40  },
   /* Caché : ne s'affiche que si l'utilisateur a acheté "Dernier Succès Caché" en boutique premium */
   { id:'master_succes',  name:'Maître Des Succès',  desc:'Tu as tout débloqué',                       emoji:'🎖️', bonus:200, cafesBonus:10, hidden:true },
