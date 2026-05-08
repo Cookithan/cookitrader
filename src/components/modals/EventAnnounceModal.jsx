@@ -147,7 +147,7 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
                 background:'rgba(15,8,4,.55)', border:'1px solid rgba(212,160,23,.4)',
                 color:'#F5DC8A', fontWeight:800, fontSize:12,
               }}>
-                🎯 {event.attemptsLeft ?? MAX_ATTEMPTS} essai{(event.attemptsLeft ?? MAX_ATTEMPTS) > 1 ? 's' : ''}
+                🎯 essais illimités
               </span>
             )}
           </div>

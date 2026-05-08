@@ -6,7 +6,7 @@ import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.j
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { generateUserCode } from "./utils/userCode.js";
-import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, EVENT_LEVEL_MIN } from "./data/events.js";
+import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, EVENT_LEVEL_MIN, SPECIAL_EVENTS } from "./data/events.js";
 import { EventBanner } from "./components/EventBanner.jsx";
 import { EventAnnounceModal } from "./components/modals/EventAnnounceModal.jsx";
 import { EventRewardModal } from "./components/modals/EventRewardModal.jsx";
@@ -958,10 +958,11 @@ export default function CookiMiner() {
   };
 
   /* Vérifie si un challenge en cours matche le type/value passé.
-     Une tentative est consommée à chaque appel pour l'event actif courant.
+     Désormais : essais ILLIMITÉS pendant la fenêtre active (l'user
+     peut continuer à tenter tant que l'event n'a pas expiré).
      - Succès → débloque le thème limité, ouvre la modale de récompense,
        lance le prochain cycle (waiting).
-     - Échec → décrémente attemptsLeft. Si 0, lance le prochain cycle. */
+     - Échec → silencieux, l'user peut réessayer. */
   const checkEventChallenge = (type, value) => {
     const ev = activeEvent;
     if(!ev || ev.phase !== 'active') return;
@@ -980,17 +981,29 @@ export default function CookiMiner() {
       if(ev.reward.cafeBonus > 0) setCafes(c => c + ev.reward.cafeBonus);
       setEventReward(ev.reward);
       triggerNextEvent();
-      return;
     }
-
-    /* Échec d'une tentative */
-    const newAttempts = ev.attemptsLeft - 1;
-    if(newAttempts <= 0){
-      triggerNextEvent();
-    } else {
-      setActiveEvent(prev => prev ? ({ ...prev, attemptsLeft: newAttempts }) : prev);
-    }
+    /* Pas de décrément d'essais — l'user peut continuer tant que
+       l'event est actif (jusqu'à expiresAt). */
   };
+
+  /* Auto-débloquage du thème Flamme Vivante : si streak >= 5 atteint
+     à n'importe quel moment, on accorde le thème (peu importe que
+     l'event_streak soit actif, en waiting, ou pas encore tiré du
+     cycle). Évite la galère "j'ai 5 jours mais l'event n'est pas là". */
+  useEffect(() => {
+    if(streak < 5) return;
+    if(completedEvents.includes('event_streak')) return;
+    const tpl = SPECIAL_EVENTS.find(e => e.id === 'event_streak');
+    if(!tpl) return;
+    if(unlocked.includes(tpl.reward.id)) return;
+    setUnlocked(u => [...u, tpl.reward.id]);
+    setCompletedEvents(c => [...c, 'event_streak']);
+    if(tpl.reward.cafeBonus > 0) setCafes(c => c + tpl.reward.cafeBonus);
+    setEventReward(tpl.reward);
+    /* Si event_streak est l'event actif courant, on enchaîne au suivant */
+    if(activeEvent?.id === 'event_streak') triggerNextEvent();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streak]);
 
   /* Initialisation : si level >= 4 et pas d'event en cours → on lance
      un waiting. Couvre le cas du 1er passage au niveau 4. */

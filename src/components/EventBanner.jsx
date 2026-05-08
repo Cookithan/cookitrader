@@ -71,7 +71,6 @@ export function EventBanner({ event, onView }){
   /* phase 'active' */
   const ms = event.expiresAt - now;
   if(ms <= 0) return null;
-  const attempts = event.attemptsLeft ?? MAX_ATTEMPTS;
 
   return (
     <button
@@ -92,7 +91,7 @@ export function EventBanner({ event, onView }){
           {event.title}
         </div>
         <div style={{ fontSize:11, opacity:.92, fontWeight:600 }}>
-          ⏱️ {formatTimeLeft(ms)} · 🎯 {attempts} essai{attempts > 1 ? 's' : ''}
+          ⏱️ {formatTimeLeft(ms)} · essais illimités
         </div>
       </div>
       <span style={{
