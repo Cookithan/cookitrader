@@ -25,9 +25,11 @@ import {
 export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, userCode, restorePin, C }) {
 
   /* PIN reveal toggle + feedback copie */
-  const [pinRevealed, setPinRevealed] = useState(false);
-  const [pinCopied,   setPinCopied]   = useState(false);
-  const [codeCopied,  setCodeCopied]  = useState(false);
+  const [pinRevealed,      setPinRevealed]      = useState(false);
+  const [pinCopied,        setPinCopied]        = useState(false);
+  const [codeCopied,       setCodeCopied]       = useState(false);
+  /* Carte 'Mes infos de récupération' collapsée par défaut (trop volumineuse) */
+  const [recoveryRevealed, setRecoveryRevealed] = useState(false);
 
   const copyText = async (txt, kind) => {
     try{
@@ -237,20 +239,70 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             </div>
           </div>
 
-          {/* Carte infos de récupération — code + PIN. Code toujours visible
-              (même que le code ami), PIN caché par défaut + toggle révéler. */}
-          {(userCode || restorePin) && (
+          {/* Carte infos de récupération — collapsée par défaut, révélée
+              au tap pour ne pas occuper trop de place. */}
+          {(userCode || restorePin) && !recoveryRevealed && (
+            <button
+              onClick={() => setRecoveryRevealed(true)}
+              style={{
+                width:'100%', borderRadius:16,
+                background:'linear-gradient(140deg, rgba(212,160,23,.08), rgba(193,127,60,.06))',
+                border:'1px solid rgba(212,160,23,.32)',
+                padding:'14px 16px', marginBottom:8,
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                <div style={{
+                  width:34, height:34, borderRadius:9,
+                  background:'rgba(212,160,23,.12)',
+                  border:'1px solid rgba(212,160,23,.3)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0,
+                }}>
+                  <Lock size={14} color="#D4A017" />
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    Mes infos de récupération
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    Code + PIN pour récupérer ton compte
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:11, fontWeight:700, color:'#D4A017', flexShrink:0, letterSpacing:.3 }}>
+                Voir plus →
+              </span>
+            </button>
+          )}
+
+          {(userCode || restorePin) && recoveryRevealed && (
             <div style={{
               borderRadius:16,
               background:'linear-gradient(140deg, rgba(212,160,23,.08), rgba(193,127,60,.06))',
               border:'1px solid rgba(212,160,23,.32)',
               padding:'14px 16px', marginBottom:8,
             }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <Lock size={14} color="#D4A017" />
-                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                  Mes infos de récupération
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
+                  <Lock size={14} color="#D4A017" />
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    Mes infos de récupération
+                  </div>
                 </div>
+                <button
+                  onClick={() => { setRecoveryRevealed(false); setPinRevealed(false); }}
+                  style={{
+                    background:'transparent', border:'none',
+                    fontSize:11, fontWeight:700, color:C.muted,
+                    cursor:'pointer', padding:4,
+                    textDecoration:'underline',
+                  }}
+                >
+                  Réduire
+                </button>
               </div>
 
               {/* Ligne CODE */}
