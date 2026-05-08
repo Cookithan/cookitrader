@@ -67,14 +67,29 @@ function rewardFor(score, total){
   return 0;
 }
 
-/* Tire `n` indices distincts dans [0, max[, mélangés. */
+/* Tire `n` indices dans [0, max[, mélangés. Si n > max (ex: 8 questions
+   pour 5 clients), on cycle plusieurs fois en évitant la répétition
+   consécutive entre 2 cycles. Garantit toujours `n` éléments → pas
+   d'`undefined` qui ferait planter le rendu CafeScene. */
 function pickCustomerIndices(n, max){
-  const all = Array.from({ length: max }, (_, i) => i);
-  for(let i = all.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i+1));
-    [all[i], all[j]] = [all[j], all[i]];
+  if(max === 0) return [];
+  const result = [];
+  while(result.length < n){
+    const cycle = Array.from({ length: max }, (_, i) => i);
+    /* Fisher-Yates shuffle */
+    for(let i = cycle.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [cycle[i], cycle[j]] = [cycle[j], cycle[i]];
+    }
+    /* Eviter qu'un cycle commence par le même client que le dernier ajouté */
+    if(result.length > 0 && cycle[0] === result[result.length - 1] && cycle.length > 1){
+      [cycle[0], cycle[1]] = [cycle[1], cycle[0]];
+    }
+    for(let i = 0; i < cycle.length && result.length < n; i++){
+      result.push(cycle[i]);
+    }
   }
-  return all.slice(0, n);
+  return result;
 }
 
 export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, C }){
