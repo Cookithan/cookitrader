@@ -32,6 +32,14 @@ export const THEMES = {
   theme_trader:          { dark:true, bg:'linear-gradient(140deg,#1A0F08 0%,#3D2010 50%,#5C3317 100%)', card:'#2D1A0E', card2:'#3D2614', text:'#F5DCB8', muted:'#B89878', border:'#5C3317' },
   /* Flamme Vivante — clair-orangé chaleureux, ambiance brasero (event_streak) */
   theme_flamme:          { dark:false, bg:'linear-gradient(160deg,#FFE5C8 0%,#FFCC8A 50%,#E8985A 100%)', card:'#FFF4E5', card2:'#FFE0B8', text:'#5C2810', muted:'#B86A28', border:'#FFCC8A' },
+
+  /* Niv 12 — Élixir Doré : or liquide en fusion. Sombre chaud, dégradé
+     ambré profond avec accents miel. Accents or sur fond bordeaux café. */
+  theme_elixir:          { dark:true, bg:'linear-gradient(160deg,#1A0E04 0%,#3D2410 30%,#8B5A14 60%,#5C3614 100%)', card:'#2D1A0A', card2:'#3D2614', text:'#FFE5A8', muted:'#C8A05A', border:'#5C3614', sparkles:true },
+
+  /* Niv 14 — Renaissance : flammes de phénix orangées, dégradé chaud
+     avec touches dorées qui montent. Café profond → ambre → orange feu. */
+  theme_renaissance:     { dark:true, bg:'linear-gradient(160deg,#1A0804 0%,#3D1808 25%,#7D2E0E 55%,#C85820 85%,#E88840 100%)', card:'#2D1408', card2:'#4A1E0C', text:'#FFE0B8', muted:'#D49060', border:'#7D2E0E', sparkles:true },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';

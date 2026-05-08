@@ -9,6 +9,7 @@ import { MemoryGame } from "../games/MemoryGame.jsx";
 import { GuessGame } from "../games/GuessGame.jsx";
 import { ReflexGame } from "../games/ReflexGame.jsx";
 import { PyramidGame } from "../games/PyramidGame.jsx";
+import { SlotGame } from "../games/SlotGame.jsx";
 
 /* ════════════════════════════════════════════════════
    GameOverlay — wrapper plein écran (z-index 50)
@@ -18,7 +19,7 @@ import { PyramidGame } from "../games/PyramidGame.jsx";
 ═══════════════════════════════════════════════════════ */
 
 export function GameOverlay({ gameView, onClose, coins, level, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onUpdateRecord, onJackpot, onEventChallenge, activeSkin, activeRoue, C }) {
-  const TITLES = { checkin:'Série du jour', quiz:'Quiz du jour', spin:'Roue de la chance', click:'Cookie Click', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes cookies', pyramid:'Pile de Tasses' };
+  const TITLES = { checkin:'Série du jour', quiz:'Quiz du jour', spin:'Roue de la chance', click:'Cookie Click', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes cookies', pyramid:'Pile de Tasses', slot:'Machine à Sous' };
   return (
     <div style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column' }}>
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
@@ -41,6 +42,7 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
         {gameView==='guess'   && <GuessGame   coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} C={C} />}
         {gameView==='reflex'  && <ReflexGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} C={C} />}
         {gameView==='pyramid' && <PyramidGame coins={coins} onEarn={onClickEarn} onSpend={onSpend} C={C} />}
+        {gameView==='slot'    && <SlotGame    coins={coins} onEarn={onClickEarn} onSpend={onSpend} C={C} />}
       </div>
     </div>
   );

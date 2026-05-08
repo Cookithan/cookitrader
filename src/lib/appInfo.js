@@ -11,14 +11,27 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.6.0',
-  releaseDate: '2026-05-08',
+  version: '1.7.0',
+  releaseDate: '2026-05-09',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.7.0',
+    date: '2026-05-09',
+    title: '🎰 Niveaux 11-15 + Machine à Sous',
+    changes: [
+      "🆙 5 nouveaux niveaux : Empereur Caféiné → Cookie Originel",
+      "🎰 Nouveau mini-jeu Machine à Sous (débloqué niv 13)",
+      "🛡️ 3 badges et 2 thèmes en plus dans la boutique",
+      "🌌 Endgame XP→☕ décalé du niv 10 au niv 15 — plus de progression",
+      "📜 Restauration complète de profil avec PIN sécurisé",
+      "🔄 Récupère ton compte sur un autre appareil avec ton code + PIN",
+    ],
+  },
   {
     version: '1.6.0',
     date: '2026-05-08',

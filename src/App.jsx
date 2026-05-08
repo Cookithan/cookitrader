@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock } from "lucide-react";
+import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5 } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
@@ -609,8 +609,8 @@ export default function CookiMiner() {
     if(xpDelta <= 0) return;
 
     /* Bonus passif niveau 9 (Maître Mythique) : +15 % XP sur tous les
-       gains. Stacke avec endgame XP du niveau 10 — l'XP boostée alimente
-       aussi le compteur 1000 XP = +1 ☕ une fois au niv 10. */
+       gains. Stacke avec endgame XP du niveau 15 — l'XP boostée alimente
+       aussi le compteur 1000 XP = +1 ☕ une fois au niv 15. */
     if(lvRef.current >= 9){
       xpDelta = Math.round(xpDelta * 1.15);
     }
@@ -620,11 +620,12 @@ export default function CookiMiner() {
     const lv  = lvRef.current;
     const cur = xpRef.current;
 
-    /* Endgame : à partir du niveau 10 (max), chaque palier de 1000 XP
+    /* Endgame : à partir du niveau 15 (max), chaque palier de 1000 XP
        gagnés rapporte 1 ☕. L'XP visible repart de 0 à chaque palier
-       (xp = total % 1000). Multi-CF possible si xpDelta très gros. */
+       (xp = total % 1000). Multi-CF possible si xpDelta très gros.
+       (Décalé de 10→15 le 09/05/2026 avec l'extension niv 11-15.) */
     const ENDGAME_XP_TIER = 1000;
-    if(lv>=10){
+    if(lv>=15){
       const total = cur + xpDelta;
       const cfsEarned = Math.floor(total / ENDGAME_XP_TIER);
       const remainder = total - cfsEarned * ENDGAME_XP_TIER;
@@ -1024,6 +1025,7 @@ export default function CookiMiner() {
       ['level_3',        level >= 3],
       ['level_6',        level >= 6],
       ['level_10',       level >= 10],
+      ['level_15',       level >= 15],
       ['trader',         totalInvested >= 500],
       ['master_succes',  masterRevealed && allOthersDone],
     ];
@@ -1056,6 +1058,7 @@ export default function CookiMiner() {
     { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc:'5 questions café',          reward:'0 à 100 cookies (coût 5🍪)', avail:coins>=5,  color:'#8B5A2B', levelRequired:3 },
     { id:'reflex',  Icon:Timer,             title:'Réflexes cookies',     desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies (coût 5🍪)', avail:coins>=5, color:'#D4A017', levelRequired:4 },
     { id:'pyramid', Icon:Coffee,            title:'Pile de Tasses',       desc:'Empile sans rater',         reward:'5 à 100 cookies (coût 10🍪)', avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
+    { id:'slot',    Icon:Dice5,             title:'Machine à Sous',       desc:'3 rouleaux, gros lots',     reward:'+25 à +750 cookies (coût 30🍪)', avail:coins>=30, color:'#5C3614', levelRequired:13 },
   ];
 
   const s = {
