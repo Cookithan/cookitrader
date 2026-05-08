@@ -2,31 +2,31 @@ import { useEffect, useRef, useState } from "react";
 import { COOKIE_SKINS, GOLD } from "../../data/themes.js";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
+import { ClickTracker } from "../../lib/antiCheat.js";
 
 /* ════════════════════════════════════════════════════
    ClickGame — défi de clics 5s
    - COST = 5 cookies pour démarrer
-   - Reward = floor(clicks / 2) cookies, plafonné à MAX_REWARD
+   - Reward = floor(clicks / 2) cookies
    - Phases : idle → countdown (3,2,1,GO) → playing (5s) → done
    - Combos visuels : 5 taps rapides = x2, 12 = x3, 20 = x4 (pas d'effet sur reward)
    - Si clicks > bestScore : confettis + onUpdateRecord
    - Si activeSkin est défini et présent dans COOKIE_SKINS : on utilise SkinnedCookie
      sinon on retombe sur PremiumCookie (par défaut)
 
-   Anti auto-clicker (2 verrous) :
-   1. Throttle MIN_TAP_INTERVAL_MS — un tap < 50 ms après le précédent
-      est ignoré (pas de comptage, pas d'animation). Cap technique à
-      ~20 CPS = 100 clics / 5 s. Un humain expert (~13 CPS) reste libre.
-   2. MAX_REWARD = 100 🍪 — cap dur sur les cookies versés, défense en
-      profondeur si un exploit contourne le throttle (ex : devtools
-      forçant clickRef). Le compteur de clics et le record affichés
-      restent réels, seule la récompense est plafonnée.
+   Anti auto-clicker (BRIEF_ANTICHEAT) — tout est délégué au ClickTracker
+   instancié au début de chaque partie :
+   - Cap dur 12 CPS (fenêtre glissante 1 s)
+   - Score max 150 clics par partie
+   - Détection de pattern bot (variance des intervalles < 5 ms sur 10 clics)
+   Les clics rejetés ne sont pas comptés ni animés. Si un cheat est
+   détecté, un warning visuel "moka" est affiché 1.5 s. Le score final
+   versé à onEarn / onUpdateRecord vient toujours de getValidScore(),
+   jamais du compteur visuel — fiabilité 100 %.
 ═══════════════════════════════════════════════════════ */
 
 export const CLICK_DURATION = 5;
 export const CLICK_COST = 5;
-const MIN_TAP_INTERVAL_MS = 50;
-const MAX_REWARD = 100;
 
 export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
@@ -42,26 +42,22 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   const [pressed,       setPressed]       = useState(false);
   const [showConfetti,  setShowConfetti]  = useState(false);
   const [recordHit,     setRecordHit]     = useState(false);
+  const [warningMessage,setWarningMessage]= useState(null);
 
   const lastTapRef     = useRef(0);
   const comboCountRef  = useRef(0);
   const timerRef       = useRef(null);
   const countdownRef   = useRef(null);
   const clickRef       = useRef(0);
+  const trackerRef     = useRef(null);
+  const warningTRef    = useRef(null);
 
   /* Cleanup */
   useEffect(()=>()=>{
     if(timerRef.current) clearInterval(timerRef.current);
     if(countdownRef.current) clearInterval(countdownRef.current);
+    if(warningTRef.current) clearTimeout(warningTRef.current);
   },[]);
-
-  /* Sanitisation : un record antérieur > MAX_REWARD (stocké en
-     localStorage avant l'introduction du cap) est ramené à 100 dès
-     l'ouverture du jeu, sinon le compteur affiché serait capé à 100
-     mais aucun "nouveau record" ne pourrait plus être déclenché. */
-  useEffect(() => {
-    if(bestScore > MAX_REWARD) onUpdateRecord(MAX_REWARD);
-  }, [bestScore, onUpdateRecord]);
 
   /* Combo reset visuel */
   useEffect(()=>{
@@ -79,18 +75,21 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
   const endGame = () => {
     setPhase('done');
-    const finalClicks = clickRef.current;
-    const earned = Math.min(MAX_REWARD, Math.floor(finalClicks / 2));
+    /* Score fiable : on ignore le compteur visuel (clickRef) et on
+       prend la valeur validée par le ClickTracker (max 150, capée
+       même en cas d'exploit qui aurait contourné registerClick). */
+    const finalClicks = trackerRef.current ? trackerRef.current.getValidScore() : clickRef.current;
+    const earned = Math.floor(finalClicks / 2);
     if(earned > 0) onEarn(earned);
-    /* Record plafonné à MAX_REWARD : une fois à 100, le test
-       newRecord > bestScore renvoie 100 > 100 = false, donc plus
-       jamais d'update — le record se fige. */
-    const newRecord = Math.min(MAX_REWARD, finalClicks);
-    if(newRecord > bestScore){
-      onUpdateRecord(newRecord);
+    if(finalClicks > bestScore){
+      onUpdateRecord(finalClicks);
       setRecordHit(true);
       setShowConfetti(true);
       setTimeout(()=>setShowConfetti(false), 1500);
+    }
+    if(trackerRef.current?.cheatDetected){
+      // eslint-disable-next-line no-console
+      console.warn('[anticheat] Cheat detected:', trackerRef.current.cheatReason);
     }
     /* PHASE 6E — challenge click_50 : 50 clics ou plus en 5s */
     onEventChallenge?.('click_50', finalClicks);
@@ -104,6 +103,10 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     setTimeLeft(CLICK_DURATION);
     comboCountRef.current = 0;
     lastTapRef.current = 0;
+    /* Nouveau tracker à chaque partie — pas de fuite d'état entre runs */
+    trackerRef.current = new ClickTracker();
+    setWarningMessage(null);
+    if(warningTRef.current){ clearTimeout(warningTRef.current); warningTRef.current = null; }
 
     let n = 3;
     setCountdownVal(n);
@@ -142,14 +145,25 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   const handleTap = (e) => {
     if(phase !== 'playing') return;
     if(e && e.preventDefault) e.preventDefault();
+    if(!trackerRef.current) return;
 
-    /* Throttle anti auto-clicker : un tap < 50 ms après le précédent
-       est ignoré côté gameplay ET côté animation. lastTapRef n'est mis
-       à jour que par les taps validés, donc 2 taps successifs séparés
-       de 30 ms ne passent qu'une fois. */
+    /* Délégation au ClickTracker : 12 CPS max + cap 150 + détection
+       pattern bot. Si le clic est rejeté on n'incrémente rien et on
+       affiche un warning si c'est de la triche. */
+    const result = trackerRef.current.registerClick();
+    if(!result.accepted){
+      if(result.isCheat){
+        setWarningMessage(result.reason);
+        if(warningTRef.current) clearTimeout(warningTRef.current);
+        warningTRef.current = setTimeout(()=>{
+          setWarningMessage(null);
+          warningTRef.current = null;
+        }, 1500);
+      }
+      return;
+    }
+
     const now = Date.now();
-    if(now - lastTapRef.current < MIN_TAP_INTERVAL_MS) return;
-
     clickRef.current += 1;
     setClicks(c => c + 1);
     setPressed(true);
@@ -188,9 +202,9 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   : phase === 'playing'   ? '🍪 Tape !'
   :                         `Rejouer (${CLICK_COST} 🍪)`;
 
-  /* Bannière de fin — même cap que endGame, sinon l'écran promet
-     plus que ce qui a été crédité. */
-  const earnedFinal = Math.min(MAX_REWARD, Math.floor(clicks / 2));
+  /* Bannière de fin — clicks reflète déjà uniquement les clics validés
+     par le tracker (max 150 par construction). */
+  const earnedFinal = Math.floor(clicks / 2);
   const cps = (clicks / CLICK_DURATION).toFixed(1);
   const banner = phase === 'done'
     ? (recordHit
@@ -203,6 +217,24 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14, paddingTop:6, position:'relative' }}>
+
+      {/* Avertissement anti-cheat (BRIEF_ANTICHEAT) — moka, pas rouge */}
+      {warningMessage && (
+        <div style={{
+          position:'absolute', top:-4, left:'50%',
+          transform:'translateX(-50%)',
+          background:'linear-gradient(135deg,#7D4E1F,#5C3317)',
+          color:'#fff',
+          padding:'8px 16px', borderRadius:12,
+          fontSize:12, fontWeight:800,
+          boxShadow:'0 4px 12px rgba(125,78,31,0.4)',
+          zIndex:100, pointerEvents:'none',
+          animation:'cheatWarning .3s ease-out',
+          whiteSpace:'nowrap',
+        }}>
+          ⚠️ {warningMessage}
+        </div>
+      )}
 
       {/* 3 cartes stats */}
       <div style={{ display:'flex', gap:8, width:'100%', maxWidth:360 }}>
@@ -222,7 +254,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
           style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${recordHit?'#D4A017':C.border}`, textAlign:'center', boxShadow: recordHit?'0 0 16px rgba(212,160,23,.5)':'0 2px 8px rgba(0,0,0,.04)', transition:'all .25s', animation: recordHit ? 'recordPulse 1s ease-in-out infinite' : 'none' }}
         >
           <div style={{ fontSize:11 }}>🏆</div>
-          <div style={{ fontSize:22, fontWeight:900, color: recordHit?'#D4A017':C.text, letterSpacing:'-.5px', lineHeight:1.1 }}>{Math.min(MAX_REWARD, Math.max(bestScore, recordHit?clicks:0))}</div>
+          <div style={{ fontSize:22, fontWeight:900, color: recordHit?'#D4A017':C.text, letterSpacing:'-.5px', lineHeight:1.1 }}>{Math.max(bestScore, recordHit?clicks:0)}</div>
           <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Record</div>
         </div>
       </div>
