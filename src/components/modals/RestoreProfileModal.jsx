@@ -18,7 +18,15 @@ import { restoreProfile } from "../../lib/supabaseSync.js";
                           "données actuelles remplacées" en haut
      C
 ═══════════════════════════════════════════════════════ */
-export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C }){
+export function RestoreProfileModal({
+  onCancel,
+  onSuccess,
+  warning = false,
+  knownAccounts = [],
+  currentUserCode = '',
+  onForgetAccount,
+  C,
+}){
   const [code,    setCode]    = useState('');
   const [pin,     setPin]     = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,6 +59,20 @@ export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C })
   const isCodeValid = /^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code);
   const isPinValid  = /^\d{4}$/.test(pin);
   const isValid     = isCodeValid && isPinValid;
+
+  /* Comptes connus filtrés (exclut le compte courant — on switch vers
+     un AUTRE). Le PIN n'est jamais stocké, donc tap sur un compte =
+     pré-remplir le code, le user retape son PIN. */
+  const switchableAccounts = (knownAccounts || []).filter(
+    a => a && a.userCode && a.userCode !== currentUserCode,
+  );
+
+  const handlePickAccount = (acc) => {
+    setCode(acc.userCode);
+    setPin('');
+    setError(null);
+    setTimeout(() => pinInputRef.current?.focus(), 50);
+  };
 
   const handleRestore = async () => {
     if(loading || !isValid) return;
@@ -116,6 +138,86 @@ export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C })
             </div>
             Ton compte actuel reste sauvegardé en ligne — tu pourras y revenir
             en restaurant à nouveau avec son code + PIN.
+          </div>
+        )}
+
+        {/* Comptes récents — tap pour pré-remplir le code (PIN reste à taper) */}
+        {switchableAccounts.length > 0 && (
+          <div style={{ marginBottom:14 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:6 }}>
+              Comptes récents
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {switchableAccounts.map(acc => {
+                const isSelected = code === acc.userCode;
+                return (
+                  <div
+                    key={acc.userCode}
+                    style={{
+                      display:'flex', alignItems:'center', gap:8,
+                      padding:'8px 10px', borderRadius:11,
+                      background: isSelected ? 'rgba(212,160,23,.15)' : C.bg,
+                      border: isSelected ? '1.5px solid #D4A017' : `1px solid ${C.border}`,
+                      transition:'all .2s',
+                    }}
+                  >
+                    <button
+                      onClick={() => handlePickAccount(acc)}
+                      style={{
+                        flex:1, minWidth:0,
+                        background:'transparent', border:'none',
+                        cursor:'pointer', padding:0, textAlign:'left',
+                        display:'flex', alignItems:'center', gap:8,
+                      }}
+                    >
+                      <div style={{
+                        width:32, height:32, borderRadius:9,
+                        background:'rgba(212,160,23,.18)',
+                        border:'1px solid rgba(212,160,23,.32)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:14, flexShrink:0,
+                      }}>
+                        ☕
+                      </div>
+                      <div style={{ minWidth:0, flex:1 }}>
+                        <div style={{
+                          fontSize:13, fontWeight:800, color:C.text,
+                          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                        }}>
+                          {acc.userName || 'Anonyme'}
+                        </div>
+                        <div style={{
+                          fontSize:10, color:'#D4A017', fontWeight:700, marginTop:1,
+                          letterSpacing:1.5,
+                          fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+                        }}>
+                          {acc.userCode}
+                        </div>
+                      </div>
+                    </button>
+                    {onForgetAccount && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onForgetAccount(acc.userCode); }}
+                        aria-label="Oublier ce compte"
+                        title="Oublier ce compte"
+                        style={{
+                          width:26, height:26, borderRadius:8,
+                          background:'transparent', border:`1px solid ${C.border}`,
+                          color:C.muted, fontSize:12, cursor:'pointer',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          flexShrink:0,
+                        }}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize:10, color:C.muted, fontStyle:'italic', marginTop:6, textAlign:'center' }}>
+              Tap pour pré-remplir le code · le PIN reste à saisir
+            </div>
           </div>
         )}
 

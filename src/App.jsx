@@ -190,6 +190,10 @@ export default function CookiMiner() {
      auto-générés au 1er besoin pour bloquer les restaurations
      non-autorisées. Visible dans Settings, requis dans RestoreProfileModal. */
   const [restorePin,         setRestorePin]         = useLocalStorage('restorePin', '');
+  /* Comptes connus (pour switch rapide via RestoreProfileModal). On stocke
+     userCode + userName + lastUsed UNIQUEMENT — le PIN n'est JAMAIS
+     persisté ici (toujours retapé pour valider le switch). Cap 5 entrées. */
+  const [knownAccounts,      setKnownAccounts]      = useLocalStorage('knownAccounts', []);
 
   /* Auto-génération du PIN au 1er besoin : si on a un userCode mais
      pas encore de PIN (compte fraîchement créé OU compte existant
@@ -201,6 +205,19 @@ export default function CookiMiner() {
     const pin = String(Math.floor(1000 + Math.random() * 9000));
     setRestorePin(pin);
   }, [userCode, restorePin, setRestorePin]);
+
+  /* Auto-ajout du compte courant à la liste knownAccounts. Si déjà
+     présent, on met juste à jour userName + lastUsed (utile si le
+     pseudo a changé). Cap 5 entrées (les + récentes). */
+  useEffect(() => {
+    if(!userCode || !userName) return;
+    setKnownAccounts(prev => {
+      const arr = Array.isArray(prev) ? prev : [];
+      const others = arr.filter(a => a && a.userCode !== userCode);
+      const next = [{ userCode, userName, lastUsed: Date.now() }, ...others];
+      return next.slice(0, 5);
+    });
+  }, [userCode, userName, setKnownAccounts]);
 
   /* État "online" optimiste : on suppose que la sync marche. Ne passe
      à `error` que si un upsert échoue (réseau, RLS, etc.). Ça évite
@@ -766,6 +783,23 @@ export default function CookiMiner() {
      name_change_count/earned_achievements/active_theme (08/05/2026), la
      restauration ramène TOUT ce qui compte. */
   const handleRestoreSuccess = useCallback((data) => {
+    /* Lire la liste des comptes connus + le compte courant AVANT le wipe.
+       On veut préserver la liste à travers le reload, et y ajouter
+       l'ancien compte (celui qu'on quitte) + le nouveau (celui qu'on
+       charge) pour faciliter les futurs switchs. */
+    let known = [];
+    let oldUserCode = '';
+    let oldUserName = '';
+    try{
+      const rawList = localStorage.getItem('cookiminer:knownAccounts');
+      const parsedList = rawList ? JSON.parse(rawList) : [];
+      if(Array.isArray(parsedList)) known = parsedList;
+      const rawCode = localStorage.getItem('cookiminer:userCode');
+      const rawName = localStorage.getItem('cookiminer:userName');
+      if(rawCode) oldUserCode = JSON.parse(rawCode);
+      if(rawName) oldUserName = JSON.parse(rawName);
+    }catch{}
+
     try{
       const keysToRemove = [];
       for(let i = 0; i < localStorage.length; i++){
@@ -808,6 +842,22 @@ export default function CookiMiner() {
     if(data.portfolio?.invested != null){
       set('totalInvested', data.portfolio.invested);
     }
+
+    /* Reconstruit la liste knownAccounts : nouveau compte en tête,
+       ancien compte juste après (si différent), puis les autres comptes
+       déjà connus dédupliqués. Cap 5. */
+    const merged = [
+      { userCode: data.userCode, userName: data.userName, lastUsed: Date.now() },
+    ];
+    if(oldUserCode && oldUserCode !== data.userCode){
+      merged.push({ userCode: oldUserCode, userName: oldUserName, lastUsed: Date.now() - 1 });
+    }
+    known.forEach(a => {
+      if(a && a.userCode && !merged.find(m => m.userCode === a.userCode)){
+        merged.push(a);
+      }
+    });
+    set('knownAccounts', merged.slice(0, 5));
 
     /* Reload pour repartir d'un état propre — tous les useState
        useLocalStorage relisent leurs valeurs au mount. */
@@ -1518,6 +1568,11 @@ export default function CookiMiner() {
           warning={restoreMode === 'replace'}
           onCancel={()=>setRestoreMode(null)}
           onSuccess={handleRestoreSuccess}
+          knownAccounts={knownAccounts}
+          currentUserCode={userCode}
+          onForgetAccount={(codeToForget) => {
+            setKnownAccounts(arr => (Array.isArray(arr) ? arr : []).filter(a => a && a.userCode !== codeToForget));
+          }}
           C={C}
         />
       )}

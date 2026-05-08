@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════
    CONSTANTES GAMEPLAY
-   - LEVEL_NAMES : titre de chaque palier (1..10)
+   - LEVEL_NAMES : titre de chaque palier (1..15)
    - xpRequired  : XP nécessaire pour passer au niveau suivant
                     · 1..5  → level*100+50  (linéaire, montée rapide)
                     · 6..9  → level²*50     (palier durci pour le end-game)
