@@ -974,8 +974,12 @@ export default function CookiMiner() {
   /* Tire le prochain event en phase 'waiting' (timer 1h-24h aléatoire,
      ou 1-3 min en mode dev "Admin"). Si tous les events ont déjà
      été complétés → setActiveEvent(null) : plus de cycle. */
-  const triggerNextEvent = () => {
-    const tpl = pickRandomEvent(completedEvents);
+  const triggerNextEvent = (justWonId = null) => {
+    /* `justWonId` : id de l'event qu'on vient de gagner. setCompletedEvents
+       étant asynchrone, le closure peut encore avoir l'ancienne liste — on
+       l'exclut explicitement pour éviter de retirer le nouvel event sur
+       celui qu'on vient de gagner. */
+    const tpl = pickRandomEvent(completedEvents, justWonId);
     if(!tpl){ setActiveEvent(null); return; }
     const devMode = (userName || '').trim().toLowerCase() === ADMIN_NAME;
     setActiveEvent(buildWaitingEvent(tpl, devMode));
@@ -1025,7 +1029,7 @@ export default function CookiMiner() {
       /* Bonus ☕ en plus du thème — affiché par EventRewardModal */
       if(ev.reward.cafeBonus > 0) setCafes(c => c + ev.reward.cafeBonus);
       setEventReward(ev.reward);
-      triggerNextEvent();
+      triggerNextEvent(ev.id);   // exclure l'event qu'on vient de gagner
     }
     /* Pas de décrément d'essais — l'user peut continuer tant que
        l'event est actif (jusqu'à expiresAt). */
@@ -1045,8 +1049,9 @@ export default function CookiMiner() {
     setCompletedEvents(c => [...c, 'event_streak']);
     if(tpl.reward.cafeBonus > 0) setCafes(c => c + tpl.reward.cafeBonus);
     setEventReward(tpl.reward);
-    /* Si event_streak est l'event actif courant, on enchaîne au suivant */
-    if(activeEvent?.id === 'event_streak') triggerNextEvent();
+    /* Si event_streak est l'event actif courant, on enchaîne au suivant
+       (en excluant event_streak vu que setCompletedEvents est async) */
+    if(activeEvent?.id === 'event_streak') triggerNextEvent('event_streak');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streak]);
 

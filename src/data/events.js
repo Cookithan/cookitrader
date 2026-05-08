@@ -40,7 +40,7 @@
 
 export const EVENT_LEVEL_MIN     = 4;
 export const WAIT_MIN_MS         =  1 * 3600 * 1000;
-export const WAIT_MAX_MS         = 24 * 3600 * 1000;
+export const WAIT_MAX_MS         = 10 * 3600 * 1000;   // 24h → 10h (09/05/2026)
 export const ACTIVE_DURATION_MS  =  1 * 3600 * 1000;
 export const MAX_ATTEMPTS        = 3;
 
@@ -138,9 +138,16 @@ export const SPECIAL_EVENTS = [
 ];
 
 /* Tire un event parmi ceux pas encore complétés. Retourne null si tous
-   ont déjà été gagnés. */
-export function pickRandomEvent(completedIds = []){
-  const available = SPECIAL_EVENTS.filter(e => !completedIds.includes(e.id));
+   ont déjà été gagnés.
+   `extraExclude` (optionnel) : id supplémentaire à exclure — utile juste
+   après une victoire car setCompletedEvents est asynchrone et le state
+   capturé dans le closure pourrait ne pas encore inclure l'event qu'on
+   vient de gagner, ce qui ferait retomber pickRandomEvent dessus. */
+export function pickRandomEvent(completedIds = [], extraExclude = null){
+  const exclude = extraExclude && !completedIds.includes(extraExclude)
+    ? [...completedIds, extraExclude]
+    : completedIds;
+  const available = SPECIAL_EVENTS.filter(e => !exclude.includes(e.id));
   if(available.length === 0) return null;
   return available[Math.floor(Math.random() * available.length)];
 }
