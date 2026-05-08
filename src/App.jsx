@@ -864,6 +864,59 @@ export default function CookiMiner() {
     window.location.reload();
   }, []);
 
+  /* "Démarrer un nouveau compte" : wipe localStorage (donc onboarding au
+     reload) MAIS sans toucher au compte Supabase (pas de deleteMyProfile).
+     Différent du reset complet — le compte actuel reste sauvegardé en
+     ligne et l'utilisateur peut y revenir via Restaurer un compte.
+     Préserve la liste knownAccounts en y ajoutant le compte courant. */
+  const handleStartNewAccount = useCallback(() => {
+    const ok = window.confirm(
+      "Démarrer un nouveau compte ?\n\n" +
+      "Ton compte actuel sera mémorisé dans 'Comptes récents' et reste " +
+      "sauvegardé en ligne. Tu pourras y revenir via Restaurer un compte " +
+      "avec ton code + PIN."
+    );
+    if(!ok) return;
+
+    let known = [];
+    let oldUserCode = '';
+    let oldUserName = '';
+    try{
+      const rawList = localStorage.getItem('cookiminer:knownAccounts');
+      const parsedList = rawList ? JSON.parse(rawList) : [];
+      if(Array.isArray(parsedList)) known = parsedList;
+      const rawCode = localStorage.getItem('cookiminer:userCode');
+      const rawName = localStorage.getItem('cookiminer:userName');
+      if(rawCode) oldUserCode = JSON.parse(rawCode);
+      if(rawName) oldUserName = JSON.parse(rawName);
+    }catch{}
+
+    try{
+      const keysToRemove = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('cookiminer:')) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    }catch{}
+
+    /* Réécrit knownAccounts avec l'ancien compte en tête */
+    const merged = [];
+    if(oldUserCode){
+      merged.push({ userCode: oldUserCode, userName: oldUserName, lastUsed: Date.now() });
+    }
+    known.forEach(a => {
+      if(a && a.userCode && !merged.find(m => m.userCode === a.userCode)){
+        merged.push(a);
+      }
+    });
+    try{
+      localStorage.setItem('cookiminer:knownAccounts', JSON.stringify(merged.slice(0, 5)));
+    }catch{}
+
+    window.location.reload();
+  }, []);
+
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
      via inbox (handleApplyReward) à la 1re ouverture du message. */
@@ -1548,6 +1601,7 @@ export default function CookiMiner() {
           install={installPrompt}
           onOpenAbout={()=>setShowAbout(true)}
           onOpenRestore={()=>setRestoreMode('replace')}
+          onStartNewAccount={handleStartNewAccount}
           userCode={userCode}
           restorePin={restorePin}
           C={C}
