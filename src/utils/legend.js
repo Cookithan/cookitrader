@@ -52,10 +52,10 @@ export const LEGEND_NAME_STYLE = {
 /* ════════════════════════════════════════════════════
    TITRE CRÉATEUR — exclusif au pseudo "Cookithan"
    ────────────────────────────────────────────────────
-   Le créateur de l'app a un pseudo en mode espresso (gradient café
-   profond avec halo doré subtil). Visuellement distinct de Légende
-   Vivante (or shiny) — espresso = sombre + chaleureux + signature
-   créateur. Priorité sur Légende Vivante quand les 2 matchent.
+   Mode "latte shimmer" : gradient crème → caramel → crème qui défile
+   en continu (anim latteShimmer 3s) avec halo or + ombre café. Effet
+   très distinctif, signature du créateur de l'app. Priorité sur
+   Légende Vivante quand les 2 matchent.
 ═══════════════════════════════════════════════════════ */
 
 export const CREATOR_NAME = 'cookithan';
@@ -65,17 +65,21 @@ export function isCreator(name){
   return (name || '').trim().toLowerCase() === CREATOR_NAME;
 }
 
-/* Style espresso pour le créateur — gradient café profond + halo
-   doré via filter:drop-shadow (compatible avec background-clip:text). */
+/* Style latte shimmer pour le créateur — gradient crème/caramel large
+   (200% × 200%) qui défile via animation `latteShimmer` (cf. globalStyles).
+   Halo or + ombre café via drop-shadow pour ressortir sur fond clair ET
+   sombre. Compatible mobile (iOS Safari + Chrome Android). */
 export const CREATOR_NAME_STYLE = {
-  background: 'linear-gradient(135deg, #1F0E08 0%, #5C3614 35%, #2C1810 70%, #4A2614 100%)',
+  background: 'linear-gradient(135deg, #FFF1DA 0%, #E8C896 25%, #C17F3C 50%, #E8C896 75%, #FFF1DA 100%)',
+  backgroundSize: '200% 200%',
   WebkitBackgroundClip: 'text',
   backgroundClip: 'text',
   WebkitTextFillColor: 'transparent',
-  color: '#2C1810',
+  color: '#C17F3C',
   fontWeight: 900,
-  letterSpacing: .4,
-  filter: 'drop-shadow(0 0 4px rgba(212,160,23,.55))',
+  letterSpacing: .5,
+  filter: 'drop-shadow(0 0 6px rgba(212,160,23,.55)) drop-shadow(0 1px 2px rgba(93,58,31,.4))',
+  animation: 'latteShimmer 3s ease-in-out infinite',
 };
 
 /* Helper combiné : retourne le style à appliquer (créateur > légende > rien).
