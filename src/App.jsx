@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift } from "./lib/supabaseSync.js";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -715,6 +715,21 @@ export default function CookiMiner() {
     }
   }, [addCoins, addCafes, showToast]);
 
+  /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
+     (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
+     via inbox (handleApplyReward) à la 1re ouverture du message. */
+  const handleSendGift = useCallback(async (recipientCode, giftType) => {
+    const balance = { cookies: coins, cf: cafes };
+    const res = await sendGift(userCode, recipientCode, giftType, balance);
+    if(res.success && res.gift){
+      if(res.gift.type === 'cookies') spendCoins(res.gift.amount);
+      else if(res.gift.type === 'cf') setCafes(c => Math.max(0, c - res.gift.amount));
+      playSound('success');
+      showToast(`🎁 Cadeau envoyé !`);
+    }
+    return res;
+  }, [userCode, coins, cafes, spendCoins, setCafes, showToast]);
+
   /* ── ÉVÉNEMENTS SPÉCIAUX (PHASE 6E) ─────────────── */
 
   /* Tire le prochain event en phase 'waiting' (timer 1h-24h aléatoire,
@@ -1408,6 +1423,8 @@ export default function CookiMiner() {
           unreadInboxCount={unreadInboxCount}
           onOpenInbox={()=>{ playSound('modal'); setShowInbox(true); }}
           onOpenFriendProfile={(code)=>{ playSound('modal'); openUserProfile(code, false); }}
+          cafes={cafes}
+          onSendGift={handleSendGift}
           C={C}
         />
       )}

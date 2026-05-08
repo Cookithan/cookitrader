@@ -577,6 +577,124 @@ export async function getPublicProfile(userCode){
   }
 }
 
+/* ════════════════════════════════════════════════════
+   CADEAUX ENTRE AMIS (BRIEF_CADEAUX_AMIS)
+   ────────────────────────────────────────────────────
+   Le sender paye 50 🍪 OU 1 ☕ depuis son solde, le destinataire
+   reçoit la même somme via un message inbox `type='gift'`.
+   Le crédit côté destinataire est appliqué par handleApplyReward
+   (App.jsx) à la 1re ouverture du message — InboxModal garantit
+   l'unicité via is_processed.
+
+   Anti-spam : MAX_PER_DAY=3 cadeaux/24h tous types confondus.
+   La table `gifts_sent` sert uniquement de log pour ce comptage.
+
+   sendGift vérifie 4 conditions avant insert :
+     1. Type valide (cookies | cf)
+     2. < MAX_PER_DAY cadeaux envoyés sur les dernières 24h
+     3. Solde suffisant (passé en arg par le client)
+     4. Le destinataire est bien dans mes amis status='accepted'
+═══════════════════════════════════════════════════════ */
+
+export const GIFT_CONFIG = {
+  COOKIES_AMOUNT: 50,
+  CF_AMOUNT: 1,
+  MAX_PER_DAY: 3,
+};
+
+export const GIFT_TYPES = {
+  cookies: { type:'cookies', amount:50, icon:'🍪', label:'50 cookies' },
+  cf:      { type:'cf',      amount:1,  icon:'☕', label:'1 café'    },
+};
+
+/* Compte les cadeaux envoyés par senderCode dans les 24 dernières heures. */
+export async function getGiftsSentToday(senderCode){
+  if(!isSupabaseEnabled() || !senderCode) return 0;
+  try{
+    const since = new Date(Date.now() - 24*3600*1000).toISOString();
+    const { count, error } = await supabase
+      .from('gifts_sent')
+      .select('*', { count:'exact', head:true })
+      .eq('sender_code', senderCode)
+      .gte('sent_at', since);
+    if(error){ console.warn('[gifts] getGiftsSentToday error:', error); return 0; }
+    return count ?? 0;
+  }catch{ return 0; }
+}
+
+/* Envoie un cadeau à un ami. currentBalance = { cookies, cf } (côté client).
+   Retourne { success, gift } ou { error }. Ne débite PAS le solde local —
+   c'est au caller (App.jsx) de le faire après un success. */
+export async function sendGift(senderCode, recipientCode, giftType, currentBalance = {}){
+  if(!isSupabaseEnabled()) return { error:'Hors ligne' };
+
+  const gift = GIFT_TYPES[giftType];
+  if(!gift) return { error:'Type de cadeau invalide' };
+  if(!senderCode || !recipientCode) return { error:'Code manquant' };
+  if(senderCode === recipientCode) return { error:'Pas à toi-même' };
+
+  try{
+    /* 1. Limite 3/jour */
+    const todayCount = await getGiftsSentToday(senderCode);
+    if(todayCount >= GIFT_CONFIG.MAX_PER_DAY){
+      return { error:`Limite atteinte (${GIFT_CONFIG.MAX_PER_DAY} cadeaux/jour)` };
+    }
+
+    /* 2. Solde suffisant (vérif côté client — la valeur est passée en arg) */
+    if(gift.type === 'cookies' && (currentBalance.cookies ?? 0) < gift.amount){
+      return { error:`Pas assez de cookies (besoin ${gift.amount})` };
+    }
+    if(gift.type === 'cf' && (currentBalance.cf ?? 0) < gift.amount){
+      return { error:`Pas assez de cafés (besoin ${gift.amount})` };
+    }
+
+    /* 3. Mon profil + check amitié acceptée */
+    const { data: me } = await supabase
+      .from('users')
+      .select('id, user_name')
+      .eq('user_code', senderCode)
+      .maybeSingle();
+    if(!me) return { error:'Profil introuvable' };
+
+    const { data: friendship } = await supabase
+      .from('friendships')
+      .select('id')
+      .eq('user_id', me.id)
+      .eq('friend_code', recipientCode)
+      .eq('status', 'accepted')
+      .maybeSingle();
+    if(!friendship) return { error:"Pas dans tes amis" };
+
+    /* 4. Log dans gifts_sent (pour le comptage anti-spam) */
+    const { error: logErr } = await supabase.from('gifts_sent').insert({
+      sender_code: senderCode,
+      recipient_code: recipientCode,
+      type: gift.type,
+      amount: gift.amount,
+    });
+    if(logErr){
+      console.warn('[gifts] insert log error:', logErr);
+      notifySupabaseError();
+      return { error:'Erreur réseau' };
+    }
+
+    /* 5. Inbox côté destinataire — payload typé pour handleApplyReward */
+    const senderName = me.user_name || 'Un ami';
+    await createInboxMessage(
+      recipientCode,
+      'gift',
+      `🎁 ${senderName} t'a offert ${gift.amount} ${gift.icon} !`,
+      `Ouvre ce message pour récupérer ton cadeau.`,
+      { type: gift.type, amount: gift.amount, senderCode, senderName },
+    );
+
+    return { success:true, gift };
+  }catch(e){
+    notifySupabaseError();
+    return { error:'Erreur réseau' };
+  }
+}
+
 export async function upsertProfile(p){
   if(!isSupabaseEnabled()) return { ok:false, reason:'disabled' };
   try{

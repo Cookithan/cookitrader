@@ -49,6 +49,8 @@ export function ProfileOverlay({
   unreadInboxCount = 0,
   onOpenInbox,
   onOpenFriendProfile,
+  cafes = 0,
+  onSendGift,
   C
 }) {
   const [editing, setEditing] = useState(false);
@@ -360,7 +362,14 @@ export function ProfileOverlay({
             </section>
 
             {/* 5. Mes Amis */}
-            <FriendsSection userCode={userCode} myCoins={coins} onOpenProfile={onOpenFriendProfile} C={C} />
+            <FriendsSection
+              userCode={userCode}
+              myCoins={coins}
+              myCafes={cafes}
+              onOpenProfile={onOpenFriendProfile}
+              onSendGift={onSendGift}
+              C={C}
+            />
 
             {/* 6. Boutons d'édition (pseudo / avatar / bio) */}
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
