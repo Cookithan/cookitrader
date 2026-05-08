@@ -44,9 +44,14 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], C }){
     }
     setLoading(true);
     onRedeem(promo);
+    /* Construction propre du message : on ne mentionne que les
+       monnaies effectivement crédités (évite '+' isolé si coins=0). */
+    const parts = [];
+    if(promo.coins) parts.push(`+${promo.coins} 🍪`);
+    if(promo.cafes) parts.push(`+${promo.cafes} ☕`);
     setFeedback({
       type:'ok',
-      msg: `+${promo.coins ? `${promo.coins} 🍪` : ''}${promo.coins && promo.cafes ? ' · ' : ''}${promo.cafes ? `+${promo.cafes} ☕` : ''} — ${promo.label}`,
+      msg: `${parts.join(' · ')} — ${promo.label}`,
     });
     setTimeout(onCancel, 1600);
   };

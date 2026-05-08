@@ -9,7 +9,8 @@
       "Bash(git commit -m 'chore\\(docs\\): supprime BRIEF_DESIGN_PILE_TASSES.md \\(Claude Design pas utilisé\\) *)",
       "Bash(git commit -m 'feat\\(pile-de-tasses\\): tasse de départ posée au centre comme repère visuel *)",
       "Bash(git commit -m 'tune\\(market\\): chart 1h/24h seulement, défaut 24h *)",
-      "Bash(git commit -m 'ui\\(spin\\): reformule la récompense de la roue pour s'\\\\''aligner avec les autres jeux *)"
+      "Bash(git commit -m 'ui\\(spin\\): reformule la récompense de la roue pour s'\\\\''aligner avec les autres jeux *)",
+      "Bash(git commit -m 'fix\\(promo\\): retire le '\\\\''+'\\\\'' isolé du feedback quand coins=0 *)"
     ]
   }
 }
