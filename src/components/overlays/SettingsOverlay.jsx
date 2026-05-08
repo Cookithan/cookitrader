@@ -473,32 +473,34 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
               onClick={() => { playSound('modal'); onOpenPromoCode(); }}
               style={{
                 width:'100%', borderRadius:16,
-                background:C.card, border:`1px solid ${C.border}`,
+                background:'linear-gradient(135deg, #C25822 0%, #E8985A 100%)',
+                border:'1px solid #A0451A',
                 padding:'14px 16px',
                 display:'flex', alignItems:'center', justifyContent:'space-between',
                 cursor:'pointer', textAlign:'left',
+                boxShadow:'0 4px 14px rgba(160, 69, 26, 0.3)',
               }}
             >
               <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
                 <div style={{
                   width:38, height:38, borderRadius:10,
-                  background:'rgba(212,160,23,.12)',
-                  border:'1px solid rgba(212,160,23,.3)',
+                  background:'rgba(255,255,255,.18)',
+                  border:'1px solid rgba(255,255,255,.32)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   flexShrink:0, fontSize:18,
                 }}>
                   🎟️
                 </div>
                 <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:'#fff', letterSpacing:.2 }}>
                     Code promo
                   </div>
-                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,.85)', marginTop:2 }}>
                     Saisis un code distribué par Cookithan
                   </div>
                 </div>
               </div>
-              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
+              <span style={{ fontSize:18, color:'#fff', flexShrink:0, fontWeight:800 }}>→</span>
             </button>
           )}
         </section>
