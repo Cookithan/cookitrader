@@ -706,20 +706,20 @@ export async function sendGift(senderCode, recipientCode, giftType, currentBalan
 }
 
 /* ════════════════════════════════════════════════════
-   RESTAURATION DE PROFIL (BRIEF_RESTAURATION)
+   RESTAURATION DE PROFIL (BRIEF_RESTAURATION — version complète)
    ────────────────────────────────────────────────────
-   Récupère un profil + ses amitiés + son portfolio depuis Supabase
-   pour le réinjecter dans localStorage côté client.
+   Depuis l'ajout des colonnes `cafes`, `xp`, `unlocked`,
+   `name_change_count`, `earned_achievements`, `active_theme` (08/05/2026),
+   la restauration ramène TOUT ce qui compte : currency premium, XP en
+   cours, items premium débloqués (thèmes/avatars/musiques/skins…),
+   compteur de renames payants, succès gagnés, thème actif.
 
-   ⚠️ Scope minimal (par décision user) : la table `users` n'a pas
-   de colonnes `cafes`, `xp`, ni `unlocked` complet — seul `badges`
-   (sous-ensemble de unlocked) est syncé. Donc à la restauration :
-     · Cafés → 0 (perdus)
-     · XP → 0 (le niveau est restauré, l'XP repart à 0 dans le palier)
-     · Items premium NON-badges (thèmes, avatars premium, musiques,
-       skins, roues, banners) → perdus
-   Si l'utilisateur veut un jour la restauration complète : ajouter
-   3 colonnes à users + étendre upsertProfile.
+   Restent NON syncés (perdus au changement d'appareil) :
+     · clickRecord (vanity)
+     · activeBanner / activeSkin / activeRoue (re-sélectionnables depuis
+       les items débloqués via Settings)
+     · completedEvents (les events sont time-limited, peu d'impact)
+     · marketRealized, lastCheckin, lastQuiz, seenHints, knownFriendCodes
 ═══════════════════════════════════════════════════════ */
 export async function restoreProfile(userCode){
   if(!isSupabaseEnabled()) return { error:'Hors ligne' };
@@ -737,14 +737,21 @@ export async function restoreProfile(userCode){
     if(error){ notifySupabaseError(); return { error:'Erreur réseau' }; }
     if(!user) return { error:"Ce code n'existe pas" };
 
-    /* 2. Badges débloqués → liste d'IDs (la colonne `badges` est
-          comma-separated, cf. upsertProfile). Vide → []. */
-    const unlockedFromBadges = (user.badges || '')
+    const splitCsv = (raw) => (raw || '')
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
 
-    /* 3. Amitiés acceptées (best-effort, ne bloque pas la restauration) */
+    /* 2. Unlocked complet (priorité à la nouvelle colonne `unlocked`).
+          Fallback `badges` pour les profils écrits avant la migration. */
+    const unlocked = (user.unlocked && user.unlocked.length)
+      ? splitCsv(user.unlocked)
+      : splitCsv(user.badges);
+
+    /* 3. Achievements gagnés (comma-separated d'IDs) */
+    const earnedAchievements = splitCsv(user.earned_achievements);
+
+    /* 4. Amitiés acceptées (best-effort, ne bloque pas la restauration) */
     let friendCodes = [];
     try{
       const { data: links } = await supabase
@@ -755,7 +762,7 @@ export async function restoreProfile(userCode){
       friendCodes = (links || []).map(l => l.friend_code).filter(Boolean);
     }catch{ /* table absente / RLS */ }
 
-    /* 4. Portfolio marché (best-effort) */
+    /* 5. Portfolio marché (best-effort) */
     let portfolio = null;
     try{
       const { data: p } = await supabase
@@ -769,16 +776,21 @@ export async function restoreProfile(userCode){
     return {
       success:true,
       data:{
-        userCode:    user.user_code,
-        userName:    user.user_name || '',
-        userAvatar:  user.user_avatar ?? '0',
-        userBio:     user.user_bio || '',
-        level:       Number(user.level) || 1,
-        cookies:     Number(user.cookies) || 0,
-        totalEarned: Number(user.total_earned) || 0,
-        streak:      Number(user.streak) || 0,
-        unlocked:    unlockedFromBadges,
-        joinDate:    user.join_date || null,
+        userCode:           user.user_code,
+        userName:           user.user_name || '',
+        userAvatar:         user.user_avatar ?? '0',
+        userBio:            user.user_bio || '',
+        level:              Number(user.level) || 1,
+        xp:                 Number(user.xp) || 0,
+        cookies:            Number(user.cookies) || 0,
+        cafes:              Number(user.cafes) || 0,
+        totalEarned:        Number(user.total_earned) || 0,
+        streak:             Number(user.streak) || 0,
+        unlocked,
+        earnedAchievements,
+        nameChangeCount:    Number(user.name_change_count) || 0,
+        activeTheme:        user.active_theme || '',
+        joinDate:           user.join_date || null,
         friendCodes,
         portfolio,
       },
@@ -861,6 +873,16 @@ export async function upsertProfile(p){
         /* Badges (BRIEF — visibilité cross-device) : liste d'IDs séparés
            par virgule (badges classiques REWARDS + badges secrets). */
         badges:       (p.badgeIds || []).join(','),
+        /* Restauration complète (BRIEF_RESTAURATION v2) : 6 colonnes
+           ajoutées le 08/05/2026 pour pouvoir tout restaurer sur un
+           autre appareil. Les champs facultatifs sont défensifs (??)
+           car les anciens callers ne les passent pas forcément. */
+        cafes:                p.cafes ?? 0,
+        xp:                   p.xp ?? 0,
+        unlocked:             (p.unlocked || []).join(','),
+        name_change_count:    p.nameChangeCount ?? 0,
+        earned_achievements:  (p.earnedAchievements || []).join(','),
+        active_theme:         p.activeTheme || '',
         last_active:  new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()

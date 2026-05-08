@@ -141,13 +141,13 @@ export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C })
           </div>
         )}
 
-        {/* Hint scope minimal */}
+        {/* Hint scope complet */}
         <div style={{
           fontSize:10, color:C.muted, fontStyle:'italic',
           marginTop:10, lineHeight:1.5, textAlign:'center', padding:'0 6px',
         }}>
-          Restaurés : pseudo, avatar, niveau, cookies, badges, amis.<br/>
-          Cafés et thèmes premium ne sont pas synchronisés.
+          Restauration complète : identité, progression, cafés ☕,<br/>
+          tous les items débloqués, succès, amis et portfolio.
         </div>
 
         {/* Boutons */}

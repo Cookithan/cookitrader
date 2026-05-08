@@ -182,6 +182,11 @@ export default function CookiMiner() {
      "création" / "update" à gérer côté client.
      Skipped si Supabase off, pas de userCode, ou pas encore d'userName
      (l'utilisateur n'a pas fini l'onboarding). */
+  /* États qu'on a besoin de capturer dans l'effet upsert ci-dessous —
+     déclarés ici (avant le useEffect) pour éviter une TDZ sur la deps array. */
+  const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
+  const [activeTheme,        setActiveTheme]        = useLocalStorage('activeTheme', '');
+
   /* État "online" optimiste : on suppose que la sync marche. Ne passe
      à `error` que si un upsert échoue (réseau, RLS, etc.). Ça évite
      l'effet "Hors ligne" pendant les 5s du debounce initial. */
@@ -201,15 +206,20 @@ export default function CookiMiner() {
       const res = await upsertProfile({
         userCode, userName, userAvatar, level, totalEarned,
         coins, streak, userBio, badgeIds,
+        /* Restauration complète : on sync TOUT ce qui doit pouvoir
+           être ramené sur un autre appareil. */
+        cafes, xp,
+        unlocked: unlocked || [],
+        nameChangeCount,
+        earnedAchievements: earnedAchievements || [],
+        activeTheme: activeTheme || '',
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked]);
-  const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
+  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
-  const [activeTheme,  setActiveTheme]  = useLocalStorage('activeTheme', '');
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
@@ -722,10 +732,12 @@ export default function CookiMiner() {
     }
   }, [addCoins, addCafes, showToast]);
 
-  /* Restauration de profil (BRIEF_RESTAURATION). Wipe complet des clés
-     cookiminer:* puis réinjection des champs restaurés et reload — plus
-     simple que de mettre à jour 25 useState manuellement. Tout ce qui
-     n'est pas restauré (cafés, XP, items premium non-badges) repart à 0. */
+  /* Restauration de profil (BRIEF_RESTAURATION — version complète).
+     Wipe complet des clés cookiminer:* puis réinjection des champs
+     restaurés et reload — plus simple que de mettre à jour 30 useState
+     manuellement. Depuis l'ajout des colonnes Supabase cafes/xp/unlocked/
+     name_change_count/earned_achievements/active_theme (08/05/2026), la
+     restauration ramène TOUT ce qui compte. */
   const handleRestoreSuccess = useCallback((data) => {
     try{
       const keysToRemove = [];
@@ -739,20 +751,29 @@ export default function CookiMiner() {
     const set = (key, val) => {
       try{ localStorage.setItem('cookiminer:' + key, JSON.stringify(val)); }catch{}
     };
+    /* Identité */
     set('userCode',    data.userCode);
     set('userName',    data.userName);
     set('userAvatar',  data.userAvatar);
     set('userBio',     data.userBio);
-    set('level',       data.level);
-    set('coins',       data.cookies);
-    set('totalEarned', data.totalEarned);
-    set('streak',      data.streak);
-    set('unlocked',    data.unlocked);
     set('joinDate',
       data.joinDate
         ? new Date(data.joinDate).toLocaleDateString('fr-FR')
         : new Date().toLocaleDateString('fr-FR')
     );
+    /* Progression */
+    set('level',       data.level);
+    set('xp',          data.xp ?? 0);
+    set('coins',       data.cookies);
+    set('cafes',       data.cafes ?? 0);
+    set('totalEarned', data.totalEarned);
+    set('streak',      data.streak);
+    /* Items + sélections */
+    set('unlocked',        data.unlocked || []);
+    set('achievements',    data.earnedAchievements || []);
+    set('nameChangeCount', data.nameChangeCount ?? 0);
+    set('activeTheme',     data.activeTheme || '');
+    /* Marché (best-effort) */
     if(data.portfolio?.invested != null){
       set('totalInvested', data.portfolio.invested);
     }
