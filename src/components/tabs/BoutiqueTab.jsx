@@ -44,14 +44,28 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     'Musique' :[activeMusicId, setActiveMusic],
   };
 
-  /* Révèle un niveau de plus uniquement quand tout celui en cours est acheté
-     (n'inclut PAS les items premium) */
+  /* Révèle un niveau de plus uniquement quand tout celui en cours est acheté.
+     Ignore les items premium (☕) et les items 'limited' (thèmes événements
+     qui peuvent ne jamais être gagnés — sinon on bloque la progression). */
   let revealedLevel = 1;
   for(let n=1; n<=level; n++){
-    const itemsAtN = REWARDS.filter(r => r.levelRequired === n && r.currency !== 'cafe');
+    const itemsAtN = REWARDS.filter(r =>
+      r.levelRequired === n && r.currency !== 'cafe' && !r.limited
+    );
     revealedLevel = n;
     if(!itemsAtN.every(it => unlocked.includes(it.id))) break;
   }
+
+  /* Stats du niveau boutique en cours pour la barre de progression */
+  const itemsAtRevealed = REWARDS.filter(r =>
+    r.levelRequired === revealedLevel && r.currency !== 'cafe' && !r.limited
+  );
+  const earnedAtRevealed = itemsAtRevealed.filter(it => unlocked.includes(it.id)).length;
+  const totalAtRevealed  = itemsAtRevealed.length;
+  const remainingAtRevealed = totalAtRevealed - earnedAtRevealed;
+  const shopProgressPct = totalAtRevealed > 0
+    ? Math.round((earnedAtRevealed / totalAtRevealed) * 100)
+    : 100;
 
   let visible;
   if(mode === 'premium'){
@@ -131,6 +145,61 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
             <div style={{ fontSize:13, color:'rgba(255,255,255,.85)', marginTop:2, lineHeight:1.4 }}>
               Items rares payés en cafés ☕. Gagne-en au level-up, achievements et jackpot.
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bandeau Niveau Boutique (mode='shop' uniquement) — montre la progression
+          d'achat au palier en cours et incite à compléter pour débloquer le suivant */}
+      {mode === 'shop' && (
+        <div style={{
+          padding:'12px 14px', borderRadius:14, marginBottom:14,
+          background:ESPRESSO,
+          border:'1.5px solid rgba(212,160,23,.4)',
+          boxShadow:'0 4px 14px rgba(74,44,23,.35)',
+        }}>
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            gap:8, marginBottom:8,
+          }}>
+            <div style={{
+              fontSize:11, fontWeight:800, color:'rgba(255,255,255,.75)',
+              textTransform:'uppercase', letterSpacing:1.5,
+            }}>
+              🏪 Boutique · Niveau {revealedLevel}
+            </div>
+            <div style={{
+              fontSize:11, fontWeight:800, color:'#F0C050',
+              fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+            }}>
+              {totalAtRevealed > 0 ? `${earnedAtRevealed}/${totalAtRevealed}` : '—'}
+            </div>
+          </div>
+
+          {/* Barre de progression */}
+          <div style={{
+            height:6, background:'rgba(0,0,0,.3)', borderRadius:3, overflow:'hidden',
+          }}>
+            <div style={{
+              width:`${shopProgressPct}%`, height:'100%',
+              background:'linear-gradient(90deg, #D4A017, #F0C050)',
+              transition:'width .4s ease-out',
+              boxShadow: shopProgressPct > 0 ? '0 0 8px rgba(240,192,80,.6)' : 'none',
+            }} />
+          </div>
+
+          {/* Hint contextuel sous la barre */}
+          <div style={{
+            fontSize:10.5, color:'rgba(255,255,255,.6)',
+            marginTop:7, lineHeight:1.4,
+          }}>
+            {totalAtRevealed === 0
+              ? `Aucun item au niveau ${revealedLevel}.`
+              : remainingAtRevealed === 0
+                ? (revealedLevel >= level
+                    ? `🎉 Tout pris au niv ${revealedLevel} ! Monte de niveau pour débloquer la suite.`
+                    : `🎉 Niveau ${revealedLevel} complet — niveau ${revealedLevel + 1} débloqué.`)
+                : `Encore ${remainingAtRevealed} item${remainingAtRevealed > 1 ? 's' : ''} à acheter pour passer au niveau ${revealedLevel + 1}.`}
           </div>
         </div>
       )}
