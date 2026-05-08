@@ -55,8 +55,8 @@ export const REWARDS = [
   { id:'badge_barista',  name:'Badge Barista',  desc:'Maîtrise de base du café',    cost:120,  type:'Badge', emoji:'☕', levelRequired:2 },
   { id:'badge_chef',     name:'Badge Chef',     desc:'Pour les acharnés du cookie', cost:500,  type:'Badge', emoji:'👨‍🍳', levelRequired:5 },
   { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiMiner',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
-  { id:'badge_connaisseur', name:'Badge Connaisseur', desc:'Tu maîtrises l\'art du café',  cost:1200, type:'Badge', emoji:'🎓', levelRequired:7 },
-  { id:'badge_mythique',    name:'Badge Mythique',    desc:'Sur le seuil de l\'éternité',  cost:1700, type:'Badge', emoji:'🔱', levelRequired:9 },
+  { id:'badge_connaisseur', name:'Badge Connaisseur', desc:'Tu maîtrises l\'art du café',  cost:600,  type:'Badge', emoji:'🎓', levelRequired:7 },
+  { id:'badge_mythique',    name:'Badge Mythique',    desc:'Sur le seuil de l\'éternité',  cost:1500, type:'Badge', emoji:'🔱', levelRequired:9 },
   { id:'badge_eternel',  name:'Badge Éternel',  desc:'Au-delà de la Légende',       cost:2500, type:'Badge', emoji:'🌟', levelRequired:10 },
   // TITRES
   // THÈMES
@@ -64,7 +64,7 @@ export const REWARDS = [
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
   { id:'theme_caramel',    name:'Thème Caramel Sunrise',     desc:'Dégradé chaud animé',       cost:450,  type:'Thème', emoji:'🌅', levelRequired:3 },
   { id:'theme_legendaire', name:'Thème Légendaire',          desc:'Fond doré avec particules', cost:1200, type:'Thème', emoji:'💫', levelRequired:6 },
-  { id:'theme_mocha_cosmique', name:'Thème Mocha Cosmique',  desc:'Volutes café et étoiles',   cost:1500, type:'Thème', emoji:'🪐', levelRequired:8 },
+  { id:'theme_mocha_cosmique', name:'Thème Mocha Cosmique',  desc:'Volutes café et étoiles',   cost:900, type:'Thème', emoji:'🪐', levelRequired:8 },
   { id:'theme_aurore',     name:'Thème Aurore Boréale',      desc:'Voiles cosmiques chatoyants', cost:4000, type:'Thème', emoji:'🌌', levelRequired:10 },
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements
      spéciaux uniquement. cost:0, flag `limited:true` + `event:<id>`.
@@ -83,7 +83,7 @@ export const REWARDS = [
   { id:'avatar_dragon',  name:'Avatar Dragon Espresso', desc:'Dragon qui crache de la vapeur', cost:800,  type:'Avatar', emoji:'🐲',   levelRequired:5 },
   { id:'avatar_or',      name:'Avatar Or Massif',       desc:'Visage doré scintillant',        cost:1500, type:'Avatar', emoji:'✨',   levelRequired:6 },
   { id:'avatar_legende', name:'Avatar Légende',         desc:'Couronne + cookie magique',      cost:2500, type:'Avatar', emoji:'👑',   levelRequired:6 },
-  { id:'avatar_sage',    name:'Avatar Sage du Café',    desc:'Vieil homme barbu et serein',    cost:2000, type:'Avatar', emoji:'🧙',   levelRequired:8 },
+  { id:'avatar_sage',    name:'Avatar Sage du Café',    desc:'Vieil homme barbu et serein',    cost:800,  type:'Avatar', emoji:'🧙',   levelRequired:8 },
   { id:'avatar_eternel', name:'Avatar Éternel',         desc:'Halo infini scintillant',        cost:4500, type:'Avatar', emoji:'♾️',   levelRequired:10 },
   // MUSIQUES (BRIEF_AUDIO) — débloquent les musiques d'ambiance ; mapping
   // id:'music_<key>' → MUSICS.<key> côté src/lib/audio.js
