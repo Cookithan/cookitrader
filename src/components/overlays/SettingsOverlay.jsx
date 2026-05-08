@@ -22,7 +22,7 @@ import {
    - L'item premium (applyAs:'theme'/'skin') s'affiche aussi dans son onglet
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, C }) {
+export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, C }) {
 
   /* État audio synchronisé avec audio.js (LS). Re-render local à chaque
      changement pour refléter le toggle / la musique en lecture. */
@@ -217,12 +217,45 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
         {/* Données */}
         <section>
           <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>DONNÉES</div>
-          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16 }}>
+          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16, marginBottom:8 }}>
             <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>Sauvegarde locale</div>
             <div style={{ fontSize:11, color:C.muted, lineHeight:1.5 }}>
               Ta progression est enregistrée automatiquement dans ce navigateur. Elle est conservée même après fermeture, mais ne suit pas entre appareils.
             </div>
           </div>
+          {onOpenRestore && (
+            <button
+              onClick={() => { playSound('modal'); onOpenRestore(); }}
+              style={{
+                width:'100%', borderRadius:16,
+                background:C.card, border:`1px solid ${C.border}`,
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.12)',
+                  border:'1px solid rgba(212,160,23,.3)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>
+                  🔄
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    Restaurer un compte
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    Recharger un profil avec son code
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
+            </button>
+          )}
         </section>
 
         {/* Installation PWA — bouton si Android/Desktop, instruction si iOS,

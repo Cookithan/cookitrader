@@ -27,6 +27,7 @@ import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
+import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
@@ -225,6 +226,9 @@ export default function CookiMiner() {
      Compteur rafraîchi toutes les 30s tant qu'on a un userCode + Supabase actif. */
   const [showInbox,        setShowInbox]        = useState(false);
   const [showAbout,        setShowAbout]        = useState(false);
+  /* Restauration : null = fermé, 'fresh' = depuis onboarding (pas de
+     warning), 'replace' = depuis settings (warning de remplacement). */
+  const [restoreMode,      setRestoreMode]      = useState(null);
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
   const { showToast } = useToast();
   /* Ref synchronisée → permet à addCoins (useCallback deps=[]) d'appeler
@@ -717,6 +721,46 @@ export default function CookiMiner() {
       if(parts.length) showToast(`🎁 Bonus parrainage : ${parts.join('  ')}`);
     }
   }, [addCoins, addCafes, showToast]);
+
+  /* Restauration de profil (BRIEF_RESTAURATION). Wipe complet des clés
+     cookiminer:* puis réinjection des champs restaurés et reload — plus
+     simple que de mettre à jour 25 useState manuellement. Tout ce qui
+     n'est pas restauré (cafés, XP, items premium non-badges) repart à 0. */
+  const handleRestoreSuccess = useCallback((data) => {
+    try{
+      const keysToRemove = [];
+      for(let i = 0; i < localStorage.length; i++){
+        const k = localStorage.key(i);
+        if(k && k.startsWith('cookiminer:')) keysToRemove.push(k);
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    }catch{}
+
+    const set = (key, val) => {
+      try{ localStorage.setItem('cookiminer:' + key, JSON.stringify(val)); }catch{}
+    };
+    set('userCode',    data.userCode);
+    set('userName',    data.userName);
+    set('userAvatar',  data.userAvatar);
+    set('userBio',     data.userBio);
+    set('level',       data.level);
+    set('coins',       data.cookies);
+    set('totalEarned', data.totalEarned);
+    set('streak',      data.streak);
+    set('unlocked',    data.unlocked);
+    set('joinDate',
+      data.joinDate
+        ? new Date(data.joinDate).toLocaleDateString('fr-FR')
+        : new Date().toLocaleDateString('fr-FR')
+    );
+    if(data.portfolio?.invested != null){
+      set('totalInvested', data.portfolio.invested);
+    }
+
+    /* Reload pour repartir d'un état propre — tous les useState
+       useLocalStorage relisent leurs valeurs au mount. */
+    window.location.reload();
+  }, []);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
@@ -1399,6 +1443,7 @@ export default function CookiMiner() {
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
           install={installPrompt}
           onOpenAbout={()=>setShowAbout(true)}
+          onOpenRestore={()=>setRestoreMode('replace')}
           C={C}
         />
       )}
@@ -1407,6 +1452,16 @@ export default function CookiMiner() {
       {showAbout && (
         <AboutModal
           onClose={()=>setShowAbout(false)}
+          C={C}
+        />
+      )}
+
+      {/* RESTORE PROFILE MODAL — depuis onboarding (fresh) ou settings (replace) */}
+      {restoreMode && (
+        <RestoreProfileModal
+          warning={restoreMode === 'replace'}
+          onCancel={()=>setRestoreMode(null)}
+          onSuccess={handleRestoreSuccess}
           C={C}
         />
       )}
@@ -1533,6 +1588,7 @@ export default function CookiMiner() {
       {showOnboarding && (
         <OnboardingModal
           C={C}
+          onRestore={() => setRestoreMode('fresh')}
           onComplete={(name, avatarIndex)=>{
             setUserName(name);
             setUserAvatar(avatarIndex);
