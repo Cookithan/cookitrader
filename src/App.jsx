@@ -1422,38 +1422,75 @@ export default function CookiMiner() {
                           succesOk:   doneCount === prereqs.length,
                         };
                       }
+                      /* Style apex spécial pour end_game : fond gradient or
+                         + halo pulsant (.glow-anim). Couleurs internes
+                         override en espresso pour rester lisibles sur l'or. */
+                      const apexStyle = isEndGame ? {
+                        background:'linear-gradient(135deg, #FFE5A0, #F0C050, #E8B040)',
+                        border:'2px solid #D4A017',
+                      } : {
+                        border: isApex ? '1.5px solid rgba(212,160,23,.55)' : undefined,
+                      };
                       return (
-                        <div key={a.id} style={{
-                          ...s.card,
-                          padding:'12px 12px',
-                          display:'flex', alignItems:'flex-start', gap:10,
-                          opacity:got ? 1 : (isEndGame ? .85 : .55),
-                          position:'relative',
-                          gridColumn: isEndGame ? 'span 2' : undefined,
-                          border: isApex ? '1.5px solid rgba(212,160,23,.55)' : undefined,
-                        }}>
-                          <div style={{ fontSize:24, flexShrink:0, filter: got?'none':'grayscale(.7)' }}>
+                        <div
+                          key={a.id}
+                          className={isEndGame ? 'glow-anim' : ''}
+                          style={{
+                            ...s.card,
+                            padding:'12px 12px',
+                            display:'flex', alignItems:'flex-start', gap:10,
+                            opacity:got ? 1 : (isEndGame ? 1 : .55),
+                            position:'relative',
+                            gridColumn: isEndGame ? 'span 2' : undefined,
+                            ...apexStyle,
+                          }}
+                        >
+                          <div style={{
+                            fontSize: isEndGame ? 30 : 24,
+                            flexShrink:0,
+                            filter: (got || isEndGame) ? 'none' : 'grayscale(.7)',
+                            lineHeight:1,
+                          }}>
                             {got ? a.emoji : (isEndGame ? '🏆' : '🔒')}
                           </div>
                           <div style={{ minWidth:0, flex:1 }}>
-                            <div style={{ fontSize:11, fontWeight:800, color:C.text, lineHeight:1.2, marginBottom:2 }}>{a.name}</div>
-                            <div style={{ fontSize:10, color:C.muted, lineHeight:1.3 }}>{a.desc}</div>
+                            <div style={{
+                              fontSize: isEndGame ? 13 : 11,
+                              fontWeight:900,
+                              color: isEndGame ? '#5D3A1F' : C.text,
+                              lineHeight:1.2, marginBottom:2,
+                              letterSpacing: isEndGame ? .3 : 0,
+                            }}>
+                              {a.name}
+                            </div>
+                            <div style={{
+                              fontSize:10,
+                              color: isEndGame ? '#7D4E1F' : C.muted,
+                              lineHeight:1.3,
+                              fontWeight: isEndGame ? 600 : 'normal',
+                            }}>
+                              {a.desc}
+                            </div>
                             {endGamePrereqs && (
                               <div style={{
                                 marginTop:6, padding:'6px 8px', borderRadius:8,
-                                background:'rgba(212,160,23,.08)',
-                                border:'1px dashed rgba(212,160,23,.3)',
-                                fontSize:10, lineHeight:1.6, fontWeight:600,
+                                background:'rgba(255,255,255,.5)',
+                                border:'1px dashed rgba(93,58,31,.45)',
+                                fontSize:10, lineHeight:1.6, fontWeight:700,
                               }}>
-                                <div style={{ color: endGamePrereqs.levelOk ? '#D4A017' : C.muted }}>
+                                <div style={{ color: endGamePrereqs.levelOk ? '#5D3A1F' : '#A07854' }}>
                                   {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/15
                                 </div>
-                                <div style={{ color: endGamePrereqs.succesOk ? '#D4A017' : C.muted }}>
+                                <div style={{ color: endGamePrereqs.succesOk ? '#5D3A1F' : '#A07854' }}>
                                   {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès débloqués
                                 </div>
                               </div>
                             )}
-                            <div style={{ fontSize:10, color:'#D4A017', fontWeight:700, marginTop:4 }}>
+                            <div style={{
+                              fontSize:10,
+                              color: isEndGame ? '#5D3A1F' : '#D4A017',
+                              fontWeight:800, marginTop:4,
+                            }}>
                               +{a.bonus} 🍪{a.cafesBonus ? ` · +${a.cafesBonus} ☕` : ''}
                             </div>
                           </div>

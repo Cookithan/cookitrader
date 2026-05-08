@@ -134,7 +134,7 @@ export const ACHIEVEMENTS = [
   { id:'master_succes',  name:'Maître Des Succès',  desc:'Tu as tout débloqué',                       emoji:'🎖️', bonus:200, cafesBonus:10, hidden:true },
   /* Apex final : niveau 15 atteint + tous les autres succès visibles débloqués.
      Si l'utilisateur a acheté reveal_master, il doit aussi avoir master_succes. */
-  { id:'end_game',       name:'Quête Achevée !',    desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:25 },
+  { id:'end_game',       name:'Légende Vivante !',  desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:25 },
 ];
 
 /* Pool Quiz du jour — culture générale fun. 32 questions tirées au
