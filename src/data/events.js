@@ -31,8 +31,6 @@
    - 'spin_jackpot'   → 1 essai = 1 spin. Succès si valeur >= 200
    - 'market_profit'  → déclenché à chaque vente sur le marché. Succès si la
                         plus-value de la vente >= 100 🍪. 3 essais (3 ventes).
-   - 'streak_check'   → vérifié à l'ouverture de l'event ET à chaque check-in
-                        quotidien. Succès si streak >= 5. 1 essai (binaire).
 
    Un template peut surcharger le nombre d'essais via `attempts:N`. Sinon
    c'est MAX_ATTEMPTS qui s'applique.
@@ -68,16 +66,6 @@ export const SPECIAL_EVENTS = [
     challenge: 'market_profit',
     reward: { type:'theme', id:'theme_trader', name:'Thème Trader Avisé', cafeBonus:1 },
   },
-  {
-    id: 'event_streak',
-    title: '🔥 Série de Feu !',
-    description: 'Atteins une série de 5 jours d\'affilée pour gagner le thème "Flamme Vivante" !',
-    tease: 'Cinq aubes, une flamme.',
-    challenge: 'streak_check',
-    reward: { type:'theme', id:'theme_flamme', name:'Thème Flamme Vivante', cafeBonus:1 },
-    attempts: 1,
-  },
-
   /* ─── 7 events badges (modérés, ajoutés 09/05/2026) ─── */
   {
     id: 'event_pour_perfect',

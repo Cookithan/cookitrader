@@ -18,8 +18,6 @@ export const THEMES = {
   theme_caramel:   { dark:false, bg:'linear-gradient(160deg,#F5DEB3 0%,#E8A045 100%)', card:'#FFE9CC', card2:'#F8D89C', text:'#3D2010', muted:'#8B5A2A', border:'#E8B873' },
   theme_chocolat:  { dark:true,  bg:'#1A0F08', card:'#2D1A0E', card2:'#3D2614', text:'#F0E6D3', muted:'#A08068', border:'#5A3520' },
   theme_legendaire:{ dark:true,  bg:'#1A1200', card:'#2A1E00', card2:'#3D2C0A', text:'#F5E8B5', muted:'#A0884A', border:'#5A4520', sparkles:true },
-  /* Mocha Cosmique : volutes café profond + étoiles (palier niv 8) */
-  theme_mocha_cosmique: { dark:true, bg:'linear-gradient(160deg,#0F0804 0%,#2A1508 30%,#3D2010 60%,#1A0F08 100%)', card:'#2D1A0E', card2:'#3D2614', text:'#F5DCB8', muted:'#A88068', border:'#5A3520', sparkles:true },
   /* Cosmos : ambiance galactique sombre — indigo nuit + violet profond + étoiles.
      Les accents café (or, espresso, gold) restent intacts. */
   theme_cosmos:    { dark:true, bg:'linear-gradient(160deg,#070220 0%,#160838 35%,#2A1058 65%,#0F0428 100%)', card:'#1F0F3A', card2:'#2D1854', text:'#F0E0FF', muted:'#9A85C8', border:'#4A2D7A', sparkles:true },
@@ -30,8 +28,6 @@ export const THEMES = {
   theme_or_limite:       { dark:true, bg:'linear-gradient(140deg,#3D2810,#8B6914)', card:'#5C4014', card2:'#8B6914', text:'#FFE4A0', muted:'#C8A878', border:'#5C4014', sparkles:true },
   /* Trader Avisé — sombre cuivré, ambiance bourse luxueuse (event_market_pro) */
   theme_trader:          { dark:true, bg:'linear-gradient(140deg,#1A0F08 0%,#3D2010 50%,#5C3317 100%)', card:'#2D1A0E', card2:'#3D2614', text:'#F5DCB8', muted:'#B89878', border:'#5C3317' },
-  /* Flamme Vivante — clair-orangé chaleureux, ambiance brasero (event_streak) */
-  theme_flamme:          { dark:false, bg:'linear-gradient(160deg,#FFE5C8 0%,#FFCC8A 50%,#E8985A 100%)', card:'#FFF4E5', card2:'#FFE0B8', text:'#5C2810', muted:'#B86A28', border:'#FFCC8A' },
 
   /* Niv 9 — Cappuccino Velours : palette douce crème mousseuse +
      accents caramel chaud. Mode clair, ambiance cosy. */

@@ -80,9 +80,7 @@ export const REWARDS = [
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
   { id:'theme_caramel',    name:'Thème Caramel Sunrise',     desc:'Dégradé chaud animé',       cost:450,  type:'Thème', emoji:'🌅', levelRequired:3 },
   { id:'theme_legendaire', name:'Thème Légendaire',          desc:'Fond doré avec particules', cost:1200, type:'Thème', emoji:'💫', levelRequired:6 },
-  { id:'theme_mocha_cosmique', name:'Thème Mocha Cosmique',  desc:'Volutes café et étoiles',     cost:900, type:'Thème', emoji:'🪐', levelRequired:8 },
   { id:'theme_velours',    name:'Thème Cappuccino Velours',  desc:'Crème mousseuse douce',       cost:1500, type:'Thème', emoji:'🤎', levelRequired:9 },
-  { id:'theme_aurore',     name:'Thème Aurore Boréale',      desc:'Voiles cosmiques chatoyants', cost:4000, type:'Thème', emoji:'🌌', levelRequired:10 },
   { id:'theme_cuir',       name:'Thème Cuir & Espresso',     desc:'Sombre cuir + accents or',    cost:1800, type:'Thème', emoji:'🛋️', levelRequired:11 },
   { id:'theme_elixir',     name:'Thème Élixir Doré',         desc:'Or liquide en fusion',        cost:1500, type:'Thème', emoji:'🧪', levelRequired:12 },
   { id:'theme_renaissance', name:'Thème Renaissance',         desc:'Flammes de phénix orangées',  cost:2500, type:'Thème', emoji:'🔥', levelRequired:14 },
@@ -93,7 +91,6 @@ export const REWARDS = [
      et sont déjà marqués comme possédés. */
   { id:'theme_or_limite', name:'Thème Or Massif Limité', desc:'Édition limitée — Tour Spécial Roue', cost:0, type:'Thème', emoji:'🥇', levelRequired:4, limited:true, event:'event_jackpot'     },
   { id:'theme_trader',    name:'Thème Trader Avisé',     desc:'Édition limitée — Marché en Folie',   cost:0, type:'Thème', emoji:'📈', levelRequired:4, limited:true, event:'event_market_pro'  },
-  { id:'theme_flamme',    name:'Thème Flamme Vivante',   desc:'Édition limitée — Série de Feu',      cost:0, type:'Thème', emoji:'🔥', levelRequired:4, limited:true, event:'event_streak'      },
 
   /* 7 badges événements (ajoutés 09/05/2026) — défis modérés */
   { id:'badge_tireur',     name:'Badge Tireur',     desc:'Édition limitée — Stop parfait',         cost:0, type:'Badge', emoji:'🎯', levelRequired:4, limited:true, event:'event_pour_perfect' },

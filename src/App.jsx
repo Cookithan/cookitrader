@@ -6,7 +6,7 @@ import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.j
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { generateUserCode } from "./utils/userCode.js";
-import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, EVENT_LEVEL_MIN, SPECIAL_EVENTS } from "./data/events.js";
+import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, EVENT_LEVEL_MIN } from "./data/events.js";
 import { EventBanner } from "./components/EventBanner.jsx";
 import { EventAnnounceModal } from "./components/modals/EventAnnounceModal.jsx";
 import { EventRewardModal } from "./components/modals/EventRewardModal.jsx";
@@ -1013,7 +1013,6 @@ export default function CookiMiner() {
     let success = false;
     if(type === 'spin_jackpot')   success = value >= 200;
     if(type === 'market_profit')  success = value >= 100;   // +100 🍪 PnL en 1 vente
-    if(type === 'streak_check')   success = value >= 5;     // 5 jours consécutifs
     /* 7 events modérés */
     if(type === 'pour_perfect')   success = value >= 1;     // binaire : 1 si parfait
     if(type === 'quiz_perfect')   success = value >= 1;     // binaire
@@ -1035,26 +1034,6 @@ export default function CookiMiner() {
        l'event est actif (jusqu'à expiresAt). */
   };
 
-  /* Auto-débloquage du thème Flamme Vivante : si streak >= 5 atteint
-     à n'importe quel moment, on accorde le thème (peu importe que
-     l'event_streak soit actif, en waiting, ou pas encore tiré du
-     cycle). Évite la galère "j'ai 5 jours mais l'event n'est pas là". */
-  useEffect(() => {
-    if(streak < 5) return;
-    if(completedEvents.includes('event_streak')) return;
-    const tpl = SPECIAL_EVENTS.find(e => e.id === 'event_streak');
-    if(!tpl) return;
-    if(unlocked.includes(tpl.reward.id)) return;
-    setUnlocked(u => [...u, tpl.reward.id]);
-    setCompletedEvents(c => [...c, 'event_streak']);
-    if(tpl.reward.cafeBonus > 0) setCafes(c => c + tpl.reward.cafeBonus);
-    setEventReward(tpl.reward);
-    /* Si event_streak est l'event actif courant, on enchaîne au suivant
-       (en excluant event_streak vu que setCompletedEvents est async) */
-    if(activeEvent?.id === 'event_streak') triggerNextEvent('event_streak');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streak]);
-
   /* Initialisation : si level >= 4 et pas d'event en cours → on lance
      un waiting. Couvre le cas du 1er passage au niveau 4. */
   useEffect(()=>{
@@ -1063,17 +1042,6 @@ export default function CookiMiner() {
     triggerNextEvent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level]);
-
-  /* Auto-check pour event_streak : si l'event actif est streak_check et
-     que la série est déjà ≥ 5, on succède immédiatement. Se redéclenche
-     aussi au prochain check-in si la condition devient vraie en cours
-     d'event. */
-  useEffect(()=>{
-    if(activeEvent?.phase === 'active' && activeEvent.challenge === 'streak_check'){
-      if(streak >= 5) checkEventChallenge('streak_check', streak);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeEvent?.phase, activeEvent?.challenge, streak]);
 
   /* Tick périodique (5s) pour gérer les transitions de phase :
      - waiting → active : quand revealAt atteint
@@ -1831,7 +1799,6 @@ export default function CookiMiner() {
             /* Mappe le challenge → zone à ouvrir. Si inconnu, ne fait rien. */
             const c = activeEvent?.challenge;
             if(c === 'spin_jackpot')   { setTab('jeux'); setGameView('spin'); }
-            else if(c === 'streak_check'){ setTab('jeux'); setGameView('checkin'); }
             else if(c === 'market_profit'){ setTab('marche'); }
           }}
           C={C}
