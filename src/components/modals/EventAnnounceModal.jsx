@@ -96,8 +96,14 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
 
           {isWaiting ? (
             <>
-              <div style={{ fontSize:14, fontStyle:'italic', color:'rgba(240,224,192,.85)', marginBottom:16, lineHeight:1.5, padding:'0 6px' }}>
+              <div style={{ fontSize:14, fontStyle:'italic', color:'rgba(240,224,192,.85)', marginBottom:8, lineHeight:1.5, padding:'0 6px' }}>
                 « {teaseText} »
+              </div>
+              <div style={{
+                fontSize:11, fontWeight:800, letterSpacing:1.2, textTransform:'uppercase',
+                color:'#F5DC8A', marginBottom:16,
+              }}>
+                ✨ Un thème + 1 ☕ à la clé
               </div>
             </>
           ) : (
@@ -105,9 +111,20 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
               <div style={{ fontSize:20, fontWeight:900, color:'#F0E0C0', marginBottom:10, lineHeight:1.25 }}>
                 {event.title}
               </div>
-              <div style={{ fontSize:13, color:'rgba(240,224,192,.85)', lineHeight:1.5, marginBottom:18, padding:'0 4px' }}>
+              <div style={{ fontSize:13, color:'rgba(240,224,192,.85)', lineHeight:1.5, marginBottom:12, padding:'0 4px' }}>
                 {event.description}
               </div>
+              {event.reward?.cafeBonus > 0 && (
+                <div style={{
+                  display:'inline-block',
+                  fontSize:11, fontWeight:900, letterSpacing:1, textTransform:'uppercase',
+                  color:'#3D2010', background:'linear-gradient(135deg,#FBEFD4,#F0C050)',
+                  padding:'5px 12px', borderRadius:11, marginBottom:18,
+                  boxShadow:'0 3px 10px rgba(212,160,23,.35)',
+                }}>
+                  🎁 Bonus : +{event.reward.cafeBonus} ☕
+                </div>
+              )}
             </>
           )}
 

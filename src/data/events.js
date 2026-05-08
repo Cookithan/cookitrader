@@ -43,27 +43,30 @@ export const WAIT_MAX_MS         = 24 * 3600 * 1000;
 export const ACTIVE_DURATION_MS  =  1 * 3600 * 1000;
 export const MAX_ATTEMPTS        = 3;
 
+/* Chaque event verse aussi un bonus en café (cafeBonus). Ajouté à
+   reward — consommé dans App.jsx::checkEventChallenge et affiché
+   par EventAnnounceModal (teasing) et EventRewardModal (récap). */
 export const SPECIAL_EVENTS = [
   {
     id: 'event_jackpot',
     title: '🎰 Tour Spécial Roue !',
     description: 'Tombe sur +200 à la roue pour débloquer le thème "Or Massif Limité" !',
     challenge: 'spin_jackpot',
-    reward: { type:'theme', id:'theme_or_limite', name:'Thème Or Massif Limité' },
+    reward: { type:'theme', id:'theme_or_limite', name:'Thème Or Massif Limité', cafeBonus:1 },
   },
   {
     id: 'event_market_pro',
     title: '📈 Marché en Folie !',
     description: 'Réalise +100 🍪 de plus-value en une seule vente sur le marché pour décrocher le thème "Trader Avisé" !',
     challenge: 'market_profit',
-    reward: { type:'theme', id:'theme_trader', name:'Thème Trader Avisé' },
+    reward: { type:'theme', id:'theme_trader', name:'Thème Trader Avisé', cafeBonus:1 },
   },
   {
     id: 'event_streak',
     title: '🔥 Série de Feu !',
     description: 'Atteins une série de 5 jours d\'affilée pour gagner le thème "Flamme Vivante" !',
     challenge: 'streak_check',
-    reward: { type:'theme', id:'theme_flamme', name:'Thème Flamme Vivante' },
+    reward: { type:'theme', id:'theme_flamme', name:'Thème Flamme Vivante', cafeBonus:1 },
     attempts: 1,
   },
 ];
