@@ -9,7 +9,7 @@ import { CafeScene, CUSTOMERS } from "./CafeScene.jsx";
    Le joueur tient le comptoir d'un café. À chaque question, un client
    différent (parmi les 5 dessinés en SVG dans CafeScene) arrive depuis
    la droite, énonce sa demande dans une bulle (texte progressif), le
-   joueur choisit parmi 4 réponses. 5 questions par partie.
+   joueur choisit parmi 4 réponses. 5 questions par partie (8 au niv 10+).
 
    - COST   = 5 cookies
    - Phases globales : idle → playing → done
@@ -20,42 +20,47 @@ import { CafeScene, CUSTOMERS } from "./CafeScene.jsx";
    - Pas de phase 'leaving' explicite : le `key` du customer change
      au passage à la question suivante, ce qui retrigger l'anim
      csCustomerWalkIn dans CafeScene.
-   - Pas de répétition de question ni de client dans la même partie
-     (5 indices distincts pour chaque banque).
+   - Pas de répétition de question ni de client dans la même partie.
 
-   Récompenses :
-     5/5 → +60   ·   4/5 → +35   ·   3/5 → +15   ·   0-2/5 → 0
+   Récompenses (mêmes paliers, plus dur au niv 10+) :
+     5/5 ou 8/8 → +100  ·  4/5 ou 7/8 → +60  ·  3/5 ou 6/8 → +25  ·  sinon 0
+
+   Mode Expert retiré le 09/05/2026 — toutes les questions sont du
+   pool unique standard (65 entrées dans commandes.js).
 
    Choix : grille 2×2.
    - Bonne réponse cliquée  → fond #FBEFD4 + ✓ caramel
    - Mauvaise cliquée       → fond #E8DCC8 + ✗ + révéler la bonne
-     (palette café-only pour l'UI fonctionnelle ; les illustrations
-     des personnages dans CafeScene utilisent des couleurs réalistes)
 
-   Props : coins, onEarn, onSpend, C
+   Props : coins, onEarn, onSpend, level, C
 ═══════════════════════════════════════════════════════ */
 
 export const GUESS_COST = 5;
-const NB_QUESTIONS = 5;
 const TYPE_SPEED_MS = 28;
 const WALK_IN_MS    = 800;          // synchronisé avec csCustomerWalkIn (.8s)
 const ANSWER_HOLD_MS = 1100;        // temps avant de passer au client suivant
 
-/* En mode Expert (level >= 7) on ne tire que les questions
-   difficiles. Sinon on tire dans le pool standard (questions sans
-   flag `difficult`). */
-function pickQuestions(expertMode){
-  const pool = COMMANDES.filter(c => expertMode ? c.difficult : !c.difficult);
-  const max  = pool.length;
+/* Tire `nbQuestions` commandes uniques du pool unique. */
+function pickQuestions(nbQuestions){
+  const max  = COMMANDES.length;
   const indices = [];
-  while(indices.length < Math.min(NB_QUESTIONS, max)){
+  while(indices.length < Math.min(nbQuestions, max)){
     const idx = Math.floor(Math.random() * max);
     if(!indices.includes(idx)) indices.push(idx);
   }
-  return indices.map(i => pool[i]);
+  return indices.map(i => COMMANDES[i]);
 }
 
-function rewardFor(score){
+/* Paliers de récompense — adaptés au nb de questions (5 ou 8).
+   Le perfect rapporte 100 dans les 2 modes ; au niv 10+ il faut juste
+   plus de bonnes réponses pour atteindre chaque palier. */
+function rewardFor(score, total){
+  if(total === 8){
+    if(score === 8) return 100;
+    if(score === 7) return 60;
+    if(score === 6) return 25;
+    return 0;
+  }
   if(score === 5) return 100;
   if(score === 4) return 60;
   if(score === 3) return 25;
@@ -73,10 +78,12 @@ function pickCustomerIndices(n, max){
 }
 
 export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
-  const expertMode = level >= 7;
+  /* Niveau 10+ : 8 questions par partie au lieu de 5, pour le même
+     palier de récompense (= plus exigeant, pas plus rentable). */
+  const NB_QUESTIONS = level >= 10 ? 8 : 5;
   const [phase,    setPhase]    = useState('idle');         // idle | playing | done
-  const [questions,setQuestions]= useState([]);              // 5 commandes tirées
-  const [customerIndices, setCustomerIndices] = useState([]); // 5 indices dans CUSTOMERS
+  const [questions,setQuestions]= useState([]);              // commandes tirées
+  const [customerIndices, setCustomerIndices] = useState([]); // indices dans CUSTOMERS
   const [qIndex,   setQIndex]   = useState(0);
   const [score,    setScore]    = useState(0);
   const [picked,   setPicked]   = useState(null);            // index choix sélectionné (null si pas encore)
@@ -122,7 +129,7 @@ export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
   const startGame = () => {
     if(coins < GUESS_COST) return;
     onSpend(GUESS_COST);
-    const qs = pickQuestions(expertMode);
+    const qs = pickQuestions(NB_QUESTIONS);
     setQuestions(qs);
     setCustomerIndices(pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length));
     setQIndex(0);
@@ -153,7 +160,7 @@ export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
       const nextIdx = qIndex + 1;
       if(nextIdx >= NB_QUESTIONS){
         const finalScore = score + (isRight ? 1 : 0);
-        const earned = rewardFor(finalScore);
+        const earned = rewardFor(finalScore, NB_QUESTIONS);
         if(earned > 0) onEarn(earned);
         setPhase('done');
       } else {
@@ -168,15 +175,16 @@ export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
   const isAnswered = picked !== null;
   const isRight = picked === correctIdx;
 
-  /* Bannière de fin */
+  /* Bannière de fin — gold pour parfait, caramel pour palier intermédiaire,
+     espresso si pas de récompense (sub-tier de bonnes réponses) */
+  const earnedFinal = rewardFor(score, NB_QUESTIONS);
   const banner = phase === 'done'
-    ? (score === 5
+    ? (score === NB_QUESTIONS
         ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:'🏆 Sans-faute !' }
-        : score >= 3
-          ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`Bien joué ! ${score}/5` }
-          : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title:`${score}/5 — pas de récompense` })
+        : earnedFinal > 0
+          ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`Bien joué ! ${score}/${NB_QUESTIONS}` }
+          : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title:`${score}/${NB_QUESTIONS} — pas de récompense` })
     : null;
-  const earnedFinal = rewardFor(score);
 
   const btnLabel =
       phase === 'idle'    ? `Commencer (${GUESS_COST} 🍪)`
@@ -278,8 +286,8 @@ export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
         </div>
       )}
 
-      {/* Badge Mode Expert (niv 7+) — visible au-dessus du texte d'instruction */}
-      {expertMode && phase === 'idle' && (
+      {/* Badge "Défi 8 questions" pour les joueurs niv 10+ */}
+      {NB_QUESTIONS === 8 && phase === 'idle' && (
         <div style={{
           display:'inline-block', padding:'5px 12px', borderRadius:11,
           background:'linear-gradient(135deg,#3D2010,#7D4E1F)',
@@ -287,14 +295,14 @@ export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
           border:'1.5px solid rgba(212,160,23,.5)',
           boxShadow:'0 3px 10px rgba(74,44,23,.35)',
         }}>
-          🎓 Mode Expert
+          🎯 Défi 8 questions (niv 10+)
         </div>
       )}
 
       {/* Texte d'instruction */}
       {phase !== 'done' && (
         <div style={{ minHeight:18, fontSize:13, fontWeight:600, color: phase==='playing' ? (isAnswered ? (isRight ? '#D4A017' : '#8B5A2B') : C.muted) : C.muted, fontStyle: phase==='playing' && !isAnswered ?'italic':'normal', textAlign:'center' }}>
-          {phase === 'idle'    && (expertMode ? 'Niveau Expert : questions niches !' : 'Devine ce que veut le client !')}
+          {phase === 'idle'    && 'Devine ce que veut le client !'}
           {phase === 'playing' && !isAnswered && 'Choisis la bonne réponse'}
           {phase === 'playing' && isAnswered && (isRight ? '✓ Bien vu !' : '✗ Raté')}
         </div>
@@ -345,9 +353,9 @@ export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
         </button>
       )}
 
-      {/* Tip card */}
+      {/* Tip card — paliers selon le mode (5 ou 8 questions) */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 <strong style={{ color:'#D4A017' }}>5/5 = +60 🍪</strong> · 4/5 = +35 · 3/5 = +15 · 2/5 ou moins = 0
+        💡 <strong style={{ color:'#D4A017' }}>{NB_QUESTIONS}/{NB_QUESTIONS} = +100 🍪</strong> · {NB_QUESTIONS-1}/{NB_QUESTIONS} = +60 · {NB_QUESTIONS-2}/{NB_QUESTIONS} = +25 · moins = 0
       </div>
     </div>
   );

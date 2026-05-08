@@ -1,24 +1,19 @@
 /* ════════════════════════════════════════════════════
    COMMANDES — banque de questions pour GuessGame (PHASE 6C)
    ────────────────────────────────────────────────────
-   65 entrées au total :
-   - 40 questions standard (mode normal)
-   - 25 questions DIFFICILES (flag `difficult:true`) — méthodes de
-     préparation niches, pâtisseries rares, distinctions ultra-fines
-     entre boissons proches, vocabulaire de barista, variétés rares.
+   65 entrées toutes standard (le mode Expert a été retiré le 09/05/2026).
 
-   Mode Expert (joueur niv 7+) : GuessGame ne tire que les questions
-   difficiles. Sinon : seulement les questions standard (compatibilité
-   avec les joueurs débutants).
+   Variété des thèmes : boissons chaudes/froides, pâtisseries françaises
+   et internationales, méthodes de préparation, sirops, viennoiseries,
+   thés, glaces. Niveau de difficulté homogène — accessible à tous.
 
    Chaque entrée :
    - desc    : description du client (entrée en bulle de dialogue)
    - choices : 4 boissons / pâtisseries proposées
    - answer  : index (0-3) de la bonne réponse dans `choices`
-   - difficult? : flag pour le mode Expert (niv 7+)
 
-   À chaque partie, GuessGame tire 5 commandes au hasard, sans
-   répétition dans la même partie.
+   À chaque partie, GuessGame tire 5 commandes au hasard (8 au niv 10+),
+   sans répétition dans la même partie.
 ═══════════════════════════════════════════════════════ */
 
 export const COMMANDES = [
@@ -105,60 +100,55 @@ export const COMMANDES = [
   { desc:"Boisson froide italienne : espresso shaké avec glace et sucre, mousseux.",
     choices:['Espresso freddo','Iced Latte','Cold Brew','Frappé'], answer:0 },
 
-  /* ═══════════ MODE EXPERT (25 questions, flag `difficult:true`) ═══════════
-     Pour les joueurs niveau 7+ uniquement. Distinctions très fines, méthodes
-     rares, vocabulaire spécialisé. */
-
-  { desc:"Méthode japonaise au goutte-à-goutte, dans un cône en porcelaine.",
-    choices:['V60','Chemex','AeroPress','Syphon'], answer:0, difficult:true },
-  { desc:"Méthode à siphon, l'eau monte par pression de vapeur puis redescend.",
-    choices:['Moka','Syphon','Chemex','French Press'], answer:1, difficult:true },
-  { desc:"Méthode infusion + pression manuelle, brevetée par Aerobie.",
-    choices:['V60','AeroPress','Chemex','Cold Brew'], answer:1, difficult:true },
-  { desc:"Espresso australien : ristretto + lait micro-moussé, dans une tasse 150ml.",
-    choices:['Cappuccino','Flat White','Cortado','Latte'], answer:1, difficult:true },
-  { desc:"Café espagnol concentré servi avec un peu de lait condensé sucré.",
-    choices:['Cortado','Café bombón','Café con leche','Carajillo'], answer:1, difficult:true },
-  { desc:"Café cubain au sucre fouetté avec la première extraction d'espresso.",
-    choices:['Café Cubano','Cortado','Café latte','Café au lait'], answer:0, difficult:true },
-  { desc:"Café australien identique à l'Americano mais l'eau est ajoutée AVANT.",
-    choices:['Long Black','Americano','Lungo','Café filtré'], answer:0, difficult:true },
-  { desc:"Espresso doppio versé sur de la glace, bu d'un trait.",
-    choices:['Affogato','Iced Latte','Espresso shakerato','Cold Brew'], answer:2, difficult:true },
-  { desc:"Café vietnamien filtré goutte-à-goutte sur du lait concentré sucré.",
-    choices:['Cà phê sữa đá','Phin','Frappé','Café au lait'], answer:0, difficult:true },
-  { desc:"Pâtisserie portugaise à base de pâte feuilletée et de crème pâtissière brûlée.",
-    choices:['Pastel de nata','Brioche','Beignet','Cannelé'], answer:0, difficult:true },
-  { desc:"Petit gâteau bordelais à la croûte caramélisée, mou à l'intérieur.",
-    choices:['Madeleine','Cannelé','Financier','Sablé'], answer:1, difficult:true },
-  { desc:"Pâtisserie viennoise feuilletée fourrée à la pâte d'amandes ou aux raisins.",
-    choices:['Croissant','Kouign-amann','Strudel','Schnecke'], answer:3, difficult:true },
-  { desc:"Variété d'arabica brésilien, notes chocolatées et corsées.",
-    choices:['Geisha','Bourbon','Typica','Catuai'], answer:1, difficult:true },
-  { desc:"Variété rare panaméenne, notes florales et de bergamote.",
-    choices:['Geisha','Bourbon','SL28','Pacamara'], answer:0, difficult:true },
-  { desc:"Méthode où le café est extrait sous très haute pression dans un percolateur italien.",
-    choices:['Espresso','Moka','Lungo','Filtre'], answer:1, difficult:true },
-
-  /* ─── 10 difficiles ajoutées 09/05/2026 ─── */
-  { desc:"Variété d'arabica éthiopienne, notes fruitées et florales prononcées.",
-    choices:['Yirgacheffe','Bourbon','Geisha','Typica'], answer:0, difficult:true },
-  { desc:"Café finement moulu bouilli dans une cezve, avec mousse en surface.",
-    choices:['Café turc','Café grec','Café arabe','Café égyptien'], answer:0, difficult:true },
-  { desc:"Espresso et lait à parts égales, servi dans un petit verre.",
-    choices:['Macchiato','Cortado','Flat White','Piccolo'], answer:1, difficult:true },
-  { desc:"Boisson infusée à partir de la cerise séchée du café (la peau du grain).",
-    choices:['Cascara','Cold Brew','Cibo','Coffee tea'], answer:0, difficult:true },
-  { desc:"Café indonésien rare obtenu après digestion par une civette asiatique.",
-    choices:['Kopi Luwak','Mandheling','Sumatra','Java'], answer:0, difficult:true },
-  { desc:"Motif de feuille tracé dans la mousse de lait par le barista.",
-    choices:['Rosetta','Tulipe','Cygne','Cœur'], answer:0, difficult:true },
-  { desc:"Outil de barista pour tasser le café moulu dans le porte-filtre.",
-    choices:['Tamper','Knock box','Distributeur','Pichet'], answer:0, difficult:true },
-  { desc:"Couche de mousse dorée à la surface d'un espresso bien tiré.",
-    choices:['Crema','Mousse','Schaum','Cremina'], answer:0, difficult:true },
-  { desc:"Café provenant d'une seule plantation et d'un seul lot, non blendé.",
-    choices:['Single origin','Blend','Robusta blend','Aged coffee'], answer:0, difficult:true },
-  { desc:"Café espresso versé sur de la glace pilée, servi avec une cuillère.",
-    choices:['Granita','Affogato','Espresso freddo','Mazagran'], answer:0, difficult:true },
+  /* ─── 25 questions complémentaires (variétés accessibles) ─── */
+  { desc:"Une boisson chaude apaisante à base de fleurs jaunes.",
+    choices:['Camomille','Verveine','Menthe','Thym'], answer:0 },
+  { desc:"Un dessert glacé italien aux différents parfums fruités.",
+    choices:['Sorbet','Tiramisu','Granité','Frappé'], answer:0 },
+  { desc:"Un petit chou rond fourré à la crème pâtissière, glacé sur le dessus.",
+    choices:['Éclair','Religieuse','Profiterole','Mille-feuille'], answer:1 },
+  { desc:"Trois couches de pâte feuilletée fourrées de crème pâtissière.",
+    choices:['Mille-feuille','Éclair','Religieuse','Tarte'], answer:0 },
+  { desc:"Une boisson froide fouettée mêlant lait et crème glacée.",
+    choices:['Frappé','Milkshake','Smoothie','Iced Latte'], answer:1 },
+  { desc:"Une boisson froide à base de fruits frais mixés sans glace.",
+    choices:['Smoothie','Frappé','Jus','Cocktail'], answer:0 },
+  { desc:"Cookie new-yorkais épais, fondant à cœur et croustillant dehors.",
+    choices:['Cookie NY','Cookie classique','Cookie levain','Cookie tendre'], answer:0 },
+  { desc:"Pâtisserie en couronne fourrée de crème pralinée, classique français.",
+    choices:['Paris-Brest','Saint-Honoré','Religieuse','Tarte Tatin'], answer:0 },
+  { desc:"Dessert turc en pâte filo, sirop au miel et pistaches.",
+    choices:['Baklava','Loukoum','Halva','Kunafa'], answer:0 },
+  { desc:"Une boisson glacée indienne au yaourt, parfois mangue.",
+    choices:['Lassi','Smoothie','Ayran','Buttermilk'], answer:0 },
+  { desc:"Un pain italien plat à l'huile d'olive et au romarin.",
+    choices:['Focaccia','Ciabatta','Pizza','Naan'], answer:0 },
+  { desc:"Le pain plat indien cuit au tandoor.",
+    choices:['Naan','Chapati','Pita','Roti'], answer:0 },
+  { desc:"Le pain rond et creux méditerranéen, idéal à fourrer.",
+    choices:['Pita','Naan','Tortilla','Lavash'], answer:0 },
+  { desc:"Le pain croustillant français en bâton long.",
+    choices:['Baguette','Ficelle','Bâtard','Flûte'], answer:0 },
+  { desc:"Une glace italienne crémeuse servie en boules colorées.",
+    choices:['Gelato','Sorbet','Glace','Yaourt glacé'], answer:0 },
+  { desc:"Un dessert français glacé recouvert de meringue flambée.",
+    choices:['Omelette norvégienne','Vacherin','Bombe glacée','Coupe Melba'], answer:0 },
+  { desc:"Une boisson glacée mexicaine au lait, cannelle et riz.",
+    choices:['Horchata','Atole','Champurrado','Lassi'], answer:0 },
+  { desc:"Un sirop italien à la noisette grillée.",
+    choices:['Sirop noisette','Sirop amande','Sirop vanille','Sirop caramel'], answer:0 },
+  { desc:"Un sirop français pourpre à base de cassis.",
+    choices:['Sirop de cassis','Sirop de menthe',"Sirop d'orgeat",'Sirop de violette'], answer:0 },
+  { desc:"Le chocolat chaud épais espagnol pour tremper les churros.",
+    choices:['Chocolat espagnol','Mocha','Cacao','Chocolat viennois'], answer:0 },
+  { desc:"Un cookie au beurre fondant et chocolat blanc.",
+    choices:['Cookie chocolat blanc','Cookie classique','Cookie avoine','Brownie'], answer:0 },
+  { desc:"Un dessert glacé café et chantilly servi en coupe.",
+    choices:['Café liégeois','Affogato','Frappé','Iced Latte'], answer:0 },
+  { desc:"Une pâtisserie en pâte levée frite, parfois fourrée à la crème.",
+    choices:['Beignet','Donut','Brioche','Profiterole'], answer:0 },
+  { desc:"Un thé chinois sombre au goût terreux, fermenté longtemps.",
+    choices:['Pu-erh','Oolong','Sencha','Matcha'], answer:0 },
+  { desc:"Le thé indien noir fort et tannique, base du chai.",
+    choices:['Assam','Darjeeling','Ceylan','Pu-erh'], answer:0 },
 ];

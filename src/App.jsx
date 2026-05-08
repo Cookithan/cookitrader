@@ -1184,7 +1184,7 @@ export default function CookiMiner() {
     { id:'click',   Icon:MousePointerClick, title:'Cookie Click',         desc:'Tapotez le cookie !',       reward:'1 cookie / 2 clics',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
     { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520', levelRequired:1 },
     { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies (coût 10🍪)', avail:coins>=10, color:'#A0784E', levelRequired:2 },
-    { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc:'5 questions café',          reward:'0 à 100 cookies (coût 5🍪)', avail:coins>=5,  color:'#8B5A2B', levelRequired:3 },
+    { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc: level >= 10 ? '8 questions café' : '5 questions café', reward:'0 à 100 cookies (coût 5🍪)', avail:coins>=5,  color:'#8B5A2B', levelRequired:3 },
     { id:'reflex',  Icon:Timer,             title:'Réflexes cookies',     desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies (coût 5🍪)', avail:coins>=5, color:'#D4A017', levelRequired:4 },
     { id:'pyramid', Icon:Coffee,            title:'Pile de Tasses',       desc:'Empile sans rater',         reward:'5 à 100 cookies (coût 10🍪)', avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
     { id:'slot',    Icon:Dice5,             title:'Machine à Sous',       desc:'3 rouleaux, gros lots',     reward:'+25 à +750 cookies (coût 30🍪)', avail:coins>=30, color:'#5C3614', levelRequired:13 },
