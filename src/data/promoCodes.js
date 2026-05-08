@@ -24,7 +24,7 @@ export const PROMO_CODES = {
   'TOP1':      { coins: 50,   cafes: 0, label: 'Top 1 du classement' },
   'COOKITHAN': { coins: 0,    cafes: 2, label: 'Merci du créateur' },
   'MERCI':     { coins: 50,   cafes: 1, label: 'Petit merci' },
-  'BARMAN':    { coins: 0,    cafes: 0, shares: 1, label: '1 action $CKM offerte' },
+  'CMK1':      { coins: 0,    cafes: 0, shares: 1, label: '1 action $CKM offerte' },
 };
 
 export function lookupPromoCode(rawInput){
