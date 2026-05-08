@@ -1324,7 +1324,7 @@ export default function CookiMiner() {
           onCheckin={doCheckin} checkinReward={checkinReward}
           onQuizEarn={addCoins} onQuizDone={()=>setLastQuiz(Date.now())} quizMsLeft={quizMsLeft}
           onSpinEarn={addCoins} onSpend={spendCoins}
-          onClickEarn={addCoins} onUpdateRecord={s=>setClickRecord(r=>Math.max(r,s))}
+          onClickEarn={addCoins} onUpdateRecord={s=>setClickRecord(r=>Math.min(100, Math.max(r,s)))}
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
           onEventChallenge={checkEventChallenge}
           C={C}
