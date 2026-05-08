@@ -316,6 +316,63 @@ export async function buyShares(userCode, shares) {
   };
 }
 
+/* ════════════════════════════════════════════════════
+   creditFreeShares — crédite N actions sans débiter cookies (codes promo)
+   ────────────────────────────────────────────────────
+   Utilisé par les codes promo (ex: BARMAN). On ajoute les shares au
+   portfolio + on incrémente shares_in_circulation pour rester cohérent
+   avec la mécanique offre/demande. Pas d'impact sur le prix (pas de
+   slippage appliqué). Pas d'enregistrement dans market_transactions
+   (ce n'est pas un achat).
+═══════════════════════════════════════════════════════ */
+export async function creditFreeShares(userCode, sharesToAdd) {
+  if (!isSupabaseEnabled()) return { success: false, error: 'Hors ligne' };
+  if (!userCode || !sharesToAdd || sharesToAdd <= 0) return { success: false };
+
+  try {
+    /* Portfolio actuel */
+    const { data: portfolio } = await supabase
+      .from('market_portfolio')
+      .select('shares, total_invested')
+      .eq('user_code', userCode)
+      .maybeSingle();
+
+    const currentShares = Number(portfolio?.shares) || 0;
+    const newShares     = currentShares + sharesToAdd;
+    const cap           = MARKET_CONFIG.TOTAL_SHARES * MARKET_CONFIG.MAX_SHARES_PER_USER_PCT;
+    if (newShares > cap) {
+      return { success: false, error: `Cap max ${cap} actions` };
+    }
+
+    /* Incrémente shares_in_circulation pour cohérence */
+    const { data: state } = await supabase
+      .from('market_state')
+      .select('shares_in_circulation')
+      .eq('id', 1)
+      .maybeSingle();
+    if (state) {
+      await supabase
+        .from('market_state')
+        .update({ shares_in_circulation: (Number(state.shares_in_circulation) || 0) + sharesToAdd })
+        .eq('id', 1);
+    }
+
+    /* Upsert le portfolio (le total_invested reste inchangé puisque
+       l'utilisateur n'a rien dépensé pour ces actions). */
+    await supabase.from('market_portfolio').upsert({
+      user_code: userCode,
+      shares: newShares,
+      total_invested: Number(portfolio?.total_invested) || 0,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_code' });
+
+    return { success: true, sharesAdded: sharesToAdd, sharesNow: newShares };
+  } catch (e) {
+    console.warn('[market] creditFreeShares error:', e);
+    return { success: false, error: 'Erreur réseau' };
+  }
+}
+
 // ═══════════════════════════════════════════
 // VENTE
 // ═══════════════════════════════════════════

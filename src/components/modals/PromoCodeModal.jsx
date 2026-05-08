@@ -45,10 +45,11 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], C }){
     setLoading(true);
     onRedeem(promo);
     /* Construction propre du message : on ne mentionne que les
-       monnaies effectivement crédités (évite '+' isolé si coins=0). */
+       monnaies effectivement créditées (évite '+' isolé si coins=0). */
     const parts = [];
-    if(promo.coins) parts.push(`+${promo.coins} 🍪`);
-    if(promo.cafes) parts.push(`+${promo.cafes} ☕`);
+    if(promo.coins)  parts.push(`+${promo.coins} 🍪`);
+    if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
+    if(promo.shares) parts.push(`+${promo.shares} action${promo.shares > 1 ? 's' : ''} $CKM`);
     setFeedback({
       type:'ok',
       msg: `${parts.join(' · ')} — ${promo.label}`,

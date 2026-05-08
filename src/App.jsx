@@ -29,6 +29,7 @@ import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
+import { creditFreeShares } from "./lib/market.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
@@ -959,20 +960,30 @@ export default function CookiMiner() {
     window.location.reload();
   }, []);
 
-  /* Validation d'un code promo : crédite cookies/cafés et marque le
+  /* Validation d'un code promo : crédite cookies/cafés/actions et marque le
      code comme utilisé. La modale fait elle-même les checks (validité,
-     pas déjà utilisé) — ici on assume que le promo est valide. */
-  const redeemPromoCode = useCallback((promo) => {
+     pas déjà utilisé) — ici on assume que le promo est valide.
+     Async car shares passe par Supabase. */
+  const redeemPromoCode = useCallback(async (promo) => {
     if(!promo || promoCodesUsed.includes(promo.code)) return;
+    /* Crédit shares en premier (peut échouer si Supabase off) */
+    if(promo.shares){
+      const res = await creditFreeShares(userCode, promo.shares);
+      if(!res?.success){
+        showToast(`⚠️ ${res?.error || 'Action non créditée'}`);
+        return;  // ne pas marquer le code comme utilisé si l'action a échoué
+      }
+    }
     if(promo.coins) addCoins(promo.coins);
     if(promo.cafes) setCafes(c => c + promo.cafes);
     setPromoCodesUsed(arr => Array.isArray(arr) ? [...arr, promo.code] : [promo.code]);
     playSound('success');
     const parts = [];
-    if(promo.coins) parts.push(`+${promo.coins} 🍪`);
-    if(promo.cafes) parts.push(`+${promo.cafes} ☕`);
+    if(promo.coins)  parts.push(`+${promo.coins} 🍪`);
+    if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
+    if(promo.shares) parts.push(`+${promo.shares} action$CKM`.replace('action$CKM', `action${promo.shares > 1 ? 's' : ''} $CKM`));
     showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
-  }, [addCoins, setCafes, promoCodesUsed, setPromoCodesUsed, showToast]);
+  }, [addCoins, setCafes, promoCodesUsed, setPromoCodesUsed, showToast, userCode]);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
