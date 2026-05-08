@@ -22,7 +22,7 @@
 
 export const ONBOARDING_AVATARS = [
   { id:0,  art:'tasse',        name:'Tasse Café',     bg:'linear-gradient(140deg,#4A2C17,#7D4E1F)', hidden:true },
-  { id:1,  art:'cookie',       name:'Cookie',         bg:'linear-gradient(140deg,#C17F3C,#D4A017)' },
+  { id:1,  art:'cookie',       name:'Cookie',         bg:'linear-gradient(140deg,#C17F3C,#D4A017)', hidden:true },
   { id:2,  art:'baristaH',     name:'Barista H',      bg:'linear-gradient(140deg,#8B5A2B,#C17F3C)' },
   { id:3,  art:'baristaF',     name:'Barista F',      bg:'linear-gradient(140deg,#8B5A2B,#C17F3C)' },
   { id:4,  art:'theiere',      name:'Théière',        bg:'linear-gradient(140deg,#7D4E1F,#A0784E)', hidden:true },

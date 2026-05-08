@@ -239,18 +239,26 @@ const LatteArt = () => (
         <stop offset="0%" stopColor={CREME} />
         <stop offset="100%" stopColor="#E5D4B8" />
       </radialGradient>
+      <linearGradient id="g_latte_heart" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
     </defs>
     {/* anneau crème extérieur */}
     <circle cx="50" cy="50" r="38" fill="url(#g_latte_cup)" {...STROKE_HEAVY} />
     {/* café avec radial */}
     <circle cx="50" cy="50" r="32" fill="url(#g_latte_coffee)" />
-    {/* feuille (rosetta) plus stylisée — 5 lobes alternés */}
-    <path d="M50 24 Q42 30 48 36 Q40 40 48 46 Q40 50 48 56 Q40 60 48 66 Q40 70 48 76 Q50 80 50 80 Q50 80 52 76 Q60 70 52 66 Q60 60 52 56 Q60 50 52 46 Q60 40 52 36 Q58 30 50 24 Z"
-      fill={CREME} {...STROKE_FINE} />
-    {/* tige centrale */}
-    <line x1="50" y1="32" x2="50" y2="78" stroke={MOKA_LT} strokeWidth="1.5" strokeLinecap="round" />
-    {/* étoile mousse */}
-    <circle cx="50" cy="22" r="2.2" fill={CREME} />
+    {/* cœur crème centré dans le café (latte art classique) */}
+    <path d="M50 70
+             C 40 62, 28 54, 28 42
+             C 28 34, 36 30, 42 32
+             C 46 33, 50 38, 50 42
+             C 50 38, 54 33, 58 32
+             C 64 30, 72 34, 72 42
+             C 72 54, 60 62, 50 70 Z"
+      fill="url(#g_latte_heart)" stroke={MOKA} strokeWidth="1.4" strokeLinejoin="round" />
+    {/* highlight cœur */}
+    <ellipse cx="40" cy="40" rx="5" ry="3" fill={CREME} opacity=".85" transform="rotate(-25 40 40)" />
     {/* highlight tasse */}
     <ellipse cx="34" cy="38" rx="9" ry="3" fill={CREME} opacity=".6" />
   </svg>
@@ -746,44 +754,43 @@ const AvLegende = () => (
         <stop offset="0%" stopColor={OR_LTR} />
         <stop offset="100%" stopColor={OR_DK} />
       </linearGradient>
-      <radialGradient id="g_leg_cookie" cx="40%" cy="35%" r="80%">
-        <stop offset="0%" stopColor={CARAMEL_LT} />
-        <stop offset="60%" stopColor={COOKIE} />
-        <stop offset="100%" stopColor={COOKIE_DK} />
-      </radialGradient>
+      <linearGradient id="g_leg_cup" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
     </defs>
     {/* couronne avec gradient */}
-    <path d="M26 30 L34 14 L40 28 L50 10 L60 28 L66 14 L74 30 L74 40 L26 40 Z" fill="url(#g_leg_crown)" {...STROKE_HEAVY} stroke={OR_DK} strokeWidth="2.6" strokeLinejoin="round" />
+    <path d="M26 28 L34 12 L40 26 L50 8 L60 26 L66 12 L74 28 L74 38 L26 38 Z" fill="url(#g_leg_crown)" {...STROKE_HEAVY} stroke={OR_DK} strokeWidth="2.6" strokeLinejoin="round" />
     {/* gemmes */}
-    <circle cx="34" cy="22" r="3" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
-    <circle cx="34" cy="22" r="1" fill={ESPRESSO} opacity=".5" />
-    <circle cx="50" cy="16" r="3.6" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
-    <circle cx="50" cy="16" r="1.3" fill={ESPRESSO} opacity=".5" />
-    <circle cx="66" cy="22" r="3" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
-    <circle cx="66" cy="22" r="1" fill={ESPRESSO} opacity=".5" />
-    <rect x="26" y="38" width="48" height="6" fill={OR} stroke={OR_DK} strokeWidth="1.5" />
+    <circle cx="34" cy="20" r="3" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
+    <circle cx="34" cy="20" r="1" fill={ESPRESSO} opacity=".5" />
+    <circle cx="50" cy="14" r="3.6" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
+    <circle cx="50" cy="14" r="1.3" fill={ESPRESSO} opacity=".5" />
+    <circle cx="66" cy="20" r="3" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
+    <circle cx="66" cy="20" r="1" fill={ESPRESSO} opacity=".5" />
+    <rect x="26" y="36" width="48" height="6" fill={OR} stroke={OR_DK} strokeWidth="1.5" />
     {/* highlight bandeau */}
-    <rect x="28" y="39" width="32" height="1.5" fill={OR_LTR} opacity=".8" />
-    {/* cookie magique */}
-    <circle cx="50" cy="64" r="22" fill="url(#g_leg_cookie)" {...STROKE_HEAVY} stroke={COOKIE_DK} strokeWidth="3" />
-    {/* aura */}
-    <circle cx="50" cy="64" r="22" fill="none" stroke={OR_LTR} strokeWidth="2.4" opacity=".8" />
-    <circle cx="50" cy="64" r="26" fill="none" stroke={OR_LTR} strokeWidth="1.2" opacity=".5" />
-    <circle cx="50" cy="64" r="30" fill="none" stroke={OR_LTR} strokeWidth="0.6" opacity=".3" />
-    {/* pépites */}
-    <circle cx="42" cy="58" r="3.4" fill={ESPRESSO} />
-    <circle cx="58" cy="58" r="3.4" fill={ESPRESSO} />
-    <circle cx="50" cy="70" r="3" fill={ESPRESSO} />
-    <circle cx="40" cy="68" r="2.2" fill={ESPRESSO} />
-    <circle cx="60" cy="68" r="2.2" fill={ESPRESSO} />
+    <rect x="28" y="37" width="32" height="1.5" fill={OR_LTR} opacity=".8" />
+    {/* tasse de café avec aura */}
+    <path d="M70 60 Q84 60 84 68 Q84 76 70 76" fill="none" {...STROKE_HEAVY} strokeWidth="3.5" />
+    <path d="M22 50 L72 50 L70 82 Q70 88 60 88 L34 88 Q24 88 24 82 Z" fill="url(#g_leg_cup)" {...STROKE_HEAVY} strokeWidth="3" />
+    {/* café fumant à la surface */}
+    <ellipse cx="47" cy="56" rx="22" ry="5" fill={ESPRESSO} />
+    <ellipse cx="42" cy="54.5" rx="6" ry="1.8" fill={MOKA_LT} opacity=".8" />
+    {/* vapeur royale */}
+    <path d="M40 48 Q44 40 40 32" stroke={CREME} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".85" />
+    <path d="M50 48 Q54 38 50 28" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".95" />
+    <path d="M60 48 Q64 40 60 32" stroke={CREME} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".85" />
+    {/* aura dorée autour de la tasse */}
+    <path d="M22 50 L72 50 L70 82 Q70 88 60 88 L34 88 Q24 88 24 82 Z" fill="none" stroke={OR_LTR} strokeWidth="2.4" opacity=".7" />
+    <path d="M18 50 L76 50 L74 84 Q74 92 62 92 L32 92 Q20 92 20 84 Z" fill="none" stroke={OR_LTR} strokeWidth="1.2" opacity=".4" />
     {/* étoiles flottantes */}
-    <circle cx="20" cy="54" r="1.8" fill={OR_LTR} />
-    <circle cx="80" cy="54" r="1.8" fill={OR_LTR} />
-    <circle cx="18" cy="78" r="1.6" fill={OR_LTR} />
-    <circle cx="82" cy="78" r="1.6" fill={OR_LTR} />
-    {/* highlight cookie */}
-    <ellipse cx="40" cy="56" rx="7" ry="3.5" fill={OR_LTR} opacity=".55" transform="rotate(-25 40 56)" />
-    <ellipse cx="38" cy="54" rx="3" ry="1.5" fill={CREME} opacity=".7" transform="rotate(-25 38 54)" />
+    <circle cx="14" cy="54" r="1.8" fill={OR_LTR} />
+    <circle cx="86" cy="54" r="1.8" fill={OR_LTR} />
+    <circle cx="12" cy="78" r="1.6" fill={OR_LTR} />
+    <circle cx="88" cy="78" r="1.6" fill={OR_LTR} />
+    {/* highlight tasse */}
+    <ellipse cx="32" cy="62" rx="3.5" ry="10" fill={CREME} opacity=".7" />
   </svg>
 );
 
