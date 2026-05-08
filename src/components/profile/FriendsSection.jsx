@@ -10,6 +10,7 @@ import {
   acceptFriendRequest,
   declineFriendRequest,
 } from "../../lib/supabaseSync.js";
+import { GiftModal } from "../modals/GiftModal.jsx";
 
 /* ════════════════════════════════════════════════════
    FriendsSection — section "Mes Amis" du Profil
@@ -48,7 +49,7 @@ function timeAgo(iso){
   return `il y a ${d} j`;
 }
 
-export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, onOpenProfile, C }){
+export function FriendsSection({ userCode, myCoins = 0, myCafes = 0, onRequestsCountChange, onOpenProfile, onSendGift, C }){
   const [copied,    setCopied]    = useState(false);
   const [inputCode, setInputCode] = useState('');
   const [sending,   setSending]   = useState(false);
@@ -56,6 +57,7 @@ export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, o
   const [friends,   setFriends]   = useState([]);
   const [requests,  setRequests]  = useState([]);   // demandes reçues pending
   const [loading,   setLoading]   = useState(false);
+  const [giftTarget, setGiftTarget] = useState(null); // { user_code, user_name, ... } | null
 
   const enabled = isSupabaseEnabled();
 
@@ -397,6 +399,23 @@ export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, o
                           👁️
                         </span>
                       )}
+                      {onSendGift && (
+                        <button
+                          onClick={(e)=>{ e.stopPropagation(); setGiftTarget(f); }}
+                          aria-label="Offrir un cadeau"
+                          title="Offrir un cadeau"
+                          style={{
+                            width:30, height:30, borderRadius:9,
+                            background:'linear-gradient(135deg,#D4A017,#C17F3C)',
+                            color:'#fff', border:'none',
+                            fontSize:14, cursor:'pointer',
+                            display:'flex', alignItems:'center', justifyContent:'center',
+                            boxShadow:'0 3px 8px rgba(212,160,23,.35)',
+                          }}
+                        >
+                          🎁
+                        </button>
+                      )}
                       <button
                         onClick={(e)=>{ e.stopPropagation(); handleRemove(f.user_code); }}
                         aria-label="Retirer"
@@ -417,6 +436,19 @@ export function FriendsSection({ userCode, myCoins = 0, onRequestsCountChange, o
             )}
           </div>
         </>
+      )}
+
+      {/* Modal d'envoi de cadeau */}
+      {giftTarget && onSendGift && (
+        <GiftModal
+          friend={giftTarget}
+          myUserCode={userCode}
+          coins={myCoins}
+          cafes={myCafes}
+          onClose={() => setGiftTarget(null)}
+          onSend={(giftType) => onSendGift(giftTarget.user_code, giftType)}
+          C={C}
+        />
       )}
     </section>
   );
