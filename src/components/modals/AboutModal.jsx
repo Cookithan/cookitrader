@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { APP_INFO, CHANGELOG } from "../../lib/appInfo.js";
 import { getGlobalCommunityStats } from "../../lib/supabaseSync.js";
 import { ESPRESSO } from "../../data/themes.js";
+
+/* Code 4 chiffres pour ouvrir le code source. Pas une vraie sécurité
+   (le bundle JS est public sur Vercel) — juste un petit gate UX. */
+const SOURCE_CODE = '0968';
 
 /* ════════════════════════════════════════════════════
    AboutModal — page "À propos" (BRIEF_A_PROPOS)
@@ -28,11 +32,48 @@ export function AboutModal({ onClose, C }){
   const [stats,   setStats]   = useState(null);
   const [closing, setClosing] = useState(false);
 
+  /* Gate code source : input 4 chiffres → ouvre le lien si correct */
+  const [showCodeInput, setShowCodeInput] = useState(false);
+  const [codeInput,     setCodeInput]     = useState('');
+  const [codeFeedback,  setCodeFeedback]  = useState(null); // 'wrong' | 'ok' | null
+  const codeInputRef = useRef(null);
+
   useEffect(() => {
     let alive = true;
     getGlobalCommunityStats().then(s => { if(alive) setStats(s); });
     return () => { alive = false; };
   }, []);
+
+  /* Auto-focus quand on ouvre l'input + auto-validation à 4 chiffres */
+  useEffect(() => {
+    if(!showCodeInput) return;
+    const t = setTimeout(() => codeInputRef.current?.focus(), 50);
+    return () => clearTimeout(t);
+  }, [showCodeInput]);
+
+  const handleCodeChange = (val) => {
+    const digits = val.replace(/\D/g, '').slice(0, 4);
+    setCodeInput(digits);
+    setCodeFeedback(null);
+    if(digits.length === 4){
+      if(digits === SOURCE_CODE){
+        setCodeFeedback('ok');
+        window.open(APP_INFO.github, '_blank', 'noopener,noreferrer');
+        setTimeout(() => {
+          setShowCodeInput(false);
+          setCodeInput('');
+          setCodeFeedback(null);
+        }, 900);
+      } else {
+        setCodeFeedback('wrong');
+        setTimeout(() => {
+          setCodeInput('');
+          setCodeFeedback(null);
+          codeInputRef.current?.focus();
+        }, 600);
+      }
+    }
+  };
 
   const handleClose = () => {
     if(closing) return;
@@ -180,7 +221,7 @@ export function AboutModal({ onClose, C }){
             })}
           </div>
 
-          {/* 4. Liens */}
+          {/* 4. Liens — bouton GitHub gated derrière un code 4 chiffres */}
           <div style={{
             background:C.card, borderRadius:14, padding:14,
             marginBottom:12, border:`1.5px solid ${C.border}`,
@@ -192,21 +233,84 @@ export function AboutModal({ onClose, C }){
             }}>
               🔗 Liens
             </div>
-            <a
-              href={APP_INFO.github}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                padding:'11px 13px', borderRadius:11,
-                background:C.bg, border:`1px solid ${C.border}`,
-                fontSize:13, fontWeight:700, color:C.text,
-                textDecoration:'none',
-              }}
-            >
-              <span>💻 Code source GitHub</span>
-              <span style={{ fontSize:12, color:C.muted }}>↗</span>
-            </a>
+
+            {!showCodeInput ? (
+              <button
+                onClick={() => setShowCodeInput(true)}
+                style={{
+                  width:'100%',
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  padding:'11px 13px', borderRadius:11,
+                  background:C.bg, border:`1px solid ${C.border}`,
+                  fontSize:13, fontWeight:700, color:C.text,
+                  cursor:'pointer', textAlign:'left',
+                }}
+              >
+                <span>💻 Code source GitHub</span>
+                <span style={{ fontSize:11, color:C.muted, fontWeight:700, letterSpacing:.5 }}>🔒 code</span>
+              </button>
+            ) : (
+              <div
+                key={codeFeedback === 'wrong' ? 'wrong' : 'idle'}
+                style={{
+                  padding:'11px 13px', borderRadius:11,
+                  background:C.bg,
+                  border: codeFeedback === 'wrong'
+                    ? '1.5px solid #7D4E1F'
+                    : codeFeedback === 'ok'
+                      ? '1.5px solid #D4A017'
+                      : `1.5px solid ${C.border}`,
+                  animation: codeFeedback === 'wrong' ? 'shake .4s ease-in-out' : undefined,
+                  transition:'border-color .2s',
+                }}
+              >
+                <div style={{
+                  fontSize:11, color:C.muted, fontWeight:700,
+                  marginBottom:8, display:'flex', justifyContent:'space-between', alignItems:'center',
+                }}>
+                  <span>🔒 Entre le code (4 chiffres)</span>
+                  <button
+                    onClick={() => { setShowCodeInput(false); setCodeInput(''); setCodeFeedback(null); }}
+                    style={{
+                      background:'transparent', border:'none',
+                      fontSize:11, color:C.muted, cursor:'pointer',
+                      padding:0, textDecoration:'underline',
+                    }}
+                  >Annuler</button>
+                </div>
+                <input
+                  ref={codeInputRef}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  autoComplete="off"
+                  value={codeInput}
+                  onChange={(e) => handleCodeChange(e.target.value)}
+                  maxLength={4}
+                  placeholder="••••"
+                  style={{
+                    width:'100%',
+                    padding:'10px 12px', borderRadius:9,
+                    background:C.card, color:C.text,
+                    border:`1.5px solid ${C.border}`,
+                    fontSize:18, fontWeight:800, letterSpacing:8,
+                    textAlign:'center', outline:'none',
+                    fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+                    boxSizing:'border-box',
+                  }}
+                />
+                {codeFeedback === 'wrong' && (
+                  <div style={{ fontSize:11, color:'#7D4E1F', fontWeight:700, marginTop:6, textAlign:'center' }}>
+                    Code incorrect
+                  </div>
+                )}
+                {codeFeedback === 'ok' && (
+                  <div style={{ fontSize:11, color:'#C8960C', fontWeight:700, marginTop:6, textAlign:'center' }}>
+                    ✓ Ouverture du code source…
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 5. Crédits */}
