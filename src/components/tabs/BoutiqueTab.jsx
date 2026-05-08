@@ -26,12 +26,18 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack'];
 
   /* Musique active — état local synchronisé avec le système audio (LS).
-     Le bouton "Activer" sur une carte musique appelle playMusic + met à
-     jour ce state pour rafraîchir le visuel "● Activé". */
-  const [activeMusicId, setActiveMusicIdState] = useState(getCurrentMusicId());
+     Convention : côté REWARDS l'id est `music_<key>` (ex 'music_matin') ;
+     côté MUSICS / playMusic la clé est `<key>` (ex 'matin'). On strip le
+     préfixe avant l'appel et pour comparer la sélection.
+     Note : `activeMusicId` côté state local stocke l'id REWARDS (`music_<key>`)
+     pour matcher r.id directement dans la comparaison `isActive`. */
+  const fromMusicsKey = (k) => k ? `music_${k}` : '';
+  const toMusicsKey   = (id) => id ? id.replace(/^music_/, '') : '';
+  const [activeMusicId, setActiveMusicIdState] = useState(fromMusicsKey(getCurrentMusicId()));
   const setActiveMusic = (id) => {
-    if(id){ playMusic(id); }
-    setActiveMusicIdState(id || getCurrentMusicId());
+    const key = toMusicsKey(id);
+    if(key){ playMusic(key); }
+    setActiveMusicIdState(id || fromMusicsKey(getCurrentMusicId()));
   };
 
   const ACTIVATABLE = {
