@@ -369,10 +369,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 </div>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    Restaurer un compte
+                    Restaurer / changer de compte
                   </div>
                   <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    Recharger un profil avec son code
+                    Charger un autre profil via son code + PIN
                   </div>
                 </div>
               </div>

@@ -101,16 +101,21 @@ export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C })
           </div>
         </div>
 
-        {/* Avertissement si remplacement d'un compte existant */}
+        {/* Info si on est en mode "switch" depuis Settings — pas de panique :
+            le compte actuel reste sync sur Supabase, on peut y revenir. */}
         {warning && (
           <div style={{
-            background:'rgba(125,78,31,.12)',
-            border:'1px solid rgba(125,78,31,.35)',
+            background:'rgba(212,160,23,.1)',
+            border:'1px solid rgba(212,160,23,.3)',
             borderRadius:11, padding:'10px 12px',
-            fontSize:11.5, color:'#7D4E1F', fontWeight:700,
-            marginBottom:12, lineHeight:1.45, textAlign:'center',
+            fontSize:11.5, color:'#8B6A5A', fontWeight:600,
+            marginBottom:12, lineHeight:1.5,
           }}>
-            ⚠️ Tes données actuelles seront <strong>remplacées</strong>.
+            <div style={{ color:'#C8960C', fontWeight:800, marginBottom:3 }}>
+              🔄 Tu vas charger un autre profil
+            </div>
+            Ton compte actuel reste sauvegardé en ligne — tu pourras y revenir
+            en restaurant à nouveau avec son code + PIN.
           </div>
         )}
 
