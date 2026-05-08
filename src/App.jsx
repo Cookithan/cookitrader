@@ -130,12 +130,11 @@ export default function CookiMiner() {
   const [unlocked,    setUnlocked]    = useLocalStorage('unlocked',    []);
   const [lastCheckin, setLastCheckin] = useLocalStorage('lastCheckin', null);
   const [lastQuiz,    setLastQuiz]    = useLocalStorage('lastQuiz',    null);
-  /* Cap quotidien de spins : 50 (niv 1-10) ou 20 (niv 11-15). spinsDate
+  /* Cap quotidien de spins : 50 (niv 1-9) ou 20 (niv 10+). spinsDate
      = toDateString() du dernier spin → reset à 0 au passage minuit.
-     spinBonusToday = tours bonus accumulés via Jetons VIP premium boutique. */
-  const [spinsToday,    setSpinsToday]    = useLocalStorage('spinsToday', 0);
-  const [spinsDate,     setSpinsDate]     = useLocalStorage('spinsDate', null);
-  const [spinBonusToday, setSpinBonusToday] = useLocalStorage('spinBonusToday', 0);
+     Les Jetons VIP réduisent spinsToday mais ne dépassent jamais le cap. */
+  const [spinsToday, setSpinsToday] = useLocalStorage('spinsToday', 0);
+  const [spinsDate,  setSpinsDate]  = useLocalStorage('spinsDate', null);
   const [dark,        setDark]        = useLocalStorage('dark',        false);
   /* MARCHÉ ONLINE (BRIEF_MARCHE_ONLINE) — l'état du marché (prix, stock,
      historique 24h, portfolio) vit côté Supabase et est lu par MarketTab.
@@ -616,37 +615,36 @@ export default function CookiMiner() {
   const quizMsLeft = Math.max(0, QUIZ_COOLDOWN_MS - (Date.now() - lastQuizMs));
   const canQuiz    = quizMsLeft === 0;
 
-  /* Cap quotidien de spins (50 niv 1-10, 20 niv 11+). Reset au passage
-     minuit local : si spinsDate ≠ today, on traite spinsToday + bonus
-     comme remis à 0 pour le calcul de spinsLeft. */
+  /* Cap quotidien de spins ABSOLU (50 niv 1-9, 20 dès niv 10) — même
+     les Jetons VIP n'élèvent pas le plafond. À l'achat d'un jeton on
+     déduit `amount` du compteur utilisé (capé à 0), donc l'user
+     "récupère" jusqu'à amount tours mais ne peut jamais dépasser le cap. */
   const todayStr   = new Date().toDateString();
-  /* Cap : 50 tours niv 1-9, 20 tours dès niv 10 (aligné avec le filtre
-     des Jetons VIP : Jeton +50 visible niv 1-9, Jeton +20 visible niv 10+) */
   const spinsCap   = level <= 9 ? 50 : 20;
   const isFreshDay = spinsDate !== todayStr;
-  const effBonus   = isFreshDay ? 0 : (spinBonusToday || 0);
   const effUsed    = isFreshDay ? 0 : (spinsToday || 0);
-  const spinsLeft  = Math.max(0, spinsCap + effBonus - effUsed);
+  const spinsLeft  = Math.max(0, spinsCap - effUsed);
   const consumeSpin = useCallback(() => {
     const t = new Date().toDateString();
     if(spinsDate !== t){
       setSpinsDate(t);
       setSpinsToday(1);
-      setSpinBonusToday(0);   // reset bonus aussi au new day
     } else {
       setSpinsToday(n => n + 1);
     }
-  }, [spinsDate, setSpinsDate, setSpinsToday, setSpinBonusToday]);
+  }, [spinsDate, setSpinsDate, setSpinsToday]);
   const addSpinPass = useCallback((amount) => {
+    /* Cap absolu : on déduit du compteur utilisé sans aller en dessous
+       de 0, donc l'user ne dépasse jamais spinsCap (et perd l'excédent
+       du jeton s'il l'achète sans avoir consommé assez). */
     const t = new Date().toDateString();
     if(spinsDate !== t){
       setSpinsDate(t);
-      setSpinsToday(0);
-      setSpinBonusToday(amount);
+      setSpinsToday(0);   // new day, jeton inutile car déjà à 0
     } else {
-      setSpinBonusToday(n => (n || 0) + amount);
+      setSpinsToday(n => Math.max(0, (n || 0) - amount));
     }
-  }, [spinsDate, setSpinsDate, setSpinsToday, setSpinBonusToday]);
+  }, [spinsDate, setSpinsDate, setSpinsToday]);
 
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
