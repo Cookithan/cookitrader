@@ -72,10 +72,7 @@ export const REWARDS = [
   { id:'badge_chef',     name:'Badge Chef',     desc:'Pour les acharnés du cookie', cost:500,  type:'Badge', emoji:'👨‍🍳', levelRequired:5 },
   { id:'badge_legende',  name:'Badge Légende',  desc:'Le summum de CookiMiner',     cost:1000, type:'Badge', emoji:'👑', levelRequired:6 },
   { id:'badge_connaisseur', name:'Badge Connaisseur', desc:'Tu maîtrises l\'art du café',  cost:600,  type:'Badge', emoji:'🎓', levelRequired:7 },
-  { id:'badge_mythique',    name:'Badge Mythique',    desc:'Sur le seuil de l\'éternité',  cost:1500, type:'Badge', emoji:'🔱', levelRequired:9 },
   { id:'badge_eternel',   name:'Badge Éternel',   desc:'Au-delà de la Légende',         cost:2500, type:'Badge', emoji:'🌟', levelRequired:10 },
-  { id:'badge_empereur',  name:'Badge Empereur',  desc:'Règne du café absolu',          cost:1800, type:'Badge', emoji:'👑', levelRequired:11 },
-  { id:'badge_gardien',   name:'Badge Gardien',   desc:'Protecteur des saveurs',        cost:2000, type:'Badge', emoji:'🛡️', levelRequired:13 },
   { id:'badge_originel',  name:'Badge Originel',  desc:'Incarnation du premier cookie', cost:4000, type:'Badge', emoji:'🌌', levelRequired:15 },
   // TITRES
   // THÈMES
@@ -83,8 +80,10 @@ export const REWARDS = [
   { id:'theme_espresso',   name:'Thème Nuit Espresso',       desc:'Fond sombre café',          cost:300,  type:'Thème', emoji:'🌙', levelRequired:2 },
   { id:'theme_caramel',    name:'Thème Caramel Sunrise',     desc:'Dégradé chaud animé',       cost:450,  type:'Thème', emoji:'🌅', levelRequired:3 },
   { id:'theme_legendaire', name:'Thème Légendaire',          desc:'Fond doré avec particules', cost:1200, type:'Thème', emoji:'💫', levelRequired:6 },
-  { id:'theme_mocha_cosmique', name:'Thème Mocha Cosmique',  desc:'Volutes café et étoiles',   cost:900, type:'Thème', emoji:'🪐', levelRequired:8 },
+  { id:'theme_mocha_cosmique', name:'Thème Mocha Cosmique',  desc:'Volutes café et étoiles',     cost:900, type:'Thème', emoji:'🪐', levelRequired:8 },
+  { id:'theme_velours',    name:'Thème Cappuccino Velours',  desc:'Crème mousseuse douce',       cost:1500, type:'Thème', emoji:'🤎', levelRequired:9 },
   { id:'theme_aurore',     name:'Thème Aurore Boréale',      desc:'Voiles cosmiques chatoyants', cost:4000, type:'Thème', emoji:'🌌', levelRequired:10 },
+  { id:'theme_cuir',       name:'Thème Cuir & Espresso',     desc:'Sombre cuir + accents or',    cost:1800, type:'Thème', emoji:'🛋️', levelRequired:11 },
   { id:'theme_elixir',     name:'Thème Élixir Doré',         desc:'Or liquide en fusion',        cost:1500, type:'Thème', emoji:'🧪', levelRequired:12 },
   { id:'theme_renaissance', name:'Thème Renaissance',         desc:'Flammes de phénix orangées',  cost:2500, type:'Thème', emoji:'🔥', levelRequired:14 },
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements

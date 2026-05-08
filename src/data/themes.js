@@ -33,6 +33,14 @@ export const THEMES = {
   /* Flamme Vivante — clair-orangé chaleureux, ambiance brasero (event_streak) */
   theme_flamme:          { dark:false, bg:'linear-gradient(160deg,#FFE5C8 0%,#FFCC8A 50%,#E8985A 100%)', card:'#FFF4E5', card2:'#FFE0B8', text:'#5C2810', muted:'#B86A28', border:'#FFCC8A' },
 
+  /* Niv 9 — Cappuccino Velours : palette douce crème mousseuse +
+     accents caramel chaud. Mode clair, ambiance cosy. */
+  theme_velours:         { dark:false, bg:'linear-gradient(160deg,#FFEED8 0%,#F0DBC0 50%,#D8B894 100%)', card:'#FFF8EC', card2:'#F5E6D2', text:'#3D2010', muted:'#8B6A50', border:'#D8B894' },
+
+  /* Niv 11 — Cuir & Espresso : cuir foncé tabac + accents or vif.
+     Mode sombre racé, ambiance bibliothèque-club anglais. */
+  theme_cuir:            { dark:true, bg:'linear-gradient(160deg,#1A0E08 0%,#2D1A12 40%,#3D2418 70%,#1A0E08 100%)', card:'#2A180E', card2:'#3D2418', text:'#F0E0C0', muted:'#A88060', border:'#5C3614' },
+
   /* Niv 12 — Élixir Doré : or liquide en fusion. Sombre chaud, dégradé
      ambré profond avec accents miel. Accents or sur fond bordeaux café. */
   theme_elixir:          { dark:true, bg:'linear-gradient(160deg,#1A0E04 0%,#3D2410 30%,#8B5A14 60%,#5C3614 100%)', card:'#2D1A0A', card2:'#3D2614', text:'#FFE5A8', muted:'#C8A05A', border:'#5C3614', sparkles:true },
