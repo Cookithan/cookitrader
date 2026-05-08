@@ -8,11 +8,11 @@ import { formatTimeLeft, MAX_ATTEMPTS } from "../data/events.js";
 
    - phase 'waiting' (mystère, timer 1-24h) :
        Style sobre espresso, on ne révèle pas le challenge.
-       Texte : "🎁 Prochain événement dans Xh XXmin"
+       Affiche une phrase teasing énigmatique (event.tease) + le timer.
 
-   - phase 'active' (1h pour réussir, 3 essais max) :
+   - phase 'active' (1h pour réussir, essais illimités) :
        Style gradient or vif (glow), le challenge est révélé.
-       Texte : "[titre] · Xh XXmin · N essai(s)"
+       Texte : "[titre] · Xh XXmin · essais illimités"
        Cliquable → ouvre EventAnnounceModal pour rappeler le détail.
 
    Le timer countdown est rafraîchi 1×/seconde.
@@ -49,10 +49,19 @@ export function EventBanner({ event, onView }){
         }}
       >
         <div style={{ minWidth:0, flex:1 }}>
-          <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', color:'#D4A017', marginBottom:2 }}>
+          <div style={{ fontSize:11, fontWeight:800, letterSpacing:1.5, textTransform:'uppercase', color:'#D4A017', marginBottom:3 }}>
             🎁 Événement à venir
           </div>
-          <div style={{ fontSize:12, fontWeight:600, opacity:.85 }}>
+          {event.tease && (
+            <div style={{
+              fontSize:11.5, fontStyle:'italic', color:'#F5DC8A',
+              opacity:.9, lineHeight:1.4, marginBottom:4,
+              fontWeight:500,
+            }}>
+              « {event.tease} »
+            </div>
+          )}
+          <div style={{ fontSize:11, fontWeight:600, opacity:.75 }}>
             Prochain dans <strong style={{ color:'#F5DC8A' }}>{formatTimeLeft(ms)}</strong>
           </div>
         </div>

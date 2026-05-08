@@ -7,11 +7,12 @@
       Une bannière "🎁 Prochain événement dans Xh XXmin" est affichée
       sur l'accueil, mais le challenge n'est pas révélé.
 
-   2. PHASE 'active' — durée ACTIVE_DURATION_MS, max MAX_ATTEMPTS essais
+   2. PHASE 'active' — durée ACTIVE_DURATION_MS, ESSAIS ILLIMITÉS
       L'event est révélé via EventAnnounceModal. La bannière change
-      pour montrer le titre + timer + essais restants. Si le joueur
-      réussit le challenge → reward + nouveau cycle. Si échec
-      (3 essais OU 1h expirée) → nouveau cycle (l'event raté reste
+      pour montrer le titre + timer. Le joueur peut tenter autant
+      qu'il veut tant que la fenêtre est ouverte. Si le joueur
+      réussit le challenge → reward + nouveau cycle. Si la fenêtre
+      expire (1h) sans succès → nouveau cycle (l'event raté reste
       éligible et pourra revenir).
 
    Quand tous les events ont été complétés (in completedEvents),
@@ -55,6 +56,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_jackpot',
     title: '🎰 Tour Spécial Roue !',
     description: 'Tombe sur +200 à la roue pour débloquer le thème "Or Massif Limité" !',
+    tease: 'Fais tourner ce qui doit tourner — le sort fera le reste.',
     challenge: 'spin_jackpot',
     reward: { type:'theme', id:'theme_or_limite', name:'Thème Or Massif Limité', cafeBonus:1 },
   },
@@ -62,6 +64,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_market_pro',
     title: '📈 Marché en Folie !',
     description: 'Réalise +100 🍪 de plus-value en une seule vente sur le marché pour décrocher le thème "Trader Avisé" !',
+    tease: 'Acheter bas, revendre haut — le café se cuisine en cents.',
     challenge: 'market_profit',
     reward: { type:'theme', id:'theme_trader', name:'Thème Trader Avisé', cafeBonus:1 },
   },
@@ -69,6 +72,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_streak',
     title: '🔥 Série de Feu !',
     description: 'Atteins une série de 5 jours d\'affilée pour gagner le thème "Flamme Vivante" !',
+    tease: 'Cinq aubes, une flamme.',
     challenge: 'streak_check',
     reward: { type:'theme', id:'theme_flamme', name:'Thème Flamme Vivante', cafeBonus:1 },
     attempts: 1,
@@ -79,6 +83,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_pour_perfect',
     title: '🎯 Concentration Maximale !',
     description: 'Atteins un score parfait (15 🍪) à "Stop le Café" !',
+    tease: 'Ni trop, ni trop peu. La main connaît le bon moment.',
     challenge: 'pour_perfect',
     reward: { type:'badge', id:'badge_tireur', name:'Badge Tireur', cafeBonus:1 },
   },
@@ -86,6 +91,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_quiz_perfect',
     title: '🧠 Esprit Aiguisé !',
     description: 'Réponds correctement à toutes les questions du Quiz du jour !',
+    tease: 'Trois questions, et aucune ne pardonne.',
     challenge: 'quiz_perfect',
     reward: { type:'badge', id:'badge_cerveau', name:'Badge Cerveau', cafeBonus:1 },
   },
@@ -93,6 +99,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_guess_perfect',
     title: '📚 Maître Barista !',
     description: 'Devine toutes les commandes (5/5 ou 8/8) à "Devine la commande" !',
+    tease: 'Lis le client comme un livre — sans rater une page.',
     challenge: 'guess_perfect',
     reward: { type:'badge', id:'badge_erudit', name:'Badge Érudit', cafeBonus:1 },
   },
@@ -100,6 +107,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_click_sprint',
     title: '⚡ Sprinter Cookie !',
     description: 'Atteins 60 clics ou plus au Cookie Click en une partie !',
+    tease: 'Que tes doigts brûlent — la vitesse fait pleuvoir.',
     challenge: 'click_sprint',
     reward: { type:'badge', id:'badge_sprinter', name:'Badge Sprinter', cafeBonus:1 },
   },
@@ -107,6 +115,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_pyramid_15',
     title: '🏗️ Architecte du Café !',
     description: 'Empile 15 tasses ou plus à "Pile de Tasses" !',
+    tease: 'Plus haut, sans tomber. La gravité attend son moment.',
     challenge: 'pyramid_floors',
     reward: { type:'badge', id:'badge_architecte', name:'Badge Architecte', cafeBonus:1 },
   },
@@ -114,6 +123,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_slot_three',
     title: '💰 Tirelire Pleine !',
     description: 'Aligne 3 symboles identiques à la Machine à Sous !',
+    tease: 'Trois fois la même chose, et la fortune sourit.',
     challenge: 'slot_three',
     reward: { type:'badge', id:'badge_tirelire', name:'Badge Tirelire', cafeBonus:1 },
   },
@@ -121,6 +131,7 @@ export const SPECIAL_EVENTS = [
     id: 'event_reflex_pro',
     title: '🦅 Œil de Lynx !',
     description: 'Atteins un score de 20 ou plus à "Réflexes cookies" !',
+    tease: 'Vingt instants fugaces — ne laisse rien filer.',
     challenge: 'reflex_score',
     reward: { type:'badge', id:'badge_aigle', name:'Badge Aigle', cafeBonus:1 },
   },

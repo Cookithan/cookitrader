@@ -28,17 +28,17 @@ import { formatTimeLeft, MAX_ATTEMPTS, SPECIAL_EVENTS } from "../../data/events.
    - C                : palette
 ═══════════════════════════════════════════════════════ */
 
-const TEASES = [
+/* Tease générique fallback (utilisé si l'event n'a pas son propre champ
+   `tease` — ne devrait plus arriver depuis 09/05/2026, tous en ont un). */
+const FALLBACK_TEASES = [
   'Un événement spécial se prépare en coulisses…',
   'Quelque chose d\'inattendu approche…',
   'Reste à l\'écoute, ça va arriver bientôt…',
   'Le four tourne, la surprise mijote…',
 ];
 
-/* Sélection déterministe basée sur revealAt pour ne pas changer
-   à chaque tick (sinon le texte sauterait toutes les secondes). */
-function teaseFor(seed){
-  return TEASES[Math.abs(seed | 0) % TEASES.length];
+function fallbackTease(seed){
+  return FALLBACK_TEASES[Math.abs(seed | 0) % FALLBACK_TEASES.length];
 }
 
 export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoToChallenge, C }){
@@ -60,7 +60,9 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
   /* Trophées déjà gagnés (mode waiting uniquement) — on les retrouve
      en croisant completedEvents avec SPECIAL_EVENTS. */
   const wonTrophies = SPECIAL_EVENTS.filter(e => completedEvents.includes(e.id));
-  const teaseText   = teaseFor(event.revealAt);
+  /* Tease spécifique à l'event courant (énigmatique) — fallback générique
+     si jamais ce champ manque. */
+  const teaseText   = event.tease || fallbackTease(event.revealAt);
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:95, backdropFilter:'blur(6px)', padding:16 }}>
@@ -103,7 +105,7 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
                 fontSize:11, fontWeight:800, letterSpacing:1.2, textTransform:'uppercase',
                 color:'#F5DC8A', marginBottom:16,
               }}>
-                ✨ Un thème + 1 ☕ à la clé
+                ✨ Une récompense exclusive + 1 ☕
               </div>
             </>
           ) : (

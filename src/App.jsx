@@ -1163,7 +1163,8 @@ export default function CookiMiner() {
           les autres succès pour qu'il se déclenche.
        4. Boutique 100 % complétée (tous items en 🍪, hors limited)
        5. Les 3 badges secrets débloqués
-       6. Les 3 thèmes événements débloqués (édition limitée) */
+       6. Les 10 récompenses événements débloquées (3 thèmes + 7 badges
+          édition limitée) */
     const endGamePrereqIds = ACHIEVEMENTS
       .filter(a => a.id !== 'end_game')
       .map(a => a.id);
