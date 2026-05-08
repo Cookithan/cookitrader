@@ -620,7 +620,9 @@ export default function CookiMiner() {
      minuit local : si spinsDate ≠ today, on traite spinsToday + bonus
      comme remis à 0 pour le calcul de spinsLeft. */
   const todayStr   = new Date().toDateString();
-  const spinsCap   = level <= 10 ? 50 : 20;
+  /* Cap : 50 tours niv 1-9, 20 tours dès niv 10 (aligné avec le filtre
+     des Jetons VIP : Jeton +50 visible niv 1-9, Jeton +20 visible niv 10+) */
+  const spinsCap   = level <= 9 ? 50 : 20;
   const isFreshDay = spinsDate !== todayStr;
   const effBonus   = isFreshDay ? 0 : (spinBonusToday || 0);
   const effUsed    = isFreshDay ? 0 : (spinsToday || 0);
