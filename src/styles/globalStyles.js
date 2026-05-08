@@ -54,6 +54,16 @@ export const GLOBAL_CSS = `
   @keyframes cupGameTapPulse{0%,100%{opacity:.75;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.04)}}
   @keyframes cupGameRewardFloat{0%{transform:translate(-50%,30px);opacity:0}15%{opacity:1}100%{transform:translate(-50%,-80px);opacity:0}}
   @keyframes cupGameGlowPulse{0%,100%{opacity:.4;transform:translateX(-50%) scale(.95)}50%{opacity:.8;transform:translateX(-50%) scale(1.05)}}
+  /* Machine à Sous (BRIEF) — rouleau qui défile, arrêt rebond, halo gagnants, jackpot */
+  @keyframes slotReelSpin{0%{transform:translateY(-100%);opacity:.3}50%{transform:translateY(0);opacity:1}100%{transform:translateY(100%);opacity:.3}}
+  @keyframes slotReelStop{0%{transform:translateY(-50px) scale(.8);opacity:0}60%{transform:translateY(5px) scale(1.1);opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
+  @keyframes slotReelWinner{from{transform:scale(1)}to{transform:scale(1.05)}}
+  @keyframes slotReelJackpot{0%{transform:scale(1)}100%{transform:scale(1.12)}}
+  @keyframes slotToastSlide{0%{opacity:0;transform:translateY(-20px) scale(.8)}15%{opacity:1;transform:translateY(0) scale(1)}85%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-10px) scale(.95)}}
+  @keyframes slotMachineConfetti{0%{opacity:1;transform:translate(0,0) rotate(0deg)}100%{opacity:0;transform:var(--confetti-end)}}
+  @keyframes slotJackpotFadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes slotJackpotPop{0%{transform:scale(0) rotate(-12deg)}100%{transform:scale(1) rotate(0deg)}}
+  @keyframes slotJackpotBounce{from{transform:scale(1) rotate(-3deg)}to{transform:scale(1.15) rotate(5deg)}}
   @keyframes cookieIdle{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
   @keyframes sparkle{0%,100%{opacity:0;transform:scale(0) rotate(0)}50%{opacity:1;transform:scale(1) rotate(180deg)}}
   @keyframes confetti{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--tx,0),var(--ty,80px)) rotate(720deg);opacity:0}}

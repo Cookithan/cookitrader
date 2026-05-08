@@ -1,320 +1,541 @@
-import { useEffect, useRef, useState } from "react";
-import { GOLD, ESPRESSO } from "../../data/themes.js";
-import { playSound } from "../../lib/audio.js";
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  SLOT_SYMBOLS,
+  SLOT_CONFIG,
+  spinSlotMachine,
+  evaluateResult,
+  getWinningReels,
+} from "../../lib/slotMachine.js";
 
 /* ════════════════════════════════════════════════════
-   SlotGame — Machine à Sous Cookie (débloquée niveau 13)
+   SlotGame — "Machine à Sous" (BRIEF refonte 09/05/2026)
    ────────────────────────────────────────────────────
-   3 rouleaux indépendants, 5 symboles équiprobables :
-     🍪 cookie · ☕ café · 🥐 croissant · 🍰 gâteau · 7️⃣ jackpot
-   Coût : 30 🍪 par lancer
+   Vraie machine à sous casino style, palette café-only :
+     · cadre marron foncé + 2 boules dorées sur les coins
+     · 3 rouleaux dorés qui défilent (60 ms cycle) puis s'arrêtent
+       en cascade (800 / 1300 / 1800 ms) avec animation rebond
+     · 2 same → toast +25 🍪 + halo doré sur les rouleaux gagnants
+     · 3 same (pas jackpot) → flash machine + confettis + toast
+     · 3 × 7️⃣ (jackpot) → explosion 1.5 s + modal "INCROYABLE +750 🍪"
 
-   Combos :
-     · 3 × 7️⃣ → +750 🍪 (jackpot, 0.8 % de proba)
-     · 3 × 🍰 → +250
-     · 3 × 🥐 → +150
-     · 3 × ☕ → +80
-     · 3 × 🍪 → +50
-     · 2 identiques → +25 (consolation)
-     · tous différents → 0
+   Économie :
+     COST = 20 🍪 · Niveau 10+ · Cooldown 1 s · Limite 50 parties/jour
+     Espérance ≈ 0 (équilibrée).
 
-   Animation : les 3 rouleaux défilent rapidement, puis chacun s'arrête
-   en cascade (1.4s, 2.0s, 2.7s) — suspense progressif. Animation gérée
-   via interval qui randomise les symboles non encore stoppés ; les
-   `stoppedRef` lockent les rouleaux finalisés contre les rerenders.
+   Probabilités exactes via tirage par table dans slotMachine.js.
 
-   Palette café-only — fond ESPRESSO + accents or, pas de rouge ni vert.
+   Intégré dans GameOverlay (qui fournit le header back/title/coins).
 ═══════════════════════════════════════════════════════ */
 
-/* Pondération : plus de cookies/cafés = triples plus fréquents.
-   P(3 cookies) = 6.4 %, P(3 cafés) = 1.56 %, P(3 croissants) = 0.34 %,
-   P(3 cakes) = 0.17 %, P(3 jackpots) = 0.05 %. Total triples ≈ 8.5 %
-   (était 4 % avec poids égaux). */
-const SYMBOLS = [
-  { id:'cookie',    icon:'🍪', payout:50,  weight:40 },
-  { id:'coffee',    icon:'☕', payout:80,  weight:25 },
-  { id:'croissant', icon:'🥐', payout:150, weight:15 },
-  { id:'cake',      icon:'🍰', payout:250, weight:12 },
-  { id:'seven',     icon:'7️⃣', payout:750, weight: 8 },
-];
-const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
+const STORAGE_KEY = 'cookiminer:slotMachineGamesToday';
 
-const COST          = 30;
-const PAIR_PAYOUT   = 25;
-const REEL_TICK_MS  = 75;
-const LOCK_DELAYS   = [1400, 2000, 2700];
+export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, C }){
+  /* État des 3 rouleaux */
+  const [reelStates, setReelStates] = useState([
+    { spinning:false, stopping:false, symbol:'?', isWinner:false, isJackpot:false },
+    { spinning:false, stopping:false, symbol:'?', isWinner:false, isJackpot:false },
+    { spinning:false, stopping:false, symbol:'?', isWinner:false, isJackpot:false },
+  ]);
 
-/* Tirage pondéré — plus le weight est élevé, plus le symbole sort souvent. */
-function randomSymbolId(){
-  let r = Math.random() * TOTAL_WEIGHT;
-  for(const s of SYMBOLS){
-    r -= s.weight;
-    if(r <= 0) return s.id;
-  }
-  return SYMBOLS[SYMBOLS.length - 1].id;
-}
+  const [isSpinning,       setIsSpinning]       = useState(false);
+  const [machineEffect,    setMachineEffect]    = useState(null);  // null | 'win-flash' | 'jackpot-flash'
+  const [toasts,           setToasts]           = useState([]);
+  const [showJackpotModal, setShowJackpotModal] = useState(false);
+  const [jackpotAmount,    setJackpotAmount]    = useState(0);
+  const [machineConfetti,  setMachineConfetti]  = useState([]);
+  const [gamesToday,       setGamesToday]       = useState(0);
+  const [lastSpinAt,       setLastSpinAt]       = useState(0);
 
-/* Probabilités exactes calculées une fois pour le barème UI. */
-function probTriple(symbol){
-  const p = symbol.weight / TOTAL_WEIGHT;
-  return p * p * p;
-}
-function probExactlyPair(symbol){
-  const p = symbol.weight / TOTAL_WEIGHT;
-  return 3 * p * p * (1 - p);
-}
-const PROB_TRIPLE_TOTAL = SYMBOLS.reduce((s, x) => s + probTriple(x), 0);
-const PROB_PAIR_TOTAL   = SYMBOLS.reduce((s, x) => s + probExactlyPair(x), 0);
-const PROB_LOSE         = Math.max(0, 1 - PROB_TRIPLE_TOTAL - PROB_PAIR_TOTAL);
+  const cycleIntervalRef = useRef(null);
+  const timeoutsRef      = useRef([]);
 
-function fmtPct(p){
-  const pct = p * 100;
-  if(pct < 0.1) return pct.toFixed(2) + ' %';   // ex: 0.05 %
-  if(pct < 10)  return pct.toFixed(1) + ' %';   // ex: 1.6 %
-  return pct.toFixed(0) + ' %';                 // ex: 54 %
-}
-function symIcon(id){
-  return SYMBOLS.find(s => s.id === id)?.icon ?? '?';
-}
+  /* Load compteur quotidien depuis LS */
+  useEffect(() => {
+    try{
+      const today = new Date().toDateString();
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(raw){
+        const data = JSON.parse(raw);
+        if(data?.date === today) setGamesToday(Number(data.count) || 0);
+      }
+    }catch{}
+  }, []);
 
-export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, C }){
-  const [reels,    setReels]    = useState(['🍪', '☕', '🥐']);
-  const [stopped,  setStopped]  = useState([true, true, true]);
-  const [spinning, setSpinning] = useState(false);
-  const [result,   setResult]   = useState(null);  // 'jackpot' | 'big' | 'small' | 'pair' | 'lose'
-  const [payout,   setPayout]   = useState(0);
+  /* Persist compteur à chaque changement */
+  useEffect(() => {
+    try{
+      const today = new Date().toDateString();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: today, count: gamesToday }));
+    }catch{}
+  }, [gamesToday]);
 
-  /* Refs pour éviter les races avec le state pendant l'animation. */
-  const stoppedRef  = useRef([true, true, true]);
-  const finalsRef   = useRef([]);
-  const intervalRef = useRef(null);
-  const timeoutsRef = useRef([]);
-
-  /* Cleanup au unmount */
+  /* Cleanup intervals/timeouts au démontage */
   useEffect(() => () => {
-    if(intervalRef.current) clearInterval(intervalRef.current);
+    if(cycleIntervalRef.current) clearInterval(cycleIntervalRef.current);
     timeoutsRef.current.forEach(clearTimeout);
   }, []);
 
-  const spin = () => {
-    if(spinning || coins < COST) return;
+  /* Helper : peut-on lancer ? */
+  const canSpin = !isSpinning
+    && level >= SLOT_CONFIG.REQUIRED_LEVEL
+    && coins >= SLOT_CONFIG.COST
+    && gamesToday < SLOT_CONFIG.MAX_PER_DAY
+    && (Date.now() - lastSpinAt) >= SLOT_CONFIG.COOLDOWN_MS;
 
-    onSpend(COST);
-    playSound('tap');
-    setResult(null);
-    setPayout(0);
-    setSpinning(true);
+  /* Toast helper */
+  const showToast = useCallback((message, type = '') => {
+    const id = Date.now() + Math.random();
+    setToasts(prev => [...prev, { id, message, type }]);
+    const t = setTimeout(() => {
+      setToasts(prev => prev.filter(x => x.id !== id));
+    }, 2100);
+    timeoutsRef.current.push(t);
+  }, []);
 
-    /* Pré-tirage des 3 résultats finaux */
-    finalsRef.current = [randomSymbolId(), randomSymbolId(), randomSymbolId()];
-    stoppedRef.current = [false, false, false];
-    setStopped([false, false, false]);
+  /* Confetti burst depuis le centre de la machine */
+  const spawnConfetti = useCallback((count) => {
+    const colors = ['#D4A017', '#C17F3C', '#FFD75A', '#A57021'];
+    const items = [];
+    for(let i = 0; i < count; i++){
+      const angle = Math.random() * Math.PI * 2;
+      const distance = 80 + Math.random() * 120;
+      const tx = Math.cos(angle) * distance;
+      const ty = Math.sin(angle) * distance;
+      const rot = Math.random() * 720 - 360;
+      items.push({
+        id: i + '-' + Date.now(),
+        color: colors[i % 4],
+        transform: `translate(${tx}px, ${ty}px) rotate(${rot}deg)`,
+        delay: Math.random() * 0.2,
+      });
+    }
+    setMachineConfetti(items);
+    const t = setTimeout(() => setMachineConfetti([]), 1700);
+    timeoutsRef.current.push(t);
+  }, []);
 
-    /* Boucle d'animation : randomise les rouleaux non-lockés. */
-    intervalRef.current = setInterval(() => {
-      setReels(prev => prev.map((id, i) =>
-        stoppedRef.current[i] ? id : randomSymbolId()
-      ));
-    }, REEL_TICK_MS);
+  /* Évaluation après que les 3 rouleaux se sont arrêtés */
+  const evaluateAndReward = useCallback((result, evaluation) => {
+    const winners = getWinningReels(result);
 
-    /* Stop staggéré de chaque rouleau */
-    LOCK_DELAYS.forEach((delay, i) => {
+    if(evaluation.type === 'jackpot'){
+      setReelStates(prev => prev.map((r, i) => ({ ...r, isJackpot: winners[i] })));
+      setMachineEffect('jackpot-flash');
+      spawnConfetti(40);
+
+      const tModal = setTimeout(() => {
+        setJackpotAmount(evaluation.gain);
+        setShowJackpotModal(true);
+        onEarn?.(evaluation.gain);
+        onEventChallenge?.('slot_three', 1);
+      }, SLOT_CONFIG.JACKPOT_EXPLOSION_MS);
+      timeoutsRef.current.push(tModal);
+
+      const tEnd = setTimeout(() => {
+        setIsSpinning(false);
+        setMachineEffect(null);
+      }, SLOT_CONFIG.JACKPOT_EXPLOSION_MS + 800);
+      timeoutsRef.current.push(tEnd);
+
+    } else if(evaluation.type === 'triple'){
+      setReelStates(prev => prev.map((r, i) => ({ ...r, isWinner: winners[i] })));
+      setMachineEffect('win-flash');
+      spawnConfetti(20);
+      showToast(`🎉 +${evaluation.gain} 🍪 ${evaluation.symbolName} !`, 'big-win');
+      onEarn?.(evaluation.gain);
+      onEventChallenge?.('slot_three', 1);
+
       const t = setTimeout(() => {
-        stoppedRef.current[i] = true;
-        setReels(prev => {
-          const next = [...prev];
-          next[i] = finalsRef.current[i];
-          return next;
-        });
-        setStopped(s => {
-          const next = [...s];
-          next[i] = true;
-          return next;
-        });
-        playSound('tap');
-      }, delay);
+        setIsSpinning(false);
+        setMachineEffect(null);
+      }, 800);
       timeoutsRef.current.push(t);
-    });
 
-    /* Scoring final juste après le dernier lock */
-    const tEnd = setTimeout(() => {
-      if(intervalRef.current){ clearInterval(intervalRef.current); intervalRef.current = null; }
+    } else if(evaluation.type === 'pair'){
+      setReelStates(prev => prev.map((r, i) => ({ ...r, isWinner: winners[i] })));
+      showToast(`+${evaluation.gain} 🍪`);
+      onEarn?.(evaluation.gain);
 
-      const finals = finalsRef.current;
-      const counts = {};
-      finals.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
-      const maxCount = Math.max(...Object.values(counts));
+      const t = setTimeout(() => setIsSpinning(false), 800);
+      timeoutsRef.current.push(t);
 
-      let pay = 0;
-      let resultType = 'lose';
+    } else {
+      const t = setTimeout(() => setIsSpinning(false), 400);
+      timeoutsRef.current.push(t);
+    }
+  }, [onEarn, onEventChallenge, spawnConfetti, showToast]);
 
-      if(maxCount === 3){
-        const id  = Object.keys(counts).find(k => counts[k] === 3);
-        const sym = SYMBOLS.find(s => s.id === id);
-        pay = sym.payout;
-        if(sym.id === 'seven')        resultType = 'jackpot';
-        else if(sym.payout >= 150)    resultType = 'big';
-        else                          resultType = 'small';
-      } else if(maxCount === 2){
-        pay = PAIR_PAYOUT;
-        resultType = 'pair';
+  /* Spin handler */
+  const handleSpin = useCallback(() => {
+    if(!canSpin) return;
+    setIsSpinning(true);
+    setLastSpinAt(Date.now());
+    onSpend?.(SLOT_CONFIG.COST);
+    setGamesToday(g => g + 1);
+    setMachineEffect(null);
+    setReelStates(prev => prev.map(r => ({
+      ...r, spinning:true, stopping:false, isWinner:false, isJackpot:false,
+    })));
+
+    /* Tirage final */
+    const result     = spinSlotMachine();
+    const evaluation = evaluateResult(result);
+
+    /* Cycle des symboles aléatoires pendant le spin */
+    cycleIntervalRef.current = setInterval(() => {
+      setReelStates(prev => prev.map(r => {
+        if(!r.spinning) return r;
+        return { ...r, symbol: SLOT_SYMBOLS[Math.floor(Math.random() * SLOT_SYMBOLS.length)] };
+      }));
+    }, 60);
+
+    /* Stop staggéré : 800 / 1300 / 1800 ms */
+    const stop1 = setTimeout(() => {
+      setReelStates(prev => {
+        const next = [...prev];
+        next[0] = { ...next[0], spinning:false, stopping:true, symbol: result[0] };
+        return next;
+      });
+    }, SLOT_CONFIG.REEL_FIRST_STOP_MS);
+
+    const stop2 = setTimeout(() => {
+      setReelStates(prev => {
+        const next = [...prev];
+        next[1] = { ...next[1], spinning:false, stopping:true, symbol: result[1] };
+        return next;
+      });
+    }, SLOT_CONFIG.REEL_FIRST_STOP_MS + SLOT_CONFIG.REEL_STOP_DELAY_MS);
+
+    const stop3 = setTimeout(() => {
+      setReelStates(prev => {
+        const next = [...prev];
+        next[2] = { ...next[2], spinning:false, stopping:true, symbol: result[2] };
+        return next;
+      });
+      if(cycleIntervalRef.current){
+        clearInterval(cycleIntervalRef.current);
+        cycleIntervalRef.current = null;
       }
+      const tEval = setTimeout(() => evaluateAndReward(result, evaluation), 600);
+      timeoutsRef.current.push(tEval);
+    }, SLOT_CONFIG.REEL_FIRST_STOP_MS + SLOT_CONFIG.REEL_STOP_DELAY_MS * 2);
 
-      setPayout(pay);
-      setResult(resultType);
-      setSpinning(false);
-      if(pay > 0){
-        onEarn(pay);
-        playSound('success');
-      } else {
-        playSound('error');
-      }
-      /* Event 'slot_three' : succès si combo 3-same (n'importe quel symbole) */
-      if(maxCount === 3) onEventChallenge?.('slot_three', 1);
-    }, LOCK_DELAYS[2] + 100);
-    timeoutsRef.current.push(tEnd);
-  };
+    timeoutsRef.current.push(stop1, stop2, stop3);
+  }, [canSpin, onSpend, evaluateAndReward]);
 
-  const canSpin = !spinning && coins >= COST;
+  /* Label du bouton */
+  let buttonLabel;
+  if(level < SLOT_CONFIG.REQUIRED_LEVEL) buttonLabel = `🔒 Niveau ${SLOT_CONFIG.REQUIRED_LEVEL} requis`;
+  else if(gamesToday >= SLOT_CONFIG.MAX_PER_DAY) buttonLabel = '🔒 Limite atteinte';
+  else if(coins < SLOT_CONFIG.COST) buttonLabel = '🔒 Pas assez de cookies';
+  else if(isSpinning) buttonLabel = '...';
+  else buttonLabel = `▶ Lancer (${SLOT_CONFIG.COST} 🍪)`;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:18 }}>
-      {/* Bandeau titre fun */}
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center',
+      gap:14, paddingTop:6, position:'relative',
+    }}>
+      {/* Subtitle */}
       <div style={{
-        fontSize:11, fontWeight:800, color:'#D4A017',
-        letterSpacing:3, textTransform:'uppercase',
+        textAlign:'center', color:'#C17F3C',
+        fontSize:11, fontWeight:800, letterSpacing:3,
+        textTransform:'uppercase',
+      }}>🎰 Tente ta chance</div>
+
+      {/* Toasts */}
+      <div style={{
+        position:'absolute', top:42, left:0, right:0,
+        display:'flex', flexDirection:'column', alignItems:'center', gap:8,
+        zIndex:60, pointerEvents:'none',
       }}>
-        🎰 Tente ta chance
-      </div>
-
-      {/* Frame des 3 rouleaux */}
-      <div
-        className={result === 'jackpot' ? 'bi' : ''}
-        style={{
-          display:'flex', gap:10,
-          padding:'18px 16px', borderRadius:22,
-          background: ESPRESSO,
-          border:'3px solid #D4A017',
-          boxShadow:'0 12px 30px rgba(74,44,23,.5), inset 0 2px 0 rgba(255,255,255,.1)',
-          position:'relative',
-        }}
-      >
-        {/* Lampes décoratives haut-gauche / haut-droit */}
-        <div style={{ position:'absolute', top:-4, left:-4, width:10, height:10, borderRadius:'50%', background:'#F0C050', boxShadow:'0 0 8px rgba(240,192,80,.7)' }} />
-        <div style={{ position:'absolute', top:-4, right:-4, width:10, height:10, borderRadius:'50%', background:'#F0C050', boxShadow:'0 0 8px rgba(240,192,80,.7)' }} />
-
-        {reels.map((id, i) => (
-          <div
-            key={i}
-            style={{
-              width:78, height:96,
-              display:'flex', alignItems:'center', justifyContent:'center',
-              borderRadius:12,
-              background: stopped[i]
-                ? 'linear-gradient(140deg,#FFE5A0,#F0C050)'
-                : 'linear-gradient(140deg,#F0E6D3,#D4B898)',
-              border: stopped[i] ? '2.5px solid #D4A017' : '2px solid #A88060',
-              fontSize:46, lineHeight:1,
-              transition: 'background .25s, border-color .25s',
-              boxShadow: stopped[i] ? 'inset 0 2px 6px rgba(212,160,23,.3)' : 'inset 0 2px 6px rgba(74,44,23,.3)',
-              filter: stopped[i] ? 'none' : 'blur(.4px)',
-            }}
-          >
-            {symIcon(id)}
-          </div>
+        {toasts.map(t => (
+          <SlotToast key={t.id} message={t.message} type={t.type} />
         ))}
       </div>
 
-      {/* Résultat */}
-      {result && (
-        <div
-          className="bi"
-          style={{
-            padding:'12px 22px', borderRadius:18,
-            fontSize: result === 'jackpot' ? 20 : 16,
-            fontWeight:900,
-            background: payout > 0
-              ? 'linear-gradient(135deg,#FBEFD4,#F0C050)'
-              : 'linear-gradient(135deg,#5D3A1F,#2D1810)',
-            border: `2px solid ${payout > 0 ? '#D4A017' : '#3D2010'}`,
-            color: payout > 0 ? '#5D3A1F' : '#F0E0C0',
-            boxShadow: payout > 0
-              ? '0 6px 20px rgba(212,160,23,.4)'
-              : '0 6px 20px rgba(45,24,16,.4)',
-            textAlign:'center', minWidth:200, letterSpacing:.3,
-          }}
-        >
-          {result === 'jackpot' && <>🎰 JACKPOT ! +{payout} 🍪</>}
-          {result === 'big'     && <>✨ Gros lot ! +{payout} 🍪</>}
-          {result === 'small'   && <>🎉 Triple ! +{payout} 🍪</>}
-          {result === 'pair'    && <>👍 Paire ! +{payout} 🍪</>}
-          {result === 'lose'    && <>😴 Pas cette fois…</>}
-        </div>
-      )}
+      {/* Machine wrapper avec confettis */}
+      <div style={{ width:'100%', maxWidth:320, position:'relative' }}>
+        <SlotMachineCabinet reelStates={reelStates} machineEffect={machineEffect} />
+        {machineConfetti.map(c => (
+          <div
+            key={c.id}
+            style={{
+              position:'absolute', left:'50%', top:'50%',
+              width:8, height:8, background:c.color, borderRadius:2,
+              pointerEvents:'none',
+              animation:'slotMachineConfetti 1.6s ease-out forwards',
+              animationDelay: c.delay + 's',
+              '--confetti-end': c.transform,
+            }}
+          />
+        ))}
+      </div>
 
       {/* Bouton lancer */}
       <button
-        onClick={spin}
+        onClick={handleSpin}
         disabled={!canSpin}
-        className={canSpin ? 'glow-anim' : ''}
         style={{
-          padding:'14px 40px', borderRadius:22,
-          fontSize:15, fontWeight:800, letterSpacing:.3,
-          background: canSpin ? GOLD : C.card,
-          color:      canSpin ? '#fff' : C.muted,
-          border:`2px solid ${canSpin ? 'transparent' : C.border}`,
+          background: canSpin
+            ? 'linear-gradient(180deg, #E8B81B 0%, #D4A017 50%, #B58A0E 100%)'
+            : 'linear-gradient(180deg, #C9B788 0%, #A89968 100%)',
+          color: canSpin ? '#2C1810' : 'rgba(44, 24, 16, 0.5)',
+          border:'none', borderRadius:100,
+          padding:'14px 38px',
+          fontSize:15, fontWeight:900,
           cursor: canSpin ? 'pointer' : 'not-allowed',
+          boxShadow: canSpin
+            ? '0 4px 0 #8C6800, 0 8px 16px rgba(212, 160, 23, 0.4)'
+            : '0 4px 0 #6E6240',
+          textTransform:'uppercase',
+          letterSpacing:.5,
+          transition:'all .1s',
+          touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
         }}
       >
-        {spinning
-          ? 'En cours…'
-          : coins < COST
-            ? `Pas assez (${COST} 🍪)`
-            : `Lancer (${COST} 🍪)`}
+        {buttonLabel}
       </button>
 
-      {/* Barème + probabilités */}
+      {/* Tableau des gains + probabilités */}
+      <PayoutTable C={C} />
+
+      {/* Compteur quotidien */}
       <div style={{
-        background:C.card, border:`1px solid ${C.border}`,
-        borderRadius:14, padding:'12px 16px',
-        fontSize:11.5, color:C.muted, lineHeight:1.7,
-        marginTop:6, width:'100%', maxWidth:300,
+        textAlign:'center', marginTop:4,
+        fontSize:11, color:'#A0784E', fontStyle:'italic',
+      }}>
+        {gamesToday} / {SLOT_CONFIG.MAX_PER_DAY} parties aujourd'hui
+      </div>
+
+      {/* Modal jackpot */}
+      {showJackpotModal && (
+        <JackpotModal
+          amount={jackpotAmount}
+          onClose={() => setShowJackpotModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ─── Sous-composants ─────────────────────────── */
+
+function SlotMachineCabinet({ reelStates, machineEffect }){
+  const boxShadow =
+    machineEffect === 'jackpot-flash'
+      ? '0 0 60px rgba(212, 160, 23, 1), 0 0 100px rgba(212, 160, 23, 0.7), inset 0 0 30px rgba(255, 215, 90, 0.5)'
+      : machineEffect === 'win-flash'
+        ? '0 0 30px rgba(212, 160, 23, 0.6), inset 0 0 20px rgba(255, 215, 90, 0.3)'
+        : '0 12px 30px rgba(76, 44, 23, 0.35), inset 0 -3px 0 rgba(0,0,0,0.3), inset 0 2px 0 rgba(212, 160, 23, 0.15)';
+  return (
+    <div style={{
+      background:'linear-gradient(180deg, #5C3317 0%, #4A2C17 100%)',
+      borderRadius:22,
+      padding:'18px 14px',
+      boxShadow,
+      transform: machineEffect === 'jackpot-flash' ? 'scale(1.05)' : 'scale(1)',
+      transition:'all .3s ease-out',
+      position:'relative',
+      border:'2px solid #3D2010',
+    }}>
+      {/* Boules dorées sur les coins */}
+      <div style={{
+        position:'absolute', top:-6, left:20,
+        width:14, height:14, borderRadius:'50%',
+        background:'radial-gradient(circle at 30% 30%, #FFD75A 0%, #D4A017 60%, #A07B0E 100%)',
+        boxShadow:'0 2px 4px rgba(0,0,0,0.3)',
+      }} />
+      <div style={{
+        position:'absolute', top:-6, right:20,
+        width:14, height:14, borderRadius:'50%',
+        background:'radial-gradient(circle at 30% 30%, #FFD75A 0%, #D4A017 60%, #A07B0E 100%)',
+        boxShadow:'0 2px 4px rgba(0,0,0,0.3)',
+      }} />
+
+      {/* 3 rouleaux */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+        {reelStates.map((r, i) => <SlotReel key={i} state={r} />)}
+      </div>
+    </div>
+  );
+}
+
+function SlotReel({ state }){
+  const reelStyle = {
+    background:'linear-gradient(180deg, #FFD24D 0%, #E8B81B 50%, #C99607 100%)',
+    borderRadius:12,
+    aspectRatio:'1',
+    display:'flex', alignItems:'center', justifyContent:'center',
+    fontSize:38,
+    boxShadow: state.isJackpot
+      ? 'inset 0 -3px 0 rgba(0,0,0,0.18), inset 0 2px 0 rgba(255, 235, 150, 0.5), 0 0 50px rgba(255, 215, 90, 1), 0 0 80px rgba(212, 160, 23, 0.8)'
+      : state.isWinner
+        ? 'inset 0 -3px 0 rgba(0,0,0,0.18), inset 0 2px 0 rgba(255, 235, 150, 0.5), 0 0 24px rgba(212, 160, 23, 0.9), 0 0 40px rgba(212, 160, 23, 0.5), 0 4px 8px rgba(0,0,0,0.15)'
+        : 'inset 0 -3px 0 rgba(0,0,0,0.18), inset 0 2px 0 rgba(255, 235, 150, 0.5), 0 4px 8px rgba(0,0,0,0.15)',
+    position:'relative',
+    overflow:'hidden',
+    border:'1.5px solid #A07B0E',
+    animation: state.isJackpot
+      ? 'slotReelJackpot 0.3s ease-in-out infinite alternate'
+      : state.isWinner
+        ? 'slotReelWinner 0.5s ease-out infinite alternate'
+        : 'none',
+  };
+  const symbolStyle = {
+    animation: state.spinning
+      ? 'slotReelSpin 0.06s linear infinite'
+      : state.stopping
+        ? 'slotReelStop 0.5s cubic-bezier(0.25, 0.1, 0.25, 1.5)'
+        : 'none',
+  };
+  return (
+    <div style={reelStyle}>
+      <div style={symbolStyle}>{state.symbol}</div>
+    </div>
+  );
+}
+
+function SlotToast({ message, type }){
+  const isBigWin = type === 'big-win';
+  return (
+    <div style={{
+      background: isBigWin
+        ? 'linear-gradient(135deg, #C17F3C, #A57021)'
+        : 'linear-gradient(135deg, #D4A017, #C17F3C)',
+      color:'white',
+      padding: isBigWin ? '10px 20px' : '8px 16px',
+      borderRadius:100,
+      fontSize: isBigWin ? 14 : 13,
+      fontWeight:800,
+      boxShadow: isBigWin
+        ? '0 6px 16px rgba(193, 127, 60, 0.5)'
+        : '0 4px 12px rgba(212, 160, 23, 0.4)',
+      whiteSpace:'nowrap',
+      animation:'slotToastSlide 2s ease-out forwards',
+    }}>{message}</div>
+  );
+}
+
+function PayoutTable({ C }){
+  const ROWS = [
+    { count:'3×', symbol:'7️⃣', name:'Jackpot',   prob:'0,05 %', gain:'+750 🍪', isJackpot:true },
+    { count:'3×', symbol:'💎', name:'Diamant',   prob:'0,2 %',  gain:'+250 🍪' },
+    { count:'3×', symbol:'☕', name:'Café',      prob:'0,3 %',  gain:'+150 🍪' },
+    { count:'3×', symbol:'🥐', name:'Croissant', prob:'1,6 %',  gain:'+80 🍪' },
+    { count:'3×', symbol:'🍪', name:'Cookie',    prob:'6,4 %',  gain:'+50 🍪' },
+  ];
+  const rowStyle = {
+    display:'grid', gridTemplateColumns:'60px 1fr 60px 70px',
+    alignItems:'center', padding:'6px 0',
+    fontSize:12, borderBottom:`1px dashed ${C?.border || '#E8DDD0'}`,
+  };
+  return (
+    <div style={{
+      background: C?.card || 'white', borderRadius:16, padding:14,
+      border:`1.5px solid ${C?.border || '#E8DDD0'}`,
+      boxShadow:'0 2px 8px rgba(76, 44, 23, 0.06)',
+      width:'100%', maxWidth:320,
+    }}>
+      <div style={{
+        fontSize:11, fontWeight:800, color: C?.muted || '#8B6A5A',
+        textTransform:'uppercase', letterSpacing:2,
+        textAlign:'center', marginBottom:12,
+      }}>💰 Combinaisons & gains</div>
+
+      {ROWS.map((row, i) => (
+        <div key={i} style={{
+          ...rowStyle,
+          background: row.isJackpot
+            ? 'linear-gradient(90deg, rgba(212, 160, 23, 0.15), rgba(193, 127, 60, 0.05))'
+            : 'transparent',
+          borderRadius: row.isJackpot ? 8 : 0,
+          padding: row.isJackpot ? '6px 8px' : '6px 0',
+          margin: row.isJackpot ? '-2px -4px' : 0,
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:1 }}>
+            <span style={{ fontSize:11, color: C?.muted || '#8B6A5A', fontWeight:700 }}>{row.count}</span>
+            <span style={{ fontSize:16 }}>{row.symbol}</span>
+          </div>
+          <div style={{ fontSize:12, color: C?.text || '#2C1810', fontWeight:700 }}>{row.name}</div>
+          <div style={{ fontSize:11, color: C?.muted || '#8B6A5A', textAlign:'right' }}>{row.prob}</div>
+          <div style={{
+            fontSize:13,
+            color: row.isJackpot ? '#C17F3C' : '#D4A017',
+            fontWeight: row.isJackpot ? 900 : 800,
+            textAlign:'right',
+          }}>{row.gain}</div>
+        </div>
+      ))}
+
+      <div style={{ height:1, background: C?.border || '#E8DDD0', margin:'6px 0' }} />
+
+      <div style={{ ...rowStyle, borderBottom:`1px dashed ${C?.border || '#E8DDD0'}` }}>
+        <div></div>
+        <div style={{ fontSize:12, color: C?.text || '#2C1810', fontWeight:700 }}>2 identiques</div>
+        <div style={{ fontSize:11, color: C?.muted || '#8B6A5A', textAlign:'right' }}>54 %</div>
+        <div style={{ fontSize:13, color:'#D4A017', fontWeight:800, textAlign:'right' }}>+25 🍪</div>
+      </div>
+
+      <div style={{ ...rowStyle, borderBottom:'none' }}>
+        <div></div>
+        <div style={{ fontSize:12, color: C?.text || '#2C1810', fontWeight:700 }}>Aucun match</div>
+        <div style={{ fontSize:11, color: C?.muted || '#8B6A5A', textAlign:'right' }}>37 %</div>
+        <div style={{ fontSize:13, color: C?.muted || '#8B6A5A', fontWeight:800, textAlign:'right' }}>0</div>
+      </div>
+    </div>
+  );
+}
+
+function JackpotModal({ amount, onClose }){
+  return (
+    <div style={{
+      position:'fixed', inset:0,
+      background:'rgba(45, 22, 8, 0.85)',
+      backdropFilter:'blur(6px)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      zIndex:1000, padding:20,
+      animation:'slotJackpotFadeIn 0.4s ease-out',
+    }}>
+      <div style={{
+        background:'linear-gradient(140deg, #D4A017 0%, #C17F3C 100%)',
+        borderRadius:24, padding:'32px 28px',
+        maxWidth:320, width:'100%',
+        textAlign:'center', color:'white',
+        boxShadow:'0 20px 60px rgba(212, 160, 23, 0.6)',
+        border:'3px solid #FFD75A',
+        animation:'slotJackpotPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        position:'relative',
       }}>
         <div style={{
-          fontWeight:800, color:C.text, marginBottom:8, textAlign:'center',
-          fontSize:11, letterSpacing:1, textTransform:'uppercase',
-        }}>
-          Combinaisons · Chances
-        </div>
-        {SYMBOLS.slice().reverse().map(s => (
-          <div key={s.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6 }}>
-            <span style={{ flex:1 }}>3 × {s.icon}{s.id === 'seven' ? ' jackpot' : ''}</span>
-            <span style={{
-              fontSize:10, color:C.muted, fontWeight:600,
-              fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
-              minWidth:48, textAlign:'right',
-            }}>{fmtPct(probTriple(s))}</span>
-            <strong style={{ color:'#D4A017', minWidth:64, textAlign:'right' }}>+{s.payout} 🍪</strong>
-          </div>
-        ))}
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6, marginTop:4, paddingTop:4, borderTop:`1px dashed ${C.border}` }}>
-          <span style={{ flex:1 }}>2 identiques</span>
-          <span style={{
-            fontSize:10, color:C.muted, fontWeight:600,
-            fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
-            minWidth:48, textAlign:'right',
-          }}>{fmtPct(PROB_PAIR_TOTAL)}</span>
-          <strong style={{ color:'#D4A017', minWidth:64, textAlign:'right' }}>+{PAIR_PAYOUT} 🍪</strong>
-        </div>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6 }}>
-          <span style={{ flex:1, color:'#7D4E1F' }}>Aucun match</span>
-          <span style={{
-            fontSize:10, color:'#7D4E1F', fontWeight:700,
-            fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
-            minWidth:48, textAlign:'right',
-          }}>{fmtPct(PROB_LOSE)}</span>
-          <strong style={{ color:'#7D4E1F', minWidth:64, textAlign:'right' }}>0</strong>
-        </div>
+          fontSize:64, marginBottom:8,
+          animation:'slotJackpotBounce 0.5s ease-in-out infinite alternate',
+        }}>🎰</div>
+        <div style={{
+          fontSize:11, fontWeight:800, letterSpacing:4,
+          textTransform:'uppercase', color:'rgba(255, 255, 255, 0.85)',
+        }}>✨ Jackpot ✨</div>
+        <div style={{
+          fontSize:32, fontWeight:900, margin:'6px 0 4px',
+          textShadow:'0 2px 8px rgba(0,0,0,0.3)',
+        }}>INCROYABLE !</div>
+        <div style={{
+          background:'rgba(0,0,0,0.2)',
+          borderRadius:14, padding:'10px 20px',
+          fontSize:24, fontWeight:900,
+          margin:'14px 0', display:'inline-block',
+        }}>+{amount} 🍪</div>
+        <button
+          onClick={onClose}
+          style={{
+            background:'white', color:'#D4A017',
+            border:'none', borderRadius:14,
+            padding:'12px 32px',
+            fontSize:14, fontWeight:900,
+            cursor:'pointer', width:'100%', marginTop:8,
+            textTransform:'uppercase', letterSpacing:1,
+          }}
+        >Encaisser</button>
       </div>
     </div>
   );
