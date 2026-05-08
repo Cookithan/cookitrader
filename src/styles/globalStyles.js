@@ -49,6 +49,11 @@ export const GLOBAL_CSS = `
   @keyframes coinPop{0%{transform:scale(.5)}45%{transform:scale(1.35)}100%{transform:scale(1)}}
   @keyframes glow{0%,100%{box-shadow:0 0 16px rgba(212,160,23,.35),0 4px 16px rgba(212,160,23,.4)}50%{box-shadow:0 0 32px rgba(212,160,23,.75),0 4px 16px rgba(212,160,23,.6)}}
   @keyframes latteShimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  /* Pile de Tasses (BRIEF) — vapeur, pulse zone tap, +5 floating, halo perfect */
+  @keyframes cupGameSteamRise{0%{transform:translateY(8px) scale(.7);opacity:0}30%{opacity:1}100%{transform:translateY(-26px) scale(1.3);opacity:0}}
+  @keyframes cupGameTapPulse{0%,100%{opacity:.75;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.04)}}
+  @keyframes cupGameRewardFloat{0%{transform:translate(-50%,30px);opacity:0}15%{opacity:1}100%{transform:translate(-50%,-80px);opacity:0}}
+  @keyframes cupGameGlowPulse{0%,100%{opacity:.4;transform:translateX(-50%) scale(.95)}50%{opacity:.8;transform:translateX(-50%) scale(1.05)}}
   @keyframes cookieIdle{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
   @keyframes sparkle{0%,100%{opacity:0;transform:scale(0) rotate(0)}50%{opacity:1;transform:scale(1) rotate(180deg)}}
   @keyframes confetti{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--tx,0),var(--ty,80px)) rotate(720deg);opacity:0}}
