@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    ReflexGame — Réflexes café (PHASE 6D)
@@ -121,7 +122,10 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
     setPhase('done');
     const finalScore = scoreRef.current;
     const earned = rewardFor(finalScore);
-    if(earned > 0) onEarn(earned);
+    if(earned > 0){
+      onEarn(earned);
+      playSound('success');
+    }
     /* Event 'reflex_score' : succès si score >= 20 */
     onEventChallenge?.('reflex_score', finalScore);
   };
@@ -180,6 +184,9 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
     if(e && e.preventDefault) e.preventDefault();
     if(cookieTORef.current) clearTimeout(cookieTORef.current);
 
+    /* Son pop à chaque cookie tapé. Pas de throttle — l'apparition
+       elle-même throttle naturellement la fréquence (RESPAWN_HIT_MS). */
+    playSound('tap');
     const newScore = scoreRef.current + 1;
     scoreRef.current = newScore;
     setScore(newScore);

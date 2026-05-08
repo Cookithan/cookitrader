@@ -6,6 +6,7 @@ import {
   evaluateResult,
   getWinningReels,
 } from "../../lib/slotMachine.js";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    SlotGame — "Machine à Sous" (BRIEF refonte 09/05/2026)
@@ -119,6 +120,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
     const winners = getWinningReels(result);
 
     if(evaluation.type === 'jackpot'){
+      playSound('success');
       setReelStates(prev => prev.map((r, i) => ({ ...r, isJackpot: winners[i] })));
       setMachineEffect('jackpot-flash');
       spawnConfetti(40);
@@ -138,6 +140,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
       timeoutsRef.current.push(tEnd);
 
     } else if(evaluation.type === 'triple'){
+      playSound('success');
       setReelStates(prev => prev.map((r, i) => ({ ...r, isWinner: winners[i] })));
       setMachineEffect('win-flash');
       spawnConfetti(20);
@@ -152,6 +155,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
       timeoutsRef.current.push(t);
 
     } else if(evaluation.type === 'pair'){
+      playSound('toggle');
       setReelStates(prev => prev.map((r, i) => ({ ...r, isWinner: winners[i] })));
       showToast(`+${evaluation.gain} 🍪`);
       onEarn?.(evaluation.gain);
@@ -160,6 +164,8 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
       timeoutsRef.current.push(t);
 
     } else {
+      /* Aucun gain — son d'erreur léger pour signaler la défaite */
+      playSound('error');
       const t = setTimeout(() => setIsSpinning(false), 400);
       timeoutsRef.current.push(t);
     }
@@ -168,6 +174,8 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
   /* Spin handler */
   const handleSpin = useCallback(() => {
     if(!canSpin) return;
+    /* Son de lancer (clic levier) — utilise 'modal' qui a un thump grave */
+    playSound('modal');
     setIsSpinning(true);
     setLastSpinAt(Date.now());
     onSpend?.(SLOT_CONFIG.COST);
@@ -189,8 +197,10 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
       }));
     }, 60);
 
-    /* Stop staggéré : 800 / 1300 / 1800 ms */
+    /* Stop staggéré : 800 / 1300 / 1800 ms — chaque arrêt joue un 'tap'
+       sec pour donner l'effet "click clack click" du rouleau qui se cale. */
     const stop1 = setTimeout(() => {
+      playSound('tap');
       setReelStates(prev => {
         const next = [...prev];
         next[0] = { ...next[0], spinning:false, stopping:true, symbol: result[0] };
@@ -199,6 +209,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
     }, SLOT_CONFIG.REEL_FIRST_STOP_MS);
 
     const stop2 = setTimeout(() => {
+      playSound('tap');
       setReelStates(prev => {
         const next = [...prev];
         next[1] = { ...next[1], spinning:false, stopping:true, symbol: result[1] };
@@ -207,6 +218,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
     }, SLOT_CONFIG.REEL_FIRST_STOP_MS + SLOT_CONFIG.REEL_STOP_DELAY_MS);
 
     const stop3 = setTimeout(() => {
+      playSound('tap');
       setReelStates(prev => {
         const next = [...prev];
         next[2] = { ...next[2], spinning:false, stopping:true, symbol: result[2] };

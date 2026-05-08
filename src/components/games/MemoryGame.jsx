@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    MemoryGame — jeu de paires (PHASE 6B)
@@ -56,12 +57,14 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
     if(matched.length === deck.length){
       const earned = rewardFor(moves);
       onEarn(earned);
+      playSound('success');
       setTimeout(()=>setPhase('done'), 600);
     }
   }, [matched, deck.length, phase, moves, onEarn]);
 
   const startGame = () => {
     if(coins < MEMORY_COST) return;
+    playSound('modal');
     onSpend(MEMORY_COST);
     setDeck(shuffledDeck());
     setFlipped([]); setMatched([]); setShaking([]);
@@ -78,6 +81,8 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
     if(flipped.includes(card.id)) return;
     if(matched.includes(card.id)) return;
 
+    /* Son flip à chaque carte retournée (utilise 'tap' — feutré) */
+    playSound('tap');
     const next = [...flipped, card.id];
     setFlipped(next);
 
@@ -89,14 +94,16 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
 
     const [a, b] = next.map(id => deck.find(c => c.id === id));
     if(a.icon === b.icon){
-      /* Match : on laisse le pulse doré, puis on les marque matched */
+      /* Match : son toggle (cliquetis doux), pulse doré, marquage matched */
+      playSound('toggle');
       setTimeout(()=>{
         setMatched(prev => [...prev, a.id, b.id]);
         setFlipped([]);
         lockRef.current = false;
       }, 700);
     } else {
-      /* Mismatch : shake bref puis re-flip */
+      /* Mismatch : son d'erreur, shake bref puis re-flip */
+      playSound('error');
       setShaking(next);
       setTimeout(()=>{
         setFlipped([]);

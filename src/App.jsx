@@ -1243,6 +1243,8 @@ export default function CookiMiner() {
       spendCoins(r.cost);
     }
     setUnlocked(u=>[...u,id]);
+    /* Son d'achat — confirmation auditive du débit + nouvelle possession */
+    playSound('success');
   };
 
   /* Achievements detection */
@@ -1322,6 +1324,7 @@ export default function CookiMiner() {
   const collectAchievement = ()=>{
     const a = pendingAchievement;
     if(!a) return;
+    playSound('success');
     addCoins(a.bonus);
     if(a.cafesBonus) addCafes(a.cafesBonus);
     setPendingAchievement(null);
@@ -1521,7 +1524,7 @@ export default function CookiMiner() {
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>TON CAFÉ DU JOUR</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {GAMES.filter(g => g.id === 'checkin' || g.id === 'quiz').map((g,i)=>(
-                <button key={g.id} id={g.id === 'checkin' ? 'card-checkin' : undefined} onClick={()=>setGameView(g.id)} className={`su stagger-${i+1}`} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 16px', ...s.card, textAlign:'left' }}>
+                <button key={g.id} id={g.id === 'checkin' ? 'card-checkin' : undefined} onClick={()=>{ playSound('modal'); setGameView(g.id); }} className={`su stagger-${i+1}`} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 16px', ...s.card, textAlign:'left' }}>
                   <div className={g.avail?'float-anim':''} style={{ width:46, height:46, borderRadius:13, background:g.color, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, boxShadow:g.avail?'0 4px 12px rgba(0,0,0,.15)':'none' }}>
                     <g.Icon size={22} color="#fff" />
                   </div>
@@ -1727,7 +1730,7 @@ export default function CookiMiner() {
               const locked     = level < g.levelRequired;
               const comingSoon = !locked && g.comingSoon;
               const blocked    = locked || comingSoon;
-              const onClick    = blocked ? undefined : ()=>setGameView(g.id);
+              const onClick    = blocked ? undefined : ()=>{ playSound('modal'); setGameView(g.id); };
 
               return (
                 <button

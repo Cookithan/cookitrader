@@ -3,6 +3,7 @@ import { COOKIE_SKINS, GOLD } from "../../data/themes.js";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { ClickTracker } from "../../lib/antiCheat.js";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    ClickGame — défi de clics 5s
@@ -85,7 +86,10 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
       onUpdateRecord(finalClicks);
       setRecordHit(true);
       setShowConfetti(true);
+      playSound('success');
       setTimeout(()=>setShowConfetti(false), 1500);
+    } else if(earned > 0){
+      playSound('success');
     }
     if(trackerRef.current?.cheatDetected){
       // eslint-disable-next-line no-console
@@ -97,6 +101,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
   const startGame = () => {
     if(coins < CLICK_COST) return;
+    playSound('modal');
     onSpend(CLICK_COST);
     setPhase('countdown');
     setClicks(0); clickRef.current = 0;
@@ -164,6 +169,10 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     }
 
     const now = Date.now();
+    /* Son pop à chaque clic validé. Le throttle anti-cheat (12 CPS max)
+       limite déjà naturellement la fréquence à un niveau acoustiquement
+       supportable — pas de throttle audio supplémentaire. */
+    playSound('tap');
     clickRef.current += 1;
     setClicks(c => c + 1);
     setPressed(true);

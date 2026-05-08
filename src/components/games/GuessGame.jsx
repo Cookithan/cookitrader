@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { COMMANDES } from "../../data/commandes.js";
 import { CafeScene, CUSTOMERS } from "./CafeScene.jsx";
+import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    GuessGame — Devine la commande (PHASE 6C — refonte visuelle)
@@ -143,6 +144,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
 
   const startGame = () => {
     if(coins < GUESS_COST) return;
+    playSound('modal');
     onSpend(GUESS_COST);
     const qs = pickQuestions(NB_QUESTIONS);
     setQuestions(qs);
@@ -166,6 +168,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
 
     const correct = questions[qIndex].answer;
     const isRight = idx === correct;
+    playSound(isRight ? 'success' : 'error');
     if(isRight) setScore(s => s + 1);
 
     /* On garde ANSWER_HOLD_MS pour laisser voir ✓/✗, puis on incrémente
