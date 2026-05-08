@@ -1338,18 +1338,18 @@ export default function CookiMiner() {
           La zone droite (pills cafés/cookies) reste à largeur naturelle
           grâce au format compact (fmtCompact) appliqué aux nombres. */}
       <header style={{ padding:'18px 16px 10px', display:'flex', justifyContent:'space-between', alignItems:'center', flexShrink:0, gap:8 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flexShrink:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0, flex:1 }}>
           {userName && userAvatar !== null && (
             <button onClick={()=>{ playSound('modal'); setShowProfile(true); }} aria-label="Profil" style={{ padding:0, background:'transparent', border:'none', flexShrink:0 }}>
               <AvatarFigure value={userAvatar} size={42} />
             </button>
           )}
-          <div style={{ minWidth:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:3, marginBottom:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:140 }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
+          <div style={{ minWidth:0, flex:1 }}>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
             <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap' }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
           </div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:1, minWidth:0 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
           <button onClick={()=>{ playSound('modal'); setShowSettings(true); }} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card, border:`1px solid ${C.border}`, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />
           </button>
