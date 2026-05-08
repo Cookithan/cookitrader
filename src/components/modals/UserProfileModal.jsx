@@ -3,7 +3,7 @@ import { getPublicProfile, sendReaction } from "../../lib/supabaseSync.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
-import { hasLegendTitle, LEGEND_NAME_STYLE } from "../../utils/legend.js";
+import { getNameStyle } from "../../utils/legend.js";
 
 /* ════════════════════════════════════════════════════
    UserProfileModal — vue résumée d'un ami / du top 1 (BRIEF_PROFIL_VISIBLE)
@@ -195,7 +195,7 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         <AvatarFigure value={profile.user_avatar} size={92} />
         <div style={{
           fontSize:22, fontWeight:900, color:C.text, marginTop:12, textAlign:'center',
-          ...(hasLegendTitle(profile.earned_achievements) ? LEGEND_NAME_STYLE : {}),
+          ...(getNameStyle(profile.user_name, profile.earned_achievements) || {}),
         }}>
           {profile.user_name || 'Joueur'}
         </div>

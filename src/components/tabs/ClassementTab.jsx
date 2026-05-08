@@ -6,7 +6,7 @@ import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSy
 import {
   getMarketLeaderboard, getMyMarketRank, getMarketTraderCount, getMarketState,
 } from "../../lib/market.js";
-import { hasLegendTitle, LEGEND_NAME_STYLE } from "../../utils/legend.js";
+import { getNameStyle } from "../../utils/legend.js";
 
 /* ════════════════════════════════════════════════════
    ClassementTab — 2 classements en un seul onglet
@@ -202,7 +202,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, isAdm
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(hasLegendTitle(earnedAchievements) ? LEGEND_NAME_STYLE : {}),
+            ...(getNameStyle(userName, earnedAchievements) || {}),
           }}>
             {userName || 'Joueur'}
           </div>
@@ -335,7 +335,7 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, isAdmi
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(hasLegendTitle(earnedAchievements) ? LEGEND_NAME_STYLE : {}),
+            ...(getNameStyle(userName, earnedAchievements) || {}),
           }}>
             {userName || 'Joueur'}
           </div>
@@ -447,7 +447,7 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(hasLegendTitle(p.earned_achievements) && !isFirst ? LEGEND_NAME_STYLE : {}),
+            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
@@ -522,7 +522,7 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(hasLegendTitle(p.earned_achievements) && !isFirst ? LEGEND_NAME_STYLE : {}),
+            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>

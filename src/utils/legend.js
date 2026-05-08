@@ -48,3 +48,40 @@ export const LEGEND_NAME_STYLE = {
   textShadow: '0 0 6px rgba(212,160,23,.45)',
   fontWeight: 900,
 };
+
+/* ════════════════════════════════════════════════════
+   TITRE CRÉATEUR — exclusif au pseudo "Cookithan"
+   ────────────────────────────────────────────────────
+   Le créateur de l'app a un pseudo en mode espresso (gradient café
+   profond avec halo doré subtil). Visuellement distinct de Légende
+   Vivante (or shiny) — espresso = sombre + chaleureux + signature
+   créateur. Priorité sur Légende Vivante quand les 2 matchent.
+═══════════════════════════════════════════════════════ */
+
+export const CREATOR_NAME = 'cookithan';
+
+/* Test case-insensitive du pseudo créateur. */
+export function isCreator(name){
+  return (name || '').trim().toLowerCase() === CREATOR_NAME;
+}
+
+/* Style espresso pour le créateur — gradient café profond + halo
+   doré via filter:drop-shadow (compatible avec background-clip:text). */
+export const CREATOR_NAME_STYLE = {
+  background: 'linear-gradient(135deg, #1F0E08 0%, #5C3614 35%, #2C1810 70%, #4A2614 100%)',
+  WebkitBackgroundClip: 'text',
+  backgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  color: '#2C1810',
+  fontWeight: 900,
+  letterSpacing: .4,
+  filter: 'drop-shadow(0 0 4px rgba(212,160,23,.55))',
+};
+
+/* Helper combiné : retourne le style à appliquer (créateur > légende > rien).
+   `name` est le pseudo, `achievements` les succès gagnés (array ou CSV). */
+export function getNameStyle(name, achievements){
+  if(isCreator(name)) return CREATOR_NAME_STYLE;
+  if(hasLegendTitle(achievements)) return LEGEND_NAME_STYLE;
+  return null;
+}

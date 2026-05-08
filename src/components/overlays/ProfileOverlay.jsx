@@ -9,7 +9,7 @@ import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
 import { FriendsSection } from "../profile/FriendsSection.jsx";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
-import { hasLegendTitle, LEGEND_NAME_STYLE } from "../../utils/legend.js";
+import { getNameStyle } from "../../utils/legend.js";
 
 /* ════════════════════════════════════════════════════
    ProfileOverlay — plein écran z-index 60 (PHASE 5)
@@ -255,7 +255,7 @@ export function ProfileOverlay({
               <div style={{
                 fontSize:24, fontWeight:900, color:'#3D2010',
                 marginTop:12, marginBottom:6, letterSpacing:.2, textAlign:'center',
-                ...(hasLegendTitle(earnedAchievements) ? LEGEND_NAME_STYLE : {}),
+                ...(getNameStyle(userName, earnedAchievements) || {}),
               }}>
                 {userName || 'Joueur'}
               </div>

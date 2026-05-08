@@ -11,7 +11,7 @@ import {
   declineFriendRequest,
 } from "../../lib/supabaseSync.js";
 import { GiftModal } from "../modals/GiftModal.jsx";
-import { hasLegendTitle, LEGEND_NAME_STYLE } from "../../utils/legend.js";
+import { getNameStyle } from "../../utils/legend.js";
 
 /* ════════════════════════════════════════════════════
    FriendsSection — section "Mes Amis" du Profil
@@ -382,7 +382,7 @@ export function FriendsSection({ userCode, myCoins = 0, myCafes = 0, onRequestsC
                           <span style={{
                             fontSize:13, fontWeight:800, color:C.text,
                             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-                            ...(hasLegendTitle(f.earned_achievements) ? LEGEND_NAME_STYLE : {}),
+                            ...(getNameStyle(f.user_name, f.earned_achievements) || {}),
                           }}>
                             {f.user_name}
                           </span>
