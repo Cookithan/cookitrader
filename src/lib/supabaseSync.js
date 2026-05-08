@@ -349,17 +349,24 @@ export async function acceptFriendRequest(myUserCode, requestId){
       .maybeSingle();
     if(!me) return { error:'Mon profil introuvable' };
 
-    /* Marque la demande acceptée. En cas d'échec (RLS, réseau), on
-       remonte l'erreur — sinon la ligne reste en pending et le user
-       n'apparaît pas chez l'expéditeur (bug observé une fois). */
-    const { error: updErr } = await supabase
+    /* Marque la demande acceptée. ⚠️ En Supabase v2, un UPDATE bloqué par
+       RLS USING renvoie 0 rows + error=null silencieusement → la ligne
+       reste pending pour toujours et le sender ne voit jamais l'ami.
+       On force `.select()` puis on vérifie la longueur pour détecter
+       ce cas et remonter une erreur explicite plutôt que faux-success. */
+    const { data: updRows, error: updErr } = await supabase
       .from('friendships')
       .update({ status:'accepted' })
-      .eq('id', requestId);
+      .eq('id', requestId)
+      .select();
     if(updErr){
       console.warn('[acceptFriendRequest] update error:', updErr);
       notifySupabaseError();
       return { error:'Erreur réseau' };
+    }
+    if(!updRows || updRows.length === 0){
+      console.warn('[acceptFriendRequest] 0 rows updated → policy UPDATE manquante sur friendships ?');
+      return { error:"Impossible d'accepter (policy SQL manquante)" };
     }
 
     /* Crée la relation inverse (moi → lui) en accepted, ou met à jour
@@ -382,12 +389,15 @@ export async function acceptFriendRequest(myUserCode, requestId){
            celle côté moi sera ré-essayée au prochain accept. */
       }
     } else if(existing.status === 'pending'){
-      const { error: revUpdErr } = await supabase
+      const { data: revRows, error: revUpdErr } = await supabase
         .from('friendships')
         .update({ status:'accepted' })
-        .eq('id', existing.id);
+        .eq('id', existing.id)
+        .select();
       if(revUpdErr){
         console.warn('[acceptFriendRequest] update reverse error:', revUpdErr);
+      } else if(!revRows || revRows.length === 0){
+        console.warn('[acceptFriendRequest] reverse update 0 rows — RLS UPDATE policy ?');
       }
     }
 
