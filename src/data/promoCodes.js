@@ -25,6 +25,7 @@ export const PROMO_CODES = {
   'COOKITHAN': { coins: 0,    cafes: 2, label: 'Merci du créateur' },
   'MERCI':     { coins: 50,   cafes: 1, label: 'Petit merci' },
   'CMK1':      { coins: 0,    cafes: 0, shares: 1, label: '1 action $CKM offerte' },
+  'CMK5':      { coins: 0,    cafes: 0, shares: 5, label: '5 actions $CKM offertes' },
 };
 
 export function lookupPromoCode(rawInput){
