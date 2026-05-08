@@ -855,6 +855,56 @@ const AvLegende = () => (
   </svg>
 );
 
+const AvSage = () => (
+  <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <linearGradient id="g_sage_face" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={SKIN_LT} />
+        <stop offset="100%" stopColor={SKIN_DK} />
+      </linearGradient>
+      <linearGradient id="g_sage_robe" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={MOKA} />
+        <stop offset="100%" stopColor={ESPRESSO} />
+      </linearGradient>
+      <linearGradient id="g_sage_beard" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
+    </defs>
+    {/* chapeau pointu de sage / capuche */}
+    <path d="M30 32 L50 6 L70 32 Z" fill="url(#g_sage_robe)" {...STROKE_HEAVY} />
+    {/* étoile sur le chapeau */}
+    <path d="M50 14 L52 19 L57 19 L53 22 L55 27 L50 24 L45 27 L47 22 L43 19 L48 19 Z" fill={OR_LT} stroke={OR_DK} strokeWidth="0.9" />
+    {/* visage rond serein */}
+    <circle cx="50" cy="48" r="16" fill="url(#g_sage_face)" {...STROKE_HEAVY} stroke={SKIN_DK} />
+    {/* yeux fermés (sagesse) */}
+    <path d="M40 47 Q43 44 46 47" stroke={ESPRESSO} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    <path d="M54 47 Q57 44 60 47" stroke={ESPRESSO} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    {/* sourcils blancs broussailleux */}
+    <path d="M38 42 Q43 38 47 42" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    <path d="M53 42 Q57 38 62 42" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    {/* sourire serein */}
+    <path d="M44 55 Q50 58 56 55" stroke={ESPRESSO} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    {/* moustache blanche */}
+    <path d="M40 53 Q44 56 48 54" stroke={CREME} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    <path d="M52 54 Q56 56 60 53" stroke={CREME} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    {/* longue barbe blanche */}
+    <path d="M36 60 Q40 80 44 88 Q50 92 56 88 Q60 80 64 60 Q58 64 50 64 Q42 64 36 60 Z"
+      fill="url(#g_sage_beard)" {...STROKE_HEAVY} />
+    {/* mèches barbe */}
+    <path d="M42 70 Q44 78 46 84" stroke="#E5D4B8" strokeWidth="1.4" fill="none" />
+    <path d="M50 72 Q50 82 50 88" stroke="#E5D4B8" strokeWidth="1.4" fill="none" />
+    <path d="M58 70 Q56 78 54 84" stroke="#E5D4B8" strokeWidth="1.4" fill="none" />
+    {/* tasse fumante à la main (côté gauche) */}
+    <rect x="14" y="64" width="14" height="10" rx="2" fill={CREME} stroke={ESPRESSO} strokeWidth="1.8" />
+    <ellipse cx="21" cy="66" rx="5" ry="1.4" fill={ESPRESSO} />
+    <path d="M28 68 Q32 70 30 74" stroke={ESPRESSO} strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M21 60 Q23 56 21 52" stroke={CREME} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity=".8" />
+    {/* étincelle de sagesse */}
+    <path d="M76 36 L77 39 L80 40 L77 41 L76 44 L75 41 L72 40 L75 39 Z" fill={OR_LTR} />
+  </svg>
+);
+
 const AvEternel = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
@@ -938,6 +988,7 @@ export function AvatarArtwork({ art }){
     case 'avDragon':  return <AvDragon />;
     case 'avOr':      return <AvOr />;
     case 'avLegende': return <AvLegende />;
+    case 'avSage':    return <AvSage />;
     case 'avEternel': return <AvEternel />;
     /* legacy */
     case 'cosmos':    return <Cosmos />;
