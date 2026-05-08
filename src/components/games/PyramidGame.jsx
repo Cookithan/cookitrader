@@ -20,8 +20,8 @@ import { SingleCup } from "./SingleCup.jsx";
 ═══════════════════════════════════════════════════════ */
 
 const GAME_AREA_WIDTH    = 320;
-const INITIAL_CUP_WIDTH  = 130;        // 100 → 130 (tasses + grosses)
-const MIN_CUP_WIDTH      = 30;         // 25 → 30 (cohérent avec ratio 25%)
+const INITIAL_CUP_WIDTH  = 160;        // 130 → 160 (tasses encore + grosses)
+const MIN_CUP_WIDTH      = 38;         // 30 → 38 (cohérent avec ratio ~25%)
 const INITIAL_SPEED      = 120;        // px/seconde
 const REWARD_PER_CUP     = 5;
 const REWARD_CAP         = 70;         // 100 → 70 (cap récompense)
@@ -374,6 +374,19 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   /* ════════ PLAYING ════════ */
   const movingBottom = movingCup ? getMovingCupBottomPosition(stackedCups) : 0;
 
+  /* Scale dynamique de la game area : quand la pile (+ tasse mobile +
+     vapeur) approche du haut du game area, on dézoome progressivement
+     pour que le sommet reste visible. transform-origin: bottom center
+     pour garder la base de la pile fixe. */
+  const movingTopHeight = movingCup
+    ? movingCup.width * CUP_HEIGHT_RATIO + 50 * (movingCup.width / 100) + 20
+    : 0;
+  const totalContentHeight = movingBottom + movingTopHeight;
+  const SAFE_VISIBLE_HEIGHT = 460;   // game area 520 - tap zone (~60)
+  const stackScale = totalContentHeight > SAFE_VISIBLE_HEIGHT
+    ? SAFE_VISIBLE_HEIGHT / totalContentHeight
+    : 1;
+
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, paddingTop:6 }}>
       {/* 2 cartes stats */}
@@ -409,53 +422,62 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
           Niveau {score}
         </div>
 
-        {/* Halo doré sur tasse parfaitement centrée */}
-        {showPerfectGlow && (
-          <div style={{
-            position:'absolute',
-            bottom: movingBottom - 5,
-            left:'50%',
-            width:180, height:30, borderRadius:'50%',
-            background:'radial-gradient(ellipse, rgba(212,160,23,0.5) 0%, transparent 70%)',
-            pointerEvents:'none',
-            animation:'cupGameGlowPulse .8s ease-in-out',
-            zIndex:1,
-          }}/>
-        )}
-
-        {/* Tasse en mouvement */}
-        {movingCup && (
-          <div style={{
-            position:'absolute',
-            bottom: movingBottom,
-            left:`calc(50% + ${movingCup.x}px - ${movingCup.width / 2}px)`,
-            transition:'none',
-            zIndex:4,
-            pointerEvents:'none',
-          }}>
-            <SingleCup width={movingCup.width} showCoffeeInside={true} withSteam={true} />
-          </div>
-        )}
-
-        {/* Pile de tasses + soucoupe */}
+        {/* Wrapper qui dézoome quand la pile devient trop haute */}
         <div style={{
-          position:'absolute', bottom:STACK_BOTTOM,
-          left:'50%', transform:'translateX(-50%)',
-          display:'flex', flexDirection:'column-reverse', alignItems:'center',
-          zIndex:2,
+          position:'absolute', inset:0,
+          transform: `scale(${stackScale})`,
+          transformOrigin: 'bottom center',
+          transition: 'transform .35s ease-out',
+          pointerEvents:'none',
         }}>
-          <Saucer />
-          {stackedCups.map((cup, i) => (
-            <div key={i} style={{
-              /* +HANDLE_OFFSET_RATIO × width pour compenser l'anse à droite :
-                 le centre du div SingleCup est décalé de 15 % vers la droite
-                 par rapport au centre de la TASSE elle-même. */
-              transform:`translateX(${cup.x + cup.width * HANDLE_OFFSET_RATIO}px)`,
-              marginTop: STACK_OVERLAP === 0 ? 0 : -STACK_OVERLAP,
+          {/* Halo doré sur tasse parfaitement centrée */}
+          {showPerfectGlow && (
+            <div style={{
+              position:'absolute',
+              bottom: movingBottom - 5,
+              left:'50%',
+              width:180, height:30, borderRadius:'50%',
+              background:'radial-gradient(ellipse, rgba(212,160,23,0.5) 0%, transparent 70%)',
+              pointerEvents:'none',
+              animation:'cupGameGlowPulse .8s ease-in-out',
+              zIndex:1,
+            }}/>
+          )}
+
+          {/* Tasse en mouvement */}
+          {movingCup && (
+            <div style={{
+              position:'absolute',
+              bottom: movingBottom,
+              left:`calc(50% + ${movingCup.x}px - ${movingCup.width / 2}px)`,
+              transition:'none',
+              zIndex:4,
+              pointerEvents:'none',
             }}>
-              <SingleCup width={cup.width} showCoffeeInside={i === stackedCups.length - 1} withSteam={false} />
+              <SingleCup width={movingCup.width} showCoffeeInside={true} withSteam={true} />
             </div>
-          ))}
+          )}
+
+          {/* Pile de tasses + soucoupe */}
+          <div style={{
+            position:'absolute', bottom:STACK_BOTTOM,
+            left:'50%', transform:'translateX(-50%)',
+            display:'flex', flexDirection:'column-reverse', alignItems:'center',
+            zIndex:2,
+          }}>
+            <Saucer />
+            {stackedCups.map((cup, i) => (
+              <div key={i} style={{
+                /* +HANDLE_OFFSET_RATIO × width pour compenser l'anse à droite :
+                   le centre du div SingleCup est décalé de 15 % vers la droite
+                   par rapport au centre de la TASSE elle-même. */
+                transform:`translateX(${cup.x + cup.width * HANDLE_OFFSET_RATIO}px)`,
+                marginTop: STACK_OVERLAP === 0 ? 0 : -STACK_OVERLAP,
+              }}>
+                <SingleCup width={cup.width} showCoffeeInside={i === stackedCups.length - 1} withSteam={false} />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Pop-up +5 🍪 */}
