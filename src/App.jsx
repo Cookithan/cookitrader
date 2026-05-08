@@ -710,6 +710,16 @@ export default function CookiMiner() {
     if(friendCodes.length >= 3) unlockSecretBadge('amical');
   }, [friendCodes, unlockSecretBadge, userName]);
 
+  /* Admin doit toujours être au niveau max (test/debug). Bump le compte
+     admin existant qui serait resté à 10 après l'extension niv 11-15. */
+  useEffect(() => {
+    if((userName || '').trim().toLowerCase() !== ADMIN_NAME) return;
+    if(level < 15){
+      setLevel(15);
+      setXp(0);
+    }
+  }, [userName, level, setLevel, setXp]);
+
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
      l'unicité via is_processed côté Supabase, donc pas de garde ici.
@@ -1648,7 +1658,7 @@ export default function CookiMiner() {
               setCoins(10000);
               setTotalEarned(10000);
               setCafes(100);
-              setLevel(10);
+              setLevel(15);
               setXp(0);
               const allThemeIds = REWARDS.filter(r => r.type === 'Thème').map(r => r.id);
               setUnlocked(u => Array.from(new Set([...(u || []), ...allThemeIds])));
