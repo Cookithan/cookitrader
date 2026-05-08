@@ -2019,8 +2019,8 @@ export default function CookiMiner() {
                TOUS les thèmes (achetables + édition limitée events) sont
                unlock pour pouvoir les essayer immédiatement. */
             if(name.trim().toLowerCase() === ADMIN_NAME){
-              setCoins(10000);
-              setTotalEarned(10000);
+              setCoins(50000);
+              setTotalEarned(50000);
               setCafes(100);
               setLevel(15);
               setXp(0);
