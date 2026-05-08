@@ -9,6 +9,7 @@ import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
 import { FriendsSection } from "../profile/FriendsSection.jsx";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
+import { hasLegendTitle, LEGEND_NAME_STYLE } from "../../utils/legend.js";
 
 /* ════════════════════════════════════════════════════
    ProfileOverlay — plein écran z-index 60 (PHASE 5)
@@ -251,7 +252,11 @@ export function ProfileOverlay({
               display:'flex', flexDirection:'column', alignItems:'center',
             }}>
               <AvatarFigure value={userAvatar} size={92} />
-              <div style={{ fontSize:24, fontWeight:900, color:'#3D2010', marginTop:12, marginBottom:6, letterSpacing:.2, textAlign:'center' }}>
+              <div style={{
+                fontSize:24, fontWeight:900, color:'#3D2010',
+                marginTop:12, marginBottom:6, letterSpacing:.2, textAlign:'center',
+                ...(hasLegendTitle(earnedAchievements) ? LEGEND_NAME_STYLE : {}),
+              }}>
                 {userName || 'Joueur'}
               </div>
               <div style={{ padding:'4px 12px', borderRadius:12, background:'rgba(212,160,23,.22)', border:'1px solid rgba(193,127,60,.55)', marginBottom:8 }}>

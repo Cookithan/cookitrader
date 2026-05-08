@@ -167,7 +167,7 @@ export async function getMarketLeaderboard(limit = 50) {
     const codes = portfolios.map(p => p.user_code);
     const { data: profiles, error: uErr } = await supabase
       .from('users')
-      .select('user_code, user_name, user_avatar, level')
+      .select('user_code, user_name, user_avatar, level, earned_achievements')
       .in('user_code', codes)
       .not('user_name', 'ilike', 'admin123');
     if (uErr) return [];
@@ -186,6 +186,7 @@ export async function getMarketLeaderboard(limit = 50) {
           user_name: u.user_name,
           user_avatar: u.user_avatar,
           level: u.level,
+          earned_achievements: u.earned_achievements,
           shares: p.shares,
           total_invested: parseFloat(p.total_invested),
         };

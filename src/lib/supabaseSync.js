@@ -64,7 +64,7 @@ export async function getFriends(myUserCode){
     const codes = links.map(l => l.friend_code);
     const { data: profiles, error } = await supabase
       .from('users')
-      .select('user_code, user_name, user_avatar, level, total_earned, cookies, streak, last_active')
+      .select('user_code, user_name, user_avatar, level, total_earned, cookies, streak, last_active, earned_achievements')
       .in('user_code', codes);
     if(error){ notifySupabaseError(); return []; }
     return profiles || [];
@@ -79,7 +79,7 @@ export async function getLeaderboard(limit = 50){
   try{
     const { data, error } = await supabase
       .from('users')
-      .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active')
+      .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements')
       .not('user_name', 'ilike', 'admin123')
       .order('total_earned', { ascending:false })
       .limit(limit);

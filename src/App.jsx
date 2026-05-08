@@ -1650,6 +1650,7 @@ export default function CookiMiner() {
             userCode={userCode}
             userName={userName}
             userAvatar={userAvatar}
+            earnedAchievements={earnedAchievements}
             onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
             onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
             C={C}

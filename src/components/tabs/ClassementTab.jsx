@@ -6,6 +6,7 @@ import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSy
 import {
   getMarketLeaderboard, getMyMarketRank, getMarketTraderCount, getMarketState,
 } from "../../lib/market.js";
+import { hasLegendTitle, LEGEND_NAME_STYLE } from "../../utils/legend.js";
 
 /* ════════════════════════════════════════════════════
    ClassementTab — 2 classements en un seul onglet
@@ -47,7 +48,7 @@ function saveCache(key, payload){
   try{ sessionStorage.setItem(key, JSON.stringify(payload)); }catch{}
 }
 
-export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, onOpenUserProfile, C }){
+export function ClassementTab({ userCode, userName, userAvatar, earnedAchievements, onOpenProfile, onOpenUserProfile, C }){
   const enabled = isSupabaseEnabled();
   const isAdmin = (userName || '').trim().toLowerCase() === 'admin123';
   const [mode, setMode] = useState('cookies'); /* 'cookies' | 'market' */
@@ -84,6 +85,7 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, o
           userCode={userCode}
           userName={userName}
           userAvatar={userAvatar}
+          earnedAchievements={earnedAchievements}
           isAdmin={isAdmin}
           onOpenProfile={onOpenProfile}
           onOpenUserProfile={onOpenUserProfile}
@@ -94,6 +96,7 @@ export function ClassementTab({ userCode, userName, userAvatar, onOpenProfile, o
           userCode={userCode}
           userName={userName}
           userAvatar={userAvatar}
+          earnedAchievements={earnedAchievements}
           isAdmin={isAdmin}
           onOpenProfile={onOpenProfile}
           onOpenUserProfile={onOpenUserProfile}
@@ -143,7 +146,7 @@ function ModeToggle({ mode, setMode, C }){
 /* ════════════════════════════════════════════════════
    Vue Cookies — total_earned (existante)
 ═══════════════════════════════════════════════════════ */
-function CookiesView({ userCode, userName, userAvatar, isAdmin, onOpenProfile, onOpenUserProfile, C }){
+function CookiesView({ userCode, userName, userAvatar, earnedAchievements, isAdmin, onOpenProfile, onOpenUserProfile, C }){
   const cached = loadCache(CACHE_KEY_COOKIES);
   const [list,    setList]    = useState(cached?.list  ?? []);
   const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
@@ -196,7 +199,11 @@ function CookiesView({ userCode, userName, userAvatar, isAdmin, onOpenProfile, o
         <AvatarFigure value={userAvatar ?? 0} size={48} />
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>Ton rang</div>
-          <div style={{ fontSize:15, fontWeight:800, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+          <div style={{
+            fontSize:15, fontWeight:800, color:'#fff',
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            ...(hasLegendTitle(earnedAchievements) ? LEGEND_NAME_STYLE : {}),
+          }}>
             {userName || 'Joueur'}
           </div>
         </div>
@@ -252,7 +259,7 @@ function CookiesView({ userCode, userName, userAvatar, isAdmin, onOpenProfile, o
 /* ════════════════════════════════════════════════════
    Vue Marché — tri par shares (BRIEF_CLASSEMENT_MARCHE)
 ═══════════════════════════════════════════════════════ */
-function MarketView({ userCode, userName, userAvatar, isAdmin, onOpenProfile, onOpenUserProfile, C }){
+function MarketView({ userCode, userName, userAvatar, earnedAchievements, isAdmin, onOpenProfile, onOpenUserProfile, C }){
   const cached = loadCache(CACHE_KEY_MARKET);
   const [list,    setList]    = useState(cached?.list  ?? []);
   const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
@@ -325,7 +332,11 @@ function MarketView({ userCode, userName, userAvatar, isAdmin, onOpenProfile, on
         <AvatarFigure value={userAvatar ?? 0} size={48} />
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>Ton rang trader</div>
-          <div style={{ fontSize:15, fontWeight:800, color:'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+          <div style={{
+            fontSize:15, fontWeight:800, color:'#fff',
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            ...(hasLegendTitle(earnedAchievements) ? LEGEND_NAME_STYLE : {}),
+          }}>
             {userName || 'Joueur'}
           </div>
           {!isAdmin && myShares > 0 && (
@@ -436,6 +447,7 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            ...(hasLegendTitle(p.earned_achievements) && !isFirst ? LEGEND_NAME_STYLE : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
@@ -510,6 +522,7 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            ...(hasLegendTitle(p.earned_achievements) && !isFirst ? LEGEND_NAME_STYLE : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
