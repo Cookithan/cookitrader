@@ -65,13 +65,23 @@ export function EventRewardModal({ reward, onClose, onView, C }){
           <div style={{ fontSize:20, fontWeight:900, color:'#3D2010', marginBottom:8, lineHeight:1.25 }}>
             {reward.name}
           </div>
-          <div style={{
-            display:'inline-block', padding:'4px 10px', borderRadius:10,
-            background:'rgba(60,30,10,.18)', color:'#3D2010',
-            fontSize:10, fontWeight:800, letterSpacing:1.5, textTransform:'uppercase',
-            marginBottom:20,
-          }}>
-            Édition limitée
+          <div style={{ display:'flex', justifyContent:'center', gap:8, flexWrap:'wrap', marginBottom:20 }}>
+            <span style={{
+              display:'inline-block', padding:'4px 10px', borderRadius:10,
+              background:'rgba(60,30,10,.18)', color:'#3D2010',
+              fontSize:10, fontWeight:800, letterSpacing:1.5, textTransform:'uppercase',
+            }}>
+              Édition limitée
+            </span>
+            {reward.cafeBonus > 0 && (
+              <span style={{
+                display:'inline-block', padding:'4px 10px', borderRadius:10,
+                background:'#3D2010', color:'#F5DC8A',
+                fontSize:10, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase',
+              }}>
+                +{reward.cafeBonus} ☕ Bonus
+              </span>
+            )}
           </div>
 
           <div style={{ display:'flex', gap:10 }}>

@@ -750,6 +750,8 @@ export default function CookiMiner() {
     if(success){
       setUnlocked(u => u.includes(ev.reward.id) ? u : [...u, ev.reward.id]);
       setCompletedEvents(c => c.includes(ev.id) ? c : [...c, ev.id]);
+      /* Bonus ☕ en plus du thème — affiché par EventRewardModal */
+      if(ev.reward.cafeBonus > 0) setCafes(c => c + ev.reward.cafeBonus);
       setEventReward(ev.reward);
       triggerNextEvent();
       return;
