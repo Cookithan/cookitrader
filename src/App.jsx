@@ -1452,19 +1452,28 @@ export default function CookiMiner() {
                           eventOk:    eventDone === eventList.length,
                         };
                       }
-                      /* Style apex spécial pour end_game : fond gradient or
-                         + halo pulsant (.glow-anim). Couleurs internes
-                         override en espresso pour rester lisibles sur l'or. */
-                      const apexStyle = isEndGame ? {
-                        background:'linear-gradient(135deg, #FFE5A0, #F0C050, #E8B040)',
-                        border:'2px solid #D4A017',
-                      } : {
-                        border: isApex ? '1.5px solid rgba(212,160,23,.55)' : undefined,
-                      };
+                      /* Style apex spécial — différencié obtenu vs verrouillé :
+                           · OBTENU : fond or vif éclatant + halo pulsant
+                           · VERROUILLÉ : fond espresso sombre + cadenas, pas de halo
+                         Dans les 2 cas la carte ressort fort (gradient + span 2). */
+                      const apexStyle = isEndGame
+                        ? (got
+                            ? { background:'linear-gradient(135deg, #FFE5A0, #F0C050, #E8B040)', border:'2px solid #D4A017' }
+                            : { background:'linear-gradient(135deg, #3D2010, #2C1810, #1F0E08)', border:'2px solid rgba(212,160,23,.55)' })
+                        : { border: isApex ? '1.5px solid rgba(212,160,23,.55)' : undefined };
+                      /* Couleurs de texte selon état apex */
+                      const apexTitleColor   = isEndGame ? (got ? '#5D3A1F' : '#F0C050') : C.text;
+                      const apexDescColor    = isEndGame ? (got ? '#7D4E1F' : '#C8A878') : C.muted;
+                      const apexBonusColor   = isEndGame ? (got ? '#5D3A1F' : '#F0C050') : '#D4A017';
+                      const apexBoxBg        = isEndGame && !got ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.5)';
+                      const apexBoxBorder    = isEndGame && !got ? '1px dashed rgba(212,160,23,.4)' : '1px dashed rgba(93,58,31,.45)';
+                      const apexCheckColor   = isEndGame && !got ? '#F0C050' : '#5D3A1F';
+                      const apexUncheckColor = isEndGame && !got ? '#A88060' : '#A07854';
+
                       return (
                         <div
                           key={a.id}
-                          className={isEndGame ? 'glow-anim' : ''}
+                          className={isEndGame && got ? 'glow-anim' : ''}
                           style={{
                             ...s.card,
                             padding:'12px 12px',
@@ -1475,10 +1484,29 @@ export default function CookiMiner() {
                             ...apexStyle,
                           }}
                         >
+                          {/* Cadenas overlay quand l'apex est verrouillé */}
+                          {isEndGame && !got && (
+                            <div style={{
+                              position:'absolute', top:8, right:8,
+                              width:26, height:26, borderRadius:'50%',
+                              background:'rgba(15,8,4,.7)',
+                              border:'1.5px solid rgba(212,160,23,.6)',
+                              display:'flex', alignItems:'center', justifyContent:'center',
+                              fontSize:13, lineHeight:1,
+                              boxShadow:'0 2px 6px rgba(0,0,0,.4)',
+                            }}>
+                              🔒
+                            </div>
+                          )}
                           <div style={{
                             fontSize: isEndGame ? 30 : 24,
                             flexShrink:0,
-                            filter: (got || isEndGame) ? 'none' : 'grayscale(.7)',
+                            filter: got
+                              ? 'none'
+                              : isEndGame
+                                ? 'grayscale(.4) brightness(.85)'
+                                : 'grayscale(.7)',
+                            opacity: isEndGame && !got ? .85 : 1,
                             lineHeight:1,
                           }}>
                             {got ? a.emoji : (isEndGame ? '🏆' : '🔒')}
@@ -1487,7 +1515,7 @@ export default function CookiMiner() {
                             <div style={{
                               fontSize: isEndGame ? 13 : 11,
                               fontWeight:900,
-                              color: isEndGame ? '#5D3A1F' : C.text,
+                              color: apexTitleColor,
                               lineHeight:1.2, marginBottom:2,
                               letterSpacing: isEndGame ? .3 : 0,
                             }}>
@@ -1495,7 +1523,7 @@ export default function CookiMiner() {
                             </div>
                             <div style={{
                               fontSize:10,
-                              color: isEndGame ? '#7D4E1F' : C.muted,
+                              color: apexDescColor,
                               lineHeight:1.3,
                               fontWeight: isEndGame ? 600 : 'normal',
                             }}>
@@ -1504,30 +1532,30 @@ export default function CookiMiner() {
                             {endGamePrereqs && (
                               <div style={{
                                 marginTop:6, padding:'7px 9px', borderRadius:8,
-                                background:'rgba(255,255,255,.5)',
-                                border:'1px dashed rgba(93,58,31,.45)',
+                                background: apexBoxBg,
+                                border: apexBoxBorder,
                                 fontSize:10, lineHeight:1.65, fontWeight:700,
                               }}>
-                                <div style={{ color: endGamePrereqs.levelOk ? '#5D3A1F' : '#A07854' }}>
+                                <div style={{ color: endGamePrereqs.levelOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/15
                                 </div>
-                                <div style={{ color: endGamePrereqs.succesOk ? '#5D3A1F' : '#A07854' }}>
+                                <div style={{ color: endGamePrereqs.succesOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès
                                 </div>
-                                <div style={{ color: endGamePrereqs.shopOk ? '#5D3A1F' : '#A07854' }}>
+                                <div style={{ color: endGamePrereqs.shopOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.shopOk ? '✓' : '○'} {endGamePrereqs.shopDone}/{endGamePrereqs.shopTotal} items boutique 🍪
                                 </div>
-                                <div style={{ color: endGamePrereqs.secretOk ? '#5D3A1F' : '#A07854' }}>
+                                <div style={{ color: endGamePrereqs.secretOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.secretOk ? '✓' : '○'} {endGamePrereqs.secretDone}/{endGamePrereqs.secretTotal} badges secrets
                                 </div>
-                                <div style={{ color: endGamePrereqs.eventOk ? '#5D3A1F' : '#A07854' }}>
+                                <div style={{ color: endGamePrereqs.eventOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.eventOk ? '✓' : '○'} {endGamePrereqs.eventDone}/{endGamePrereqs.eventTotal} thèmes événements
                                 </div>
                               </div>
                             )}
                             <div style={{
                               fontSize:10,
-                              color: isEndGame ? '#5D3A1F' : '#D4A017',
+                              color: apexBonusColor,
                               fontWeight:800, marginTop:4,
                             }}>
                               +{a.bonus} 🍪{a.cafesBonus ? ` · +${a.cafesBonus} ☕` : ''}
