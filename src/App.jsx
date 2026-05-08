@@ -1405,14 +1405,10 @@ export default function CookiMiner() {
             {(() => {
               const visibleAchievements = ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed);
               const half = Math.ceil(visibleAchievements.length/2);
-              /* Si la liste est tronquée (showAllAchievements=false), on
-                 force end_game à apparaître quand même — c'est l'apex
-                 final, le user doit voir ce qu'il lui reste à faire. */
-              let list = showAllAchievements ? visibleAchievements : visibleAchievements.slice(0, half);
-              if(!showAllAchievements){
-                const endGame = visibleAchievements.find(a => a.id === 'end_game');
-                if(endGame && !list.includes(endGame)) list = [...list, endGame];
-              }
+              /* end_game est en dernière position dans ACHIEVEMENTS donc
+                 invisible tant que l'utilisateur ne déroule pas — surprise
+                 cachée à la fin pour récompenser la curiosité. */
+              const list = showAllAchievements ? visibleAchievements : visibleAchievements.slice(0, half);
               return (
                 <>
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:22, marginBottom:10 }}>
