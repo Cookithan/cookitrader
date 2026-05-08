@@ -1133,17 +1133,37 @@ export default function CookiMiner() {
       .map(a => a.id);
     const allOthersDone = otherIds.every(id => earnedAchievements.includes(id));
 
-    /* "end_game" : succès apex. Niveau max ET tous les autres succès
-       VISIBLES gagnés. master_succes compte uniquement s'il est visible
-       (reveal_master acheté) — sinon le user n'a pas besoin de payer le
-       premium pour valider la fin du jeu. */
+    /* "end_game" — apex absolu. Conditions très exigeantes pour vraiment
+       le mériter :
+       1. Niveau 15 (max)
+       2. Tous les autres succès visibles gagnés
+       3. Boutique 100 % complétée (tous items en 🍪, hors limited)
+       4. Les 3 badges secrets débloqués
+       5. Les 3 thèmes événements débloqués (édition limitée)
+       master_succes compte uniquement s'il est visible (reveal_master acheté). */
     const endGamePrereqIds = ACHIEVEMENTS
       .filter(a =>
         a.id !== 'end_game' &&
         (!a.hidden || (a.id === 'master_succes' && masterRevealed))
       )
       .map(a => a.id);
-    const allEndGamePrereqsDone = endGamePrereqIds.every(id => earnedAchievements.includes(id));
+    const allEndGameAchievementsDone = endGamePrereqIds.every(id => earnedAchievements.includes(id));
+
+    const shopItemIds = REWARDS.filter(r => r.currency !== 'cafe' && !r.limited).map(r => r.id);
+    const allShopOwned = shopItemIds.every(id => unlocked.includes(id));
+
+    const secretBadgeIds = Object.values(SECRET_BADGES).map(b => b.id);
+    const allSecretsOwned = secretBadgeIds.every(id => unlocked.includes(id));
+
+    const eventThemeIds = REWARDS.filter(r => r.limited).map(r => r.id);
+    const allEventsOwned = eventThemeIds.every(id => unlocked.includes(id));
+
+    const endGameReady =
+      level >= 15 &&
+      allEndGameAchievementsDone &&
+      allShopOwned &&
+      allSecretsOwned &&
+      allEventsOwned;
 
     const checks = [
       ['first_cookie',   totalEarned >= 1],
@@ -1156,7 +1176,7 @@ export default function CookiMiner() {
       ['level_15',       level >= 15],
       ['trader',         totalInvested >= 500],
       ['master_succes',  masterRevealed && allOthersDone],
-      ['end_game',       level >= 15 && allEndGamePrereqsDone],
+      ['end_game',       endGameReady],
     ];
     for(const [id,ok] of checks){
       if(ok && !earnedAchievements.includes(id)){ triggerAchievement(id); break; }
@@ -1405,21 +1425,31 @@ export default function CookiMiner() {
                       const isEndGame = a.id === 'end_game';
                       const isApex = a.id === 'master_succes' || isEndGame;
                       /* Pour end_game (apex final), on calcule la progression
-                         visible pour que le user sache exactement ce qu'il
-                         lui manque. master_succes compte uniquement si visible
-                         (reveal_master acheté). */
+                         de chaque condition pour que le user sache exactement
+                         ce qu'il lui manque. */
                       let endGamePrereqs = null;
                       if(isEndGame && !got){
-                        const prereqs = ACHIEVEMENTS.filter(x =>
+                        const succesList = ACHIEVEMENTS.filter(x =>
                           x.id !== 'end_game' &&
                           (!x.hidden || (x.id === 'master_succes' && masterRevealed))
                         );
-                        const doneCount = prereqs.filter(p => earnedAchievements.includes(p.id)).length;
+                        const succesDone = succesList.filter(p => earnedAchievements.includes(p.id)).length;
+                        const shopList = REWARDS.filter(r => r.currency !== 'cafe' && !r.limited);
+                        const shopDone = shopList.filter(r => unlocked.includes(r.id)).length;
+                        const secretList = Object.values(SECRET_BADGES);
+                        const secretDone = secretList.filter(b => unlocked.includes(b.id)).length;
+                        const eventList = REWARDS.filter(r => r.limited);
+                        const eventDone = eventList.filter(r => unlocked.includes(r.id)).length;
                         endGamePrereqs = {
                           levelOk:    level >= 15,
-                          succesDone: doneCount,
-                          succesTotal:prereqs.length,
-                          succesOk:   doneCount === prereqs.length,
+                          succesDone, succesTotal: succesList.length,
+                          succesOk:   succesDone === succesList.length,
+                          shopDone,   shopTotal:   shopList.length,
+                          shopOk:     shopDone === shopList.length,
+                          secretDone, secretTotal: secretList.length,
+                          secretOk:   secretDone === secretList.length,
+                          eventDone,  eventTotal:  eventList.length,
+                          eventOk:    eventDone === eventList.length,
                         };
                       }
                       /* Style apex spécial pour end_game : fond gradient or
@@ -1473,16 +1503,25 @@ export default function CookiMiner() {
                             </div>
                             {endGamePrereqs && (
                               <div style={{
-                                marginTop:6, padding:'6px 8px', borderRadius:8,
+                                marginTop:6, padding:'7px 9px', borderRadius:8,
                                 background:'rgba(255,255,255,.5)',
                                 border:'1px dashed rgba(93,58,31,.45)',
-                                fontSize:10, lineHeight:1.6, fontWeight:700,
+                                fontSize:10, lineHeight:1.65, fontWeight:700,
                               }}>
                                 <div style={{ color: endGamePrereqs.levelOk ? '#5D3A1F' : '#A07854' }}>
                                   {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/15
                                 </div>
                                 <div style={{ color: endGamePrereqs.succesOk ? '#5D3A1F' : '#A07854' }}>
-                                  {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès débloqués
+                                  {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès
+                                </div>
+                                <div style={{ color: endGamePrereqs.shopOk ? '#5D3A1F' : '#A07854' }}>
+                                  {endGamePrereqs.shopOk ? '✓' : '○'} {endGamePrereqs.shopDone}/{endGamePrereqs.shopTotal} items boutique 🍪
+                                </div>
+                                <div style={{ color: endGamePrereqs.secretOk ? '#5D3A1F' : '#A07854' }}>
+                                  {endGamePrereqs.secretOk ? '✓' : '○'} {endGamePrereqs.secretDone}/{endGamePrereqs.secretTotal} badges secrets
+                                </div>
+                                <div style={{ color: endGamePrereqs.eventOk ? '#5D3A1F' : '#A07854' }}>
+                                  {endGamePrereqs.eventOk ? '✓' : '○'} {endGamePrereqs.eventDone}/{endGamePrereqs.eventTotal} thèmes événements
                                 </div>
                               </div>
                             )}
