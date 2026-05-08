@@ -13,31 +13,40 @@ import { SingleCup } from "./SingleCup.jsx";
    Économie :
    - COÛT = 10 🍪 par partie · niveau requis 10
    - +5 🍪 par tasse posée · cap 100 🍪
-   - Bonus combo +50 🍪 si > 30 tasses
+   - Bonus combo +10 🍪 si > 30 tasses
 
    Le composant est intégré dans GameOverlay qui fournit le header
    (titre + back + cookies pill) — d'où pas de fullscreen ici.
 ═══════════════════════════════════════════════════════ */
 
 const GAME_AREA_WIDTH    = 320;
-const INITIAL_CUP_WIDTH  = 100;
-const MIN_CUP_WIDTH      = 25;
+const INITIAL_CUP_WIDTH  = 130;        // 100 → 130 (tasses + grosses)
+const MIN_CUP_WIDTH      = 30;         // 25 → 30 (cohérent avec ratio 25%)
 const INITIAL_SPEED      = 120;        // px/seconde
 const REWARD_PER_CUP     = 5;
-const REWARD_CAP         = 100;
+const REWARD_CAP         = 70;         // 100 → 70 (cap récompense)
 const COMBO_THRESHOLD    = 30;
-const COMBO_BONUS_AMOUNT = 50;
+const COMBO_BONUS_AMOUNT = 10;         // 50 → 10 (bonus combo)
 const COST_TO_PLAY       = 10;
 
-/* Position verticale (en px depuis le bas du game area) du centre
-   de la tasse en mouvement, calculée depuis le sommet de la pile. */
+/* La tasse SVG totale fait width × 1.3 (anse à droite). Le centre visuel
+   de la tasse est donc à -15 % de la largeur depuis le centre du div.
+   Cet offset doit être compensé pour empiler les tasses bien alignées. */
+const HANDLE_OFFSET_RATIO = 0.15;
+
+/* Hauteurs pile / tasse en CSS px (dépend du SVG SingleCup) */
 const SAUCER_HEIGHT  = 14;
 const STACK_BOTTOM   = 26;
-const CUP_HEIGHT     = 42;
-const STACK_OVERLAP  = 4;
+const CUP_HEIGHT_RATIO = 0.42;         // hauteur tasse / largeur tasse (42/100)
+const STACK_OVERLAP  = 0;              // 4 → 0 (pas de traversée)
 
-function getMovingCupBottomPosition(stackedCount){
-  return STACK_BOTTOM + SAUCER_HEIGHT + stackedCount * (CUP_HEIGHT - STACK_OVERLAP) + 60;
+/* Hauteur cumulée de la pile en CSS px (chaque tasse a sa hauteur
+   selon sa largeur via le ratio fixe 42:100). +60 d'espace pour
+   que la tasse mobile + sa vapeur soient bien au-dessus. */
+function getMovingCupBottomPosition(stackedCups){
+  let h = 0;
+  for(const c of stackedCups) h += c.width * CUP_HEIGHT_RATIO - STACK_OVERLAP;
+  return STACK_BOTTOM + SAUCER_HEIGHT + h + 60;
 }
 
 export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
@@ -244,7 +253,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
             borderRadius:12, padding:'8px 14px',
             fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.2,
           }}>
-            +5 🍪 par tasse · max 100 🍪 · combo +50 🍪 si {'>'}30 tasses
+            +5 🍪 par tasse · max {REWARD_CAP} 🍪 · combo +{COMBO_BONUS_AMOUNT} 🍪 si {'>'}{COMBO_THRESHOLD} tasses
           </div>
 
           <button
@@ -325,7 +334,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
               padding:'6px 12px',
               fontSize:12, color:'#D4A017', fontWeight:800,
             }}>
-              🔥 Bonus combo +50 🍪
+              🔥 Bonus combo +{COMBO_BONUS_AMOUNT} 🍪
             </div>
           )}
 
@@ -363,7 +372,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   }
 
   /* ════════ PLAYING ════════ */
-  const movingBottom = movingCup ? getMovingCupBottomPosition(stackedCups.length) : 0;
+  const movingBottom = movingCup ? getMovingCupBottomPosition(stackedCups) : 0;
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, paddingTop:6 }}>
@@ -438,8 +447,11 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
           <Saucer />
           {stackedCups.map((cup, i) => (
             <div key={i} style={{
-              transform:`translateX(${cup.x}px)`,
-              marginTop: -STACK_OVERLAP,
+              /* +HANDLE_OFFSET_RATIO × width pour compenser l'anse à droite :
+                 le centre du div SingleCup est décalé de 15 % vers la droite
+                 par rapport au centre de la TASSE elle-même. */
+              transform:`translateX(${cup.x + cup.width * HANDLE_OFFSET_RATIO}px)`,
+              marginTop: STACK_OVERLAP === 0 ? 0 : -STACK_OVERLAP,
             }}>
               <SingleCup width={cup.width} showCoffeeInside={i === stackedCups.length - 1} withSteam={false} />
             </div>
