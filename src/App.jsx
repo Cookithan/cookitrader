@@ -264,6 +264,15 @@ export default function CookiMiner() {
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
+  /* Skin du cookie central tappable (cf. COOKIE_SKINS). '' = défaut. */
+  const [activeSkin,   setActiveSkin]   = useLocalStorage('activeSkin','');
+  /* Titre couleur affiché sur le pseudo (cf. data/titles.js).
+     Priorité dans getNameStyle : Créateur > Légende > Titre. '' = aucun. */
+  const [activeTitle,  setActiveTitle]  = useLocalStorage('activeTitle','');
+  /* Codes promo rares révélés via items premium (cf. promoCodes.js
+     PROMO_CODES.<X>.secret). Une fois révélé, le code apparaît dans
+     PromoCodeModal et peut être saisi pour récupérer la récompense. */
+  const [revealedPromoCodes, setRevealedPromoCodes] = useLocalStorage('revealedPromoCodes', []);
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
@@ -1149,7 +1158,7 @@ export default function CookiMiner() {
     } catch {}
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
-    setActiveTheme(''); setActiveBanner('');
+    setActiveTheme(''); setActiveBanner(''); setActiveSkin(''); setActiveTitle(''); setRevealedPromoCodes([]);
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
     /* Tuto : reset complet pour qu'un reset rejoue le tuto au démarrage */
@@ -1181,6 +1190,47 @@ export default function CookiMiner() {
       addSpinPass(r.spinPassAmount || 0);
       playSound('success');
       showToast(`🎟️ +${r.spinPassAmount} tours de roue ajoutés !`);
+      return;
+    }
+    /* Pack actions $CKM CONSOMMABLE — crédite N actions via Supabase
+       (creditFreeShares). Pas d'ajout à `unlocked` : rachetable à volonté
+       (les Packs sont des items consommables). Mode admin bloqué pour
+       éviter de polluer la circulation $CKM. */
+    if(r.applyAs === 'pack_shares'){
+      if(coins < r.cost) return;
+      if(isAdminName(userName)){
+        showToast('🛠️ Mode admin — packs $CKM désactivés');
+        return;
+      }
+      const n = r.sharesAmount || 0;
+      spendCoins(r.cost);
+      (async () => {
+        const res = await creditFreeShares(userCode, n);
+        if(!res?.success){
+          /* Rollback du débit si Supabase a refusé */
+          addCoins(r.cost);
+          showToast(`⚠️ ${res?.error || 'Pack non crédité'}`);
+          return;
+        }
+        playSound('success');
+        showToast(`📈 +${n} action${n > 1 ? 's' : ''} $CKM créditées !`);
+      })();
+      return;
+    }
+    /* Reveal code promo rare — débite cafés, ajoute le code à
+       revealedPromoCodes ET marque l'item comme unlocked (achat unique).
+       Le code devient utilisable depuis Settings → Code promo. */
+    if(r.applyAs === 'reveal_promo'){
+      if(unlocked.includes(id)) return;
+      if(cafes < r.cost) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      setUnlocked(u => [...u, id]);
+      const code = r.revealCode;
+      if(code){
+        setRevealedPromoCodes(prev => Array.isArray(prev) && prev.includes(code) ? prev : [...(prev||[]), code]);
+      }
+      playSound('success');
+      showToast(`🎟️ Code promo révélé : ${code} — saisis-le dans Paramètres !`);
       return;
     }
     /* Items normaux : un seul achat, ajout à unlocked */
@@ -1744,6 +1794,7 @@ export default function CookiMiner() {
             userName={userName}
             userAvatar={userAvatar}
             earnedAchievements={earnedAchievements}
+            activeTitle={activeTitle}
             onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
             onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
             C={C}
@@ -1784,6 +1835,8 @@ export default function CookiMiner() {
             mode={boutiqueMode} setMode={setBoutiqueMode}
             activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
             activeBanner={activeBanner} setActiveBanner={setActiveBanner}
+            activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
+            activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
             userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
             C={C}
           />
@@ -1823,6 +1876,7 @@ export default function CookiMiner() {
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
           onEventChallenge={checkEventChallenge}
           spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin}
+          activeSkin={activeSkin}
           C={C}
         />
       )}
@@ -1879,6 +1933,7 @@ export default function CookiMiner() {
           onCancel={()=>setShowPromoCode(false)}
           onRedeem={redeemPromoCode}
           usedCodes={Array.isArray(promoCodesUsed) ? promoCodesUsed : []}
+          revealedCodes={Array.isArray(revealedPromoCodes) ? revealedPromoCodes : []}
           C={C}
         />
       )}
@@ -1924,6 +1979,8 @@ export default function CookiMiner() {
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed).length}
           marketRealized={marketRealized}
           activeTheme={activeTheme}
+          activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
+          activeTitle={activeTitle} setActiveTitle={setActiveTitle}
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
           supabaseEnabled={isSupabaseEnabled()}
           supabaseSyncOk={!supabaseError}

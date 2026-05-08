@@ -13,9 +13,11 @@ import { lookupPromoCode } from "../../data/promoCodes.js";
      onRedeem(promo)  : { code, coins, cafes, label } — appelé en cas
                         de succès, le parent crédite + persiste
      usedCodes        : array de codes déjà utilisés (LS)
+     revealedCodes    : array de codes secrets révélés via items premium
+                        (cf. promoCodes.js, flag `secret`)
      C
 ═══════════════════════════════════════════════════════ */
-export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], C }){
+export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCodes = [], C }){
   const [input,    setInput]    = useState('');
   const [feedback, setFeedback] = useState(null);  // { type: 'ok'|'err', msg }
   const [shake,    setShake]    = useState(false);
@@ -29,7 +31,7 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], C }){
 
   const submit = () => {
     if(loading) return;
-    const promo = lookupPromoCode(input);
+    const promo = lookupPromoCode(input, revealedCodes);
     if(!promo){
       setFeedback({ type:'err', msg:'Code invalide' });
       setShake(true);

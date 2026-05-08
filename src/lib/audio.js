@@ -37,12 +37,22 @@ const UI_SOUNDS = {
 
 /* Catalogue des musiques. `free:true` = jouable sans achat (default).
    Les autres déverrouillent un id `music_<key>` côté boutique
-   (ex: 'music_lofi' débloque la musique 'lofi'). */
+   (ex: 'music_lofi' débloque la musique 'lofi').
+
+   Tous les fichiers ci-dessous sont présents dans public/sounds/.
+   Crédits assets (mai 2026) : Pixabay (CC0) — sleepvolume,
+   magalystudio, kontraa, pulsebox. */
 export const MUSICS = {
-  jazz:   { id:'jazz',   name:'Jazz Café',        emoji:'🎷', file:'/sounds/music-jazz-cafe.mp3',        free:true },
-  lofi:   { id:'lofi',   name:'Lofi Hip-Hop',     emoji:'🎵', file:'/sounds/music-lofi.mp3',             cost:1000, currency:'cookies' },
-  bossa:  { id:'bossa',  name:'Bossa Nova',       emoji:'🇧🇷', file:'/sounds/music-bossa-nova.mp3',       cost:1500, currency:'cookies' },
-  royale: { id:'royale', name:'Symphonie Royale', emoji:'💎', file:'/sounds/music-symphonie-royale.mp3', cost:3,    currency:'cf' },
+  jazz:    { id:'jazz',    name:'Jazz Café',          emoji:'🎷', file:'/sounds/music-jazz-cafe.mp3',         free:true },
+  lofi:    { id:'lofi',    name:'Lofi Hip-Hop',       emoji:'🎵', file:'/sounds/music-lofi.mp3',              cost:1000, currency:'cookies' },
+  bossa:   { id:'bossa',   name:'Bossa Nova',         emoji:'🇧🇷', file:'/sounds/music-bossa-nova.mp3',        cost:1500, currency:'cookies' },
+  royale:  { id:'royale',  name:'Symphonie Royale',   emoji:'💎', file:'/sounds/music-symphonie-royale.mp3',  cost:3,    currency:'cf' },
+  /* Nouvelles musiques niveaux 1-15 (mai 2026) — assets Pixabay CC0 */
+  matin:    { id:'matin',    name:'Café du Matin',      emoji:'🌅', file:'/sounds/music-cafe-matin.mp3',       cost:100,  currency:'cookies' },
+  velvet:   { id:'velvet',   name:'Velvet Smoke',       emoji:'🍷', file:'/sounds/music-velvet-smoke.mp3',     cost:1300, currency:'cookies' },
+  empereur: { id:'empereur', name:'Beat de l\'Empereur',emoji:'👑', file:'/sounds/music-empereur.mp3',         cost:1500, currency:'cookies' },
+  veillee:  { id:'veillee',  name:'Veillée Lofi',       emoji:'🌙', file:'/sounds/music-veillee.mp3',          cost:2500, currency:'cookies' },
+  cosmique: { id:'cosmique', name:'Nuit Cosmique',      emoji:'🌌', file:'/sounds/music-nuit-cosmique.mp3',    cost:3000, currency:'cookies' },
 };
 
 /* Cache des Audio objects pour éviter de recharger un mp3 à chaque play

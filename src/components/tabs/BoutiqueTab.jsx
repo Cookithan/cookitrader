@@ -17,13 +17,13 @@ import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
                 Avatar : pas de désactivation, juste switch.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, userAvatar, setActiveTheme, setActiveBanner, setUserAvatar, C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, C }) {
   const [filter, setFilter] = useState('Tous');
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
      pendant cette session restent visibles jusqu'au prochain mount. */
   const [initialUnlocked] = useState(unlocked);
-  const FILTERS = ['Tous','Badge','Thème','Avatar','Musique'];
+  const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack'];
 
   /* Musique active — état local synchronisé avec le système audio (LS).
      Le bouton "Activer" sur une carte musique appelle playMusic + met à
@@ -42,23 +42,28 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     /* Musique : pas de "désactivation" depuis la boutique — on switch
        vers la musique sélectionnée. La désactivation passe par Settings. */
     'Musique' :[activeMusicId, setActiveMusic],
+    /* Skin cookie : activable comme un thème (toggle '' = défaut) */
+    'Skin'    :[activeSkin,   setActiveSkin],
+    /* Titre couleur : activable comme un thème (toggle '' = aucun titre) */
+    'Titre'   :[activeTitle,  setActiveTitle],
   };
 
   /* Révèle un niveau de plus uniquement quand tout celui en cours est acheté.
-     Ignore les items premium (☕) et les items 'limited' (thèmes événements
-     qui peuvent ne jamais être gagnés — sinon on bloque la progression). */
+     Ignore les items premium (☕), les items 'limited' (thèmes événements
+     qui peuvent ne jamais être gagnés — sinon on bloque la progression) et
+     les items consommables (Pack actions $CKM, jamais ajoutés à unlocked). */
+  const isCountable = (r) =>
+    r.currency !== 'cafe' && !r.limited && r.applyAs !== 'pack_shares';
   let revealedLevel = 1;
   for(let n=1; n<=level; n++){
-    const itemsAtN = REWARDS.filter(r =>
-      r.levelRequired === n && r.currency !== 'cafe' && !r.limited
-    );
+    const itemsAtN = REWARDS.filter(r => r.levelRequired === n && isCountable(r));
     revealedLevel = n;
     if(!itemsAtN.every(it => unlocked.includes(it.id))) break;
   }
 
   /* Stats du niveau boutique en cours pour la barre de progression */
   const itemsAtRevealed = REWARDS.filter(r =>
-    r.levelRequired === revealedLevel && r.currency !== 'cafe' && !r.limited
+    r.levelRequired === revealedLevel && isCountable(r)
   );
   const earnedAtRevealed = itemsAtRevealed.filter(it => unlocked.includes(it.id)).length;
   const totalAtRevealed  = itemsAtRevealed.length;
@@ -84,10 +89,13 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   } else {
     /* Les items `limited` (édition limitée gagnés via événements) ne
        sont JAMAIS dans la boutique — l'utilisateur les retrouve dans
-       Profil/Paramètres pour les équiper. Sortie boutique propre. */
+       Profil/Paramètres pour les équiper. Sortie boutique propre.
+       Les Packs $CKM sont consommables : toujours visibles tant que
+       le niveau est atteint (ne sont jamais dans `unlocked`). */
     visible = REWARDS.filter(r => {
       if(r.currency === 'cafe') return false;
       if(r.limited) return false;
+      if(r.applyAs === 'pack_shares') return r.levelRequired <= revealedLevel;
       return !initialUnlocked.includes(r.id) && r.levelRequired <= revealedLevel;
     });
   }

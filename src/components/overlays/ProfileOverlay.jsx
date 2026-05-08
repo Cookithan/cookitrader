@@ -2,9 +2,11 @@ import { useState } from "react";
 import { ChevronLeft, Settings, Lock, Mail } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
-import { GOLD } from "../../data/themes.js";
+import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
+import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
+import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
 import { FriendsSection } from "../profile/FriendsSection.jsx";
@@ -43,7 +45,7 @@ export function ProfileOverlay({
   level, xp, xpReq, totalEarned, streak, unlocked,
   earnedAchievements, achievementsTotal,
   marketRealized = 0,
-  activeTheme, activeSkin, activeRoue,
+  activeTheme, activeSkin, setActiveSkin, activeTitle, setActiveTitle, activeRoue,
   onReset,
   supabaseEnabled = false,
   supabaseSyncOk  = false,
@@ -61,6 +63,10 @@ export function ProfileOverlay({
 
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
+  /* Skins cookie possédés (toujours inclure le skin par défaut '' ) */
+  const ownedSkins = REWARDS.filter(r => r.type==='Skin' && unlocked.includes(r.id));
+  /* Titres possédés (cf. data/titles.js) */
+  const ownedTitles = REWARDS.filter(r => r.type==='Titre' && unlocked.includes(r.id));
   /* Badges secrets débloqués (BRIEF_BADGES_SECRETS). Les non-débloqués
      restent invisibles — sinon ce ne sont plus des secrets. */
   const secretBadgesUnlocked = Object.values(SECRET_BADGES).filter(b => unlocked.includes(b.id));
@@ -255,7 +261,7 @@ export function ProfileOverlay({
               <div style={{
                 fontSize:24, fontWeight:900, color:'#3D2010',
                 marginTop:12, marginBottom:6, letterSpacing:.2, textAlign:'center',
-                ...(getNameStyle(userName, earnedAchievements) || {}),
+                ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
               }}>
                 {userName || 'Joueur'}
               </div>
@@ -365,6 +371,81 @@ export function ProfileOverlay({
                 </div>
               )}
             </section>
+
+            {/* 4b. Mes Skins & Titres — sélecteurs (uniquement items possédés).
+                Chaque liste inclut systématiquement l'option "défaut" en tête. */}
+            {(ownedSkins.length > 0 || ownedTitles.length > 0) && (
+              <section>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>MES PERSONNALISATIONS</div>
+
+                {/* SKINS COOKIE — preview SkinnedCookie 44px par option */}
+                {ownedSkins.length > 0 && setActiveSkin && (
+                  <div style={{ marginBottom:12 }}>
+                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>SKIN DU COOKIE</div>
+                    <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
+                      {/* Option défaut systématique */}
+                      {[{ id:'', name:'Défaut' }, ...ownedSkins].map(s => {
+                        const skinData = COOKIE_SKINS[s.id] || COOKIE_SKINS[''];
+                        const sel = activeSkin === s.id;
+                        return (
+                          <button
+                            key={s.id || 'default'}
+                            onClick={()=>setActiveSkin(s.id)}
+                            style={{
+                              flex:'0 0 auto', display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+                              padding:8, borderRadius:14,
+                              background: sel ? 'rgba(212,160,23,.16)' : C.card,
+                              border:`2px solid ${sel ? '#D4A017' : C.border}`,
+                              cursor:'pointer', minWidth:64,
+                              boxShadow: sel ? '0 0 12px rgba(212,160,23,.35)' : 'none',
+                              transition:'all .2s',
+                            }}
+                          >
+                            <div style={{ width:44, height:44 }}>
+                              <SkinnedCookie skin={skinData} />
+                            </div>
+                            <div style={{ fontSize:9, fontWeight:700, color:C.text, lineHeight:1.1, textAlign:'center', whiteSpace:'nowrap', maxWidth:60, overflow:'hidden', textOverflow:'ellipsis' }}>
+                              {(s.name || '').replace(/^Cookie\s+/, '') || 'Défaut'}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* TITRES COULEUR — preview du pseudo dans le style du titre */}
+                {ownedTitles.length > 0 && setActiveTitle && (
+                  <div>
+                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>TITRE COULEUR</div>
+                    <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4, flexWrap:'wrap' }}>
+                      {/* Option défaut */}
+                      {[{ id:'', name:'Aucun' }, ...ownedTitles].map(t => {
+                        const sel = activeTitle === t.id;
+                        const previewStyle = t.id ? (getTitleStyle(t.id) || {}) : { color:C.text, fontWeight:800 };
+                        return (
+                          <button
+                            key={t.id || 'none'}
+                            onClick={()=>setActiveTitle(t.id)}
+                            style={{
+                              padding:'8px 14px', borderRadius:14,
+                              background: sel ? 'rgba(212,160,23,.16)' : C.card,
+                              border:`2px solid ${sel ? '#D4A017' : C.border}`,
+                              cursor:'pointer',
+                              boxShadow: sel ? '0 0 12px rgba(212,160,23,.35)' : 'none',
+                              transition:'all .2s',
+                              fontSize:14, ...previewStyle,
+                            }}
+                          >
+                            {(TITLE_STYLES[t.id]?.name) || t.name?.replace(/^Titre\s+/, '') || 'Aucun'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
             {/* 5. Mes Amis */}
             <FriendsSection

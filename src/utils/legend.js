@@ -83,10 +83,21 @@ export const CREATOR_NAME_STYLE = {
   animation: 'latteShimmer 3s ease-in-out infinite',
 };
 
-/* Helper combiné : retourne le style à appliquer (créateur > légende > rien).
-   `name` est le pseudo, `achievements` les succès gagnés (array ou CSV). */
-export function getNameStyle(name, achievements){
+/* Helper combiné : retourne le style à appliquer.
+   Priorité : Créateur (Cookithan) > Légende Vivante > Titre choisi.
+   - `name`           : pseudo
+   - `achievements`   : succès gagnés (array ou CSV)
+   - `activeTitleId`  : id du titre couleur sélectionné (titles.js), optionnel
+   Les titres couleur sont chargés en lazy-import statique pour éviter une
+   dépendance circulaire (titles.js n'importe pas legend.js). */
+import { getTitleStyle } from '../data/titles.js';
+
+export function getNameStyle(name, achievements, activeTitleId){
   if(isCreator(name)) return CREATOR_NAME_STYLE;
   if(hasLegendTitle(achievements)) return LEGEND_NAME_STYLE;
+  if(activeTitleId){
+    const s = getTitleStyle(activeTitleId);
+    if(s) return s;
+  }
   return null;
 }

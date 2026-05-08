@@ -67,9 +67,64 @@ export const ROUE_PALETTES = { '': null };
 export const ROUE_GLOWS    = {};
 
 export const COOKIE_SKINS = {
+  /* Skin par défaut (pas d'achat) — cookie classique caramel/café */
   '': {
     body:[{o:'0%',c:'#E8B57A'},{o:'55%',c:'#B86A28'},{o:'100%',c:'#6B3812'}],
     chip:[{o:'0%',c:'#5A2D14'},{o:'100%',c:'#1A0A04'}],
     ring:'#3D1F0A', cracks:'#5A2D10', glow:false, icing:false, shine:'rgba(255,240,210,.32)'
+  },
+  /* Niv 2 — Caramel : pâte ambrée chaude, pépites blondes claires */
+  skin_caramel: {
+    body:[{o:'0%',c:'#FFD4A0'},{o:'55%',c:'#E08838'},{o:'100%',c:'#8B4810'}],
+    chip:[{o:'0%',c:'#7A4818'},{o:'100%',c:'#3D1F0A'}],
+    ring:'#5C2E0E', cracks:'#7D4818', glow:false, icing:false, shine:'rgba(255,235,200,.4)'
+  },
+  /* Niv 4 — Noisette : ton plus brun rouge, pépites foncées noisette */
+  skin_noisette: {
+    body:[{o:'0%',c:'#D49060'},{o:'55%',c:'#8B5028'},{o:'100%',c:'#4A2410'}],
+    chip:[{o:'0%',c:'#3D1F0A'},{o:'100%',c:'#1A0A04'}],
+    ring:'#2D1606', cracks:'#3D1F0A', glow:false, icing:false, shine:'rgba(255,220,180,.32)'
+  },
+  /* Niv 8 — Onyx : cookie cacao très foncé, pépites or scintillantes */
+  skin_onyx: {
+    body:[{o:'0%',c:'#3D2818'},{o:'55%',c:'#1F1006'},{o:'100%',c:'#0A0402'}],
+    chip:[{o:'0%',c:'#D4A017'},{o:'100%',c:'#8B5A14'}],
+    ring:'#0A0402', cracks:'#1A0A04', glow:true, icing:false, shine:'rgba(212,160,23,.32)'
+  },
+  /* Niv 9 — Émeraude : tons bruns avec halo doré chaud (pas de vert — palette café) */
+  skin_emeraude: {
+    body:[{o:'0%',c:'#E8C078'},{o:'55%',c:'#8B6014'},{o:'100%',c:'#3D2A04'}],
+    chip:[{o:'0%',c:'#5C3614'},{o:'100%',c:'#1A0E04'}],
+    ring:'#5C4014', cracks:'#7D4F18', glow:true, icing:false, shine:'rgba(255,232,160,.4)'
+  },
+  /* Niv 10 — Doré : cookie or massif, pépites espresso */
+  skin_dore: {
+    body:[{o:'0%',c:'#FFE5A0'},{o:'45%',c:'#E8B81B'},{o:'100%',c:'#8B5A14'}],
+    chip:[{o:'0%',c:'#3D1F0A'},{o:'100%',c:'#1A0A04'}],
+    ring:'#8B5A14', cracks:'#5C3614', glow:true, icing:false, shine:'rgba(255,240,200,.55)'
+  },
+  /* Niv 11 — Cuir : pâte cuir tabac sombre, pépites dorées */
+  skin_cuir: {
+    body:[{o:'0%',c:'#A07050'},{o:'55%',c:'#5C3614'},{o:'100%',c:'#2D1A0E'}],
+    chip:[{o:'0%',c:'#D4A017'},{o:'100%',c:'#8B5A14'}],
+    ring:'#3D2418', cracks:'#5C3614', glow:false, icing:false, shine:'rgba(232,184,90,.35)'
+  },
+  /* Niv 13 — Mythique : double glaçage clair + halo lumineux */
+  skin_mythique: {
+    body:[{o:'0%',c:'#F0E5C8'},{o:'55%',c:'#D4A85C'},{o:'100%',c:'#8B6014'}],
+    chip:[{o:'0%',c:'#5C3614'},{o:'100%',c:'#1A0E04'}],
+    ring:'#5C4014', cracks:'#7D4F18', glow:true, icing:true, shine:'rgba(255,245,200,.6)'
+  },
+  /* Niv 14 — Phoenix : tons orangés feu (compatible palette café — ambre vif) */
+  skin_phoenix: {
+    body:[{o:'0%',c:'#FFD080'},{o:'45%',c:'#E08828'},{o:'85%',c:'#A03808'},{o:'100%',c:'#5C1808'}],
+    chip:[{o:'0%',c:'#5C1808'},{o:'100%',c:'#1A0408'}],
+    ring:'#7D2E0E', cracks:'#A03808', glow:true, icing:false, shine:'rgba(255,224,168,.55)'
+  },
+  /* Niv 15 — Originel : cookie cosmique violet+or scintillant glaçage */
+  skin_originel: {
+    body:[{o:'0%',c:'#FFE5A0'},{o:'30%',c:'#D4A017'},{o:'65%',c:'#5C3614'},{o:'100%',c:'#0A0224'}],
+    chip:[{o:'0%',c:'#FFE5A0'},{o:'100%',c:'#9A85C8'}],
+    ring:'#8B5A14', cracks:'#5C3614', glow:true, icing:true, shine:'rgba(255,232,160,.65)'
   },
 };

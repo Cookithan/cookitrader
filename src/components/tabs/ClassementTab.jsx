@@ -49,7 +49,7 @@ function saveCache(key, payload){
   try{ sessionStorage.setItem(key, JSON.stringify(payload)); }catch{}
 }
 
-export function ClassementTab({ userCode, userName, userAvatar, earnedAchievements, onOpenProfile, onOpenUserProfile, C }){
+export function ClassementTab({ userCode, userName, userAvatar, earnedAchievements, activeTitle, onOpenProfile, onOpenUserProfile, C }){
   const enabled = isSupabaseEnabled();
   const isAdmin = isAdminName(userName);
   const [mode, setMode] = useState('cookies'); /* 'cookies' | 'market' */
@@ -203,7 +203,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, isAdm
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(getNameStyle(userName, earnedAchievements) || {}),
+            ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
           }}>
             {userName || 'Joueur'}
           </div>
@@ -336,7 +336,7 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, isAdmi
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(getNameStyle(userName, earnedAchievements) || {}),
+            ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
           }}>
             {userName || 'Joueur'}
           </div>

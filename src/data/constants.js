@@ -113,8 +113,44 @@ export const REWARDS = [
   { id:'avatar_eternel', name:'Avatar Éternel',         desc:'Halo infini scintillant',        cost:4500, type:'Avatar', emoji:'♾️',   levelRequired:10 },
   // MUSIQUES (BRIEF_AUDIO) — débloquent les musiques d'ambiance ; mapping
   // id:'music_<key>' → MUSICS.<key> côté src/lib/audio.js
-  { id:'music_bossa',  name:'Musique Bossa Nova',   desc:'Soleil brésilien',          cost:1500, type:'Musique', emoji:'🇧🇷', levelRequired:5 },
-  { id:'music_royale', name:'Symphonie Royale',     desc:'Musique classique baroque', cost:2000, type:'Musique', emoji:'💎', levelRequired:5 },
+  // Catalogue 5 nouvelles + 2 existantes en 🍪 (assets Pixabay CC0 mai 2026).
+  { id:'music_matin',    name:'Café du Matin',       desc:'Jazz café du petit matin',  cost:100,  type:'Musique', emoji:'🌅', levelRequired:1 },
+  { id:'music_bossa',    name:'Musique Bossa Nova',  desc:'Soleil brésilien',          cost:1500, type:'Musique', emoji:'🇧🇷', levelRequired:5 },
+  { id:'music_royale',   name:'Symphonie Royale',    desc:'Musique classique baroque', cost:2000, type:'Musique', emoji:'💎', levelRequired:5 },
+  { id:'music_velvet',   name:'Velvet Smoke',        desc:'Slow jazz velouté & fumé',  cost:1300, type:'Musique', emoji:'🍷', levelRequired:9 },
+  { id:'music_empereur', name:"Beat de l'Empereur",  desc:'Drill puissant et urbain',  cost:1500, type:'Musique', emoji:'👑', levelRequired:11 },
+  { id:'music_veillee',  name:'Veillée Lofi',        desc:'Lofi cinématique posé',     cost:2500, type:'Musique', emoji:'🌙', levelRequired:14 },
+  { id:'music_cosmique', name:'Nuit Cosmique',       desc:'Lofi nocturne stellaire',   cost:3000, type:'Musique', emoji:'🌌', levelRequired:15 },
+
+  // SKINS COOKIE — change l'apparence du cookie central tappable
+  // id:'skin_<key>' → COOKIE_SKINS.<key> côté src/data/themes.js
+  { id:'skin_caramel',  name:'Cookie Caramel',  desc:'Pâte ambrée chaude',          cost:250,  type:'Skin', emoji:'🍯', levelRequired:2 },
+  { id:'skin_noisette', name:'Cookie Noisette', desc:'Brun roux noisette',          cost:450,  type:'Skin', emoji:'🌰', levelRequired:4 },
+  { id:'skin_onyx',     name:'Cookie Onyx',     desc:'Cacao noir + pépites or',     cost:900,  type:'Skin', emoji:'🖤', levelRequired:8 },
+  { id:'skin_emeraude', name:'Cookie Émeraude', desc:'Halo doré chaud',             cost:1100, type:'Skin', emoji:'💚', levelRequired:9 },
+  { id:'skin_dore',     name:'Cookie Doré',     desc:'Or massif scintillant',       cost:1800, type:'Skin', emoji:'✨', levelRequired:10 },
+  { id:'skin_cuir',     name:'Cookie Cuir',     desc:'Tabac sombre + or',           cost:1600, type:'Skin', emoji:'🛋️', levelRequired:11 },
+  { id:'skin_mythique', name:'Cookie Mythique', desc:'Glaçage + halo mythique',     cost:2500, type:'Skin', emoji:'🌟', levelRequired:13 },
+  { id:'skin_phoenix',  name:'Cookie Phoenix',  desc:'Flammes ambrées vives',       cost:2700, type:'Skin', emoji:'🔥', levelRequired:14 },
+  { id:'skin_originel', name:'Cookie Originel', desc:'Or cosmique + violet',        cost:3500, type:'Skin', emoji:'🌌', levelRequired:15 },
+
+  // TITRES COULEUR — effet shimmer sur le pseudo (cf. src/data/titles.js)
+  // Sélectionnable depuis Profil. Priorité après Créateur et Légende Vivante.
+  { id:'title_mousse',   name:'Titre Mousse',   desc:'Reflet crème mousseuse',  cost:350,  type:'Titre', emoji:'☁️', levelRequired:3 },
+  { id:'title_caramel',  name:'Titre Caramel',  desc:'Shimmer caramel ambré',   cost:800,  type:'Titre', emoji:'🍯', levelRequired:7 },
+  { id:'title_cuivre',   name:'Titre Cuivre',   desc:'Reflet cuivre métallique',cost:1000, type:'Titre', emoji:'🧱', levelRequired:8 },
+  { id:'title_velours',  name:'Titre Velours',  desc:'Texture café veloutée',   cost:1200, type:'Titre', emoji:'🤎', levelRequired:9 },
+  { id:'title_or',       name:'Titre Or',       desc:'Brillance or massif',     cost:2000, type:'Titre', emoji:'👑', levelRequired:10 },
+  { id:'title_elixir',   name:'Titre Élixir',   desc:'Éclat or liquide',        cost:1700, type:'Titre', emoji:'🧪', levelRequired:12 },
+  { id:'title_saveur',   name:'Titre Saveur',   desc:'Dégradé café-épices',     cost:2200, type:'Titre', emoji:'🌶️', levelRequired:13 },
+  { id:'title_phenix',   name:'Titre Phénix',   desc:'Flammes ardentes',        cost:2400, type:'Titre', emoji:'🔥', levelRequired:14 },
+  { id:'title_cosmique', name:'Titre Cosmique', desc:'Lueur stellaire violette',cost:3500, type:'Titre', emoji:'🌌', levelRequired:15 },
+
+  // PACKS $CKM — crédite N actions instantanément (via creditFreeShares).
+  // Item consommable : pas d'ajout à `unlocked`, rachetable à volonté.
+  { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:1200, type:'Pack', emoji:'📈', levelRequired:7 },
+  { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:3000, type:'Pack', emoji:'📊', levelRequired:12 },
+
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
   /* Jetons VIP — items premium CONSOMMABLES (pas d'ajout à unlocked).
      À l'achat, ajoute des tours bonus à la roue pour la journée en
@@ -126,6 +162,10 @@ export const REWARDS = [
 
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Révéler le Succès Café',  desc:'Débloque la visibilité du succès secret',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:1 },
+  /* Niv 13 — Code rare. Une fois acheté, le code LEGENDE13 est activé
+     sur ce compte (state LS revealedPromoCodes) et utilisable depuis
+     Settings → Code promo. Récompense : +500 🍪 + 3 ☕. Achat unique. */
+  { id:'reveal_promo_rare', currency:'cafe', applyAs:'reveal_promo', revealCode:'LEGENDE13', name:'Révéler Code Promo Rare', desc:'Dévoile un code promo unique exclusif', cost:5, type:'Premium', emoji:'🎟️', levelRequired:13 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },
   { id:'music_lofi',     currency:'cafe', applyAs:'music',       name:'Musique Lofi Hip-Hop', desc:'Ambiance étudiant chill',      cost:3,  type:'Premium', emoji:'🎵', levelRequired:1 },
 ];
