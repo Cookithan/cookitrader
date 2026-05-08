@@ -195,6 +195,7 @@ export const QUESTIONS = [
   { q:"Quelle variété de café est la plus résistante aux maladies ?", choices:["Arabica","Robusta","Liberica","Geisha"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel pourcentage approximatif de la production mondiale est de l'Arabica ?", choices:["30%","60%","80%","95%"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Combien de tours bonus donne le Jeton VIP +50 dans CookiMiner ?", choices:["20","30","50","100"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Qui est le créateur de l'application CookiMiner ?", choices:["Cookithan","BaristaDev","CookieMaker","GrindMaster"], answer:0, reward:60, difficulty:'Expert' },
 ];
 
 /* Quiz : 1 disponible toutes les 5h */
