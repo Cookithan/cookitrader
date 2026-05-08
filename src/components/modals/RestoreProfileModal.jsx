@@ -20,10 +20,12 @@ import { restoreProfile } from "../../lib/supabaseSync.js";
 ═══════════════════════════════════════════════════════ */
 export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C }){
   const [code,    setCode]    = useState('');
+  const [pin,     setPin]     = useState('');
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState(null);
   const [shake,   setShake]   = useState(false);
-  const inputRef = useRef(null);
+  const inputRef    = useRef(null);
+  const pinInputRef = useRef(null);
 
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 80);
@@ -40,13 +42,21 @@ export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C })
     if(error) setError(null);
   };
 
-  const isValid = /^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code);
+  const handlePinChange = (raw) => {
+    const digits = raw.replace(/\D/g, '').slice(0, 4);
+    setPin(digits);
+    if(error) setError(null);
+  };
+
+  const isCodeValid = /^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code);
+  const isPinValid  = /^\d{4}$/.test(pin);
+  const isValid     = isCodeValid && isPinValid;
 
   const handleRestore = async () => {
     if(loading || !isValid) return;
     setError(null);
     setLoading(true);
-    const res = await restoreProfile(code);
+    const res = await restoreProfile(code, pin);
     setLoading(false);
 
     if(res.error){
@@ -105,29 +115,69 @@ export function RestoreProfileModal({ onCancel, onSuccess, warning = false, C })
         )}
 
         {/* Input code */}
-        <input
-          ref={inputRef}
-          type="text"
-          autoComplete="off"
-          autoCapitalize="characters"
-          spellCheck={false}
-          value={code}
-          onChange={(e) => handleChange(e.target.value)}
-          onKeyDown={(e) => { if(e.key === 'Enter' && isValid) handleRestore(); }}
-          placeholder="B4R-1ST"
-          maxLength={7}
-          style={{
-            width:'100%', padding:'14px 12px',
-            borderRadius:14,
-            border: error ? '2px solid #7D4E1F' : `2px solid ${C.border}`,
-            background:C.card2, color:'#D4A017',
-            fontSize:22, fontWeight:900, letterSpacing:6,
-            textAlign:'center', outline:'none',
-            fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
-            boxSizing:'border-box',
-            transition:'border-color .2s',
-          }}
-        />
+        <div style={{ marginBottom:8 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:5, textAlign:'center' }}>
+            Code (XXX-XXX)
+          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            value={code}
+            onChange={(e) => handleChange(e.target.value)}
+            onKeyDown={(e) => {
+              if(e.key === 'Enter'){
+                if(isCodeValid && !isPinValid) pinInputRef.current?.focus();
+                else if(isValid) handleRestore();
+              }
+            }}
+            placeholder="B4R-1ST"
+            maxLength={7}
+            style={{
+              width:'100%', padding:'14px 12px',
+              borderRadius:14,
+              border: error ? '2px solid #7D4E1F' : `2px solid ${C.border}`,
+              background:C.card2, color:'#D4A017',
+              fontSize:22, fontWeight:900, letterSpacing:6,
+              textAlign:'center', outline:'none',
+              fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+              boxSizing:'border-box',
+              transition:'border-color .2s',
+            }}
+          />
+        </div>
+
+        {/* Input PIN (4 chiffres) */}
+        <div style={{ marginBottom:4 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:5, textAlign:'center' }}>
+            🔒 PIN (4 chiffres)
+          </div>
+          <input
+            ref={pinInputRef}
+            type="password"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            value={pin}
+            onChange={(e) => handlePinChange(e.target.value)}
+            onKeyDown={(e) => { if(e.key === 'Enter' && isValid) handleRestore(); }}
+            placeholder="••••"
+            maxLength={4}
+            style={{
+              width:'100%', padding:'14px 12px',
+              borderRadius:14,
+              border: error ? '2px solid #7D4E1F' : `2px solid ${C.border}`,
+              background:C.card2, color:'#D4A017',
+              fontSize:22, fontWeight:900, letterSpacing:8,
+              textAlign:'center', outline:'none',
+              fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+              boxSizing:'border-box',
+              transition:'border-color .2s',
+            }}
+          />
+        </div>
 
         {/* Erreur inline */}
         {error && (

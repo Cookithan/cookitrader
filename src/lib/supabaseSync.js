@@ -721,7 +721,7 @@ export async function sendGift(senderCode, recipientCode, giftType, currentBalan
      · completedEvents (les events sont time-limited, peu d'impact)
      · marketRealized, lastCheckin, lastQuiz, seenHints, knownFriendCodes
 ═══════════════════════════════════════════════════════ */
-export async function restoreProfile(userCode){
+export async function restoreProfile(userCode, pin = ''){
   if(!isSupabaseEnabled()) return { error:'Hors ligne' };
   if(!userCode || !/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(userCode)){
     return { error:'Format invalide (ex : B4R-1ST)' };
@@ -737,21 +737,38 @@ export async function restoreProfile(userCode){
     if(error){ notifySupabaseError(); return { error:'Erreur réseau' }; }
     if(!user) return { error:"Ce code n'existe pas" };
 
+    /* 2. Validation du PIN (sécurité). Si le profil a un PIN défini en
+       base, l'input doit matcher exactement. Si le profil n'a PAS de
+       PIN (legacy / pas encore syncé), on rejette aussi pour éviter
+       qu'un compte non-protégé soit restaurable par un tiers — le
+       propriétaire ré-ouvre l'app sur l'appareil source pour push
+       son PIN, puis ré-essaie. */
+    const serverPin = (user.restore_pin || '').trim();
+    if(!serverPin){
+      return { error:"Aucun PIN défini sur ce compte. Ouvre l'app sur l'appareil d'origine pour générer le PIN, puis réessaie." };
+    }
+    if(!pin || !/^\d{4}$/.test(pin)){
+      return { error:'PIN requis (4 chiffres)' };
+    }
+    if(pin !== serverPin){
+      return { error:'PIN incorrect' };
+    }
+
     const splitCsv = (raw) => (raw || '')
       .split(',')
       .map(s => s.trim())
       .filter(Boolean);
 
-    /* 2. Unlocked complet (priorité à la nouvelle colonne `unlocked`).
+    /* 3. Unlocked complet (priorité à la nouvelle colonne `unlocked`).
           Fallback `badges` pour les profils écrits avant la migration. */
     const unlocked = (user.unlocked && user.unlocked.length)
       ? splitCsv(user.unlocked)
       : splitCsv(user.badges);
 
-    /* 3. Achievements gagnés (comma-separated d'IDs) */
+    /* 4. Achievements gagnés (comma-separated d'IDs) */
     const earnedAchievements = splitCsv(user.earned_achievements);
 
-    /* 4. Amitiés acceptées (best-effort, ne bloque pas la restauration) */
+    /* 5. Amitiés acceptées (best-effort, ne bloque pas la restauration) */
     let friendCodes = [];
     try{
       const { data: links } = await supabase
@@ -762,7 +779,7 @@ export async function restoreProfile(userCode){
       friendCodes = (links || []).map(l => l.friend_code).filter(Boolean);
     }catch{ /* table absente / RLS */ }
 
-    /* 5. Portfolio marché (best-effort) */
+    /* 6. Portfolio marché (best-effort) */
     let portfolio = null;
     try{
       const { data: p } = await supabase
@@ -790,6 +807,7 @@ export async function restoreProfile(userCode){
         earnedAchievements,
         nameChangeCount:    Number(user.name_change_count) || 0,
         activeTheme:        user.active_theme || '',
+        restorePin:         serverPin,
         joinDate:           user.join_date || null,
         friendCodes,
         portfolio,
@@ -883,6 +901,9 @@ export async function upsertProfile(p){
         name_change_count:    p.nameChangeCount ?? 0,
         earned_achievements:  (p.earnedAchievements || []).join(','),
         active_theme:         p.activeTheme || '',
+        /* PIN de restauration (sécurité) — 4 chiffres requis pour
+           restaurer le compte sur un autre appareil. */
+        restore_pin:          p.restorePin || '',
         last_active:  new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()
