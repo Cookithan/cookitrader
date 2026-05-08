@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info } from "lucide-react";
+import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, LT, GOLD } from "../../data/themes.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
@@ -22,7 +22,20 @@ import {
    - L'item premium (applyAs:'theme'/'skin') s'affiche aussi dans son onglet
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, C }) {
+export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, userCode, restorePin, C }) {
+
+  /* PIN reveal toggle + feedback copie */
+  const [pinRevealed, setPinRevealed] = useState(false);
+  const [pinCopied,   setPinCopied]   = useState(false);
+  const [codeCopied,  setCodeCopied]  = useState(false);
+
+  const copyText = async (txt, kind) => {
+    try{
+      await navigator.clipboard.writeText(txt);
+      if(kind === 'pin'){ setPinCopied(true);  setTimeout(()=>setPinCopied(false), 1400); }
+      else              { setCodeCopied(true); setTimeout(()=>setCodeCopied(false), 1400); }
+    }catch{}
+  };
 
   /* État audio synchronisé avec audio.js (LS). Re-render local à chaque
      changement pour refléter le toggle / la musique en lecture. */
@@ -223,6 +236,116 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
               Ta progression est enregistrée automatiquement dans ce navigateur. Elle est conservée même après fermeture, mais ne suit pas entre appareils.
             </div>
           </div>
+
+          {/* Carte infos de récupération — code + PIN. Code toujours visible
+              (même que le code ami), PIN caché par défaut + toggle révéler. */}
+          {(userCode || restorePin) && (
+            <div style={{
+              borderRadius:16,
+              background:'linear-gradient(140deg, rgba(212,160,23,.08), rgba(193,127,60,.06))',
+              border:'1px solid rgba(212,160,23,.32)',
+              padding:'14px 16px', marginBottom:8,
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                <Lock size={14} color="#D4A017" />
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                  Mes infos de récupération
+                </div>
+              </div>
+
+              {/* Ligne CODE */}
+              <div style={{
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
+                padding:'8px 10px', borderRadius:10,
+                background:C.bg, border:`1px solid ${C.border}`,
+                marginBottom:8,
+              }}>
+                <div style={{ minWidth:0, flex:1 }}>
+                  <div style={{ fontSize:9, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:2 }}>Code</div>
+                  <div style={{
+                    fontSize:16, fontWeight:900, color:'#D4A017',
+                    letterSpacing:3, fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+                  }}>
+                    {userCode || '—'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => userCode && copyText(userCode, 'code')}
+                  disabled={!userCode}
+                  aria-label="Copier le code"
+                  style={{
+                    background: codeCopied ? 'rgba(212,160,23,.18)' : 'transparent',
+                    border:`1px solid ${codeCopied ? '#D4A017' : C.border}`,
+                    color: codeCopied ? '#D4A017' : C.muted,
+                    padding:'6px 10px', borderRadius:9,
+                    fontSize:11, fontWeight:700, cursor:'pointer',
+                    display:'flex', alignItems:'center', gap:5,
+                  }}
+                >
+                  {codeCopied ? <><Check size={12}/> Copié</> : <><Copy size={12}/> Copier</>}
+                </button>
+              </div>
+
+              {/* Ligne PIN */}
+              <div style={{
+                display:'flex', alignItems:'center', justifyContent:'space-between', gap:10,
+                padding:'8px 10px', borderRadius:10,
+                background:C.bg, border:`1px solid ${C.border}`,
+              }}>
+                <div style={{ minWidth:0, flex:1 }}>
+                  <div style={{ fontSize:9, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:2 }}>
+                    PIN <span style={{ color:'#C17F3C' }}>· secret</span>
+                  </div>
+                  <div style={{
+                    fontSize:16, fontWeight:900, color:'#D4A017',
+                    letterSpacing:5, fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+                  }}>
+                    {restorePin
+                      ? (pinRevealed ? restorePin : '••••')
+                      : '— génération…'}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:6, flexShrink:0 }}>
+                  <button
+                    onClick={() => setPinRevealed(v => !v)}
+                    disabled={!restorePin}
+                    aria-label={pinRevealed ? 'Cacher le PIN' : 'Révéler le PIN'}
+                    style={{
+                      background:'transparent',
+                      border:`1px solid ${C.border}`,
+                      color:C.muted,
+                      width:32, height:30, borderRadius:9,
+                      cursor:'pointer',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                    }}
+                  >
+                    {pinRevealed ? <EyeOff size={13}/> : <Eye size={13}/>}
+                  </button>
+                  <button
+                    onClick={() => restorePin && copyText(restorePin, 'pin')}
+                    disabled={!restorePin}
+                    aria-label="Copier le PIN"
+                    style={{
+                      background: pinCopied ? 'rgba(212,160,23,.18)' : 'transparent',
+                      border:`1px solid ${pinCopied ? '#D4A017' : C.border}`,
+                      color: pinCopied ? '#D4A017' : C.muted,
+                      padding:'6px 10px', borderRadius:9,
+                      fontSize:11, fontWeight:700, cursor:'pointer',
+                      display:'flex', alignItems:'center', gap:5,
+                    }}
+                  >
+                    {pinCopied ? <><Check size={12}/> Copié</> : <><Copy size={12}/> Copier</>}
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ fontSize:10.5, color:C.muted, marginTop:10, lineHeight:1.5 }}>
+                Note ces 2 infos quelque part. Tu en as besoin pour récupérer ton compte sur un autre appareil.
+                <strong style={{ color:'#7D4E1F' }}> Ne partage jamais ton PIN.</strong>
+              </div>
+            </div>
+          )}
+
           {onOpenRestore && (
             <button
               onClick={() => { playSound('modal'); onOpenRestore(); }}

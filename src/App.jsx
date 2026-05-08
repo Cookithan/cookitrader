@@ -186,6 +186,21 @@ export default function CookiMiner() {
      déclarés ici (avant le useEffect) pour éviter une TDZ sur la deps array. */
   const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
   const [activeTheme,        setActiveTheme]        = useLocalStorage('activeTheme', '');
+  /* PIN de restauration (BRIEF_RESTAURATION sécurité) : 4 chiffres
+     auto-générés au 1er besoin pour bloquer les restaurations
+     non-autorisées. Visible dans Settings, requis dans RestoreProfileModal. */
+  const [restorePin,         setRestorePin]         = useLocalStorage('restorePin', '');
+
+  /* Auto-génération du PIN au 1er besoin : si on a un userCode mais
+     pas encore de PIN (compte fraîchement créé OU compte existant
+     d'avant la migration), on tire 4 chiffres au hasard. Le PIN est
+     ensuite sync via le upsertProfile en background. */
+  useEffect(() => {
+    if(!userCode) return;
+    if(restorePin && /^\d{4}$/.test(restorePin)) return;
+    const pin = String(Math.floor(1000 + Math.random() * 9000));
+    setRestorePin(pin);
+  }, [userCode, restorePin, setRestorePin]);
 
   /* État "online" optimiste : on suppose que la sync marche. Ne passe
      à `error` que si un upsert échoue (réseau, RLS, etc.). Ça évite
@@ -213,11 +228,12 @@ export default function CookiMiner() {
         nameChangeCount,
         earnedAchievements: earnedAchievements || [],
         activeTheme: activeTheme || '',
+        restorePin: restorePin || '',
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme]);
+  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, restorePin]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
@@ -773,6 +789,10 @@ export default function CookiMiner() {
     set('achievements',    data.earnedAchievements || []);
     set('nameChangeCount', data.nameChangeCount ?? 0);
     set('activeTheme',     data.activeTheme || '');
+    /* PIN sync : on garde le même PIN sur le nouvel appareil — le
+       user n'en a qu'un seul à retenir. Il est requis pour restaurer
+       sur encore un autre appareil plus tard. */
+    set('restorePin',      data.restorePin || '');
     /* Marché (best-effort) */
     if(data.portfolio?.invested != null){
       set('totalInvested', data.portfolio.invested);
@@ -1465,6 +1485,8 @@ export default function CookiMiner() {
           install={installPrompt}
           onOpenAbout={()=>setShowAbout(true)}
           onOpenRestore={()=>setRestoreMode('replace')}
+          userCode={userCode}
+          restorePin={restorePin}
           C={C}
         />
       )}
