@@ -1,8 +1,12 @@
 /* ════════════════════════════════════════════════════
    AVATARS (PHASE 4)
    ────────────────────────────────────────────────────
-   - ONBOARDING_AVATARS : 12 avatars de base, indexés par position (0..11)
+   - ONBOARDING_AVATARS : 12 entrées indexées par position (0..11)
                           → userAvatar peut être un nombre 0..11
+                          dont 3 marquées `hidden:true` (Tasse / Théière /
+                          Croissant) — masquées de la grille de sélection
+                          mais conservées pour ne pas casser les profils
+                          d'utilisateurs qui les avaient choisis avant.
    - AVATAR_PREMIUM     : 8 avatars cosmétiques achetables/débloqués
                           → userAvatar peut être un id string ('avatar_chef', etc.)
                           + 4 entrées legacy (avatar_cookie / avatar_legend / avatar_aurore)
@@ -10,15 +14,19 @@
    - Chaque avatar a une `art` clé qui désigne le composant SVG dans
      components/avatars/AvatarArtwork.jsx (gros switch).
    - getAvatar(value) résout n'importe quelle valeur en config affichable.
+
+   Helper `getVisibleOnboardingAvatars()` retourne uniquement les avatars
+   non `hidden` — utilisé par OnboardingModal et ProfileOverlay pour la
+   grille de sélection.
 ═══════════════════════════════════════════════════════ */
 
 export const ONBOARDING_AVATARS = [
-  { id:0,  art:'tasse',        name:'Tasse Café',     bg:'linear-gradient(140deg,#4A2C17,#7D4E1F)' },
+  { id:0,  art:'tasse',        name:'Tasse Café',     bg:'linear-gradient(140deg,#4A2C17,#7D4E1F)', hidden:true },
   { id:1,  art:'cookie',       name:'Cookie',         bg:'linear-gradient(140deg,#C17F3C,#D4A017)' },
   { id:2,  art:'baristaH',     name:'Barista H',      bg:'linear-gradient(140deg,#8B5A2B,#C17F3C)' },
   { id:3,  art:'baristaF',     name:'Barista F',      bg:'linear-gradient(140deg,#8B5A2B,#C17F3C)' },
-  { id:4,  art:'theiere',      name:'Théière',        bg:'linear-gradient(140deg,#7D4E1F,#A0784E)' },
-  { id:5,  art:'croissant',    name:'Croissant',      bg:'linear-gradient(140deg,#D4A017,#E5B040)' },
+  { id:4,  art:'theiere',      name:'Théière',        bg:'linear-gradient(140deg,#7D4E1F,#A0784E)', hidden:true },
+  { id:5,  art:'croissant',    name:'Croissant',      bg:'linear-gradient(140deg,#D4A017,#E5B040)', hidden:true },
   { id:6,  art:'latteArt',     name:'Latte Art',      bg:'linear-gradient(140deg,#4A2C17,#8B5A2B)' },
   { id:7,  art:'grain',        name:'Grain Café',     bg:'linear-gradient(140deg,#3D2010,#6B3D20)' },
   { id:8,  art:'muffin',       name:'Muffin',         bg:'linear-gradient(140deg,#8B5A2B,#C17F3C)' },
@@ -26,6 +34,12 @@ export const ONBOARDING_AVATARS = [
   { id:10, art:'cookieKawaii', name:'Cookie kawaii',  bg:'linear-gradient(140deg,#C17F3C,#D4A017)' },
   { id:11, art:'baristaChef',  name:'Barista chef',   bg:'linear-gradient(140deg,#5C3317,#8B5A2B)' },
 ];
+
+/* Filtre les avatars masqués — la grille de sélection (Onboarding +
+   Profil) ne montre QUE les non-hidden. Les hidden restent résolus
+   par getAvatar() pour ne pas casser un user qui a déjà cet ID. */
+export const getVisibleOnboardingAvatars = () =>
+  ONBOARDING_AVATARS.filter(a => !a.hidden);
 
 /* Tableau séparé pour lister les 8 avatars premium dans l'ordre de la boutique
    (le brief les ordonne par cost croissant) ; AVATAR_PREMIUM ci-dessous reste

@@ -1,448 +1,827 @@
 /* ════════════════════════════════════════════════════
-   AvatarArtwork — illustrations SVG des 12 avatars de base + 8 premium
+   AvatarArtwork — illustrations SVG des avatars
    ────────────────────────────────────────────────────
-   Tous les SVG utilisent le viewBox 0 0 100 100, dessinés à la main dans
-   la palette café/cookie/caramel/or (PAS de rouge ni de vert).
-   Le fond gradient est appliqué par AvatarFigure (rond ou carré), le SVG
-   ne dessine QUE le contenu central.
+   Polish v2 (2026-05-08) — relief poussé :
+   - Gradients SVG (linearGradient / radialGradient) sur les fills principaux
+     pour vrai volume (lumière haut-gauche → ombre bas-droite)
+   - Highlights crème + ombres internes marquées
+   - Contours épais cartoon (strokeWidth 2.8) avec linejoin/linecap round
+   - Détails expressifs sur les visages : sourcils, joues, brillance pupille
+   - Palette café 100 % stricte (pas de rouge / pas de vert / pas de bleu)
 
-   Ajouter un nouvel avatar :
-     1) Ajouter une entrée { id, art:'monArt', name, bg } dans data/avatars.js
-     2) Ajouter `case 'monArt': return <MonSvg/>;` dans le switch ci-dessous
-     3) Définir le composant SVG plus haut dans ce fichier
+   IDs de gradient préfixés par avatar (`g_<art>_<n>`) pour éviter les
+   collisions quand plusieurs avatars sont rendus sur la même page (ex
+   leaderboard ou grille de sélection).
+
+   Tous les SVG sont en viewBox 0 0 100 100. Le fond gradient circulaire
+   (clé `bg` de avatars.js) est appliqué par AvatarFigure ; le SVG dessine
+   uniquement le contenu central.
+
+   3 entrées masquées (`hidden:true` dans avatars.js) : Tasse Café (#0),
+   Théière (#4), Croissant (#5). Leur SVG est conservé pour compat des
+   profils existants mais ils ne s'affichent plus dans la sélection.
 ═══════════════════════════════════════════════════════ */
 
-const SW = '#FAF0E0';      // crème claire (mousse, contrastes clairs)
-const COFFEE = '#2A1606';  // espresso brûlé (lignes foncées)
-const SKIN = '#E8C8A4';    // teint visage
-const SKIN_DK = '#B8865E'; // ombre visage
+const ESPRESSO  = '#2A1606';
+const COOKIE_DK = '#5A2D10';
+const MOKA      = '#7D4E1F';
+const MOKA_LT   = '#A0784E';
+const COOKIE    = '#B86A28';
+const CARAMEL   = '#C17F3C';
+const CARAMEL_LT= '#E5B040';
+const CREME     = '#FAF0E0';
+const OR        = '#D4A017';
+const OR_LT     = '#F0C050';
+const OR_LTR    = '#FFE89A';
+const OR_DK     = '#8B6914';
+const SKIN      = '#E8C8A4';
+const SKIN_DK   = '#B8865E';
+const SKIN_LT   = '#F4DCBE';
+const STONE     = '#C8B89C';
+const STONE_DK  = '#8B7A60';
+
+const STROKE_HEAVY = { stroke: ESPRESSO, strokeWidth: 2.8, strokeLinejoin: 'round', strokeLinecap: 'round' };
+const STROKE_MED   = { stroke: ESPRESSO, strokeWidth: 2,   strokeLinejoin: 'round', strokeLinecap: 'round' };
+const STROKE_FINE  = { stroke: ESPRESSO, strokeWidth: 1.3, strokeLinejoin: 'round', strokeLinecap: 'round' };
 
 /* ──────────────── 12 AVATARS DE BASE ──────────────── */
 
+/* Tasse Café (HIDDEN) — conservé pour compat */
 const Tasse = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* vapeur */}
-    <path d="M40 22 Q43 16 40 10" stroke={SW} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".75" />
-    <path d="M50 24 Q53 16 50 8"  stroke={SW} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".75" />
-    <path d="M60 22 Q63 16 60 10" stroke={SW} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".75" />
-    {/* anse */}
-    <ellipse cx="74" cy="58" rx="9" ry="11" fill="none" stroke="#FAF0E0" strokeWidth="4.5" />
-    {/* corps tasse */}
-    <rect x="22" y="40" width="50" height="42" rx="6" fill="#FAF0E0" stroke={COFFEE} strokeWidth="2" />
-    {/* café */}
-    <ellipse cx="47" cy="46" rx="22" ry="5" fill="#2A1606" />
-    {/* soucoupe */}
-    <ellipse cx="47" cy="86" rx="32" ry="5" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
+    <defs>
+      <linearGradient id="g_tasse_body" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
+    </defs>
+    <path d="M40 22 Q44 14 40 6"  stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".75" />
+    <path d="M50 24 Q54 14 50 4"  stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".85" />
+    <path d="M60 22 Q64 14 60 6"  stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".75" />
+    <path d="M72 50 Q86 50 86 60 Q86 70 72 70" fill="none" {...STROKE_HEAVY} />
+    <path d="M22 42 L72 42 L70 80 Q70 86 60 86 L34 86 Q24 86 24 80 Z" fill="url(#g_tasse_body)" {...STROKE_HEAVY} />
+    <ellipse cx="47" cy="48" rx="22" ry="5" fill={ESPRESSO} />
+    <ellipse cx="42" cy="46.5" rx="6" ry="1.6" fill={MOKA_LT} opacity=".8" />
+    <ellipse cx="47" cy="90" rx="34" ry="5" fill={CREME} {...STROKE_HEAVY} />
   </svg>
 );
 
 const Cookie = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    <circle cx="50" cy="50" r="34" fill="#B86A28" stroke="#5A2D10" strokeWidth="2" />
-    <ellipse cx="50" cy="50" rx="34" ry="4" fill="#A05818" opacity=".4" />
-    <circle cx="38" cy="42" r="5" fill="#3D1C02" />
-    <circle cx="60" cy="40" r="4.5" fill="#3D1C02" />
-    <circle cx="55" cy="60" r="5" fill="#3D1C02" />
-    <circle cx="40" cy="60" r="4" fill="#3D1C02" />
-    <circle cx="63" cy="56" r="3.5" fill="#3D1C02" />
-    {/* reflet */}
-    <ellipse cx="40" cy="38" rx="9" ry="4" fill="rgba(255,235,200,.45)" transform="rotate(-25 40 38)" />
+    <defs>
+      <radialGradient id="g_cookie_body" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stopColor={CARAMEL_LT} />
+        <stop offset="55%" stopColor={COOKIE} />
+        <stop offset="100%" stopColor={COOKIE_DK} />
+      </radialGradient>
+    </defs>
+    {/* corps avec gradient radial pour vrai volume */}
+    <circle cx="50" cy="50" r="36" fill="url(#g_cookie_body)" {...STROKE_HEAVY} stroke={COOKIE_DK} strokeWidth="3" />
+    {/* ombre basse */}
+    <path d="M22 56 Q50 80 78 56 Q70 82 50 86 Q30 82 22 56 Z" fill={ESPRESSO} opacity=".25" />
+    {/* pépites avec ombre portée */}
+    <circle cx="36" cy="40" r="5" fill={ESPRESSO} />
+    <circle cx="60" cy="38" r="4.5" fill={ESPRESSO} />
+    <circle cx="55" cy="60" r="5" fill={ESPRESSO} />
+    <circle cx="38" cy="62" r="4" fill={ESPRESSO} />
+    <circle cx="64" cy="56" r="3.5" fill={ESPRESSO} />
+    <circle cx="46" cy="50" r="3" fill={ESPRESSO} />
+    {/* ombres pépites (faux 3D) */}
+    <ellipse cx="36" cy="44" rx="5" ry="1.2" fill={COOKIE_DK} opacity=".5" />
+    <ellipse cx="60" cy="42" rx="4.5" ry="1.1" fill={COOKIE_DK} opacity=".5" />
+    <ellipse cx="55" cy="64" rx="5" ry="1.2" fill={COOKIE_DK} opacity=".5" />
+    {/* highlights pépites */}
+    <circle cx="34.2" cy="38.2" r="1.5" fill={CARAMEL} opacity=".75" />
+    <circle cx="58.4" cy="36.3" r="1.3" fill={CARAMEL} opacity=".75" />
+    <circle cx="53.5" cy="58.3" r="1.4" fill={CARAMEL} opacity=".75" />
+    {/* grand reflet doré */}
+    <ellipse cx="36" cy="34" rx="14" ry="6" fill={OR_LTR} opacity=".5" transform="rotate(-22 36 34)" />
+    <ellipse cx="32" cy="32" rx="6" ry="2.5" fill={CREME} opacity=".55" transform="rotate(-22 32 32)" />
   </svg>
 );
 
 const BaristaH = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* casquette */}
-    <path d="M30 38 L70 38 L72 30 L28 30 Z" fill="#2A1606" stroke={COFFEE} strokeWidth="1.5" />
-    <path d="M30 38 Q50 44 70 38 L72 40 L28 40 Z" fill="#3D2010" />
-    {/* visage */}
-    <circle cx="50" cy="52" r="16" fill={SKIN} stroke={SKIN_DK} strokeWidth="1.5" />
-    {/* yeux */}
-    <circle cx="44" cy="52" r="1.8" fill={COFFEE} />
-    <circle cx="56" cy="52" r="1.8" fill={COFFEE} />
+    <defs>
+      <linearGradient id="g_baH_face" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={SKIN_LT} />
+        <stop offset="100%" stopColor={SKIN_DK} />
+      </linearGradient>
+      <linearGradient id="g_baH_cap" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#3D2010" />
+        <stop offset="100%" stopColor={ESPRESSO} />
+      </linearGradient>
+    </defs>
+    {/* casquette avec dégradé */}
+    <path d="M28 38 Q28 22 50 22 Q72 22 72 38 L74 42 L26 42 Z" fill="url(#g_baH_cap)" {...STROKE_HEAVY} />
+    <path d="M26 42 Q50 48 74 42 L74 44 L26 44 Z" fill={MOKA} {...STROKE_HEAVY} />
+    {/* logo cookie sur casquette */}
+    <circle cx="50" cy="32" r="5.5" fill={CARAMEL} stroke={ESPRESSO} strokeWidth="1.4" />
+    <circle cx="48" cy="30" r="0.9" fill={ESPRESSO} />
+    <circle cx="52" cy="33" r="0.9" fill={ESPRESSO} />
+    <circle cx="46.5" cy="33.5" r="0.7" fill={ESPRESSO} />
+    {/* visage avec gradient */}
+    <circle cx="50" cy="58" r="18" fill="url(#g_baH_face)" {...STROKE_HEAVY} stroke={SKIN_DK} />
+    {/* sourcils */}
+    <path d="M40 50 Q43 48 46 51" stroke={ESPRESSO} strokeWidth="2" fill="none" strokeLinecap="round" />
+    <path d="M54 51 Q57 48 60 50" stroke={ESPRESSO} strokeWidth="2" fill="none" strokeLinecap="round" />
+    {/* yeux brillants */}
+    <circle cx="43" cy="56" r="2.6" fill={ESPRESSO} />
+    <circle cx="57" cy="56" r="2.6" fill={ESPRESSO} />
+    <circle cx="43.8" cy="55" r="0.9" fill={CREME} />
+    <circle cx="57.8" cy="55" r="0.9" fill={CREME} />
+    {/* joues */}
+    <ellipse cx="40" cy="64" rx="3" ry="2" fill={CARAMEL} opacity=".4" />
+    <ellipse cx="60" cy="64" rx="3" ry="2" fill={CARAMEL} opacity=".4" />
     {/* sourire */}
-    <path d="M44 60 Q50 64 56 60" stroke={COFFEE} strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M43 65 Q50 71 57 65" stroke={ESPRESSO} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <path d="M44 67 Q50 70 56 67" fill={CARAMEL} stroke={ESPRESSO} strokeWidth="1.2" opacity=".7" />
     {/* tablier */}
-    <path d="M30 78 L70 78 L65 92 L35 92 Z" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <line x1="40" y1="68" x2="40" y2="78" stroke="#FAF0E0" strokeWidth="2" />
-    <line x1="60" y1="68" x2="60" y2="78" stroke="#FAF0E0" strokeWidth="2" />
+    <path d="M28 82 Q34 78 38 78 L62 78 Q66 78 72 82 L66 95 L34 95 Z" fill={CREME} {...STROKE_HEAVY} />
+    <path d="M40 78 L40 86" stroke={MOKA} strokeWidth="2" fill="none" />
+    <path d="M60 78 L60 86" stroke={MOKA} strokeWidth="2" fill="none" />
+    <circle cx="50" cy="90" r="1.5" fill={MOKA} />
   </svg>
 );
 
 const BaristaF = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <linearGradient id="g_baF_face" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={SKIN_LT} />
+        <stop offset="100%" stopColor={SKIN_DK} />
+      </linearGradient>
+      <linearGradient id="g_baF_hair" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#5A3520" />
+        <stop offset="100%" stopColor={ESPRESSO} />
+      </linearGradient>
+    </defs>
     {/* chignon */}
-    <circle cx="50" cy="28" r="9" fill="#3D2010" />
-    {/* cheveux */}
-    <path d="M34 50 Q34 36 50 34 Q66 36 66 50 L66 56 L34 56 Z" fill="#3D2010" />
+    <circle cx="50" cy="20" r="11" fill="url(#g_baF_hair)" {...STROKE_HEAVY} />
+    <ellipse cx="46" cy="17" rx="3" ry="2" fill="#7D4E1F" opacity=".6" />
+    {/* cheveux ondulés */}
+    <path d="M30 56 Q28 34 50 30 Q72 34 70 56 L70 60 L30 60 Z" fill="url(#g_baF_hair)" {...STROKE_HEAVY} />
+    {/* mèches frontales */}
+    <path d="M34 38 Q42 32 50 36" stroke={MOKA} strokeWidth="1.6" fill="none" />
+    <path d="M50 36 Q58 32 66 38" stroke={MOKA} strokeWidth="1.6" fill="none" />
     {/* visage */}
-    <circle cx="50" cy="54" r="15" fill={SKIN} stroke={SKIN_DK} strokeWidth="1.5" />
-    {/* yeux */}
-    <circle cx="44" cy="54" r="1.8" fill={COFFEE} />
-    <circle cx="56" cy="54" r="1.8" fill={COFFEE} />
+    <circle cx="50" cy="58" r="17" fill="url(#g_baF_face)" {...STROKE_HEAVY} stroke={SKIN_DK} />
+    {/* sourcils fins */}
+    <path d="M40 51 Q43 49 46 52" stroke={ESPRESSO} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    <path d="M54 52 Q57 49 60 51" stroke={ESPRESSO} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    {/* cils + yeux */}
+    <path d="M40 56 L41 54" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
+    <path d="M60 56 L59 54" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
+    <circle cx="43" cy="57" r="2.6" fill={ESPRESSO} />
+    <circle cx="57" cy="57" r="2.6" fill={ESPRESSO} />
+    <circle cx="43.8" cy="56" r="0.9" fill={CREME} />
+    <circle cx="57.8" cy="56" r="0.9" fill={CREME} />
+    {/* joues marquées */}
+    <ellipse cx="40" cy="65" rx="3.2" ry="2.2" fill={CARAMEL} opacity=".55" />
+    <ellipse cx="60" cy="65" rx="3.2" ry="2.2" fill={CARAMEL} opacity=".55" />
     {/* sourire */}
-    <path d="M44 62 Q50 66 56 62" stroke={COFFEE} strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M43 66 Q50 71 57 66" stroke={ESPRESSO} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    {/* boucles d'oreilles */}
+    <circle cx="33" cy="60" r="1.6" fill={OR_LT} stroke={ESPRESSO} strokeWidth="0.9" />
+    <circle cx="67" cy="60" r="1.6" fill={OR_LT} stroke={ESPRESSO} strokeWidth="0.9" />
     {/* tablier */}
-    <path d="M30 78 L70 78 L65 92 L35 92 Z" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <line x1="40" y1="70" x2="40" y2="78" stroke="#FAF0E0" strokeWidth="2" />
-    <line x1="60" y1="70" x2="60" y2="78" stroke="#FAF0E0" strokeWidth="2" />
+    <path d="M28 82 Q34 78 38 78 L62 78 Q66 78 72 82 L66 95 L34 95 Z" fill={CREME} {...STROKE_HEAVY} />
+    <path d="M40 78 L40 86" stroke={MOKA} strokeWidth="2" fill="none" />
+    <path d="M60 78 L60 86" stroke={MOKA} strokeWidth="2" fill="none" />
   </svg>
 );
 
+/* Théière (HIDDEN) — conservé pour compat */
 const Theiere = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* corps */}
-    <ellipse cx="50" cy="60" rx="26" ry="20" fill="#D4A017" stroke={COFFEE} strokeWidth="2" />
-    {/* couvercle */}
-    <rect x="38" y="38" width="24" height="6" rx="2" fill="#D4A017" stroke={COFFEE} strokeWidth="1.5" />
-    <circle cx="50" cy="34" r="3" fill="#D4A017" stroke={COFFEE} strokeWidth="1.5" />
-    {/* bec */}
-    <path d="M76 56 L88 50 L88 56 L78 64 Z" fill="#D4A017" stroke={COFFEE} strokeWidth="1.5" />
-    {/* anse */}
-    <path d="M24 50 Q14 60 24 70" stroke={COFFEE} strokeWidth="3.2" fill="none" />
-    {/* reflet */}
-    <ellipse cx="42" cy="52" rx="10" ry="5" fill="rgba(255,250,220,.4)" transform="rotate(-20 42 52)" />
+    <defs>
+      <linearGradient id="g_theiere_body" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="100%" stopColor={OR_DK} />
+      </linearGradient>
+    </defs>
+    <path d="M22 50 Q8 60 22 72" fill="none" {...STROKE_HEAVY} strokeWidth="4" />
+    <ellipse cx="50" cy="62" rx="28" ry="22" fill="url(#g_theiere_body)" {...STROKE_HEAVY} />
+    <rect x="38" y="36" width="24" height="8" rx="3" fill={OR} {...STROKE_HEAVY} />
+    <circle cx="50" cy="32" r="4" fill={OR_LT} {...STROKE_HEAVY} />
+    <path d="M76 56 Q88 50 92 54 L88 60 Q82 66 76 64 Z" fill={OR} {...STROKE_HEAVY} />
+    <path d="M86 48 Q90 40 86 32" stroke={CREME} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".7" />
+    <ellipse cx="40" cy="54" rx="11" ry="6" fill={OR_LTR} opacity=".6" transform="rotate(-20 40 54)" />
   </svg>
 );
 
+/* Croissant (HIDDEN) — conservé pour compat */
 const Croissant = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    <path d="M20 60 Q22 28 50 26 Q78 28 80 60 Q72 50 64 50 Q56 36 50 36 Q44 36 36 50 Q28 50 20 60 Z"
-      fill="#E5B040" stroke="#7D4E1F" strokeWidth="2" strokeLinejoin="round" />
-    {/* stries */}
-    <path d="M36 50 Q38 60 32 64" stroke="#7D4E1F" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity=".6" />
-    <path d="M50 36 Q50 50 44 60" stroke="#7D4E1F" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity=".6" />
-    <path d="M64 50 Q62 60 68 64" stroke="#7D4E1F" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity=".6" />
-    {/* reflet */}
-    <ellipse cx="50" cy="40" rx="14" ry="3" fill="rgba(255,240,200,.4)" />
+    <defs>
+      <linearGradient id="g_croi_body" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#F0CA70" />
+        <stop offset="100%" stopColor={CARAMEL_LT} />
+      </linearGradient>
+    </defs>
+    <path d="M16 64 Q18 26 50 24 Q82 26 84 64 Q74 50 64 50 Q56 32 50 32 Q44 32 36 50 Q26 50 16 64 Z"
+      fill="url(#g_croi_body)" {...STROKE_HEAVY} stroke={MOKA} strokeWidth="3" />
+    <path d="M36 50 Q40 60 32 68" stroke={MOKA} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <path d="M50 32 Q50 50 42 64" stroke={MOKA} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <path d="M64 50 Q60 60 68 68" stroke={MOKA} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <ellipse cx="50" cy="38" rx="14" ry="3" fill={OR_LTR} opacity=".6" />
   </svg>
 );
 
 const LatteArt = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* tasse vue dessus */}
-    <circle cx="50" cy="50" r="32" fill="#FAF0E0" stroke={COFFEE} strokeWidth="2" />
-    <circle cx="50" cy="50" r="28" fill="#7D4E1F" />
-    {/* cœur en mousse */}
-    <path d="M50 60 Q40 50 40 44 Q40 38 46 38 Q50 38 50 42 Q50 38 54 38 Q60 38 60 44 Q60 50 50 60 Z"
-      fill="#FAF0E0" />
-    {/* feuille décorative */}
-    <path d="M50 40 Q50 50 50 58" stroke="#7D4E1F" strokeWidth="1.2" fill="none" />
+    <defs>
+      <radialGradient id="g_latte_coffee" cx="50%" cy="50%" r="55%">
+        <stop offset="0%" stopColor={MOKA_LT} />
+        <stop offset="100%" stopColor={ESPRESSO} />
+      </radialGradient>
+      <radialGradient id="g_latte_cup" cx="40%" cy="35%" r="65%">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </radialGradient>
+    </defs>
+    {/* anneau crème extérieur */}
+    <circle cx="50" cy="50" r="38" fill="url(#g_latte_cup)" {...STROKE_HEAVY} />
+    {/* café avec radial */}
+    <circle cx="50" cy="50" r="32" fill="url(#g_latte_coffee)" />
+    {/* feuille (rosetta) plus stylisée — 5 lobes alternés */}
+    <path d="M50 24 Q42 30 48 36 Q40 40 48 46 Q40 50 48 56 Q40 60 48 66 Q40 70 48 76 Q50 80 50 80 Q50 80 52 76 Q60 70 52 66 Q60 60 52 56 Q60 50 52 46 Q60 40 52 36 Q58 30 50 24 Z"
+      fill={CREME} {...STROKE_FINE} />
+    {/* tige centrale */}
+    <line x1="50" y1="32" x2="50" y2="78" stroke={MOKA_LT} strokeWidth="1.5" strokeLinecap="round" />
+    {/* étoile mousse */}
+    <circle cx="50" cy="22" r="2.2" fill={CREME} />
+    {/* highlight tasse */}
+    <ellipse cx="34" cy="38" rx="9" ry="3" fill={CREME} opacity=".6" />
   </svg>
 );
 
 const Grain = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    <ellipse cx="50" cy="50" rx="22" ry="32" fill="#5A2D10" stroke="#1A0A04" strokeWidth="2" transform="rotate(-15 50 50)" />
-    {/* sillon central */}
-    <path d="M44 22 Q50 50 44 78" stroke="#1A0A04" strokeWidth="2.5" fill="none" transform="rotate(-15 50 50)" strokeLinecap="round" />
-    {/* reflet */}
-    <ellipse cx="38" cy="38" rx="6" ry="11" fill="rgba(180,120,60,.35)" transform="rotate(-15 38 38)" />
+    <defs>
+      <linearGradient id="g_grain_body" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stopColor="#7D4220" />
+        <stop offset="50%" stopColor={COOKIE_DK} />
+        <stop offset="100%" stopColor={ESPRESSO} />
+      </linearGradient>
+    </defs>
+    <g transform="rotate(-15 50 50)">
+      <ellipse cx="50" cy="50" rx="26" ry="38" fill="url(#g_grain_body)" {...STROKE_HEAVY} strokeWidth="3" />
+      {/* sillon central profond */}
+      <path d="M50 14 Q42 50 50 86" stroke={ESPRESSO} strokeWidth="4.5" fill="none" strokeLinecap="round" />
+      <path d="M50 18 Q44 50 50 82" stroke="#3D1C02" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      <path d="M50 22 Q46 50 50 78" stroke={MOKA_LT} strokeWidth="1.2" fill="none" opacity=".7" strokeLinecap="round" />
+      {/* reflets de relief */}
+      <ellipse cx="36" cy="36" rx="7" ry="16" fill={MOKA_LT} opacity=".55" />
+      <ellipse cx="34" cy="32" rx="3.5" ry="7" fill={CARAMEL_LT} opacity=".55" />
+      {/* ombre opposée */}
+      <ellipse cx="62" cy="64" rx="6" ry="14" fill={ESPRESSO} opacity=".4" />
+    </g>
   </svg>
 );
 
 const Muffin = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* tête bombée */}
-    <path d="M22 52 Q20 32 50 30 Q80 32 78 52 Q70 56 60 52 Q50 56 40 52 Q30 56 22 52 Z"
-      fill="#7D4E1F" stroke={COFFEE} strokeWidth="2" />
-    {/* pépites */}
-    <circle cx="36" cy="42" r="2.4" fill="#1A0A00" />
-    <circle cx="50" cy="38" r="2.6" fill="#1A0A00" />
-    <circle cx="64" cy="42" r="2.4" fill="#1A0A00" />
-    <circle cx="44" cy="48" r="2" fill="#1A0A00" />
-    <circle cx="58" cy="48" r="2" fill="#1A0A00" />
+    <defs>
+      <radialGradient id="g_muffin_top" cx="40%" cy="35%" r="75%">
+        <stop offset="0%" stopColor={CARAMEL} />
+        <stop offset="60%" stopColor={MOKA} />
+        <stop offset="100%" stopColor="#5A3520" />
+      </radialGradient>
+      <linearGradient id="g_muffin_paper" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
+    </defs>
+    {/* tête bombée avec gradient radial */}
+    <path d="M20 56 Q18 26 50 24 Q82 26 80 56 Q72 60 62 56 Q50 60 38 56 Q28 60 20 56 Z"
+      fill="url(#g_muffin_top)" {...STROKE_HEAVY} strokeWidth="3" />
+    {/* highlights bosses (lumière haut-gauche) */}
+    <ellipse cx="32" cy="34" rx="8" ry="3.5" fill={CARAMEL_LT} opacity=".75" />
+    <ellipse cx="55" cy="30" rx="11" ry="3.5" fill={CARAMEL_LT} opacity=".75" />
+    {/* pépites bien marquées */}
+    <circle cx="36" cy="44" r="3" fill={ESPRESSO} />
+    <circle cx="50" cy="38" r="3.2" fill={ESPRESSO} />
+    <circle cx="64" cy="44" r="3" fill={ESPRESSO} />
+    <circle cx="44" cy="50" r="2.4" fill={ESPRESSO} />
+    <circle cx="58" cy="50" r="2.4" fill={ESPRESSO} />
+    {/* highlights pépites */}
+    <circle cx="34.7" cy="42.5" r="1" fill={MOKA_LT} opacity=".7" />
+    <circle cx="48.5" cy="36.5" r="1.1" fill={MOKA_LT} opacity=".7" />
     {/* papier strié */}
-    <path d="M22 52 L26 82 L74 82 L78 52 Z" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <line x1="32" y1="56" x2="33" y2="80" stroke={COFFEE} strokeWidth="1" opacity=".4" />
-    <line x1="42" y1="55" x2="42" y2="80" stroke={COFFEE} strokeWidth="1" opacity=".4" />
-    <line x1="50" y1="55" x2="50" y2="80" stroke={COFFEE} strokeWidth="1" opacity=".4" />
-    <line x1="58" y1="55" x2="58" y2="80" stroke={COFFEE} strokeWidth="1" opacity=".4" />
-    <line x1="68" y1="56" x2="67" y2="80" stroke={COFFEE} strokeWidth="1" opacity=".4" />
+    <path d="M20 56 L24 86 L76 86 L80 56 Z" fill="url(#g_muffin_paper)" {...STROKE_HEAVY} />
+    <path d="M30 60 L31 84" stroke={MOKA} strokeWidth="1.5" opacity=".55" fill="none" />
+    <path d="M40 58 L40 84" stroke={MOKA} strokeWidth="1.5" opacity=".55" fill="none" />
+    <path d="M50 58 L50 84" stroke={MOKA} strokeWidth="1.5" opacity=".55" fill="none" />
+    <path d="M60 58 L60 84" stroke={MOKA} strokeWidth="1.5" opacity=".55" fill="none" />
+    <path d="M70 60 L69 84" stroke={MOKA} strokeWidth="1.5" opacity=".55" fill="none" />
   </svg>
 );
 
 const Donut = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <radialGradient id="g_donut_base" cx="50%" cy="50%" r="55%">
+        <stop offset="0%" stopColor={CARAMEL} />
+        <stop offset="100%" stopColor={MOKA} />
+      </radialGradient>
+      <linearGradient id="g_donut_glaze" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="100%" stopColor={OR} />
+      </linearGradient>
+    </defs>
     {/* base */}
-    <circle cx="50" cy="50" r="32" fill="#B88040" stroke="#5A2D10" strokeWidth="2" />
-    {/* glaçage */}
-    <path d="M50 18 Q82 18 82 50 Q82 56 76 56 Q70 50 60 56 Q50 50 40 56 Q30 50 24 56 Q18 56 18 50 Q18 18 50 18 Z"
-      fill="#FAF0E0" stroke="#5A2D10" strokeWidth="1.2" />
-    {/* trou */}
-    <circle cx="50" cy="50" r="11" fill="#7D4E1F" stroke="#5A2D10" strokeWidth="1.5" />
-    {/* sprinkles */}
-    <rect x="34" y="30" width="5" height="2" rx="1" fill="#D4A017" transform="rotate(20 36 31)" />
-    <rect x="60" y="32" width="5" height="2" rx="1" fill="#7D4E1F" transform="rotate(-30 62 33)" />
-    <rect x="28" y="42" width="5" height="2" rx="1" fill="#C17F3C" transform="rotate(40 30 43)" />
-    <rect x="68" y="44" width="5" height="2" rx="1" fill="#D4A017" transform="rotate(15 70 45)" />
-    <rect x="62" y="62" width="5" height="2" rx="1" fill="#7D4E1F" transform="rotate(-40 64 63)" />
-    <rect x="32" y="64" width="5" height="2" rx="1" fill="#C17F3C" transform="rotate(35 34 65)" />
+    <circle cx="50" cy="50" r="34" fill="url(#g_donut_base)" {...STROKE_HEAVY} stroke={COOKIE_DK} strokeWidth="3" />
+    {/* ombre basse */}
+    <path d="M20 56 Q50 78 80 56 Q72 82 50 84 Q28 82 20 56 Z" fill={ESPRESSO} opacity=".3" />
+    {/* glaçage caramel coulant — plus dégoulinant */}
+    <path d="M50 16 Q84 16 84 50 Q84 56 76 56 Q70 50 60 56 Q50 50 40 56 Q30 50 20 58 Q14 56 14 50 Q14 16 50 16 Z"
+      fill="url(#g_donut_glaze)" {...STROKE_HEAVY} stroke={MOKA} />
+    {/* trou avec relief */}
+    <circle cx="50" cy="50" r="11" fill={MOKA} {...STROKE_HEAVY} />
+    <circle cx="50" cy="50" r="7" fill={ESPRESSO} opacity=".55" />
+    <circle cx="48" cy="48" r="2" fill={CARAMEL} opacity=".7" />
+    {/* sprinkles café-only */}
+    <rect x="32" y="26" width="6" height="2.6" rx="1" fill={CARAMEL} transform="rotate(20 35 27)" />
+    <rect x="60" y="28" width="6" height="2.6" rx="1" fill={MOKA} transform="rotate(-30 63 29)" />
+    <rect x="24" y="42" width="6" height="2.6" rx="1" fill={CREME} transform="rotate(40 27 43)" />
+    <rect x="68" y="42" width="6" height="2.6" rx="1" fill={CARAMEL} transform="rotate(15 71 43)" />
+    <rect x="62" y="64" width="6" height="2.6" rx="1" fill={MOKA} transform="rotate(-40 65 65)" />
+    <rect x="32" y="64" width="6" height="2.6" rx="1" fill={CREME} transform="rotate(35 35 65)" />
+    {/* highlight glaçage */}
+    <ellipse cx="36" cy="24" rx="14" ry="3.5" fill={CREME} opacity=".7" />
+    <ellipse cx="34" cy="22" rx="6" ry="1.5" fill={CREME} opacity=".9" />
   </svg>
 );
 
 const CookieKawaii = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    <circle cx="50" cy="52" r="34" fill="#B86A28" stroke="#5A2D10" strokeWidth="2" />
+    <defs>
+      <radialGradient id="g_kaw_body" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stopColor={CARAMEL} />
+        <stop offset="60%" stopColor={COOKIE} />
+        <stop offset="100%" stopColor={COOKIE_DK} />
+      </radialGradient>
+    </defs>
+    {/* corps avec gradient radial */}
+    <circle cx="50" cy="50" r="36" fill="url(#g_kaw_body)" {...STROKE_HEAVY} stroke={COOKIE_DK} strokeWidth="3" />
+    {/* ombre basse */}
+    <path d="M22 56 Q50 80 78 56 Q70 82 50 86 Q30 82 22 56 Z" fill={ESPRESSO} opacity=".3" />
     {/* chips */}
-    <circle cx="32" cy="38" r="3.5" fill="#3D1C02" />
-    <circle cx="68" cy="38" r="3.5" fill="#3D1C02" />
-    <circle cx="50" cy="74" r="3" fill="#3D1C02" />
-    {/* yeux fermés contents */}
-    <path d="M38 50 Q42 46 46 50" stroke={COFFEE} strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    <path d="M54 50 Q58 46 62 50" stroke={COFFEE} strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    {/* joues roses (gardé tons caramel/cookie) */}
-    <ellipse cx="34" cy="60" rx="4" ry="2.5" fill="rgba(212,160,23,.55)" />
-    <ellipse cx="66" cy="60" rx="4" ry="2.5" fill="rgba(212,160,23,.55)" />
-    {/* bouche */}
-    <path d="M44 64 Q50 70 56 64" stroke={COFFEE} strokeWidth="2" fill="none" strokeLinecap="round" />
+    <circle cx="32" cy="38" r="3.8" fill={ESPRESSO} />
+    <circle cx="68" cy="38" r="3.8" fill={ESPRESSO} />
+    <circle cx="50" cy="74" r="3.2" fill={ESPRESSO} />
+    <circle cx="26" cy="56" r="2.6" fill={ESPRESSO} />
+    <circle cx="74" cy="56" r="2.6" fill={ESPRESSO} />
+    {/* yeux fermés contents avec petits cils */}
+    <path d="M37 50 Q42 43 47 50" stroke={ESPRESSO} strokeWidth="3" fill="none" strokeLinecap="round" />
+    <path d="M53 50 Q58 43 63 50" stroke={ESPRESSO} strokeWidth="3" fill="none" strokeLinecap="round" />
+    <path d="M37 49 L34 47" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M47 49 L50 46" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M53 49 L50 46" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" />
+    <path d="M63 49 L66 47" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" />
+    {/* joues caramel marquées */}
+    <ellipse cx="32" cy="60" rx="5" ry="3" fill={OR} opacity=".55" />
+    <ellipse cx="68" cy="60" rx="5" ry="3" fill={OR} opacity=".55" />
+    <ellipse cx="31" cy="59" rx="2" ry="1" fill={CREME} opacity=".5" />
+    <ellipse cx="67" cy="59" rx="2" ry="1" fill={CREME} opacity=".5" />
+    {/* sourire avec dent */}
+    <path d="M40 64 Q50 74 60 64" stroke={ESPRESSO} strokeWidth="2.6" fill={MOKA_LT} strokeLinejoin="round" />
+    {/* langue */}
+    <path d="M46 67 Q50 72 54 67 Q52 70 50 70 Q48 70 46 67 Z" fill={CARAMEL} stroke={ESPRESSO} strokeWidth="1" />
+    {/* dent */}
+    <rect x="48" y="64" width="2" height="3" fill={CREME} stroke={ESPRESSO} strokeWidth="0.7" />
+    {/* highlight cookie */}
+    <ellipse cx="34" cy="32" rx="11" ry="5" fill={OR_LTR} opacity=".5" transform="rotate(-22 34 32)" />
+    <ellipse cx="30" cy="30" rx="5" ry="2" fill={CREME} opacity=".55" transform="rotate(-22 30 30)" />
   </svg>
 );
 
 const BaristaChef = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* toque chef */}
-    <ellipse cx="50" cy="22" rx="14" ry="10" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <ellipse cx="38" cy="26" rx="9" ry="8" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <ellipse cx="62" cy="26" rx="9" ry="8" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <rect x="34" y="32" width="32" height="6" rx="1" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
+    <defs>
+      <linearGradient id="g_baCh_face" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={SKIN_LT} />
+        <stop offset="100%" stopColor={SKIN_DK} />
+      </linearGradient>
+      <linearGradient id="g_baCh_hat" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
+    </defs>
+    {/* toque chef volumineuse */}
+    <ellipse cx="50" cy="20" rx="16" ry="11" fill="url(#g_baCh_hat)" {...STROKE_HEAVY} />
+    <ellipse cx="34" cy="24" rx="11" ry="9" fill="url(#g_baCh_hat)" {...STROKE_HEAVY} />
+    <ellipse cx="66" cy="24" rx="11" ry="9" fill="url(#g_baCh_hat)" {...STROKE_HEAVY} />
+    <rect x="30" y="30" width="40" height="8" rx="2" fill="url(#g_baCh_hat)" {...STROKE_HEAVY} />
+    {/* highlight toque */}
+    <ellipse cx="42" cy="14" rx="6" ry="2" fill={CREME} opacity=".9" />
     {/* visage */}
-    <circle cx="50" cy="56" r="17" fill={SKIN} stroke={SKIN_DK} strokeWidth="1.5" />
+    <circle cx="50" cy="58" r="19" fill="url(#g_baCh_face)" {...STROKE_HEAVY} stroke={SKIN_DK} />
+    {/* sourcils épais */}
+    <path d="M40 50 Q43 48 46 51" stroke={ESPRESSO} strokeWidth="2.3" fill="none" strokeLinecap="round" />
+    <path d="M54 51 Q57 48 60 50" stroke={ESPRESSO} strokeWidth="2.3" fill="none" strokeLinecap="round" />
     {/* yeux */}
-    <circle cx="44" cy="54" r="1.8" fill={COFFEE} />
-    <circle cx="56" cy="54" r="1.8" fill={COFFEE} />
-    {/* moustache */}
-    <path d="M40 64 Q44 66 50 64 Q56 66 60 64" stroke={COFFEE} strokeWidth="2.6" fill="none" strokeLinecap="round" />
-    <path d="M40 64 Q38 67 36 66" stroke={COFFEE} strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    <path d="M60 64 Q62 67 64 66" stroke={COFFEE} strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    {/* col */}
-    <path d="M34 80 L66 80 L62 92 L38 92 Z" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
+    <circle cx="43" cy="56" r="2.6" fill={ESPRESSO} />
+    <circle cx="57" cy="56" r="2.6" fill={ESPRESSO} />
+    <circle cx="43.8" cy="55" r="0.9" fill={CREME} />
+    <circle cx="57.8" cy="55" r="0.9" fill={CREME} />
+    {/* moustache imposante stylée */}
+    <path d="M37 67 Q44 71 50 67 Q56 71 63 67" stroke={ESPRESSO} strokeWidth="3.4" fill={ESPRESSO} strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M37 67 Q32 72 28 70" stroke={ESPRESSO} strokeWidth="3" fill="none" strokeLinecap="round" />
+    <path d="M63 67 Q68 72 72 70" stroke={ESPRESSO} strokeWidth="3" fill="none" strokeLinecap="round" />
+    {/* col + nœud papillon */}
+    <path d="M30 82 L70 82 L62 95 L38 95 Z" fill={CREME} {...STROKE_HEAVY} />
+    <path d="M44 82 L40 78 L40 86 Z" fill={ESPRESSO} stroke={ESPRESSO} strokeWidth="1" />
+    <path d="M56 82 L60 78 L60 86 Z" fill={ESPRESSO} stroke={ESPRESSO} strokeWidth="1" />
+    <rect x="48" y="80" width="4" height="4" rx="0.5" fill={ESPRESSO} />
   </svg>
 );
 
-/* ──────────────── 8 AVATARS PREMIUM ──────────────── */
+/* ──────────────── 9 AVATARS PREMIUM ──────────────── */
 
 const AvChef = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* étoile au-dessus */}
-    <path d="M50 8 L52 14 L58 14 L53 18 L55 24 L50 20 L45 24 L47 18 L42 14 L48 14 Z" fill="#F0C050" stroke="#7D4E1F" strokeWidth="1" />
-    {/* toque */}
-    <ellipse cx="50" cy="32" rx="16" ry="11" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <ellipse cx="36" cy="36" rx="9" ry="8" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <ellipse cx="64" cy="36" rx="9" ry="8" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <rect x="32" y="42" width="36" height="6" rx="1" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
+    <defs>
+      <linearGradient id="g_avCh_star" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="100%" stopColor={OR} />
+      </linearGradient>
+      <linearGradient id="g_avCh_face" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={SKIN_LT} />
+        <stop offset="100%" stopColor={SKIN_DK} />
+      </linearGradient>
+      <linearGradient id="g_avCh_hat" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
+    </defs>
+    {/* étoile dorée brillante */}
+    <path d="M50 4 L53 12 L62 13 L55 19 L57 28 L50 23 L43 28 L45 19 L38 13 L47 12 Z" fill="url(#g_avCh_star)" stroke={OR_DK} strokeWidth="1.5" strokeLinejoin="round" />
+    <circle cx="48" cy="13" r="1.6" fill={CREME} opacity=".95" />
+    {/* toque haute (3 boules) */}
+    <ellipse cx="50" cy="34" rx="18" ry="13" fill="url(#g_avCh_hat)" {...STROKE_HEAVY} />
+    <ellipse cx="32" cy="38" rx="11" ry="10" fill="url(#g_avCh_hat)" {...STROKE_HEAVY} />
+    <ellipse cx="68" cy="38" rx="11" ry="10" fill="url(#g_avCh_hat)" {...STROKE_HEAVY} />
+    <rect x="28" y="44" width="44" height="8" rx="2" fill="url(#g_avCh_hat)" {...STROKE_HEAVY} />
+    {/* highlight toque */}
+    <ellipse cx="42" cy="28" rx="7" ry="2.5" fill={CREME} opacity=".8" />
     {/* visage */}
-    <circle cx="50" cy="64" r="16" fill={SKIN} stroke={SKIN_DK} strokeWidth="1.5" />
-    <circle cx="44" cy="62" r="1.8" fill={COFFEE} />
-    <circle cx="56" cy="62" r="1.8" fill={COFFEE} />
-    {/* moustache imposante */}
-    <path d="M38 72 Q44 74 50 72 Q56 74 62 72" stroke={COFFEE} strokeWidth="3" fill="none" strokeLinecap="round" />
-    <path d="M38 72 Q34 77 30 75" stroke={COFFEE} strokeWidth="2.6" fill="none" strokeLinecap="round" />
-    <path d="M62 72 Q66 77 70 75" stroke={COFFEE} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    <circle cx="50" cy="68" r="18" fill="url(#g_avCh_face)" {...STROKE_HEAVY} stroke={SKIN_DK} />
+    {/* sourcils */}
+    <path d="M40 60 Q43 58 46 61" stroke={ESPRESSO} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    <path d="M54 61 Q57 58 60 60" stroke={ESPRESSO} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    {/* yeux */}
+    <circle cx="43" cy="66" r="2.4" fill={ESPRESSO} />
+    <circle cx="57" cy="66" r="2.4" fill={ESPRESSO} />
+    <circle cx="43.7" cy="65" r="0.8" fill={CREME} />
+    <circle cx="57.7" cy="65" r="0.8" fill={CREME} />
+    {/* moustache 'à la française' */}
+    <path d="M36 75 Q44 78 50 75 Q56 78 64 75" stroke={ESPRESSO} strokeWidth="3.6" fill={ESPRESSO} strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M36 75 Q30 80 26 78" stroke={ESPRESSO} strokeWidth="3" fill="none" strokeLinecap="round" />
+    <path d="M64 75 Q70 80 74 78" stroke={ESPRESSO} strokeWidth="3" fill="none" strokeLinecap="round" />
   </svg>
 );
 
 const AvRobot = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <linearGradient id="g_robot_head" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={STONE} />
+        <stop offset="100%" stopColor={STONE_DK} />
+      </linearGradient>
+      <linearGradient id="g_robot_body" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={STONE_DK} />
+        <stop offset="100%" stopColor={MOKA} />
+      </linearGradient>
+      <radialGradient id="g_robot_eye" cx="40%" cy="40%" r="70%">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="100%" stopColor={OR} />
+      </radialGradient>
+    </defs>
     {/* antenne */}
-    <line x1="50" y1="14" x2="50" y2="22" stroke="#C8B89C" strokeWidth="2.5" />
-    <circle cx="50" cy="12" r="3" fill="#F0C050" />
-    {/* engrenage gauche */}
-    <g transform="translate(20 36)">
-      <circle r="6" fill="#C8B89C" stroke={COFFEE} strokeWidth="1.5" />
-      <circle r="2" fill={COFFEE} />
+    <line x1="50" y1="14" x2="50" y2="22" stroke={STONE_DK} strokeWidth="3" strokeLinecap="round" />
+    <circle cx="50" cy="11" r="3.8" fill={OR_LT} stroke={OR_DK} strokeWidth="1.5" />
+    <circle cx="48.7" cy="9.7" r="1" fill={CREME} />
+    {/* engrenage gauche animation feel */}
+    <g transform="translate(18 38)">
+      <circle r="7.5" fill={STONE} {...STROKE_MED} />
+      <circle r="2.6" fill={ESPRESSO} />
       {[0,60,120,180,240,300].map(a=>(
-        <rect key={a} x="-1.5" y="-9" width="3" height="3" fill="#C8B89C" stroke={COFFEE} strokeWidth=".8" transform={`rotate(${a})`} />
+        <rect key={a} x="-1.6" y="-11" width="3.2" height="3.5" fill={STONE} {...STROKE_FINE} transform={`rotate(${a})`} />
       ))}
     </g>
-    {/* tête robot */}
-    <rect x="30" y="24" width="40" height="36" rx="6" fill="#C8B89C" stroke={COFFEE} strokeWidth="2" />
-    {/* yeux écran */}
-    <rect x="36" y="34" width="10" height="8" rx="2" fill="#2A1606" />
-    <rect x="54" y="34" width="10" height="8" rx="2" fill="#2A1606" />
-    <circle cx="41" cy="38" r="2" fill="#F0C050" />
-    <circle cx="59" cy="38" r="2" fill="#F0C050" />
+    {/* tête robot avec gradient */}
+    <rect x="28" y="24" width="44" height="38" rx="8" fill="url(#g_robot_head)" {...STROKE_HEAVY} strokeWidth="3" />
+    {/* highlight tête */}
+    <rect x="32" y="27" width="36" height="4" rx="2" fill={CREME} opacity=".25" />
+    {/* écran yeux brillants */}
+    <rect x="34" y="32" width="14" height="11" rx="3" fill={ESPRESSO} />
+    <rect x="52" y="32" width="14" height="11" rx="3" fill={ESPRESSO} />
+    <circle cx="41" cy="37.5" r="2.8" fill="url(#g_robot_eye)" />
+    <circle cx="59" cy="37.5" r="2.8" fill="url(#g_robot_eye)" />
+    <circle cx="41.7" cy="36.5" r="0.9" fill={CREME} />
+    <circle cx="59.7" cy="36.5" r="0.9" fill={CREME} />
+    {/* boutons sous écrans */}
+    <circle cx="36" cy="46" r="0.8" fill={OR_LT} />
+    <circle cx="64" cy="46" r="0.8" fill={OR_LT} />
     {/* bouche grille */}
-    <rect x="40" y="48" width="20" height="6" rx="1" fill={COFFEE} />
-    <line x1="45" y1="48" x2="45" y2="54" stroke="#C8B89C" strokeWidth="1" />
-    <line x1="50" y1="48" x2="50" y2="54" stroke="#C8B89C" strokeWidth="1" />
-    <line x1="55" y1="48" x2="55" y2="54" stroke="#C8B89C" strokeWidth="1" />
+    <rect x="38" y="50" width="24" height="7" rx="2" fill={ESPRESSO} />
+    <line x1="44" y1="50" x2="44" y2="57" stroke={STONE} strokeWidth="1.4" />
+    <line x1="50" y1="50" x2="50" y2="57" stroke={STONE} strokeWidth="1.4" />
+    <line x1="56" y1="50" x2="56" y2="57" stroke={STONE} strokeWidth="1.4" />
     {/* corps avec tasse */}
-    <rect x="34" y="62" width="32" height="22" rx="3" fill="#A89878" stroke={COFFEE} strokeWidth="2" />
-    <circle cx="50" cy="73" r="6" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.2" />
-    <circle cx="50" cy="73" r="3" fill="#2A1606" />
+    <rect x="32" y="64" width="36" height="24" rx="4" fill="url(#g_robot_body)" {...STROKE_HEAVY} strokeWidth="3" />
+    <circle cx="50" cy="76" r="7.5" fill={CREME} {...STROKE_MED} />
+    <circle cx="50" cy="76" r="4" fill={ESPRESSO} />
+    {/* vapeur tasse */}
+    <path d="M50 68 Q53 64 50 60" stroke={CREME} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity=".8" />
+    <path d="M46 68 Q43 64 46 60" stroke={CREME} strokeWidth="1.4" fill="none" strokeLinecap="round" opacity=".55" />
   </svg>
 );
 
 const AvChat = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <radialGradient id="g_chat_head" cx="40%" cy="35%" r="75%">
+        <stop offset="0%" stopColor={CARAMEL_LT} />
+        <stop offset="100%" stopColor={MOKA} />
+      </radialGradient>
+      <linearGradient id="g_chat_cup" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </linearGradient>
+    </defs>
     {/* tasse */}
-    <ellipse cx="50" cy="78" rx="30" ry="6" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.5" />
-    <path d="M22 56 L24 76 Q26 84 50 84 Q74 84 76 76 L78 56 Z" fill="#FAF0E0" stroke={COFFEE} strokeWidth="2" />
-    {/* anse */}
-    <ellipse cx="80" cy="66" rx="6" ry="9" fill="none" stroke={COFFEE} strokeWidth="3" />
-    {/* chat caramel qui dépasse */}
-    <ellipse cx="50" cy="48" rx="18" ry="14" fill="#C17F3C" stroke="#7D4E1F" strokeWidth="1.8" />
+    <ellipse cx="50" cy="80" rx="32" ry="6" fill={CREME} {...STROKE_HEAVY} />
+    <path d="M22 58 L24 78 Q28 86 50 86 Q72 86 76 78 L78 58 Z" fill="url(#g_chat_cup)" {...STROKE_HEAVY} />
+    <path d="M76 64 Q90 64 90 72 Q90 80 76 80" fill="none" {...STROKE_HEAVY} />
+    {/* chat caramel */}
+    <ellipse cx="50" cy="48" rx="22" ry="16" fill="url(#g_chat_head)" {...STROKE_HEAVY} stroke={MOKA} strokeWidth="3" />
     {/* oreilles */}
-    <path d="M36 38 L34 26 L44 34 Z" fill="#C17F3C" stroke="#7D4E1F" strokeWidth="1.5" />
-    <path d="M64 38 L66 26 L56 34 Z" fill="#C17F3C" stroke="#7D4E1F" strokeWidth="1.5" />
-    <path d="M37 35 L38 30 L42 33 Z" fill="#7D4E1F" />
-    <path d="M63 35 L62 30 L58 33 Z" fill="#7D4E1F" />
-    {/* yeux */}
-    <ellipse cx="44" cy="46" rx="2" ry="3" fill={COFFEE} />
-    <ellipse cx="56" cy="46" rx="2" ry="3" fill={COFFEE} />
+    <path d="M32 36 L30 18 L46 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
+    <path d="M68 36 L70 18 L54 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
+    <path d="M34 32 L36 24 L41 30 Z" fill="#F5C580" />
+    <path d="M66 32 L64 24 L59 30 Z" fill="#F5C580" />
+    {/* yeux dorés grands */}
+    <ellipse cx="42" cy="46" rx="3" ry="4.2" fill={OR_LT} stroke={ESPRESSO} strokeWidth="1.4" />
+    <ellipse cx="58" cy="46" rx="3" ry="4.2" fill={OR_LT} stroke={ESPRESSO} strokeWidth="1.4" />
+    <ellipse cx="42" cy="46" rx="1" ry="2.8" fill={ESPRESSO} />
+    <ellipse cx="58" cy="46" rx="1" ry="2.8" fill={ESPRESSO} />
+    <circle cx="42.6" cy="44.5" r="0.8" fill={CREME} />
+    <circle cx="58.6" cy="44.5" r="0.8" fill={CREME} />
     {/* nez */}
-    <path d="M48 52 L52 52 L50 55 Z" fill="#7D4E1F" />
+    <path d="M46 54 L54 54 L50 58 Z" fill={MOKA} stroke={ESPRESSO} strokeWidth="1.2" />
+    {/* bouche */}
+    <path d="M50 58 L50 60 Q47 62 45 60" stroke={ESPRESSO} strokeWidth="1.4" fill="none" />
+    <path d="M50 58 L50 60 Q53 62 55 60" stroke={ESPRESSO} strokeWidth="1.4" fill="none" />
     {/* moustaches */}
-    <line x1="34" y1="52" x2="42" y2="52" stroke={COFFEE} strokeWidth="1" />
-    <line x1="58" y1="52" x2="66" y2="52" stroke={COFFEE} strokeWidth="1" />
-    <line x1="34" y1="55" x2="42" y2="54" stroke={COFFEE} strokeWidth="1" />
-    <line x1="58" y1="54" x2="66" y2="55" stroke={COFFEE} strokeWidth="1" />
+    <line x1="30" y1="52" x2="40" y2="52" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="60" y1="52" x2="70" y2="52" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="30" y1="55" x2="40" y2="54" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="60" y1="54" x2="70" y2="55" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    {/* highlight tasse */}
+    <ellipse cx="32" cy="64" rx="4" ry="8" fill={CREME} opacity=".6" />
   </svg>
 );
 
 const AvRenard = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* oreilles */}
-    <path d="M22 38 L26 16 L40 30 Z" fill="#C17F3C" stroke={COFFEE} strokeWidth="1.5" />
-    <path d="M78 38 L74 16 L60 30 Z" fill="#C17F3C" stroke={COFFEE} strokeWidth="1.5" />
-    <path d="M26 30 L29 22 L34 28 Z" fill="#FAF0E0" />
-    <path d="M74 30 L71 22 L66 28 Z" fill="#FAF0E0" />
+    <defs>
+      <radialGradient id="g_ren_head" cx="40%" cy="35%" r="75%">
+        <stop offset="0%" stopColor="#D88E48" />
+        <stop offset="100%" stopColor={MOKA} />
+      </radialGradient>
+    </defs>
+    {/* oreilles avec intérieur crème */}
+    <path d="M22 40 L26 12 L42 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
+    <path d="M78 40 L74 12 L58 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
+    <path d="M27 30 L29 18 L34 28 Z" fill={CREME} {...STROKE_FINE} />
+    <path d="M73 30 L71 18 L66 28 Z" fill={CREME} {...STROKE_FINE} />
     {/* tête */}
-    <path d="M22 50 Q22 32 50 30 Q78 32 78 50 Q78 70 50 78 Q22 70 22 50 Z" fill="#C17F3C" stroke={COFFEE} strokeWidth="2" />
+    <path d="M22 52 Q22 30 50 28 Q78 30 78 52 Q78 74 50 82 Q22 74 22 52 Z" fill="url(#g_ren_head)" {...STROKE_HEAVY} stroke={MOKA} strokeWidth="3" />
+    {/* sourcils blancs */}
+    <path d="M30 44 Q34 42 38 44" stroke={CREME} strokeWidth="2" fill="none" strokeLinecap="round" />
+    <path d="M62 44 Q66 42 70 44" stroke={CREME} strokeWidth="2" fill="none" strokeLinecap="round" />
     {/* museau blanc */}
-    <path d="M36 60 Q36 72 50 78 Q64 72 64 60 Q56 64 50 64 Q44 64 36 60 Z" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.2" />
+    <path d="M34 60 Q34 76 50 82 Q66 76 66 60 Q58 64 50 64 Q42 64 34 60 Z" fill={CREME} {...STROKE_HEAVY} />
     {/* yeux */}
-    <ellipse cx="40" cy="50" rx="2.5" ry="3" fill={COFFEE} />
-    <ellipse cx="60" cy="50" rx="2.5" ry="3" fill={COFFEE} />
-    {/* nez */}
-    <ellipse cx="50" cy="64" rx="3" ry="2.4" fill={COFFEE} />
+    <ellipse cx="40" cy="50" rx="2.8" ry="3.4" fill={ESPRESSO} />
+    <ellipse cx="60" cy="50" rx="2.8" ry="3.4" fill={ESPRESSO} />
+    <circle cx="40.7" cy="49" r="0.9" fill={CREME} />
+    <circle cx="60.7" cy="49" r="0.9" fill={CREME} />
+    {/* nez triangulaire */}
+    <ellipse cx="50" cy="64" rx="3.6" ry="2.8" fill={ESPRESSO} />
+    {/* sourire */}
+    <path d="M50 67 Q50 71 45 71" stroke={ESPRESSO} strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M50 67 Q50 71 55 71" stroke={ESPRESSO} strokeWidth="1.6" fill="none" strokeLinecap="round" />
     {/* moustaches */}
-    <line x1="36" y1="68" x2="28" y2="68" stroke={COFFEE} strokeWidth="1" />
-    <line x1="64" y1="68" x2="72" y2="68" stroke={COFFEE} strokeWidth="1" />
+    <line x1="34" y1="68" x2="26" y2="68" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
+    <line x1="66" y1="68" x2="74" y2="68" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
   </svg>
 );
 
 const AvPanda = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <radialGradient id="g_pan_head" cx="40%" cy="35%" r="75%">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
+      </radialGradient>
+    </defs>
     {/* oreilles */}
-    <circle cx="28" cy="30" r="9" fill="#1A1206" />
-    <circle cx="72" cy="30" r="9" fill="#1A1206" />
-    {/* tête */}
-    <circle cx="50" cy="50" r="26" fill="#FAF0E0" stroke="#3D2010" strokeWidth="1.5" />
+    <circle cx="28" cy="30" r="11" fill={ESPRESSO} {...STROKE_HEAVY} />
+    <circle cx="72" cy="30" r="11" fill={ESPRESSO} {...STROKE_HEAVY} />
+    <circle cx="28" cy="30" r="5" fill={MOKA} opacity=".6" />
+    <circle cx="72" cy="30" r="5" fill={MOKA} opacity=".6" />
+    {/* tête avec gradient */}
+    <circle cx="50" cy="52" r="29" fill="url(#g_pan_head)" {...STROKE_HEAVY} stroke={ESPRESSO} strokeWidth="3" />
     {/* taches yeux */}
-    <ellipse cx="40" cy="48" rx="6" ry="8" fill="#1A1206" transform="rotate(-15 40 48)" />
-    <ellipse cx="60" cy="48" rx="6" ry="8" fill="#1A1206" transform="rotate(15 60 48)" />
+    <ellipse cx="40" cy="50" rx="7.5" ry="9.5" fill={ESPRESSO} transform="rotate(-15 40 50)" />
+    <ellipse cx="60" cy="50" rx="7.5" ry="9.5" fill={ESPRESSO} transform="rotate(15 60 50)" />
     {/* yeux */}
-    <circle cx="40" cy="49" r="2" fill="#FAF0E0" />
-    <circle cx="60" cy="49" r="2" fill="#FAF0E0" />
+    <circle cx="40" cy="51" r="2.6" fill={CREME} />
+    <circle cx="60" cy="51" r="2.6" fill={CREME} />
+    <circle cx="40.5" cy="50.5" r="1.2" fill={ESPRESSO} />
+    <circle cx="60.5" cy="50.5" r="1.2" fill={ESPRESSO} />
+    <circle cx="41" cy="50" r="0.4" fill={CREME} />
+    <circle cx="61" cy="50" r="0.4" fill={CREME} />
     {/* nez */}
-    <ellipse cx="50" cy="58" rx="2.5" ry="2" fill="#1A1206" />
-    {/* sourire */}
-    <path d="M44 64 Q50 68 56 64" stroke="#1A1206" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <ellipse cx="50" cy="60" rx="3" ry="2.4" fill={ESPRESSO} />
+    {/* sourire avec dent */}
+    <path d="M44 66 Q50 72 56 66" stroke={ESPRESSO} strokeWidth="2.2" fill="none" strokeLinecap="round" />
     {/* petite tasse à la patte */}
-    <rect x="68" y="62" width="14" height="11" rx="2" fill="#FAF0E0" stroke={COFFEE} strokeWidth="1.2" />
-    <ellipse cx="75" cy="64" rx="5" ry="1.4" fill="#2A1606" />
-    <path d="M82 66 Q86 68 84 72" stroke={COFFEE} strokeWidth="1.5" fill="none" />
+    <rect x="68" y="62" width="17" height="14" rx="3" fill={CREME} {...STROKE_MED} />
+    <ellipse cx="76.5" cy="65" rx="6.5" ry="2" fill={ESPRESSO} />
+    <path d="M85 68 Q92 72 87 78" stroke={ESPRESSO} strokeWidth="2.2" fill="none" strokeLinecap="round" />
+    <path d="M76 60 Q78 56 76 52" stroke={CREME} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity=".75" />
   </svg>
 );
 
 const AvDragon = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <linearGradient id="g_dr_head" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#7D4220" />
+        <stop offset="100%" stopColor={ESPRESSO} />
+      </linearGradient>
+      <radialGradient id="g_dr_eye" cx="40%" cy="40%" r="60%">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="100%" stopColor={OR} />
+      </radialGradient>
+    </defs>
     {/* vapeur */}
-    <path d="M16 32 Q22 24 16 16" stroke={SW} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".75" />
-    <path d="M22 38 Q28 30 22 22" stroke={SW} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".7" />
+    <path d="M14 30 Q22 22 14 12" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".75" />
+    <path d="M22 36 Q30 28 22 18" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".7" />
     {/* tête dragon */}
-    <path d="M30 44 Q30 30 50 30 Q70 30 70 44 L66 60 L60 70 L40 70 L34 60 Z"
-      fill="#5A3520" stroke={COFFEE} strokeWidth="2" strokeLinejoin="round" />
+    <path d="M28 44 Q28 26 50 26 Q72 26 72 44 L68 62 L60 72 L40 72 L32 62 Z"
+      fill="url(#g_dr_head)" {...STROKE_HEAVY} strokeWidth="3" />
+    {/* mâchoire */}
+    <path d="M40 72 Q50 78 60 72" stroke={ESPRESSO} strokeWidth="2.6" fill={MOKA} strokeLinejoin="round" />
     {/* cornes */}
-    <path d="M34 30 L30 18 L40 26 Z" fill="#C8B89C" stroke={COFFEE} strokeWidth="1.5" />
-    <path d="M66 30 L70 18 L60 26 Z" fill="#C8B89C" stroke={COFFEE} strokeWidth="1.5" />
-    {/* écailles */}
-    <path d="M50 30 Q48 22 50 16 Q52 22 50 30" fill="#A0784E" />
-    {/* yeux brillants */}
-    <ellipse cx="42" cy="46" rx="3" ry="3.5" fill="#F0C050" />
-    <ellipse cx="58" cy="46" rx="3" ry="3.5" fill="#F0C050" />
-    <circle cx="42" cy="46" r="1.4" fill={COFFEE} />
-    <circle cx="58" cy="46" r="1.4" fill={COFFEE} />
+    <path d="M32 28 L26 8 L42 24 Z" fill={STONE} {...STROKE_HEAVY} />
+    <path d="M68 28 L74 8 L58 24 Z" fill={STONE} {...STROKE_HEAVY} />
+    {/* highlights cornes */}
+    <path d="M30 16 L38 22" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".5" strokeLinecap="round" />
+    <path d="M70 16 L62 22" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".5" strokeLinecap="round" />
+    {/* écailles crête */}
+    <path d="M44 26 Q45 18 46 26" fill={MOKA_LT} stroke={ESPRESSO} strokeWidth="1.2" />
+    <path d="M50 24 Q51 14 52 24" fill={MOKA_LT} stroke={ESPRESSO} strokeWidth="1.2" />
+    <path d="M54 26 Q55 18 56 26" fill={MOKA_LT} stroke={ESPRESSO} strokeWidth="1.2" />
+    {/* yeux brillants reptiliens */}
+    <ellipse cx="42" cy="46" rx="3.6" ry="4" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.4" />
+    <ellipse cx="58" cy="46" rx="3.6" ry="4" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.4" />
+    <ellipse cx="42" cy="46" rx="1" ry="3" fill={ESPRESSO} />
+    <ellipse cx="58" cy="46" rx="1" ry="3" fill={ESPRESSO} />
+    <circle cx="42.6" cy="44.6" r="0.8" fill={CREME} />
+    <circle cx="58.6" cy="44.6" r="0.8" fill={CREME} />
     {/* naseaux fumants */}
-    <ellipse cx="44" cy="60" rx="1.5" ry="2" fill={COFFEE} />
-    <ellipse cx="56" cy="60" rx="1.5" ry="2" fill={COFFEE} />
-    <path d="M44 56 Q44 50 42 46" stroke={SW} strokeWidth="1.4" fill="none" opacity=".5" />
-    <path d="M56 56 Q56 50 58 46" stroke={SW} strokeWidth="1.4" fill="none" opacity=".5" />
-    {/* bouche */}
-    <path d="M40 70 Q50 76 60 70" stroke={COFFEE} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+    <ellipse cx="44" cy="60" rx="1.7" ry="2.4" fill={ESPRESSO} />
+    <ellipse cx="56" cy="60" rx="1.7" ry="2.4" fill={ESPRESSO} />
+    <path d="M44 56 Q44 50 42 46" stroke={CREME} strokeWidth="1.6" fill="none" opacity=".55" strokeLinecap="round" />
+    <path d="M56 56 Q56 50 58 46" stroke={CREME} strokeWidth="1.6" fill="none" opacity=".55" strokeLinecap="round" />
+    {/* dents (deux crocs) */}
+    <path d="M44 72 L46 78 L48 72 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1" />
+    <path d="M52 72 L54 78 L56 72 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1" />
   </svg>
 );
 
 const AvOr = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <radialGradient id="g_or_face" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="50%" stopColor={OR_LT} />
+        <stop offset="100%" stopColor={OR_DK} />
+      </radialGradient>
+    </defs>
     {/* étincelles */}
-    <path d="M22 22 L24 28 L30 26 L24 30 L26 36 L22 32 L18 36 L20 30 L14 26 L20 28 Z" fill="#FFE89A" opacity=".85" />
-    <path d="M78 28 L80 33 L84 32 L80 35 L82 39 L78 36 L74 39 L76 35 L72 32 L76 33 Z" fill="#FFE89A" opacity=".85" />
-    {/* visage doré */}
-    <circle cx="50" cy="54" r="26" fill="#F0C050" stroke="#8B6914" strokeWidth="2" />
-    {/* reflets */}
-    <ellipse cx="40" cy="42" rx="9" ry="13" fill="#FFE89A" opacity=".55" transform="rotate(-25 40 42)" />
-    <ellipse cx="62" cy="62" rx="6" ry="10" fill="#8B6914" opacity=".35" transform="rotate(20 62 62)" />
-    {/* yeux fermés style vieille pièce */}
-    <path d="M38 52 Q42 48 46 52" stroke="#5A4014" strokeWidth="2" fill="none" strokeLinecap="round" />
-    <path d="M54 52 Q58 48 62 52" stroke="#5A4014" strokeWidth="2" fill="none" strokeLinecap="round" />
+    <path d="M22 22 L24 28 L30 26 L24 30 L26 36 L22 32 L18 36 L20 30 L14 26 L20 28 Z" fill={OR_LTR} opacity=".95" />
+    <path d="M78 28 L80 33 L84 32 L80 35 L82 39 L78 36 L74 39 L76 35 L72 32 L76 33 Z" fill={OR_LTR} opacity=".95" />
+    <path d="M86 64 L87 68 L91 67 L87 69 L88 73 L86 71 L84 73 L85 69 L81 67 L85 68 Z" fill={OR_LTR} opacity=".85" />
+    <path d="M14 70 L15 73 L18 72.5 L15.5 74 L16 77 L14 75.5 L12 77 L13 74 L10 72.5 L13 73 Z" fill={OR_LTR} opacity=".75" />
+    {/* médaille avec gradient radial */}
+    <circle cx="50" cy="54" r="29" fill="url(#g_or_face)" {...STROKE_HEAVY} stroke={OR_DK} strokeWidth="3.5" />
+    {/* anneau intérieur */}
+    <circle cx="50" cy="54" r="24" fill="none" stroke={OR_LTR} strokeWidth="1.4" opacity=".7" />
+    <circle cx="50" cy="54" r="20" fill="none" stroke={OR_DK} strokeWidth="0.9" opacity=".4" />
+    {/* reflets de relief marqués */}
+    <ellipse cx="38" cy="42" rx="11" ry="15" fill={OR_LTR} opacity=".65" transform="rotate(-25 38 42)" />
+    <ellipse cx="62" cy="64" rx="8" ry="12" fill={OR_DK} opacity=".4" transform="rotate(20 62 64)" />
+    {/* yeux fermés style profil pièce */}
+    <path d="M37 52 Q42 46 47 52" stroke={OR_DK} strokeWidth="2.6" fill="none" strokeLinecap="round" />
+    <path d="M53 52 Q58 46 63 52" stroke={OR_DK} strokeWidth="2.6" fill="none" strokeLinecap="round" />
     {/* sourire serein */}
-    <path d="M42 64 Q50 68 58 64" stroke="#5A4014" strokeWidth="1.8" fill="none" strokeLinecap="round" />
-    {/* sparkle bouche */}
-    <circle cx="68" cy="58" r="1.2" fill="#FFFFFF" opacity=".9" />
+    <path d="M41 64 Q50 71 59 64" stroke={OR_DK} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    {/* sparkles bouche */}
+    <circle cx="68" cy="58" r="1.6" fill={CREME} opacity=".95" />
+    <circle cx="34" cy="64" r="1.2" fill={CREME} opacity=".75" />
   </svg>
 );
 
 const AvLegende = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* couronne */}
-    <path d="M28 28 L34 18 L40 26 L50 14 L60 26 L66 18 L72 28 L72 38 L28 38 Z" fill="#F0C050" stroke="#5A4014" strokeWidth="2" strokeLinejoin="round" />
-    <circle cx="34" cy="22" r="2.5" fill="#FFFFFF" stroke="#5A4014" strokeWidth=".8" />
-    <circle cx="50" cy="18" r="3" fill="#FFFFFF" stroke="#5A4014" strokeWidth=".8" />
-    <circle cx="66" cy="22" r="2.5" fill="#FFFFFF" stroke="#5A4014" strokeWidth=".8" />
-    <rect x="28" y="36" width="44" height="4" fill="#D4A017" stroke="#5A4014" strokeWidth="1" />
+    <defs>
+      <linearGradient id="g_leg_crown" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="100%" stopColor={OR_DK} />
+      </linearGradient>
+      <radialGradient id="g_leg_cookie" cx="40%" cy="35%" r="80%">
+        <stop offset="0%" stopColor={CARAMEL_LT} />
+        <stop offset="60%" stopColor={COOKIE} />
+        <stop offset="100%" stopColor={COOKIE_DK} />
+      </radialGradient>
+    </defs>
+    {/* couronne avec gradient */}
+    <path d="M26 30 L34 14 L40 28 L50 10 L60 28 L66 14 L74 30 L74 40 L26 40 Z" fill="url(#g_leg_crown)" {...STROKE_HEAVY} stroke={OR_DK} strokeWidth="2.6" strokeLinejoin="round" />
+    {/* gemmes */}
+    <circle cx="34" cy="22" r="3" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
+    <circle cx="34" cy="22" r="1" fill={ESPRESSO} opacity=".5" />
+    <circle cx="50" cy="16" r="3.6" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
+    <circle cx="50" cy="16" r="1.3" fill={ESPRESSO} opacity=".5" />
+    <circle cx="66" cy="22" r="3" fill={CREME} stroke={OR_DK} strokeWidth="1.1" />
+    <circle cx="66" cy="22" r="1" fill={ESPRESSO} opacity=".5" />
+    <rect x="26" y="38" width="48" height="6" fill={OR} stroke={OR_DK} strokeWidth="1.5" />
+    {/* highlight bandeau */}
+    <rect x="28" y="39" width="32" height="1.5" fill={OR_LTR} opacity=".8" />
     {/* cookie magique */}
-    <circle cx="50" cy="62" r="20" fill="#B86A28" stroke="#5A2D10" strokeWidth="2" />
-    <circle cx="42" cy="56" r="3" fill="#3D1C02" />
-    <circle cx="58" cy="56" r="3" fill="#3D1C02" />
-    <circle cx="50" cy="68" r="2.5" fill="#3D1C02" />
+    <circle cx="50" cy="64" r="22" fill="url(#g_leg_cookie)" {...STROKE_HEAVY} stroke={COOKIE_DK} strokeWidth="3" />
     {/* aura */}
-    <circle cx="50" cy="62" r="20" fill="none" stroke="#FFE89A" strokeWidth="1.6" opacity=".7" />
-    <circle cx="50" cy="62" r="24" fill="none" stroke="#FFE89A" strokeWidth=".8" opacity=".4" />
+    <circle cx="50" cy="64" r="22" fill="none" stroke={OR_LTR} strokeWidth="2.4" opacity=".8" />
+    <circle cx="50" cy="64" r="26" fill="none" stroke={OR_LTR} strokeWidth="1.2" opacity=".5" />
+    <circle cx="50" cy="64" r="30" fill="none" stroke={OR_LTR} strokeWidth="0.6" opacity=".3" />
+    {/* pépites */}
+    <circle cx="42" cy="58" r="3.4" fill={ESPRESSO} />
+    <circle cx="58" cy="58" r="3.4" fill={ESPRESSO} />
+    <circle cx="50" cy="70" r="3" fill={ESPRESSO} />
+    <circle cx="40" cy="68" r="2.2" fill={ESPRESSO} />
+    <circle cx="60" cy="68" r="2.2" fill={ESPRESSO} />
     {/* étoiles flottantes */}
-    <circle cx="22" cy="52" r="1.4" fill="#FFE89A" />
-    <circle cx="78" cy="52" r="1.4" fill="#FFE89A" />
-    <circle cx="22" cy="76" r="1.4" fill="#FFE89A" />
-    <circle cx="78" cy="76" r="1.4" fill="#FFE89A" />
+    <circle cx="20" cy="54" r="1.8" fill={OR_LTR} />
+    <circle cx="80" cy="54" r="1.8" fill={OR_LTR} />
+    <circle cx="18" cy="78" r="1.6" fill={OR_LTR} />
+    <circle cx="82" cy="78" r="1.6" fill={OR_LTR} />
+    {/* highlight cookie */}
+    <ellipse cx="40" cy="56" rx="7" ry="3.5" fill={OR_LTR} opacity=".55" transform="rotate(-25 40 56)" />
+    <ellipse cx="38" cy="54" rx="3" ry="1.5" fill={CREME} opacity=".7" transform="rotate(-25 38 54)" />
   </svg>
 );
 
-/* avatar_eternel — Halo infini scintillant (récompense level 10) */
 const AvEternel = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
-    {/* Halos concentriques */}
-    <circle cx="50" cy="50" r="44" fill="none" stroke="#FFE89A" strokeWidth=".8" opacity=".3" />
-    <circle cx="50" cy="50" r="38" fill="none" stroke="#FFE89A" strokeWidth="1.2" opacity=".5" />
-    <circle cx="50" cy="50" r="32" fill="none" stroke="#FFE89A" strokeWidth="1.8" opacity=".75" />
-    {/* Étoiles autour */}
-    <circle cx="22" cy="22" r="1.6" fill="#FFE89A" />
-    <circle cx="78" cy="22" r="1.4" fill="#FFE89A" />
-    <circle cx="20" cy="78" r="1.4" fill="#FFE89A" />
-    <circle cx="80" cy="80" r="1.6" fill="#FFE89A" />
-    <circle cx="50" cy="12" r="1.2" fill="#FFE89A" />
-    <circle cx="50" cy="88" r="1.2" fill="#FFE89A" />
-    <circle cx="12" cy="50" r="1" fill="#FFE89A" />
-    <circle cx="88" cy="50" r="1" fill="#FFE89A" />
-    {/* Visage doré central */}
-    <circle cx="50" cy="50" r="22" fill="#F0C050" stroke="#8B6914" strokeWidth="2" />
-    {/* Reflet */}
-    <ellipse cx="42" cy="42" rx="7" ry="10" fill="#FFE89A" opacity=".55" transform="rotate(-25 42 42)" />
-    {/* Symbole infini ∞ — deux boucles entrelacées */}
-    <path d="M 36 50 C 36 44 42 44 45 47 L 50 52 L 55 47 C 58 44 64 44 64 50 C 64 56 58 56 55 53 L 50 48 L 45 53 C 42 56 36 56 36 50 Z" fill="#FFFFFF" stroke="#5A4014" strokeWidth="1.1" opacity=".95" />
-    {/* étincelle bonus */}
-    <path d="M 70 32 L 71 35 L 74 36 L 71 37 L 70 40 L 69 37 L 66 36 L 69 35 Z" fill="#FFFFFF" />
+    <defs>
+      <radialGradient id="g_etr_face" cx="40%" cy="35%" r="80%">
+        <stop offset="0%" stopColor={OR_LTR} />
+        <stop offset="50%" stopColor={OR_LT} />
+        <stop offset="100%" stopColor={OR_DK} />
+      </radialGradient>
+    </defs>
+    {/* halos concentriques */}
+    <circle cx="50" cy="50" r="46" fill="none" stroke={OR_LTR} strokeWidth="1.2" opacity=".35" />
+    <circle cx="50" cy="50" r="40" fill="none" stroke={OR_LTR} strokeWidth="1.6" opacity=".6" />
+    <circle cx="50" cy="50" r="34" fill="none" stroke={OR_LTR} strokeWidth="2.4" opacity=".85" />
+    {/* étoiles autour */}
+    <circle cx="22" cy="22" r="2" fill={OR_LTR} />
+    <circle cx="78" cy="22" r="1.8" fill={OR_LTR} />
+    <circle cx="20" cy="78" r="1.8" fill={OR_LTR} />
+    <circle cx="80" cy="80" r="2" fill={OR_LTR} />
+    <circle cx="50" cy="10" r="1.5" fill={OR_LTR} />
+    <circle cx="50" cy="90" r="1.5" fill={OR_LTR} />
+    <circle cx="10" cy="50" r="1.3" fill={OR_LTR} />
+    <circle cx="90" cy="50" r="1.3" fill={OR_LTR} />
+    {/* visage doré central */}
+    <circle cx="50" cy="50" r="25" fill="url(#g_etr_face)" {...STROKE_HEAVY} stroke={OR_DK} strokeWidth="3" />
+    {/* anneau intérieur */}
+    <circle cx="50" cy="50" r="20" fill="none" stroke={OR_LTR} strokeWidth="1.2" opacity=".7" />
+    {/* reflet relief */}
+    <ellipse cx="42" cy="42" rx="9" ry="12" fill={OR_LTR} opacity=".7" transform="rotate(-25 42 42)" />
+    <ellipse cx="40" cy="40" rx="4" ry="6" fill={CREME} opacity=".6" transform="rotate(-25 40 40)" />
+    {/* symbole ∞ */}
+    <path d="M 36 50 C 36 44 42 44 45 47 L 50 52 L 55 47 C 58 44 64 44 64 50 C 64 56 58 56 55 53 L 50 48 L 45 53 C 42 56 36 56 36 50 Z"
+      fill={CREME} stroke={OR_DK} strokeWidth="1.6" strokeLinejoin="round" opacity=".95" />
+    {/* étincelles bonus */}
+    <path d="M 70 32 L 71 35 L 74 36 L 71 37 L 70 40 L 69 37 L 66 36 L 69 35 Z" fill={CREME} />
+    <path d="M 28 68 L 29 70.5 L 31 71 L 29 72 L 28 74.5 L 27 72 L 25 71 L 27 70.5 Z" fill={CREME} />
   </svg>
 );
 
@@ -458,10 +837,10 @@ const Cosmos = () => (
     </defs>
     <circle cx="50" cy="50" r="42" fill="url(#cosmosBg)" />
     <circle cx="34" cy="34" r="1.4" fill="#E8D5FF" />
-    <circle cx="66" cy="40" r="1" fill="#FFE89A" />
+    <circle cx="66" cy="40" r="1" fill={OR_LTR} />
     <circle cx="44" cy="62" r="1" fill="#A8D5FF" />
     <circle cx="62" cy="66" r="1.4" fill="#E8D5FF" />
-    <path d="M50 30 L52 38 L60 40 L52 42 L50 50 L48 42 L40 40 L48 38 Z" fill="#FFE89A" opacity=".9" />
+    <path d="M50 30 L52 38 L60 40 L52 42 L50 50 L48 42 L40 40 L48 38 Z" fill={OR_LTR} opacity=".9" />
   </svg>
 );
 
