@@ -393,12 +393,10 @@ const CookieKawaii = () => (
     <ellipse cx="68" cy="60" rx="5" ry="3" fill={OR} opacity=".55" />
     <ellipse cx="31" cy="59" rx="2" ry="1" fill={CREME} opacity=".5" />
     <ellipse cx="67" cy="59" rx="2" ry="1" fill={CREME} opacity=".5" />
-    {/* sourire avec dent */}
+    {/* sourire ouvert sans dent */}
     <path d="M40 64 Q50 74 60 64" stroke={ESPRESSO} strokeWidth="2.6" fill={MOKA_LT} strokeLinejoin="round" />
     {/* langue */}
     <path d="M46 67 Q50 72 54 67 Q52 70 50 70 Q48 70 46 67 Z" fill={CARAMEL} stroke={ESPRESSO} strokeWidth="1" />
-    {/* dent */}
-    <rect x="48" y="64" width="2" height="3" fill={CREME} stroke={ESPRESSO} strokeWidth="0.7" />
     {/* highlight cookie */}
     <ellipse cx="34" cy="32" rx="11" ry="5" fill={OR_LTR} opacity=".5" transform="rotate(-22 34 32)" />
     <ellipse cx="30" cy="30" rx="5" ry="2" fill={CREME} opacity=".55" transform="rotate(-22 30 30)" />
@@ -495,137 +493,189 @@ const AvRobot = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
       <linearGradient id="g_robot_head" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor={STONE} />
-        <stop offset="100%" stopColor={STONE_DK} />
+        <stop offset="0%" stopColor={MOKA_LT} />
+        <stop offset="100%" stopColor={COOKIE_DK} />
       </linearGradient>
-      <linearGradient id="g_robot_body" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor={STONE_DK} />
-        <stop offset="100%" stopColor={MOKA} />
+      <linearGradient id="g_robot_apron" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="100%" stopColor="#E5D4B8" />
       </linearGradient>
       <radialGradient id="g_robot_eye" cx="40%" cy="40%" r="70%">
         <stop offset="0%" stopColor={OR_LTR} />
         <stop offset="100%" stopColor={OR} />
       </radialGradient>
     </defs>
-    {/* antenne */}
-    <line x1="50" y1="14" x2="50" y2="22" stroke={STONE_DK} strokeWidth="3" strokeLinecap="round" />
-    <circle cx="50" cy="11" r="3.8" fill={OR_LT} stroke={OR_DK} strokeWidth="1.5" />
-    <circle cx="48.7" cy="9.7" r="1" fill={CREME} />
-    {/* engrenage gauche animation feel */}
-    <g transform="translate(18 38)">
-      <circle r="7.5" fill={STONE} {...STROKE_MED} />
-      <circle r="2.6" fill={ESPRESSO} />
-      {[0,60,120,180,240,300].map(a=>(
-        <rect key={a} x="-1.6" y="-11" width="3.2" height="3.5" fill={STONE} {...STROKE_FINE} transform={`rotate(${a})`} />
-      ))}
+    {/* antenne avec GRAIN DE CAFÉ au lieu de boule jaune */}
+    <line x1="50" y1="16" x2="50" y2="22" stroke={ESPRESSO} strokeWidth="3" strokeLinecap="round" />
+    <ellipse cx="50" cy="12" rx="3.2" ry="4.5" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="1.5" />
+    <path d="M50 8 Q48 12 50 16" stroke={ESPRESSO} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    {/* mini cookie comme oreille gauche */}
+    <g transform="translate(20 38)">
+      <circle r="7" fill={COOKIE} stroke={COOKIE_DK} {...STROKE_MED} />
+      <circle cx="-2" cy="-2" r="1.4" fill={ESPRESSO} />
+      <circle cx="2" cy="2" r="1.2" fill={ESPRESSO} />
+      <circle cx="-1" cy="3" r="1" fill={ESPRESSO} />
     </g>
-    {/* tête robot avec gradient */}
+    {/* mini cookie comme oreille droite */}
+    <g transform="translate(80 38)">
+      <circle r="7" fill={COOKIE} stroke={COOKIE_DK} {...STROKE_MED} />
+      <circle cx="-2" cy="-2" r="1.2" fill={ESPRESSO} />
+      <circle cx="2" cy="1" r="1.4" fill={ESPRESSO} />
+      <circle cx="0" cy="3" r="1" fill={ESPRESSO} />
+    </g>
+    {/* tête robot couleur cookie au lieu de stone */}
     <rect x="28" y="24" width="44" height="38" rx="8" fill="url(#g_robot_head)" {...STROKE_HEAVY} strokeWidth="3" />
     {/* highlight tête */}
-    <rect x="32" y="27" width="36" height="4" rx="2" fill={CREME} opacity=".25" />
-    {/* écran yeux brillants */}
+    <rect x="32" y="27" width="36" height="4" rx="2" fill={CARAMEL} opacity=".5" />
+    {/* écran yeux */}
     <rect x="34" y="32" width="14" height="11" rx="3" fill={ESPRESSO} />
     <rect x="52" y="32" width="14" height="11" rx="3" fill={ESPRESSO} />
     <circle cx="41" cy="37.5" r="2.8" fill="url(#g_robot_eye)" />
     <circle cx="59" cy="37.5" r="2.8" fill="url(#g_robot_eye)" />
     <circle cx="41.7" cy="36.5" r="0.9" fill={CREME} />
     <circle cx="59.7" cy="36.5" r="0.9" fill={CREME} />
-    {/* boutons sous écrans */}
-    <circle cx="36" cy="46" r="0.8" fill={OR_LT} />
-    <circle cx="64" cy="46" r="0.8" fill={OR_LT} />
+    {/* PÉPITES de chocolat sur la tête (effet cookie) */}
+    <circle cx="36" cy="46" r="1.2" fill={ESPRESSO} />
+    <circle cx="64" cy="46" r="1.2" fill={ESPRESSO} />
+    <circle cx="40" cy="58" r="1" fill={ESPRESSO} />
+    <circle cx="60" cy="58" r="1" fill={ESPRESSO} />
     {/* bouche grille */}
     <rect x="38" y="50" width="24" height="7" rx="2" fill={ESPRESSO} />
-    <line x1="44" y1="50" x2="44" y2="57" stroke={STONE} strokeWidth="1.4" />
-    <line x1="50" y1="50" x2="50" y2="57" stroke={STONE} strokeWidth="1.4" />
-    <line x1="56" y1="50" x2="56" y2="57" stroke={STONE} strokeWidth="1.4" />
-    {/* corps avec tasse */}
-    <rect x="32" y="64" width="36" height="24" rx="4" fill="url(#g_robot_body)" {...STROKE_HEAVY} strokeWidth="3" />
-    <circle cx="50" cy="76" r="7.5" fill={CREME} {...STROKE_MED} />
-    <circle cx="50" cy="76" r="4" fill={ESPRESSO} />
+    <line x1="44" y1="50" x2="44" y2="57" stroke={CARAMEL_LT} strokeWidth="1.4" />
+    <line x1="50" y1="50" x2="50" y2="57" stroke={CARAMEL_LT} strokeWidth="1.4" />
+    <line x1="56" y1="50" x2="56" y2="57" stroke={CARAMEL_LT} strokeWidth="1.4" />
+    {/* corps avec TABLIER de barista */}
+    <path d="M30 64 Q34 62 38 62 L62 62 Q66 62 70 64 L68 90 L32 90 Z" fill="url(#g_robot_apron)" {...STROKE_HEAVY} strokeWidth="3" />
+    {/* poche du tablier */}
+    <rect x="38" y="72" width="24" height="12" rx="2" fill="none" stroke={MOKA} strokeWidth="1.6" />
+    {/* tasse de café dans la poche */}
+    <ellipse cx="50" cy="84" rx="9" ry="1.6" fill={ESPRESSO} />
+    <path d="M41 73 L42 84 Q42 86 50 86 Q58 86 58 84 L59 73 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.6" />
     {/* vapeur tasse */}
-    <path d="M50 68 Q53 64 50 60" stroke={CREME} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity=".8" />
-    <path d="M46 68 Q43 64 46 60" stroke={CREME} strokeWidth="1.4" fill="none" strokeLinecap="round" opacity=".55" />
+    <path d="M46 70 Q49 66 46 62" stroke={CREME} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity=".8" />
+    <path d="M52 70 Q55 66 52 62" stroke={CREME} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity=".7" />
+    {/* bretelles tablier */}
+    <line x1="40" y1="62" x2="40" y2="70" stroke={MOKA} strokeWidth="2" />
+    <line x1="60" y1="62" x2="60" y2="70" stroke={MOKA} strokeWidth="2" />
   </svg>
 );
 
 const AvChat = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
-      <radialGradient id="g_chat_head" cx="40%" cy="35%" r="75%">
+      <radialGradient id="g_chat_head" cx="40%" cy="35%" r="80%">
         <stop offset="0%" stopColor={CARAMEL_LT} />
-        <stop offset="100%" stopColor={MOKA} />
+        <stop offset="60%" stopColor={COOKIE} />
+        <stop offset="100%" stopColor={COOKIE_DK} />
       </radialGradient>
       <linearGradient id="g_chat_cup" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stopColor={CREME} />
         <stop offset="100%" stopColor="#E5D4B8" />
       </linearGradient>
     </defs>
+    {/* vapeur de café au-dessus */}
+    <path d="M38 14 Q42 8 38 2" stroke={CREME} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".7" />
+    <path d="M50 12 Q54 4 50 -2" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".85" />
+    <path d="M62 14 Q66 8 62 2" stroke={CREME} strokeWidth="2.4" fill="none" strokeLinecap="round" opacity=".7" />
     {/* tasse */}
-    <ellipse cx="50" cy="80" rx="32" ry="6" fill={CREME} {...STROKE_HEAVY} />
-    <path d="M22 58 L24 78 Q28 86 50 86 Q72 86 76 78 L78 58 Z" fill="url(#g_chat_cup)" {...STROKE_HEAVY} />
-    <path d="M76 64 Q90 64 90 72 Q90 80 76 80" fill="none" {...STROKE_HEAVY} />
-    {/* chat caramel */}
-    <ellipse cx="50" cy="48" rx="22" ry="16" fill="url(#g_chat_head)" {...STROKE_HEAVY} stroke={MOKA} strokeWidth="3" />
-    {/* oreilles */}
-    <path d="M32 36 L30 18 L46 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
-    <path d="M68 36 L70 18 L54 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
-    <path d="M34 32 L36 24 L41 30 Z" fill="#F5C580" />
-    <path d="M66 32 L64 24 L59 30 Z" fill="#F5C580" />
-    {/* yeux dorés grands */}
-    <ellipse cx="42" cy="46" rx="3" ry="4.2" fill={OR_LT} stroke={ESPRESSO} strokeWidth="1.4" />
-    <ellipse cx="58" cy="46" rx="3" ry="4.2" fill={OR_LT} stroke={ESPRESSO} strokeWidth="1.4" />
-    <ellipse cx="42" cy="46" rx="1" ry="2.8" fill={ESPRESSO} />
-    <ellipse cx="58" cy="46" rx="1" ry="2.8" fill={ESPRESSO} />
-    <circle cx="42.6" cy="44.5" r="0.8" fill={CREME} />
-    <circle cx="58.6" cy="44.5" r="0.8" fill={CREME} />
-    {/* nez */}
-    <path d="M46 54 L54 54 L50 58 Z" fill={MOKA} stroke={ESPRESSO} strokeWidth="1.2" />
+    <ellipse cx="50" cy="82" rx="34" ry="6" fill={CREME} {...STROKE_HEAVY} />
+    <path d="M20 60 L22 80 Q26 88 50 88 Q74 88 78 80 L80 60 Z" fill="url(#g_chat_cup)" {...STROKE_HEAVY} />
+    {/* logo cookie sur la tasse */}
+    <circle cx="50" cy="73" r="5" fill={COOKIE} stroke={COOKIE_DK} strokeWidth="1.3" />
+    <circle cx="48" cy="71.5" r="0.8" fill={ESPRESSO} />
+    <circle cx="51.5" cy="74" r="0.8" fill={ESPRESSO} />
+    <circle cx="50.5" cy="71" r="0.6" fill={ESPRESSO} />
+    {/* anse */}
+    <path d="M78 64 Q92 64 92 72 Q92 80 78 80" fill="none" {...STROKE_HEAVY} />
+    {/* chat 'cookie' qui dépasse */}
+    <ellipse cx="50" cy="48" rx="22" ry="16" fill="url(#g_chat_head)" {...STROKE_HEAVY} stroke={COOKIE_DK} strokeWidth="3" />
+    {/* PÉPITES de chocolat sur la fourrure (effet cookie) */}
+    <circle cx="36" cy="42" r="2.4" fill={ESPRESSO} />
+    <circle cx="64" cy="42" r="2.4" fill={ESPRESSO} />
+    <circle cx="40" cy="56" r="2" fill={ESPRESSO} />
+    <circle cx="60" cy="56" r="2" fill={ESPRESSO} />
+    <circle cx="50" cy="58" r="1.8" fill={ESPRESSO} />
+    {/* oreilles cookie avec intérieur crème */}
+    <path d="M32 36 L30 18 L46 32 Z" fill={COOKIE} {...STROKE_HEAVY} stroke={COOKIE_DK} />
+    <path d="M68 36 L70 18 L54 32 Z" fill={COOKIE} {...STROKE_HEAVY} stroke={COOKIE_DK} />
+    <path d="M34 32 L36 24 L41 30 Z" fill={CARAMEL_LT} />
+    <path d="M66 32 L64 24 L59 30 Z" fill={CARAMEL_LT} />
+    {/* mini pépite sur chaque oreille */}
+    <circle cx="36" cy="26" r="1.2" fill={ESPRESSO} />
+    <circle cx="64" cy="26" r="1.2" fill={ESPRESSO} />
+    {/* yeux : grains de café (au lieu de yeux dorés) */}
+    <ellipse cx="42" cy="46" rx="3" ry="4.2" fill={ESPRESSO} stroke={ESPRESSO} strokeWidth="1.2" />
+    <ellipse cx="58" cy="46" rx="3" ry="4.2" fill={ESPRESSO} stroke={ESPRESSO} strokeWidth="1.2" />
+    <path d="M42 42.5 Q40.5 46 42 49.5" stroke={MOKA_LT} strokeWidth="0.8" fill="none" />
+    <path d="M58 42.5 Q56.5 46 58 49.5" stroke={MOKA_LT} strokeWidth="0.8" fill="none" />
+    {/* highlights pupille */}
+    <circle cx="43.2" cy="44.5" r="0.7" fill={CREME} />
+    <circle cx="59.2" cy="44.5" r="0.7" fill={CREME} />
+    {/* nez crème */}
+    <path d="M46 53 L54 53 L50 57 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" />
     {/* bouche */}
-    <path d="M50 58 L50 60 Q47 62 45 60" stroke={ESPRESSO} strokeWidth="1.4" fill="none" />
-    <path d="M50 58 L50 60 Q53 62 55 60" stroke={ESPRESSO} strokeWidth="1.4" fill="none" />
+    <path d="M50 57 L50 60 Q47 62 45 60" stroke={ESPRESSO} strokeWidth="1.4" fill="none" />
+    <path d="M50 57 L50 60 Q53 62 55 60" stroke={ESPRESSO} strokeWidth="1.4" fill="none" />
     {/* moustaches */}
-    <line x1="30" y1="52" x2="40" y2="52" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="60" y1="52" x2="70" y2="52" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="30" y1="55" x2="40" y2="54" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
-    <line x1="60" y1="54" x2="70" y2="55" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="30" y1="51" x2="38" y2="51" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="62" y1="51" x2="70" y2="51" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="30" y1="54" x2="38" y2="53" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
+    <line x1="62" y1="53" x2="70" y2="54" stroke={ESPRESSO} strokeWidth="1.2" strokeLinecap="round" />
     {/* highlight tasse */}
-    <ellipse cx="32" cy="64" rx="4" ry="8" fill={CREME} opacity=".6" />
+    <ellipse cx="30" cy="68" rx="4" ry="8" fill={CREME} opacity=".6" />
   </svg>
 );
 
 const AvRenard = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
-      <radialGradient id="g_ren_head" cx="40%" cy="35%" r="75%">
-        <stop offset="0%" stopColor="#D88E48" />
+      <radialGradient id="g_ren_head" cx="40%" cy="35%" r="80%">
+        <stop offset="0%" stopColor={CARAMEL_LT} />
+        <stop offset="60%" stopColor={CARAMEL} />
         <stop offset="100%" stopColor={MOKA} />
       </radialGradient>
     </defs>
+    {/* vapeur de café */}
+    <path d="M76 18 Q80 12 76 6" stroke={CREME} strokeWidth="2.2" fill="none" strokeLinecap="round" opacity=".75" />
+    <path d="M82 22 Q86 16 82 10" stroke={CREME} strokeWidth="2" fill="none" strokeLinecap="round" opacity=".55" />
     {/* oreilles avec intérieur crème */}
-    <path d="M22 40 L26 12 L42 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
-    <path d="M78 40 L74 12 L58 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
-    <path d="M27 30 L29 18 L34 28 Z" fill={CREME} {...STROKE_FINE} />
-    <path d="M73 30 L71 18 L66 28 Z" fill={CREME} {...STROKE_FINE} />
+    <path d="M20 42 L24 14 L40 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
+    <path d="M80 42 L76 14 L60 32 Z" fill={CARAMEL} {...STROKE_HEAVY} stroke={MOKA} />
+    <path d="M25 30 L27 20 L32 28 Z" fill={CREME} {...STROKE_FINE} />
+    <path d="M75 30 L73 20 L68 28 Z" fill={CREME} {...STROKE_FINE} />
     {/* tête */}
-    <path d="M22 52 Q22 30 50 28 Q78 30 78 52 Q78 74 50 82 Q22 74 22 52 Z" fill="url(#g_ren_head)" {...STROKE_HEAVY} stroke={MOKA} strokeWidth="3" />
+    <path d="M22 50 Q22 28 50 26 Q78 28 78 50 Q78 70 50 78 Q22 70 22 50 Z" fill="url(#g_ren_head)" {...STROKE_HEAVY} stroke={MOKA} strokeWidth="3" />
+    {/* PÉPITES de chocolat (effet cookie) sur la fourrure */}
+    <circle cx="32" cy="38" r="1.6" fill={ESPRESSO} />
+    <circle cx="68" cy="38" r="1.6" fill={ESPRESSO} />
+    <circle cx="28" cy="52" r="1.4" fill={ESPRESSO} />
+    <circle cx="72" cy="52" r="1.4" fill={ESPRESSO} />
     {/* sourcils blancs */}
     <path d="M30 44 Q34 42 38 44" stroke={CREME} strokeWidth="2" fill="none" strokeLinecap="round" />
     <path d="M62 44 Q66 42 70 44" stroke={CREME} strokeWidth="2" fill="none" strokeLinecap="round" />
-    {/* museau blanc */}
-    <path d="M34 60 Q34 76 50 82 Q66 76 66 60 Q58 64 50 64 Q42 64 34 60 Z" fill={CREME} {...STROKE_HEAVY} />
-    {/* yeux */}
-    <ellipse cx="40" cy="50" rx="2.8" ry="3.4" fill={ESPRESSO} />
-    <ellipse cx="60" cy="50" rx="2.8" ry="3.4" fill={ESPRESSO} />
-    <circle cx="40.7" cy="49" r="0.9" fill={CREME} />
-    <circle cx="60.7" cy="49" r="0.9" fill={CREME} />
+    {/* museau crème (cookie style) */}
+    <path d="M34 58 Q34 72 50 78 Q66 72 66 58 Q58 62 50 62 Q42 62 34 58 Z" fill={CREME} {...STROKE_HEAVY} />
+    {/* yeux : grains de café */}
+    <ellipse cx="40" cy="48" rx="2.8" ry="3.6" fill={ESPRESSO} />
+    <ellipse cx="60" cy="48" rx="2.8" ry="3.6" fill={ESPRESSO} />
+    <path d="M40 44 Q38.5 48 40 52" stroke={MOKA_LT} strokeWidth="0.8" fill="none" />
+    <path d="M60 44 Q58.5 48 60 52" stroke={MOKA_LT} strokeWidth="0.8" fill="none" />
+    <circle cx="40.8" cy="46.5" r="0.8" fill={CREME} />
+    <circle cx="60.8" cy="46.5" r="0.8" fill={CREME} />
     {/* nez triangulaire */}
-    <ellipse cx="50" cy="64" rx="3.6" ry="2.8" fill={ESPRESSO} />
+    <ellipse cx="50" cy="62" rx="3.6" ry="2.8" fill={ESPRESSO} />
     {/* sourire */}
-    <path d="M50 67 Q50 71 45 71" stroke={ESPRESSO} strokeWidth="1.6" fill="none" strokeLinecap="round" />
-    <path d="M50 67 Q50 71 55 71" stroke={ESPRESSO} strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M50 65 Q50 69 45 69" stroke={ESPRESSO} strokeWidth="1.6" fill="none" strokeLinecap="round" />
+    <path d="M50 65 Q50 69 55 69" stroke={ESPRESSO} strokeWidth="1.6" fill="none" strokeLinecap="round" />
     {/* moustaches */}
-    <line x1="34" y1="68" x2="26" y2="68" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
-    <line x1="66" y1="68" x2="74" y2="68" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
+    <line x1="34" y1="66" x2="26" y2="66" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
+    <line x1="66" y1="66" x2="74" y2="66" stroke={ESPRESSO} strokeWidth="1.3" strokeLinecap="round" />
+    {/* TASSE DE CAFÉ tenue par une patte (à droite, bas) */}
+    <rect x="68" y="80" width="20" height="14" rx="3" fill={CREME} {...STROKE_MED} />
+    <ellipse cx="78" cy="83" rx="8" ry="2" fill={ESPRESSO} />
+    <path d="M88 84 Q94 87 91 92" stroke={ESPRESSO} strokeWidth="2" fill="none" strokeLinecap="round" />
+    <path d="M75 78 Q77 74 75 70" stroke={CREME} strokeWidth="1.6" fill="none" strokeLinecap="round" opacity=".75" />
+    <path d="M81 78 Q83 72 81 66" stroke={CREME} strokeWidth="1.8" fill="none" strokeLinecap="round" opacity=".85" />
   </svg>
 );
 
@@ -669,33 +719,42 @@ const AvPanda = () => (
 const AvDragon = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
-      <linearGradient id="g_dr_head" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stopColor="#7D4220" />
+      <radialGradient id="g_dr_head" cx="40%" cy="35%" r="85%">
+        <stop offset="0%" stopColor={COOKIE} />
+        <stop offset="60%" stopColor={COOKIE_DK} />
         <stop offset="100%" stopColor={ESPRESSO} />
-      </linearGradient>
+      </radialGradient>
       <radialGradient id="g_dr_eye" cx="40%" cy="40%" r="60%">
         <stop offset="0%" stopColor={OR_LTR} />
         <stop offset="100%" stopColor={OR} />
       </radialGradient>
     </defs>
-    {/* vapeur */}
-    <path d="M14 30 Q22 22 14 12" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".75" />
-    <path d="M22 36 Q30 28 22 18" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".7" />
-    {/* tête dragon */}
+    {/* gros nuage de vapeur (au lieu de fumée) */}
+    <path d="M10 32 Q18 22 10 10" stroke={CREME} strokeWidth="3" fill="none" strokeLinecap="round" opacity=".8" />
+    <path d="M18 38 Q26 26 18 14" stroke={CREME} strokeWidth="2.8" fill="none" strokeLinecap="round" opacity=".7" />
+    <path d="M84 28 Q92 18 84 6" stroke={CREME} strokeWidth="2.6" fill="none" strokeLinecap="round" opacity=".7" />
+    {/* tête dragon couleur cookie */}
     <path d="M28 44 Q28 26 50 26 Q72 26 72 44 L68 62 L60 72 L40 72 L32 62 Z"
-      fill="url(#g_dr_head)" {...STROKE_HEAVY} strokeWidth="3" />
+      fill="url(#g_dr_head)" {...STROKE_HEAVY} stroke={ESPRESSO} strokeWidth="3" />
+    {/* PÉPITES de chocolat sur le corps (effet cookie) */}
+    <circle cx="36" cy="40" r="1.8" fill={ESPRESSO} />
+    <circle cx="64" cy="40" r="1.8" fill={ESPRESSO} />
+    <circle cx="34" cy="58" r="1.6" fill={ESPRESSO} />
+    <circle cx="66" cy="58" r="1.6" fill={ESPRESSO} />
+    <circle cx="40" cy="68" r="1.4" fill={ESPRESSO} />
+    <circle cx="60" cy="68" r="1.4" fill={ESPRESSO} />
     {/* mâchoire */}
     <path d="M40 72 Q50 78 60 72" stroke={ESPRESSO} strokeWidth="2.6" fill={MOKA} strokeLinejoin="round" />
-    {/* cornes */}
-    <path d="M32 28 L26 8 L42 24 Z" fill={STONE} {...STROKE_HEAVY} />
-    <path d="M68 28 L74 8 L58 24 Z" fill={STONE} {...STROKE_HEAVY} />
-    {/* highlights cornes */}
-    <path d="M30 16 L38 22" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".5" strokeLinecap="round" />
-    <path d="M70 16 L62 22" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".5" strokeLinecap="round" />
-    {/* écailles crête */}
-    <path d="M44 26 Q45 18 46 26" fill={MOKA_LT} stroke={ESPRESSO} strokeWidth="1.2" />
-    <path d="M50 24 Q51 14 52 24" fill={MOKA_LT} stroke={ESPRESSO} strokeWidth="1.2" />
-    <path d="M54 26 Q55 18 56 26" fill={MOKA_LT} stroke={ESPRESSO} strokeWidth="1.2" />
+    {/* cornes en GRAINS DE CAFÉ */}
+    <ellipse cx="32" cy="14" rx="4" ry="9" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="1.8" transform="rotate(-25 32 14)" />
+    <ellipse cx="68" cy="14" rx="4" ry="9" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="1.8" transform="rotate(25 68 14)" />
+    {/* sillon des grains */}
+    <path d="M28 22 Q32 14 36 6" stroke={ESPRESSO} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    <path d="M64 6 Q68 14 72 22" stroke={ESPRESSO} strokeWidth="1.4" fill="none" strokeLinecap="round" />
+    {/* écailles crête (3 pointes crème) */}
+    <path d="M44 26 Q45 18 46 26" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" />
+    <path d="M50 24 Q51 14 52 24" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" />
+    <path d="M54 26 Q55 18 56 26" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" />
     {/* yeux brillants reptiliens */}
     <ellipse cx="42" cy="46" rx="3.6" ry="4" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.4" />
     <ellipse cx="58" cy="46" rx="3.6" ry="4" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.4" />
@@ -703,11 +762,13 @@ const AvDragon = () => (
     <ellipse cx="58" cy="46" rx="1" ry="3" fill={ESPRESSO} />
     <circle cx="42.6" cy="44.6" r="0.8" fill={CREME} />
     <circle cx="58.6" cy="44.6" r="0.8" fill={CREME} />
-    {/* naseaux fumants */}
-    <ellipse cx="44" cy="60" rx="1.7" ry="2.4" fill={ESPRESSO} />
-    <ellipse cx="56" cy="60" rx="1.7" ry="2.4" fill={ESPRESSO} />
-    <path d="M44 56 Q44 50 42 46" stroke={CREME} strokeWidth="1.6" fill="none" opacity=".55" strokeLinecap="round" />
-    <path d="M56 56 Q56 50 58 46" stroke={CREME} strokeWidth="1.6" fill="none" opacity=".55" strokeLinecap="round" />
+    {/* naseaux qui crachent de la VAPEUR DE CAFÉ marquée */}
+    <ellipse cx="44" cy="60" rx="1.8" ry="2.6" fill={ESPRESSO} />
+    <ellipse cx="56" cy="60" rx="1.8" ry="2.6" fill={ESPRESSO} />
+    <path d="M44 58 Q42 52 38 50" stroke={CREME} strokeWidth="2.4" fill="none" opacity=".85" strokeLinecap="round" />
+    <path d="M56 58 Q58 52 62 50" stroke={CREME} strokeWidth="2.4" fill="none" opacity=".85" strokeLinecap="round" />
+    <path d="M38 50 Q34 46 32 44" stroke={CREME} strokeWidth="1.6" fill="none" opacity=".55" strokeLinecap="round" />
+    <path d="M62 50 Q66 46 68 44" stroke={CREME} strokeWidth="1.6" fill="none" opacity=".55" strokeLinecap="round" />
     {/* dents (deux crocs) */}
     <path d="M44 72 L46 78 L48 72 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1" />
     <path d="M52 72 L54 78 L56 72 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1" />
