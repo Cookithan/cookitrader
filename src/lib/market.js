@@ -143,6 +143,103 @@ export async function getUserPortfolio(userCode) {
   };
 }
 
+/* Classement marché — top N joueurs par nombre d'actions détenues
+   (shares décroissant). Admin (case-insensitive) exclu pour cohérence
+   avec getLeaderboard. Retourne pour chaque joueur : user_code,
+   user_name, user_avatar, level, shares, value (= shares × prix
+   courant, calculé côté client à partir de getMarketState).
+
+   2 requêtes : (1) portefeuilles non vides triés par shares,
+   (2) profils correspondants pour avatar/nom/level. On ne fait pas un
+   JOIN SQL pour rester compatible avec la RLS actuelle (lectures
+   séparées sur 2 tables permissives). */
+export async function getMarketLeaderboard(limit = 50) {
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const { data: portfolios, error: pErr } = await supabase
+      .from('market_portfolio')
+      .select('user_code, shares, total_invested')
+      .gt('shares', 0)
+      .order('shares', { ascending: false })
+      .limit(limit);
+    if (pErr || !portfolios || portfolios.length === 0) return [];
+
+    const codes = portfolios.map(p => p.user_code);
+    const { data: profiles, error: uErr } = await supabase
+      .from('users')
+      .select('user_code, user_name, user_avatar, level')
+      .in('user_code', codes)
+      .not('user_name', 'ilike', 'admin123');
+    if (uErr) return [];
+
+    const profileMap = {};
+    (profiles || []).forEach(u => { profileMap[u.user_code] = u; });
+
+    /* On garde l'ordre de portfolios (déjà trié par shares desc), on
+       jette les entrées sans profil (admin filtré, ou user supprimé). */
+    return portfolios
+      .map(p => {
+        const u = profileMap[p.user_code];
+        if (!u) return null;
+        return {
+          user_code: p.user_code,
+          user_name: u.user_name,
+          user_avatar: u.user_avatar,
+          level: u.level,
+          shares: p.shares,
+          total_invested: parseFloat(p.total_invested),
+        };
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/* Rang du joueur dans le classement marché (1-based). Compte les
+   portefeuilles ayant strictement plus d'actions que le sien, +1.
+   Retourne null si l'utilisateur n'a pas de portefeuille ou 0 action,
+   ou s'il est admin. */
+export async function getMyMarketRank(userCode) {
+  if (!isSupabaseEnabled() || !userCode) return null;
+  try {
+    /* Admin → hors classement (cohérent avec getMyRank cookies) */
+    const { data: me } = await supabase
+      .from('users').select('user_name').eq('user_code', userCode).maybeSingle();
+    if (me && (me.user_name || '').trim().toLowerCase() === 'admin123') return null;
+
+    const { data: portfolio } = await supabase
+      .from('market_portfolio')
+      .select('shares')
+      .eq('user_code', userCode)
+      .maybeSingle();
+    if (!portfolio || !portfolio.shares || portfolio.shares < 1) return null;
+
+    const { count } = await supabase
+      .from('market_portfolio')
+      .select('*', { count: 'exact', head: true })
+      .gt('shares', portfolio.shares);
+    return (count ?? 0) + 1;
+  } catch {
+    return null;
+  }
+}
+
+/* Nombre total de joueurs avec au moins 1 action (admin compté ici car
+   on ne croise pas users — coût raisonnable pour rester simple). */
+export async function getMarketTraderCount() {
+  if (!isSupabaseEnabled()) return null;
+  try {
+    const { count } = await supabase
+      .from('market_portfolio')
+      .select('*', { count: 'exact', head: true })
+      .gt('shares', 0);
+    return count ?? 0;
+  } catch {
+    return null;
+  }
+}
+
 // ═══════════════════════════════════════════
 // ACHAT
 // ═══════════════════════════════════════════
