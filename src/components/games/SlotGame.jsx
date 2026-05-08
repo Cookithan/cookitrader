@@ -53,6 +53,26 @@ function randomSymbolId(){
   }
   return SYMBOLS[SYMBOLS.length - 1].id;
 }
+
+/* Probabilités exactes calculées une fois pour le barème UI. */
+function probTriple(symbol){
+  const p = symbol.weight / TOTAL_WEIGHT;
+  return p * p * p;
+}
+function probExactlyPair(symbol){
+  const p = symbol.weight / TOTAL_WEIGHT;
+  return 3 * p * p * (1 - p);
+}
+const PROB_TRIPLE_TOTAL = SYMBOLS.reduce((s, x) => s + probTriple(x), 0);
+const PROB_PAIR_TOTAL   = SYMBOLS.reduce((s, x) => s + probExactlyPair(x), 0);
+const PROB_LOSE         = Math.max(0, 1 - PROB_TRIPLE_TOTAL - PROB_PAIR_TOTAL);
+
+function fmtPct(p){
+  const pct = p * 100;
+  if(pct < 0.1) return pct.toFixed(2) + ' %';   // ex: 0.05 %
+  if(pct < 10)  return pct.toFixed(1) + ' %';   // ex: 1.6 %
+  return pct.toFixed(0) + ' %';                 // ex: 54 %
+}
 function symIcon(id){
   return SYMBOLS.find(s => s.id === id)?.icon ?? '?';
 }
@@ -253,7 +273,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, C }){
             : `Lancer (${COST} 🍪)`}
       </button>
 
-      {/* Barème */}
+      {/* Barème + probabilités */}
       <div style={{
         background:C.card, border:`1px solid ${C.border}`,
         borderRadius:14, padding:'12px 16px',
@@ -264,31 +284,36 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, C }){
           fontWeight:800, color:C.text, marginBottom:8, textAlign:'center',
           fontSize:11, letterSpacing:1, textTransform:'uppercase',
         }}>
-          Combinaisons
+          Combinaisons · Chances
         </div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <span>3 × 7️⃣ jackpot</span>
-          <strong style={{ color:'#D4A017' }}>+750 🍪</strong>
+        {SYMBOLS.slice().reverse().map(s => (
+          <div key={s.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6 }}>
+            <span style={{ flex:1 }}>3 × {s.icon}{s.id === 'seven' ? ' jackpot' : ''}</span>
+            <span style={{
+              fontSize:10, color:C.muted, fontWeight:600,
+              fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+              minWidth:48, textAlign:'right',
+            }}>{fmtPct(probTriple(s))}</span>
+            <strong style={{ color:'#D4A017', minWidth:64, textAlign:'right' }}>+{s.payout} 🍪</strong>
+          </div>
+        ))}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6, marginTop:4, paddingTop:4, borderTop:`1px dashed ${C.border}` }}>
+          <span style={{ flex:1 }}>2 identiques</span>
+          <span style={{
+            fontSize:10, color:C.muted, fontWeight:600,
+            fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+            minWidth:48, textAlign:'right',
+          }}>{fmtPct(PROB_PAIR_TOTAL)}</span>
+          <strong style={{ color:'#D4A017', minWidth:64, textAlign:'right' }}>+{PAIR_PAYOUT} 🍪</strong>
         </div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <span>3 × 🍰</span>
-          <strong style={{ color:'#D4A017' }}>+250 🍪</strong>
-        </div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <span>3 × 🥐</span>
-          <strong style={{ color:'#D4A017' }}>+150 🍪</strong>
-        </div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <span>3 × ☕</span>
-          <strong style={{ color:'#D4A017' }}>+80 🍪</strong>
-        </div>
-        <div style={{ display:'flex', justifyContent:'space-between' }}>
-          <span>3 × 🍪</span>
-          <strong style={{ color:'#D4A017' }}>+50 🍪</strong>
-        </div>
-        <div style={{ display:'flex', justifyContent:'space-between', marginTop:4, paddingTop:4, borderTop:`1px dashed ${C.border}` }}>
-          <span>2 identiques</span>
-          <strong style={{ color:'#D4A017' }}>+25 🍪</strong>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', gap:6 }}>
+          <span style={{ flex:1, color:'#7D4E1F' }}>Aucun match</span>
+          <span style={{
+            fontSize:10, color:'#7D4E1F', fontWeight:700,
+            fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+            minWidth:48, textAlign:'right',
+          }}>{fmtPct(PROB_LOSE)}</span>
+          <strong style={{ color:'#7D4E1F', minWidth:64, textAlign:'right' }}>0</strong>
         </div>
       </div>
     </div>
