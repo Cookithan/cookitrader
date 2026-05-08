@@ -1127,9 +1127,24 @@ export default function CookiMiner() {
     /* Mode admin → aucun succès attribué (compte de test). */
     if((userName || '').trim().toLowerCase() === ADMIN_NAME) return;
     /* "master_succes" : caché tant que reveal_master n'est pas acheté.
-       Se déclenche si TOUS les autres succès sont gagnés. */
-    const otherIds = ACHIEVEMENTS.filter(a => a.id !== 'master_succes').map(a => a.id);
+       Se déclenche si TOUS les autres succès (sauf end_game) sont gagnés. */
+    const otherIds = ACHIEVEMENTS
+      .filter(a => a.id !== 'master_succes' && a.id !== 'end_game')
+      .map(a => a.id);
     const allOthersDone = otherIds.every(id => earnedAchievements.includes(id));
+
+    /* "end_game" : succès apex. Niveau max ET tous les autres succès
+       VISIBLES gagnés. master_succes compte uniquement s'il est visible
+       (reveal_master acheté) — sinon le user n'a pas besoin de payer le
+       premium pour valider la fin du jeu. */
+    const endGamePrereqIds = ACHIEVEMENTS
+      .filter(a =>
+        a.id !== 'end_game' &&
+        (!a.hidden || (a.id === 'master_succes' && masterRevealed))
+      )
+      .map(a => a.id);
+    const allEndGamePrereqsDone = endGamePrereqIds.every(id => earnedAchievements.includes(id));
+
     const checks = [
       ['first_cookie',   totalEarned >= 1],
       ['first_purchase', unlocked.length >= 1],
@@ -1141,6 +1156,7 @@ export default function CookiMiner() {
       ['level_15',       level >= 15],
       ['trader',         totalInvested >= 500],
       ['master_succes',  masterRevealed && allOthersDone],
+      ['end_game',       level >= 15 && allEndGamePrereqsDone],
     ];
     for(const [id,ok] of checks){
       if(ok && !earnedAchievements.includes(id)){ triggerAchievement(id); break; }
