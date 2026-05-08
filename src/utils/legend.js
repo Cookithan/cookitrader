@@ -65,12 +65,13 @@ export function isCreator(name){
   return (name || '').trim().toLowerCase() === CREATOR_NAME;
 }
 
-/* Style latte shimmer pour le créateur — gradient crème/caramel large
-   (200% × 200%) qui défile via animation `latteShimmer` (cf. globalStyles).
-   Halo or + ombre café via drop-shadow pour ressortir sur fond clair ET
-   sombre. Compatible mobile (iOS Safari + Chrome Android). */
+/* Style latte shimmer pour le créateur — gradient caramel/or plein
+   contraste (jamais de crème clair pour rester lisible) qui défile
+   via animation `latteShimmer` (cf. globalStyles).
+   Halo or + ombre café via drop-shadow pour ressortir sur fond clair
+   ET sombre. Compatible mobile (iOS Safari + Chrome Android). */
 export const CREATOR_NAME_STYLE = {
-  background: 'linear-gradient(135deg, #FFF1DA 0%, #E8C896 25%, #C17F3C 50%, #E8C896 75%, #FFF1DA 100%)',
+  background: 'linear-gradient(135deg, #A0784E 0%, #D4A017 25%, #8B5A2B 50%, #D4A017 75%, #A0784E 100%)',
   backgroundSize: '200% 200%',
   WebkitBackgroundClip: 'text',
   backgroundClip: 'text',
@@ -78,7 +79,7 @@ export const CREATOR_NAME_STYLE = {
   color: '#C17F3C',
   fontWeight: 900,
   letterSpacing: .5,
-  filter: 'drop-shadow(0 0 6px rgba(212,160,23,.55)) drop-shadow(0 1px 2px rgba(93,58,31,.4))',
+  filter: 'drop-shadow(0 0 6px rgba(212,160,23,.55)) drop-shadow(0 1px 2px rgba(74,44,23,.5))',
   animation: 'latteShimmer 3s ease-in-out infinite',
 };
 
