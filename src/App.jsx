@@ -42,7 +42,7 @@ import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
 import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
-import { setupAudioOnFirstInteraction, playSound } from "./lib/audio.js";
+import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from "./lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -168,9 +168,11 @@ export default function CookiMiner() {
   },[userCode, setUserCode]);
 
   /* Audio (BRIEF_AUDIO) — branche les listeners pour lancer la musique
-     d'ambiance dès le 1er tap (autoplay mobile bloqué sinon). */
+     d'ambiance dès le 1er tap (autoplay mobile bloqué sinon), ET pour
+     pauser la musique quand l'app passe en arrière-plan sur mobile. */
   useEffect(() => {
     setupAudioOnFirstInteraction();
+    setupVisibilityHandler();
   }, []);
 
   /* Sync Supabase debouncé (5s). Crée OU met à jour le profil via upsert

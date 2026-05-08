@@ -184,6 +184,57 @@ export function setupAudioOnFirstInteraction(){
   document.addEventListener('keydown', handler);
 }
 
+/* ── PAUSE/RESUME sur changement de visibilité ───────
+   Sur mobile, quand l'app passe en arrière-plan (home, app switcher,
+   verrouillage), `document.hidden` devient true. Sans listener, la
+   musique continue à jouer en sourdine, mange la batterie, et
+   bloque l'audio des autres apps (Spotify, podcasts).
+
+   On pause à l'event `visibilitychange` ET au `pagehide` (Safari iOS,
+   PWA installée). On reprend automatiquement au retour SI on est
+   l'auteur de la pause (flag `pausedByVisibility`) ET si la musique
+   était activée — ne pas relancer si l'user l'a coupée manuellement.
+
+   Idempotent : safe à appeler plusieurs fois. */
+let visibilityHandlerSet = false;
+let pausedByVisibility = false;
+
+export function setupVisibilityHandler(){
+  if(visibilityHandlerSet || typeof document === 'undefined') return;
+  visibilityHandlerSet = true;
+
+  const onVisibilityChange = () => {
+    if(document.hidden){
+      if(musicAudio && !musicAudio.paused){
+        try{ musicAudio.pause(); }catch{}
+        pausedByVisibility = true;
+      }
+    } else {
+      if(pausedByVisibility && musicAudio){
+        const s = getSettings();
+        if(s.musicEnabled){
+          try{ musicAudio.play().catch(() => {}); }catch{}
+        }
+        pausedByVisibility = false;
+      }
+    }
+  };
+
+  /* pagehide : complément pour Safari iOS / PWA installées où
+     visibilitychange peut tarder. On force le pause direct. */
+  const onPageHide = () => {
+    if(musicAudio && !musicAudio.paused){
+      try{ musicAudio.pause(); }catch{}
+      pausedByVisibility = true;
+    }
+  };
+
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  window.addEventListener('pagehide', onPageHide);
+  /* blur en backup (perte de focus, app switcher Android) */
+  window.addEventListener('blur', onPageHide);
+}
+
 /* ── WRAPPER SONORE ──────────────────────────────────
    Décore un onClick existant pour qu'il joue un son avant son action.
    Usage : <button onClick={withSound(handleClick)}>OK</button>
