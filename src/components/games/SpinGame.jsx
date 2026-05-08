@@ -6,19 +6,20 @@ import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    SpinGame — roue canvas avec 11 segments pondérés
-   - COST = 10 cookies
+   - COST = 10 🍪 jusqu'au niveau 7, 20 🍪 à partir du niveau 8
+     (la roue rapporte plus à haut niveau, le coût compense)
    - Animation : angle cumulatif (jamais reset), rotation de 5 tours + diff
                  vers la cible (centre du segment) avec ease-out quint sur 4.5s
    - Palette par activeRoue (ROUE_PALETTES). Glow optionnel (ROUE_GLOWS)
    - onJackpot() est appelé si le résultat = +200 (déclenche succès 'jackpot')
 ═══════════════════════════════════════════════════════ */
 
-export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, C }) {
+export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, C }) {
   const canvasRef  = useRef(null);
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);
   const [result,   setResult]   = useState(null);
-  const COST = 10;
+  const COST = level >= 8 ? 20 : 10;
 
   const palette = ROUE_PALETTES[activeRoue] || null;
   const glowColor = ROUE_GLOWS[activeRoue];

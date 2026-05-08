@@ -41,13 +41,18 @@ const TYPE_SPEED_MS = 28;
 const WALK_IN_MS    = 800;          // synchronisé avec csCustomerWalkIn (.8s)
 const ANSWER_HOLD_MS = 1100;        // temps avant de passer au client suivant
 
-function pickQuestions(){
+/* En mode Expert (level >= 7) on ne tire que les questions
+   difficiles. Sinon on tire dans le pool standard (questions sans
+   flag `difficult`). */
+function pickQuestions(expertMode){
+  const pool = COMMANDES.filter(c => expertMode ? c.difficult : !c.difficult);
+  const max  = pool.length;
   const indices = [];
-  while(indices.length < NB_QUESTIONS){
-    const idx = Math.floor(Math.random() * COMMANDES.length);
+  while(indices.length < Math.min(NB_QUESTIONS, max)){
+    const idx = Math.floor(Math.random() * max);
     if(!indices.includes(idx)) indices.push(idx);
   }
-  return indices.map(i => COMMANDES[i]);
+  return indices.map(i => pool[i]);
 }
 
 function rewardFor(score){
@@ -67,7 +72,8 @@ function pickCustomerIndices(n, max){
   return all.slice(0, n);
 }
 
-export function GuessGame({ coins, onEarn, onSpend, C }){
+export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
+  const expertMode = level >= 7;
   const [phase,    setPhase]    = useState('idle');         // idle | playing | done
   const [questions,setQuestions]= useState([]);              // 5 commandes tirées
   const [customerIndices, setCustomerIndices] = useState([]); // 5 indices dans CUSTOMERS
@@ -116,7 +122,7 @@ export function GuessGame({ coins, onEarn, onSpend, C }){
   const startGame = () => {
     if(coins < GUESS_COST) return;
     onSpend(GUESS_COST);
-    const qs = pickQuestions();
+    const qs = pickQuestions(expertMode);
     setQuestions(qs);
     setCustomerIndices(pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length));
     setQIndex(0);
@@ -272,10 +278,23 @@ export function GuessGame({ coins, onEarn, onSpend, C }){
         </div>
       )}
 
+      {/* Badge Mode Expert (niv 7+) — visible au-dessus du texte d'instruction */}
+      {expertMode && phase === 'idle' && (
+        <div style={{
+          display:'inline-block', padding:'5px 12px', borderRadius:11,
+          background:'linear-gradient(135deg,#3D2010,#7D4E1F)',
+          color:'#F0C050', fontSize:10, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase',
+          border:'1.5px solid rgba(212,160,23,.5)',
+          boxShadow:'0 3px 10px rgba(74,44,23,.35)',
+        }}>
+          🎓 Mode Expert
+        </div>
+      )}
+
       {/* Texte d'instruction */}
       {phase !== 'done' && (
         <div style={{ minHeight:18, fontSize:13, fontWeight:600, color: phase==='playing' ? (isAnswered ? (isRight ? '#D4A017' : '#8B5A2B') : C.muted) : C.muted, fontStyle: phase==='playing' && !isAnswered ?'italic':'normal', textAlign:'center' }}>
-          {phase === 'idle'    && 'Devine ce que veut le client !'}
+          {phase === 'idle'    && (expertMode ? 'Niveau Expert : questions niches !' : 'Devine ce que veut le client !')}
           {phase === 'playing' && !isAnswered && 'Choisis la bonne réponse'}
           {phase === 'playing' && isAnswered && (isRight ? '✓ Bien vu !' : '✗ Raté')}
         </div>

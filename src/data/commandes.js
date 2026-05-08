@@ -1,12 +1,22 @@
 /* ════════════════════════════════════════════════════
    COMMANDES — banque de questions pour GuessGame (PHASE 6C)
    ────────────────────────────────────────────────────
-   30 entrées. Chaque entrée :
+   45 entrées au total :
+   - 30 questions standard (mode normal)
+   - 15 questions DIFFICILES (flag `difficult:true`) — méthodes de
+     préparation niches, pâtisseries rares, distinctions ultra-fines
+     entre boissons proches.
+
+   Mode Expert (joueur niv 7+) : GuessGame ne tire que les questions
+   difficiles. Sinon : seulement les questions standard (compatibilité
+   avec les joueurs débutants).
+
+   Chaque entrée :
    - desc    : description du client (entrée en bulle de dialogue)
    - choices : 4 boissons / pâtisseries proposées
    - answer  : index (0-3) de la bonne réponse dans `choices`
+   - difficult? : flag pour le mode Expert (niv 7+)
 
-   Source : BRIEF_AMELIORATIONS.md > PHASE 6 > 6C.
    À chaque partie, GuessGame tire 5 commandes au hasard, sans
    répétition dans la même partie.
 ═══════════════════════════════════════════════════════ */
@@ -72,4 +82,39 @@ export const COMMANDES = [
     choices:['Donut','Beignet','Macaron','Madeleine'], answer:0 },
   { desc:"Café avec mousse épaisse et crémeuse, très généreuse.",
     choices:['Cappuccino','Latte','Macchiato','Cortado'], answer:0 },
+
+  /* ═══════════ MODE EXPERT (15 questions, flag `difficult:true`) ═══════════
+     Pour les joueurs niveau 7+ uniquement. Distinctions très fines, méthodes
+     rares, vocabulaire spécialisé. */
+
+  { desc:"Méthode japonaise au goutte-à-goutte, dans un cône en porcelaine.",
+    choices:['V60','Chemex','AeroPress','Syphon'], answer:0, difficult:true },
+  { desc:"Méthode à siphon, l'eau monte par pression de vapeur puis redescend.",
+    choices:['Moka','Syphon','Chemex','French Press'], answer:1, difficult:true },
+  { desc:"Méthode infusion + pression manuelle, brevetée par Aerobie.",
+    choices:['V60','AeroPress','Chemex','Cold Brew'], answer:1, difficult:true },
+  { desc:"Espresso australien : ristretto + lait micro-moussé, dans une tasse 150ml.",
+    choices:['Cappuccino','Flat White','Cortado','Latte'], answer:1, difficult:true },
+  { desc:"Café espagnol concentré servi avec un peu de lait condensé sucré.",
+    choices:['Cortado','Café bombón','Café con leche','Carajillo'], answer:1, difficult:true },
+  { desc:"Café cubain au sucre fouetté avec la première extraction d'espresso.",
+    choices:['Café Cubano','Cortado','Café latte','Café au lait'], answer:0, difficult:true },
+  { desc:"Café australien identique à l'Americano mais l'eau est ajoutée AVANT.",
+    choices:['Long Black','Americano','Lungo','Café filtré'], answer:0, difficult:true },
+  { desc:"Espresso doppio versé sur de la glace, bu d'un trait.",
+    choices:['Affogato','Iced Latte','Espresso shakerato','Cold Brew'], answer:2, difficult:true },
+  { desc:"Café vietnamien filtré goutte-à-goutte sur du lait concentré sucré.",
+    choices:['Cà phê sữa đá','Phin','Frappé','Café au lait'], answer:0, difficult:true },
+  { desc:"Pâtisserie portugaise à base de pâte feuilletée et de crème pâtissière brûlée.",
+    choices:['Pastel de nata','Brioche','Beignet','Cannelé'], answer:0, difficult:true },
+  { desc:"Petit gâteau bordelais à la croûte caramélisée, mou à l'intérieur.",
+    choices:['Madeleine','Cannelé','Financier','Sablé'], answer:1, difficult:true },
+  { desc:"Pâtisserie viennoise feuilletée fourrée à la pâte d'amandes ou aux raisins.",
+    choices:['Croissant','Kouign-amann','Strudel','Schnecke'], answer:3, difficult:true },
+  { desc:"Variété d'arabica brésilien, notes chocolatées et corsées.",
+    choices:['Geisha','Bourbon','Typica','Catuai'], answer:1, difficult:true },
+  { desc:"Variété rare panaméenne, notes florales et de bergamote.",
+    choices:['Geisha','Bourbon','SL28','Pacamara'], answer:0, difficult:true },
+  { desc:"Méthode où le café est extrait sous très haute pression dans un percolateur italien.",
+    choices:['Espresso','Moka','Lungo','Filtre'], answer:1, difficult:true },
 ];
