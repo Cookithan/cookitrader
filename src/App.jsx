@@ -952,7 +952,7 @@ export default function CookiMiner() {
     { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies (coût 10🍪)', avail:coins>=10, color:'#A0784E', levelRequired:2 },
     { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc:'5 questions café',          reward:'0 à 100 cookies (coût 5🍪)', avail:coins>=5,  color:'#8B5A2B', levelRequired:3 },
     { id:'reflex',  Icon:Timer,             title:'Réflexes cookies',     desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies (coût 5🍪)', avail:coins>=5, color:'#D4A017', levelRequired:4 },
-    { id:'pyramid', Icon:Cookie,            title:'Pyramide Cookie',      desc:'Empile sans rater',         reward:'10🍪/étage, max 200🍪', avail:true,        color:'#B86A28', levelRequired:7 },
+    { id:'pyramid', Icon:Cookie,            title:'Pyramide Cookie',      desc:'Empile sans rater',         reward:'10🍪/étage, max 200🍪', avail:true,        color:'#B86A28', levelRequired:8 },
   ];
 
   const s = {
