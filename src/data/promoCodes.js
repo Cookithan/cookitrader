@@ -20,7 +20,7 @@
 
 export const PROMO_CODES = {
   'BIENVENUE': { coins: 100,  cafes: 0, label: 'Bienvenue !' },
-  'TOP1':      { coins: 200,  cafes: 0, label: 'Top 1 du classement' },
+  'TOP1':      { coins: 50,   cafes: 0, label: 'Top 1 du classement' },
   'COOKITHAN': { coins: 0,    cafes: 2, label: 'Merci du créateur' },
   'MERCI':     { coins: 50,   cafes: 1, label: 'Petit merci' },
 };
