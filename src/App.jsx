@@ -28,6 +28,7 @@ import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
+import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
@@ -277,6 +278,10 @@ export default function CookiMiner() {
   /* Restauration : null = fermé, 'fresh' = depuis onboarding (pas de
      warning), 'replace' = depuis settings (warning de remplacement). */
   const [restoreMode,      setRestoreMode]      = useState(null);
+  /* Codes promo : tracking des codes déjà utilisés par ce compte
+     pour éviter le double-usage. */
+  const [showPromoCode,    setShowPromoCode]    = useState(false);
+  const [promoCodesUsed,   setPromoCodesUsed]   = useLocalStorage('promoCodesUsed', []);
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
   const { showToast } = useToast();
   /* Ref synchronisée → permet à addCoins (useCallback deps=[]) d'appeler
@@ -953,6 +958,21 @@ export default function CookiMiner() {
 
     window.location.reload();
   }, []);
+
+  /* Validation d'un code promo : crédite cookies/cafés et marque le
+     code comme utilisé. La modale fait elle-même les checks (validité,
+     pas déjà utilisé) — ici on assume que le promo est valide. */
+  const redeemPromoCode = useCallback((promo) => {
+    if(!promo || promoCodesUsed.includes(promo.code)) return;
+    if(promo.coins) addCoins(promo.coins);
+    if(promo.cafes) setCafes(c => c + promo.cafes);
+    setPromoCodesUsed(arr => Array.isArray(arr) ? [...arr, promo.code] : [promo.code]);
+    playSound('success');
+    const parts = [];
+    if(promo.coins) parts.push(`+${promo.coins} 🍪`);
+    if(promo.cafes) parts.push(`+${promo.cafes} ☕`);
+    showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
+  }, [addCoins, setCafes, promoCodesUsed, setPromoCodesUsed, showToast]);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
@@ -1824,8 +1844,19 @@ export default function CookiMiner() {
           onOpenAbout={()=>setShowAbout(true)}
           onOpenRestore={()=>setRestoreMode('replace')}
           onStartNewAccount={handleStartNewAccount}
+          onOpenPromoCode={()=>setShowPromoCode(true)}
           userCode={userCode}
           restorePin={restorePin}
+          C={C}
+        />
+      )}
+
+      {/* PROMO CODE MODAL */}
+      {showPromoCode && (
+        <PromoCodeModal
+          onCancel={()=>setShowPromoCode(false)}
+          onRedeem={redeemPromoCode}
+          usedCodes={Array.isArray(promoCodesUsed) ? promoCodesUsed : []}
           C={C}
         />
       )}

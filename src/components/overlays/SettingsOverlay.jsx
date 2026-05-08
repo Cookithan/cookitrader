@@ -22,7 +22,7 @@ import {
    - L'item premium (applyAs:'theme'/'skin') s'affiche aussi dans son onglet
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, userCode, restorePin, C }) {
+export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, userCode, restorePin, C }) {
 
   /* PIN reveal toggle + feedback copie */
   const [pinRevealed, setPinRevealed] = useState(false);
@@ -390,6 +390,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 padding:'14px 16px',
                 display:'flex', alignItems:'center', justifyContent:'space-between',
                 cursor:'pointer', textAlign:'left',
+                marginBottom:8,
               }}
             >
               <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
@@ -408,6 +409,40 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                   </div>
                   <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
                     Onboarding fresh — l'actuel reste sauvegardé en ligne
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
+            </button>
+          )}
+
+          {onOpenPromoCode && (
+            <button
+              onClick={() => { playSound('modal'); onOpenPromoCode(); }}
+              style={{
+                width:'100%', borderRadius:16,
+                background:C.card, border:`1px solid ${C.border}`,
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.12)',
+                  border:'1px solid rgba(212,160,23,.3)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>
+                  🎟️
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    Code promo
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    Saisis un code distribué par Cookithan
                   </div>
                 </div>
               </div>
