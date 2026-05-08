@@ -82,13 +82,12 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
       return !initialUnlocked.includes(r.id);
     });
   } else {
-    /* PHASE 6E — les items `limited` sont la règle inverse : visibles
-       UNIQUEMENT s'ils sont débloqués (gagnés via événement spécial),
-       avec un badge "Édition limitée". On lit `unlocked` (live) pour
-       les afficher dès la victoire, sans attendre le prochain mount. */
+    /* Les items `limited` (édition limitée gagnés via événements) ne
+       sont JAMAIS dans la boutique — l'utilisateur les retrouve dans
+       Profil/Paramètres pour les équiper. Sortie boutique propre. */
     visible = REWARDS.filter(r => {
       if(r.currency === 'cafe') return false;
-      if(r.limited) return unlocked.includes(r.id);
+      if(r.limited) return false;
       return !initialUnlocked.includes(r.id) && r.levelRequired <= revealedLevel;
     });
   }
