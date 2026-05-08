@@ -28,7 +28,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
   const [history, setHistory] = useState([]);
   const [portfolio, setPortfolio] = useState(null);
   const [dayChange, setDayChange] = useState(0);
-  const [chartRange, setChartRange] = useState(5);  /* minutes — défaut 5m */
+  const [chartRange, setChartRange] = useState(1440);  /* minutes — défaut 24h */
   const [marketStatus, setMarketStatus] = useState(() => getMarketStatus());
   const [welcomeSeen, setWelcomeSeen] = useLocalStorage('marketWelcomeSeen', false);
   const [showWelcome, setShowWelcome] = useState(!welcomeSeen);

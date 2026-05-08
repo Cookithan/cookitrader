@@ -2,15 +2,13 @@
    MarketChart — courbe SVG des prix sur la fenêtre choisie
    - history       : [{ price, recorded_at }, ...] trié chronologiquement
                       (déjà filtré server-side selon range)
-   - range         : minutes (1 / 5 / 60 / 1440)
+   - range         : minutes (60 / 1440)
    - onRangeChange : callback pour changer la fenêtre
    - Couleur courbe : caramel (#D4A017) si trend haussier sur la fenêtre,
                        moka (#7D4E1F) sinon. Pas de rouge / vert.
 ═══════════════════════════════════════════════════════ */
 
 const RANGES = [
-  { id: 1,    label: '1m'  },
-  { id: 5,    label: '5m'  },
   { id: 60,   label: '1h'  },
   { id: 1440, label: '24h' },
 ];
