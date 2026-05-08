@@ -69,7 +69,18 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
 
   let visible;
   if(mode === 'premium'){
-    visible = REWARDS.filter(r => r.currency === 'cafe' && !initialUnlocked.includes(r.id));
+    visible = REWARDS.filter(r => {
+      if(r.currency !== 'cafe') return false;
+      /* Filtres par niveau (utilisés par les Jetons VIP) :
+         - levelRequired : niveau minimum pour voir l'item
+         - levelMax      : niveau maximum (au-dessus, l'item est caché) */
+      if(r.levelRequired && level < r.levelRequired) return false;
+      if(r.levelMax && level > r.levelMax) return false;
+      /* Items consommables (applyAs='spin_pass') : toujours visibles
+         tant qu'ils passent les filtres niveau, peu importe initialUnlocked. */
+      if(r.applyAs === 'spin_pass') return true;
+      return !initialUnlocked.includes(r.id);
+    });
   } else {
     /* PHASE 6E — les items `limited` sont la règle inverse : visibles
        UNIQUEMENT s'ils sont débloqués (gagnés via événement spécial),
