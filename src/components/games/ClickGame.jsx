@@ -91,8 +91,8 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
       // eslint-disable-next-line no-console
       console.warn('[anticheat] Cheat detected:', trackerRef.current.cheatReason);
     }
-    /* PHASE 6E — challenge click_50 : 50 clics ou plus en 5s */
-    onEventChallenge?.('click_50', finalClicks);
+    /* Event 'click_sprint' : 60 clics ou plus en une partie */
+    onEventChallenge?.('click_sprint', finalClicks);
   };
 
   const startGame = () => {

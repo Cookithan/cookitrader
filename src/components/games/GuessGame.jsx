@@ -77,7 +77,7 @@ function pickCustomerIndices(n, max){
   return all.slice(0, n);
 }
 
-export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, C }){
   /* Niveau 10+ : 8 questions par partie au lieu de 5, pour le même
      palier de récompense (= plus exigeant, pas plus rentable). */
   const NB_QUESTIONS = level >= 10 ? 8 : 5;
@@ -162,6 +162,8 @@ export function GuessGame({ coins, onEarn, onSpend, level = 1, C }){
         const finalScore = score + (isRight ? 1 : 0);
         const earned = rewardFor(finalScore, NB_QUESTIONS);
         if(earned > 0) onEarn(earned);
+        /* Event 'guess_perfect' : succès si toutes les questions correctes */
+        if(finalScore === NB_QUESTIONS) onEventChallenge?.('guess_perfect', 1);
         setPhase('done');
       } else {
         setQIndex(nextIdx);

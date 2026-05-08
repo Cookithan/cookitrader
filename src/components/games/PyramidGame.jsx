@@ -32,7 +32,7 @@ const COST = 10;
 const REWARD_PER_FLOOR = 5;
 const MAX_REWARD = 100;
 
-export function PyramidGame({ coins, onEarn, onSpend, C }){
+export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   const [phase,     setPhase]     = useState('idle');   /* idle | playing | over */
   const [stack,     setStack]     = useState([]);
   const [moverX,    setMoverX]    = useState(0);
@@ -151,10 +151,12 @@ export function PyramidGame({ coins, onEarn, onSpend, C }){
     }
   };
 
-  /* Verse les cookies à la fin */
+  /* Verse les cookies à la fin + check de l'event modéré */
   useEffect(() => {
-    if(phase === 'over' && earned > 0){
-      onEarn?.(earned);
+    if(phase === 'over'){
+      if(earned > 0) onEarn?.(earned);
+      /* Event 'pyramid_floors' : succès si 15 étages ou plus */
+      onEventChallenge?.('pyramid_floors', score);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);

@@ -17,7 +17,7 @@ const GOLD_MIN  = 90;
 const PERFECT   = 100;
 const OVERFLOW  = 105;
 
-export function PourGame({ onEarn, onSpend, C }) {
+export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
   const [fillPct,     setFillPct]     = useState(0);
   const [holding,     setHolding]     = useState(false);
   const [gameOver,    setGameOver]    = useState(false);
@@ -67,6 +67,8 @@ export function PourGame({ onEarn, onSpend, C }) {
       setResult({ type:'perfect', title:'⭐ Parfait absolu !', sub:'+15 🍪 gagnés' });
       showFeedback('+15 🍪', '#C8960C');
       playSound('success');
+      /* Event 'pour_perfect' : succès si parfait absolu (zone PERFECT) */
+      onEventChallenge?.('pour_perfect', 1);
     } else if(pct >= GOLD_MIN){
       setParfaits(p => p + 1);
       onEarn(6);

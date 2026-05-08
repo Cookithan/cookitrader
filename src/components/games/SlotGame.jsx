@@ -46,7 +46,7 @@ function symIcon(id){
   return SYMBOLS.find(s => s.id === id)?.icon ?? '?';
 }
 
-export function SlotGame({ coins, onEarn, onSpend, C }){
+export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   const [reels,    setReels]    = useState(['🍪', '☕', '🥐']);
   const [stopped,  setStopped]  = useState([true, true, true]);
   const [spinning, setSpinning] = useState(false);
@@ -138,6 +138,8 @@ export function SlotGame({ coins, onEarn, onSpend, C }){
       } else {
         playSound('error');
       }
+      /* Event 'slot_three' : succès si combo 3-same (n'importe quel symbole) */
+      if(maxCount === 3) onEventChallenge?.('slot_three', 1);
     }, LOCK_DELAYS[2] + 100);
     timeoutsRef.current.push(tEnd);
   };

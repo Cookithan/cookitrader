@@ -45,8 +45,12 @@ export const MAX_ATTEMPTS        = 3;
 
 /* Chaque event verse aussi un bonus en café (cafeBonus). Ajouté à
    reward — consommé dans App.jsx::checkEventChallenge et affiché
-   par EventAnnounceModal (teasing) et EventRewardModal (récap). */
+   par EventAnnounceModal (teasing) et EventRewardModal (récap).
+
+   3 events historiques (thèmes) + 7 events modérés (badges) =
+   10 récompenses à collectionner pour la check Légende Vivante. */
 export const SPECIAL_EVENTS = [
+  /* ─── 3 events thèmes (originaux) ─── */
   {
     id: 'event_jackpot',
     title: '🎰 Tour Spécial Roue !',
@@ -68,6 +72,57 @@ export const SPECIAL_EVENTS = [
     challenge: 'streak_check',
     reward: { type:'theme', id:'theme_flamme', name:'Thème Flamme Vivante', cafeBonus:1 },
     attempts: 1,
+  },
+
+  /* ─── 7 events badges (modérés, ajoutés 09/05/2026) ─── */
+  {
+    id: 'event_pour_perfect',
+    title: '🎯 Concentration Maximale !',
+    description: 'Atteins un score parfait (15 🍪) à "Stop le Café" !',
+    challenge: 'pour_perfect',
+    reward: { type:'badge', id:'badge_tireur', name:'Badge Tireur', cafeBonus:1 },
+  },
+  {
+    id: 'event_quiz_perfect',
+    title: '🧠 Esprit Aiguisé !',
+    description: 'Réponds correctement à toutes les questions du Quiz du jour !',
+    challenge: 'quiz_perfect',
+    reward: { type:'badge', id:'badge_cerveau', name:'Badge Cerveau', cafeBonus:1 },
+  },
+  {
+    id: 'event_guess_perfect',
+    title: '📚 Maître Barista !',
+    description: 'Devine toutes les commandes (5/5 ou 8/8) à "Devine la commande" !',
+    challenge: 'guess_perfect',
+    reward: { type:'badge', id:'badge_erudit', name:'Badge Érudit', cafeBonus:1 },
+  },
+  {
+    id: 'event_click_sprint',
+    title: '⚡ Sprinter Cookie !',
+    description: 'Atteins 60 clics ou plus au Cookie Click en une partie !',
+    challenge: 'click_sprint',
+    reward: { type:'badge', id:'badge_sprinter', name:'Badge Sprinter', cafeBonus:1 },
+  },
+  {
+    id: 'event_pyramid_15',
+    title: '🏗️ Architecte du Café !',
+    description: 'Empile 15 tasses ou plus à "Pile de Tasses" !',
+    challenge: 'pyramid_floors',
+    reward: { type:'badge', id:'badge_architecte', name:'Badge Architecte', cafeBonus:1 },
+  },
+  {
+    id: 'event_slot_three',
+    title: '💰 Tirelire Pleine !',
+    description: 'Aligne 3 symboles identiques à la Machine à Sous !',
+    challenge: 'slot_three',
+    reward: { type:'badge', id:'badge_tirelire', name:'Badge Tirelire', cafeBonus:1 },
+  },
+  {
+    id: 'event_reflex_pro',
+    title: '🦅 Œil de Lynx !',
+    description: 'Atteins un score de 20 ou plus à "Réflexes cookies" !',
+    challenge: 'reflex_score',
+    reward: { type:'badge', id:'badge_aigle', name:'Badge Aigle', cafeBonus:1 },
   },
 ];
 

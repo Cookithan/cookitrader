@@ -973,6 +973,14 @@ export default function CookiMiner() {
     if(type === 'spin_jackpot')   success = value >= 200;
     if(type === 'market_profit')  success = value >= 100;   // +100 🍪 PnL en 1 vente
     if(type === 'streak_check')   success = value >= 5;     // 5 jours consécutifs
+    /* 7 events modérés */
+    if(type === 'pour_perfect')   success = value >= 1;     // binaire : 1 si parfait
+    if(type === 'quiz_perfect')   success = value >= 1;     // binaire
+    if(type === 'guess_perfect')  success = value >= 1;     // binaire
+    if(type === 'click_sprint')   success = value >= 60;    // clics en une partie
+    if(type === 'pyramid_floors') success = value >= 15;    // étages empilés
+    if(type === 'slot_three')     success = value >= 1;     // binaire (3-same)
+    if(type === 'reflex_score')   success = value >= 20;    // score reflex
 
     if(success){
       setUnlocked(u => u.includes(ev.reward.id) ? u : [...u, ev.reward.id]);
@@ -1564,7 +1572,7 @@ export default function CookiMiner() {
                                   {endGamePrereqs.secretOk ? '✓' : '○'} {endGamePrereqs.secretDone}/{endGamePrereqs.secretTotal} badges secrets
                                 </div>
                                 <div style={{ color: endGamePrereqs.eventOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.eventOk ? '✓' : '○'} {endGamePrereqs.eventDone}/{endGamePrereqs.eventTotal} thèmes événements
+                                  {endGamePrereqs.eventOk ? '✓' : '○'} {endGamePrereqs.eventDone}/{endGamePrereqs.eventTotal} récompenses événements
                                 </div>
                               </div>
                             )}

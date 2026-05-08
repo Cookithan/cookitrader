@@ -44,7 +44,7 @@ function rewardFor(score){
   return 0;
 }
 
-export function ReflexGame({ coins, onEarn, onSpend, C }){
+export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   const [phase,         setPhase]         = useState('idle');     // idle | countdown | playing | done
   const [score,         setScore]         = useState(0);
   const [timeLeft,      setTimeLeft]      = useState(REFLEX_DURATION);
@@ -119,8 +119,11 @@ export function ReflexGame({ coins, onEarn, onSpend, C }){
     if(respawnRef.current)  clearTimeout(respawnRef.current);
     setCookie(null);
     setPhase('done');
-    const earned = rewardFor(scoreRef.current);
+    const finalScore = scoreRef.current;
+    const earned = rewardFor(finalScore);
     if(earned > 0) onEarn(earned);
+    /* Event 'reflex_score' : succès si score >= 20 */
+    onEventChallenge?.('reflex_score', finalScore);
   };
 
   const startGame = () => {

@@ -154,13 +154,13 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     if(step + 1 >= qIndices.length){
       setAllDone(true);
       onDone();
-      /* PHASE 6E — challenge quiz_perfect : ne s'applique QU'aux quiz
-         Expert (les niveaux Facile/Moyen ne comptent pas pour l'event).
-         Succès si toutes les questions sont bonnes. setCorrectCount est
-         asynchrone donc on cumule le dernier hit en argument. */
-      if(chosenDifficulty === 'Expert'){
-        const finalCorrect = correctCount + (lastWasCorrect ? 1 : 0);
-        onEventChallenge?.('quiz_perfect', finalCorrect);
+      /* Event 'quiz_perfect' : succès uniquement si TOUTES les
+         questions (3/3) sont bonnes — peu importe le niveau de
+         difficulté choisi. setCorrectCount est asynchrone donc on
+         cumule le dernier hit en argument. */
+      const finalCorrect = correctCount + (lastWasCorrect ? 1 : 0);
+      if(finalCorrect === QUIZ_QUESTIONS_PER_SESSION){
+        onEventChallenge?.('quiz_perfect', 1);
       }
     } else {
       setStep(s=>s+1);
