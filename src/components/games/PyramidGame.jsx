@@ -114,8 +114,12 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
     if(coins < COST_TO_PLAY) return;
     onSpend(COST_TO_PLAY);
 
-    setStackedCups([]);
-    stackedRef.current = [];
+    /* Base de départ : une tasse posée au centre comme repère visuel.
+       Elle ne compte PAS dans le score (qui représente les tasses
+       posées par le joueur). */
+    const baseCup = { x: 0, width: INITIAL_CUP_WIDTH };
+    setStackedCups([baseCup]);
+    stackedRef.current = [baseCup];
     setScore(0); scoreRef.current = 0;
     setReward(0);
     setComboBonus(false);
