@@ -966,6 +966,14 @@ export default function CookiMiner() {
      Async car shares passe par Supabase. */
   const redeemPromoCode = useCallback(async (promo) => {
     if(!promo || promoCodesUsed.includes(promo.code)) return;
+    /* Mode admin : pas de codes promo (cohérent avec trading désactivé,
+       pas de badges/succès attribués). Évite que CMK1 file des actions
+       à un compte test. */
+    const isAdmin = (userName || '').trim().toLowerCase() === ADMIN_NAME;
+    if(isAdmin){
+      showToast(`🛠️ Mode admin — codes promo désactivés`);
+      return;
+    }
     /* Crédit shares en premier (peut échouer si Supabase off) */
     if(promo.shares){
       const res = await creditFreeShares(userCode, promo.shares);
@@ -981,9 +989,9 @@ export default function CookiMiner() {
     const parts = [];
     if(promo.coins)  parts.push(`+${promo.coins} 🍪`);
     if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
-    if(promo.shares) parts.push(`+${promo.shares} action$CKM`.replace('action$CKM', `action${promo.shares > 1 ? 's' : ''} $CKM`));
+    if(promo.shares) parts.push(`+${promo.shares} action${promo.shares > 1 ? 's' : ''} $CKM`);
     showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
-  }, [addCoins, setCafes, promoCodesUsed, setPromoCodesUsed, showToast, userCode]);
+  }, [addCoins, setCafes, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
