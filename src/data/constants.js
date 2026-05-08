@@ -113,7 +113,7 @@ export const REWARDS = [
   { id:'music_royale', name:'Symphonie Royale',     desc:'Musique classique baroque', cost:2000, type:'Musique', emoji:'💎', levelRequired:5 },
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
-  { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Dernier Succès Caché',  desc:'Révèle un succès secret',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:1 },
+  { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Révéler le Succès Café',  desc:'Débloque la visibilité du succès secret',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:1 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },
   { id:'music_lofi',     currency:'cafe', applyAs:'music',       name:'Musique Lofi Hip-Hop', desc:'Ambiance étudiant chill',      cost:3,  type:'Premium', emoji:'🎵', levelRequired:1 },
 ];
@@ -130,8 +130,8 @@ export const ACHIEVEMENTS = [
   { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau 10 — Éternel',     emoji:'♾️', bonus:200, cafesBonus:5 },
   { id:'level_15',       name:'Cookie Originel !',  desc:'Tu as atteint le niveau maximum',          emoji:'🌌', bonus:500, cafesBonus:10 },
   { id:'trader',         name:'Trader !',           desc:'Tu as investi 500 cookies en $CKM',        emoji:'💹', bonus:40  },
-  /* Caché : ne s'affiche que si l'utilisateur a acheté "Dernier Succès Caché" en boutique premium */
-  { id:'master_succes',  name:'Maître Des Succès',  desc:'Tu as tout débloqué',                       emoji:'🎖️', bonus:200, cafesBonus:10, hidden:true },
+  /* Caché : ne s'affiche que si l'utilisateur a acheté "Révéler le Succès Café" en boutique premium */
+  { id:'master_succes',  name:'Succès Café',        desc:'Tu as tout débloqué',                       emoji:'🎖️', bonus:200, cafesBonus:10, hidden:true },
   /* Apex final : niveau 15 atteint + tous les autres succès visibles débloqués.
      Si l'utilisateur a acheté reveal_master, il doit aussi avoir master_succes. */
   { id:'end_game',       name:'Légende Vivante !',  desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:25 },

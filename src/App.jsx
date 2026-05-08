@@ -1137,15 +1137,14 @@ export default function CookiMiner() {
        le mériter :
        1. Niveau 15 (max)
        2. Tous les autres succès visibles gagnés
-       3. Boutique 100 % complétée (tous items en 🍪, hors limited)
-       4. Les 3 badges secrets débloqués
-       5. Les 3 thèmes événements débloqués (édition limitée)
-       master_succes compte uniquement s'il est visible (reveal_master acheté). */
+       3. Le Succès Café (master_succes) — implique d'acheter "Révéler le
+          Succès Café" en boutique premium (7 ☕) puis de compléter tous
+          les autres succès pour qu'il se déclenche.
+       4. Boutique 100 % complétée (tous items en 🍪, hors limited)
+       5. Les 3 badges secrets débloqués
+       6. Les 3 thèmes événements débloqués (édition limitée) */
     const endGamePrereqIds = ACHIEVEMENTS
-      .filter(a =>
-        a.id !== 'end_game' &&
-        (!a.hidden || (a.id === 'master_succes' && masterRevealed))
-      )
+      .filter(a => a.id !== 'end_game')
       .map(a => a.id);
     const allEndGameAchievementsDone = endGamePrereqIds.every(id => earnedAchievements.includes(id));
 
@@ -1425,11 +1424,14 @@ export default function CookiMiner() {
                          ce qu'il lui manque. */
                       let endGamePrereqs = null;
                       if(isEndGame && !got){
+                        /* Compteur "autres succès" hors master_succes —
+                           ce dernier a sa propre ligne dans la checklist
+                           car il dépend d'un achat premium spécifique. */
                         const succesList = ACHIEVEMENTS.filter(x =>
-                          x.id !== 'end_game' &&
-                          (!x.hidden || (x.id === 'master_succes' && masterRevealed))
+                          x.id !== 'end_game' && x.id !== 'master_succes'
                         );
                         const succesDone = succesList.filter(p => earnedAchievements.includes(p.id)).length;
+                        const masterDone = earnedAchievements.includes('master_succes');
                         const shopList = REWARDS.filter(r => r.currency !== 'cafe' && !r.limited);
                         const shopDone = shopList.filter(r => unlocked.includes(r.id)).length;
                         const secretList = Object.values(SECRET_BADGES);
@@ -1440,6 +1442,7 @@ export default function CookiMiner() {
                           levelOk:    level >= 15,
                           succesDone, succesTotal: succesList.length,
                           succesOk:   succesDone === succesList.length,
+                          masterOk:   masterDone,
                           shopDone,   shopTotal:   shopList.length,
                           shopOk:     shopDone === shopList.length,
                           secretDone, secretTotal: secretList.length,
@@ -1537,6 +1540,9 @@ export default function CookiMiner() {
                                 </div>
                                 <div style={{ color: endGamePrereqs.succesOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès
+                                </div>
+                                <div style={{ color: endGamePrereqs.masterOk ? apexCheckColor : apexUncheckColor }}>
+                                  {endGamePrereqs.masterOk ? '✓' : '○'} Succès Café (premium ☕)
                                 </div>
                                 <div style={{ color: endGamePrereqs.shopOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.shopOk ? '✓' : '○'} {endGamePrereqs.shopDone}/{endGamePrereqs.shopTotal} items boutique 🍪
