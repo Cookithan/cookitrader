@@ -29,7 +29,7 @@ export const LEVEL_NAMES = [
   'Alchimiste du Cookie',       // 12
   'Gardien des Saveurs',        // 13 — débloque la Machine à Sous
   'Phoenix du Café',            // 14
-  'Avatar du Cookie Originel',  // 15 — niveau max, endgame XP→☕ démarre ici
+  'Cookie Originel',            // 15 — niveau max, endgame XP→☕ démarre ici
 ];
 
 /* XP requise dans le niveau `level` pour passer à `level+1`.

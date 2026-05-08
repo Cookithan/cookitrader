@@ -76,7 +76,7 @@ Avant toute modification visuelle (palette, thème, ajout d'écran), lis `DESIGN
 |---|---|---|---|
 | `coins` | number | `0` | Monnaie active (jamais négative) |
 | `totalEarned` | number | `0` | Total cumulé (n'est jamais dépensé) — sert au stat affiché sur la carte niveau |
-| `level` | number | `1` | Niveau actuel, max 15 (Avatar du Cookie Originel) |
+| `level` | number | `1` | Niveau actuel, max 15 (Cookie Originel) |
 | `xp` | number | `0` | XP dans le niveau courant. Seuil = `level * 100 + 50` (niv 1 → 150, niv 2 → 250, etc.) |
 | `streak` | number | `0` | Jours consécutifs de check-in |
 | `clickRecord` | number | `0` | Meilleur score au défi de clics |
