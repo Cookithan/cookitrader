@@ -705,6 +705,60 @@ export async function sendGift(senderCode, recipientCode, giftType, currentBalan
   }
 }
 
+/* ════════════════════════════════════════════════════
+   STATS GLOBALES COMMUNAUTÉ (BRIEF_A_PROPOS phase 2)
+   ────────────────────────────────────────────────────
+   Snapshot temps réel de la communauté affiché dans la modale
+   "À propos". 4 stats côté UI :
+     · userCount             — nb de joueurs (Admin exclu, cohérent avec
+                               le reste du fichier)
+     · totalCookiesEarned    — somme des total_earned
+     · friendshipsCount      — nb d'amitiés acceptées /2 (bilatéral)
+     · transactionsCount     — nb de transactions $CKM (table optionnelle)
+
+   Tout est best-effort : si une table n'existe pas → 0, pas de crash.
+═══════════════════════════════════════════════════════ */
+export async function getGlobalCommunityStats(){
+  if(!isSupabaseEnabled()) return null;
+  try{
+    const [userCountR, sumR, friendsR, txR] = await Promise.all([
+      supabase
+        .from('users')
+        .select('*', { count:'exact', head:true })
+        .not('user_name', 'ilike', 'admin123'),
+      supabase
+        .from('users')
+        .select('total_earned')
+        .not('user_name', 'ilike', 'admin123'),
+      supabase
+        .from('friendships')
+        .select('*', { count:'exact', head:true })
+        .eq('status', 'accepted'),
+      supabase
+        .from('market_transactions')
+        .select('*', { count:'exact', head:true })
+        .then(r => r, () => ({ count:0 })),
+    ]);
+
+    const totalCookiesEarned = (sumR?.data ?? []).reduce(
+      (acc, u) => acc + (Number(u.total_earned) || 0),
+      0,
+    );
+
+    return {
+      userCount:           userCountR?.count ?? 0,
+      totalCookiesEarned,
+      /* Chaque amitié acceptée existe en double (A→B + B→A) → /2 pour
+         afficher le nb réel de paires d'amis. */
+      friendshipsCount:    Math.floor((friendsR?.count ?? 0) / 2),
+      transactionsCount:   txR?.count ?? 0,
+    };
+  }catch(e){
+    console.warn('[stats] getGlobalCommunityStats error:', e);
+    return null;
+  }
+}
+
 export async function upsertProfile(p){
   if(!isSupabaseEnabled()) return { ok:false, reason:'disabled' };
   try{
