@@ -12,7 +12,7 @@ import { AvatarFigure } from "../AvatarFigure.jsx";
    - Le code dev "cookithan" (dans CookiMiner > setShowOnboarding) accorde un bonus
 ═══════════════════════════════════════════════════════ */
 
-export function OnboardingModal({ onComplete, C }) {
+export function OnboardingModal({ onComplete, onRestore, C }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(null);
@@ -65,6 +65,18 @@ export function OnboardingModal({ onComplete, C }) {
             <button onClick={()=>setStep(1)} disabled={!trimmed} style={goldBtn(!trimmed)}>
               Suivant →
             </button>
+            {onRestore && (
+              <button
+                onClick={onRestore}
+                style={{
+                  marginTop:12, background:'transparent', border:'none',
+                  fontSize:12.5, color:C.muted, fontWeight:700,
+                  textDecoration:'underline', cursor:'pointer', padding:6,
+                }}
+              >
+                J'ai déjà un compte
+              </button>
+            )}
           </div>
         )}
 

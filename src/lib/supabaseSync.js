@@ -706,6 +706,91 @@ export async function sendGift(senderCode, recipientCode, giftType, currentBalan
 }
 
 /* ════════════════════════════════════════════════════
+   RESTAURATION DE PROFIL (BRIEF_RESTAURATION)
+   ────────────────────────────────────────────────────
+   Récupère un profil + ses amitiés + son portfolio depuis Supabase
+   pour le réinjecter dans localStorage côté client.
+
+   ⚠️ Scope minimal (par décision user) : la table `users` n'a pas
+   de colonnes `cafes`, `xp`, ni `unlocked` complet — seul `badges`
+   (sous-ensemble de unlocked) est syncé. Donc à la restauration :
+     · Cafés → 0 (perdus)
+     · XP → 0 (le niveau est restauré, l'XP repart à 0 dans le palier)
+     · Items premium NON-badges (thèmes, avatars premium, musiques,
+       skins, roues, banners) → perdus
+   Si l'utilisateur veut un jour la restauration complète : ajouter
+   3 colonnes à users + étendre upsertProfile.
+═══════════════════════════════════════════════════════ */
+export async function restoreProfile(userCode){
+  if(!isSupabaseEnabled()) return { error:'Hors ligne' };
+  if(!userCode || !/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(userCode)){
+    return { error:'Format invalide (ex : B4R-1ST)' };
+  }
+
+  try{
+    /* 1. Profil principal */
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('user_code', userCode)
+      .maybeSingle();
+    if(error){ notifySupabaseError(); return { error:'Erreur réseau' }; }
+    if(!user) return { error:"Ce code n'existe pas" };
+
+    /* 2. Badges débloqués → liste d'IDs (la colonne `badges` est
+          comma-separated, cf. upsertProfile). Vide → []. */
+    const unlockedFromBadges = (user.badges || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    /* 3. Amitiés acceptées (best-effort, ne bloque pas la restauration) */
+    let friendCodes = [];
+    try{
+      const { data: links } = await supabase
+        .from('friendships')
+        .select('friend_code')
+        .eq('user_id', user.id)
+        .eq('status', 'accepted');
+      friendCodes = (links || []).map(l => l.friend_code).filter(Boolean);
+    }catch{ /* table absente / RLS */ }
+
+    /* 4. Portfolio marché (best-effort) */
+    let portfolio = null;
+    try{
+      const { data: p } = await supabase
+        .from('market_portfolio')
+        .select('shares, invested_total')
+        .eq('user_code', userCode)
+        .maybeSingle();
+      if(p) portfolio = { shares: Number(p.shares) || 0, invested: Number(p.invested_total) || 0 };
+    }catch{ /* table absente */ }
+
+    return {
+      success:true,
+      data:{
+        userCode:    user.user_code,
+        userName:    user.user_name || '',
+        userAvatar:  user.user_avatar ?? '0',
+        userBio:     user.user_bio || '',
+        level:       Number(user.level) || 1,
+        cookies:     Number(user.cookies) || 0,
+        totalEarned: Number(user.total_earned) || 0,
+        streak:      Number(user.streak) || 0,
+        unlocked:    unlockedFromBadges,
+        joinDate:    user.join_date || null,
+        friendCodes,
+        portfolio,
+      },
+    };
+  }catch(e){
+    console.warn('[restoreProfile] error:', e);
+    notifySupabaseError();
+    return { error:'Erreur réseau' };
+  }
+}
+
+/* ════════════════════════════════════════════════════
    STATS GLOBALES COMMUNAUTÉ (BRIEF_A_PROPOS phase 2)
    ────────────────────────────────────────────────────
    Snapshot temps réel de la communauté affiché dans la modale
