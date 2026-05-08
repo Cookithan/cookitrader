@@ -6,16 +6,27 @@ import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 /* ════════════════════════════════════════════════════
    ClickGame — défi de clics 5s
    - COST = 5 cookies pour démarrer
-   - Reward = floor(clicks / 2) cookies (pas de bonus si clicks impair)
+   - Reward = floor(clicks / 2) cookies, plafonné à MAX_REWARD
    - Phases : idle → countdown (3,2,1,GO) → playing (5s) → done
    - Combos visuels : 5 taps rapides = x2, 12 = x3, 20 = x4 (pas d'effet sur reward)
    - Si clicks > bestScore : confettis + onUpdateRecord
    - Si activeSkin est défini et présent dans COOKIE_SKINS : on utilise SkinnedCookie
      sinon on retombe sur PremiumCookie (par défaut)
+
+   Anti auto-clicker (2 verrous) :
+   1. Throttle MIN_TAP_INTERVAL_MS — un tap < 50 ms après le précédent
+      est ignoré (pas de comptage, pas d'animation). Cap technique à
+      ~20 CPS = 100 clics / 5 s. Un humain expert (~13 CPS) reste libre.
+   2. MAX_REWARD = 100 🍪 — cap dur sur les cookies versés, défense en
+      profondeur si un exploit contourne le throttle (ex : devtools
+      forçant clickRef). Le compteur de clics et le record affichés
+      restent réels, seule la récompense est plafonnée.
 ═══════════════════════════════════════════════════════ */
 
 export const CLICK_DURATION = 5;
 export const CLICK_COST = 5;
+const MIN_TAP_INTERVAL_MS = 50;
+const MAX_REWARD = 100;
 
 export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
@@ -44,6 +55,14 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     if(countdownRef.current) clearInterval(countdownRef.current);
   },[]);
 
+  /* Sanitisation : un record antérieur > MAX_REWARD (stocké en
+     localStorage avant l'introduction du cap) est ramené à 100 dès
+     l'ouverture du jeu, sinon le compteur affiché serait capé à 100
+     mais aucun "nouveau record" ne pourrait plus être déclenché. */
+  useEffect(() => {
+    if(bestScore > MAX_REWARD) onUpdateRecord(MAX_REWARD);
+  }, [bestScore, onUpdateRecord]);
+
   /* Combo reset visuel */
   useEffect(()=>{
     if(!combo) return;
@@ -61,10 +80,14 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   const endGame = () => {
     setPhase('done');
     const finalClicks = clickRef.current;
-    const earned = Math.floor(finalClicks / 2);
+    const earned = Math.min(MAX_REWARD, Math.floor(finalClicks / 2));
     if(earned > 0) onEarn(earned);
-    if(finalClicks > bestScore){
-      onUpdateRecord(finalClicks);
+    /* Record plafonné à MAX_REWARD : une fois à 100, le test
+       newRecord > bestScore renvoie 100 > 100 = false, donc plus
+       jamais d'update — le record se fige. */
+    const newRecord = Math.min(MAX_REWARD, finalClicks);
+    if(newRecord > bestScore){
+      onUpdateRecord(newRecord);
       setRecordHit(true);
       setShowConfetti(true);
       setTimeout(()=>setShowConfetti(false), 1500);
@@ -119,13 +142,21 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   const handleTap = (e) => {
     if(phase !== 'playing') return;
     if(e && e.preventDefault) e.preventDefault();
+
+    /* Throttle anti auto-clicker : un tap < 50 ms après le précédent
+       est ignoré côté gameplay ET côté animation. lastTapRef n'est mis
+       à jour que par les taps validés, donc 2 taps successifs séparés
+       de 30 ms ne passent qu'une fois. */
+    const now = Date.now();
+    if(now - lastTapRef.current < MIN_TAP_INTERVAL_MS) return;
+
     clickRef.current += 1;
     setClicks(c => c + 1);
     setPressed(true);
     setTimeout(()=>setPressed(false), 80);
 
     /* Particle */
-    const id = Date.now() + Math.random();
+    const id = now + Math.random();
     const tx = (Math.random() - 0.5) * 80;
     setParticles(p => [...p, { id, tx }]);
     setTimeout(()=>setParticles(p => p.filter(x => x.id !== id)), 800);
@@ -135,7 +166,6 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     setTimeout(()=>setRings(r => r.filter(x => x !== id)), 550);
 
     /* Combo */
-    const now = Date.now();
     if(now - lastTapRef.current < 250){
       comboCountRef.current++;
       if(comboCountRef.current === 5)  setCombo({ text:'x2 🔥', key: now });
@@ -158,8 +188,9 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   : phase === 'playing'   ? '🍪 Tape !'
   :                         `Rejouer (${CLICK_COST} 🍪)`;
 
-  /* Bannière de fin */
-  const earnedFinal = Math.floor(clicks / 2);
+  /* Bannière de fin — même cap que endGame, sinon l'écran promet
+     plus que ce qui a été crédité. */
+  const earnedFinal = Math.min(MAX_REWARD, Math.floor(clicks / 2));
   const cps = (clicks / CLICK_DURATION).toFixed(1);
   const banner = phase === 'done'
     ? (recordHit
@@ -191,7 +222,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
           style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${recordHit?'#D4A017':C.border}`, textAlign:'center', boxShadow: recordHit?'0 0 16px rgba(212,160,23,.5)':'0 2px 8px rgba(0,0,0,.04)', transition:'all .25s', animation: recordHit ? 'recordPulse 1s ease-in-out infinite' : 'none' }}
         >
           <div style={{ fontSize:11 }}>🏆</div>
-          <div style={{ fontSize:22, fontWeight:900, color: recordHit?'#D4A017':C.text, letterSpacing:'-.5px', lineHeight:1.1 }}>{Math.max(bestScore, recordHit?clicks:0)}</div>
+          <div style={{ fontSize:22, fontWeight:900, color: recordHit?'#D4A017':C.text, letterSpacing:'-.5px', lineHeight:1.1 }}>{Math.min(MAX_REWARD, Math.max(bestScore, recordHit?clicks:0))}</div>
           <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Record</div>
         </div>
       </div>
