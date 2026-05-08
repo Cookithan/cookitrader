@@ -7,6 +7,7 @@ import {
   getMarketLeaderboard, getMyMarketRank, getMarketTraderCount, getMarketState,
 } from "../../lib/market.js";
 import { getNameStyle } from "../../utils/legend.js";
+import { isAdminName } from "../../utils/admin.js";
 
 /* ════════════════════════════════════════════════════
    ClassementTab — 2 classements en un seul onglet
@@ -50,7 +51,7 @@ function saveCache(key, payload){
 
 export function ClassementTab({ userCode, userName, userAvatar, earnedAchievements, onOpenProfile, onOpenUserProfile, C }){
   const enabled = isSupabaseEnabled();
-  const isAdmin = (userName || '').trim().toLowerCase() === 'admin558';
+  const isAdmin = isAdminName(userName);
   const [mode, setMode] = useState('cookies'); /* 'cookies' | 'market' */
 
   /* Cas Supabase off : placeholder, pas de bots fictifs */

@@ -30,6 +30,7 @@ import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares } from "./lib/market.js";
+import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
@@ -91,9 +92,11 @@ import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from 
    - 10 000 – 999 999 : "12K" ou "12.3K" selon précision
    - 1 000 000+ : "1.2M"
    Le tooltip natif (title="...") affiche la valeur exacte. */
-/* Pseudo dev — un seul endroit à changer pour rebaptiser le mode admin.
-   Comparaison case-insensitive partout (toLowerCase à l'usage). */
-const ADMIN_NAME = 'admin558';
+/* Pseudos dev — comparaison via isAdminName() de utils/admin.js
+   (accepte 'admin123' et 'admin558' case-insensitive). ADMIN_NAME
+   reste défini pour l'onboarding (pseudo de référence) mais les checks
+   utilisent isAdminName() qui accepte les 2. */
+const ADMIN_NAME = ADMIN_NAMES[0];
 
 function fmtCompact(n){
   if(n < 10_000) return String(n);
@@ -751,7 +754,7 @@ export default function CookiMiner() {
      compte de test pur, sans pollution du système d'unlocks. */
   useEffect(() => {
     if(!userName || showOnboarding) return;
-    const isAdmin = (userName || '').trim().toLowerCase() === ADMIN_NAME;
+    const isAdmin = isAdminName(userName);
     if(isAdmin) return;  /* admin → aucun badge */
     /* Cas normal : Noctambule selon l'heure. */
     const hour = new Date().getHours();
@@ -761,12 +764,12 @@ export default function CookiMiner() {
   }, [userName, showOnboarding, unlockSecretBadge]);
 
   useEffect(() => {
-    if((userName || '').trim().toLowerCase() === ADMIN_NAME) return;
+    if(isAdminName(userName)) return;
     if(marketRealized >= 1000) unlockSecretBadge('investisseur');
   }, [marketRealized, unlockSecretBadge, userName]);
 
   useEffect(() => {
-    if((userName || '').trim().toLowerCase() === ADMIN_NAME) return;
+    if(isAdminName(userName)) return;
     if(friendCodes.length >= 3) unlockSecretBadge('amical');
   }, [friendCodes, unlockSecretBadge, userName]);
 
@@ -969,7 +972,7 @@ export default function CookiMiner() {
     /* Mode admin : pas de codes promo (cohérent avec trading désactivé,
        pas de badges/succès attribués). Évite que CMK1 file des actions
        à un compte test. */
-    const isAdmin = (userName || '').trim().toLowerCase() === ADMIN_NAME;
+    const isAdmin = isAdminName(userName);
     if(isAdmin){
       showToast(`🛠️ Mode admin — codes promo désactivés`);
       return;
@@ -1020,7 +1023,7 @@ export default function CookiMiner() {
        celui qu'on vient de gagner. */
     const tpl = pickRandomEvent(completedEvents, justWonId);
     if(!tpl){ setActiveEvent(null); return; }
-    const devMode = (userName || '').trim().toLowerCase() === ADMIN_NAME;
+    const devMode = isAdminName(userName);
     setActiveEvent(buildWaitingEvent(tpl, devMode));
   };
 
@@ -1208,7 +1211,7 @@ export default function CookiMiner() {
   useEffect(()=>{
     if(showOnboarding) return;
     /* Mode admin → aucun succès attribué (compte de test). */
-    if((userName || '').trim().toLowerCase() === ADMIN_NAME) return;
+    if(isAdminName(userName)) return;
     /* "master_succes" : caché tant que reveal_master n'est pas acheté.
        Se déclenche si TOUS les autres succès (sauf end_game) sont gagnés. */
     const otherIds = ACHIEVEMENTS
@@ -1754,7 +1757,7 @@ export default function CookiMiner() {
               userCode={userCode}
               coins={coins}
               addCoins={addCoins}
-              tradingDisabled={(userName || '').trim().toLowerCase() === ADMIN_NAME}
+              tradingDisabled={isAdminName(userName)}
               onTradeComplete={(result)=>{
                 if(result.type === 'buy'){
                   /* L'achievement 'trader' attend totalInvested >= 500 cookies */
@@ -2035,7 +2038,7 @@ export default function CookiMiner() {
                succès / badges désactivés (cf. useEffects + checks ailleurs).
                TOUS les thèmes (achetables + édition limitée events) sont
                unlock pour pouvoir les essayer immédiatement. */
-            if(name.trim().toLowerCase() === ADMIN_NAME){
+            if(isAdminName(name)){
               setCoins(50000);
               setTotalEarned(50000);
               setCafes(100);

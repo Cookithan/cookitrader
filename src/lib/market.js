@@ -1,4 +1,5 @@
 import { supabase, isSupabaseEnabled } from './supabase';
+import { isAdminName, ADMIN_ILIKE_PATTERN } from '../utils/admin.js';
 
 /* ════════════════════════════════════════════════════
    market.js — logique du marché $CKM en ligne (Supabase)
@@ -169,7 +170,7 @@ export async function getMarketLeaderboard(limit = 50) {
       .from('users')
       .select('user_code, user_name, user_avatar, level, earned_achievements')
       .in('user_code', codes)
-      .not('user_name', 'ilike', 'admin558');
+      .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN);
     if (uErr) return [];
 
     const profileMap = {};
@@ -207,7 +208,7 @@ export async function getMyMarketRank(userCode) {
     /* Admin → hors classement (cohérent avec getMyRank cookies) */
     const { data: me } = await supabase
       .from('users').select('user_name').eq('user_code', userCode).maybeSingle();
-    if (me && (me.user_name || '').trim().toLowerCase() === 'admin558') return null;
+    if (me && isAdminName(me.user_name)) return null;
 
     const { data: portfolio } = await supabase
       .from('market_portfolio')
