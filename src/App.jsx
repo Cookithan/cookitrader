@@ -130,6 +130,10 @@ export default function CookiMiner() {
   const [unlocked,    setUnlocked]    = useLocalStorage('unlocked',    []);
   const [lastCheckin, setLastCheckin] = useLocalStorage('lastCheckin', null);
   const [lastQuiz,    setLastQuiz]    = useLocalStorage('lastQuiz',    null);
+  /* Cap quotidien de spins : 50 (niv 1-10) ou 20 (niv 11-15). spinsDate
+     = toDateString() du dernier spin → reset à 0 au passage minuit. */
+  const [spinsToday,  setSpinsToday]  = useLocalStorage('spinsToday', 0);
+  const [spinsDate,   setSpinsDate]   = useLocalStorage('spinsDate', null);
   const [dark,        setDark]        = useLocalStorage('dark',        false);
   /* MARCHÉ ONLINE (BRIEF_MARCHE_ONLINE) — l'état du marché (prix, stock,
      historique 24h, portfolio) vit côté Supabase et est lu par MarketTab.
@@ -609,6 +613,21 @@ export default function CookiMiner() {
   const lastQuizMs = typeof lastQuiz === 'number' ? lastQuiz : 0;
   const quizMsLeft = Math.max(0, QUIZ_COOLDOWN_MS - (Date.now() - lastQuizMs));
   const canQuiz    = quizMsLeft === 0;
+
+  /* Cap quotidien de spins (50 niv 1-10, 20 niv 11+). Reset au passage
+     minuit local : si spinsDate ≠ today, on traite spinsToday comme 0
+     pour le calcul de spinsLeft. La consommation effective remet
+     spinsDate=today ET reset le compteur dans consumeSpin(). */
+  const todayStr   = new Date().toDateString();
+  const spinsCap   = level <= 10 ? 50 : 20;
+  const isFreshDay = spinsDate !== todayStr;
+  const spinsLeft  = isFreshDay ? spinsCap : Math.max(0, spinsCap - spinsToday);
+  const consumeSpin = useCallback(() => {
+    const t = new Date().toDateString();
+    setSpinsDate(prev => prev === t ? prev : t);
+    setSpinsToday(n => (spinsDate === t ? n + 1 : 1));
+  }, [spinsDate, setSpinsDate, setSpinsToday]);
+
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
   /* actions */
@@ -1221,7 +1240,7 @@ export default function CookiMiner() {
   const GAMES = [
     { id:'checkin', Icon:Gift,              title:'Série du jour',       desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C', levelRequired:1 },
     { id:'quiz',    Icon:Star,              title:'Quiz du jour',         desc:'Toutes les 5h', reward:'20 à 60 cookies', avail:canQuiz, color:'#D4A017', levelRequired:1 },
-    { id:'spin',    Icon:CircleDot,         title:'Roue de la chance',    desc:'Tentez votre chance',       reward:`Variable (coût ${level>=8?20:10}🍪)`, avail:coins>=(level>=8?20:10), color:'#4A2C17', levelRequired:1 },
+    { id:'spin',    Icon:CircleDot,         title:'Roue de la chance',    desc:`${spinsLeft}/${spinsCap} tours/jour`,       reward:`Variable (coût ${level>=8?20:10}🍪)`, avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
     { id:'click',   Icon:MousePointerClick, title:'Cookie Click',         desc:'Tapotez le cookie !',       reward:'1 cookie / 2 clics',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
     { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520', levelRequired:1 },
     { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies (coût 10🍪)', avail:coins>=10, color:'#A0784E', levelRequired:2 },
@@ -1757,6 +1776,7 @@ export default function CookiMiner() {
           onClickEarn={addCoins} onUpdateRecord={s=>setClickRecord(r=>Math.max(r,s))}
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
           onEventChallenge={checkEventChallenge}
+          spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin}
           C={C}
         />
       )}

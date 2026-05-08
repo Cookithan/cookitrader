@@ -14,7 +14,7 @@ import { playSound } from "../../lib/audio.js";
    - onJackpot() est appelé si le résultat = +200 (déclenche succès 'jackpot')
 ═══════════════════════════════════════════════════════ */
 
-export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, C }) {
+export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, spinsLeft = Infinity, spinsCap = Infinity, consumeSpin, C }) {
   const canvasRef  = useRef(null);
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);
@@ -73,7 +73,9 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
   useEffect(()=>{ draw(angleRef.current); },[draw]);
 
   const spin = () => {
-    if(spinning||coins<COST) return;
+    if(spinning || coins < COST) return;
+    if(spinsLeft <= 0) return;       // cap quotidien atteint
+    consumeSpin?.();                 // décrément quotidien (App.jsx)
     onSpend(COST); setSpinning(true); setResult(null);
     const idx = wRandom();
     const mid  = SEG_C[idx] + SEG_A[idx]/2;
@@ -131,11 +133,48 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
         </div>
       )}
 
-      <button onClick={spin} disabled={spinning||coins<COST} className={!spinning && coins>=COST ? 'glow-anim' : ''} style={{ padding:'14px 40px', borderRadius:22, fontSize:15, fontWeight:800, background:spinning||coins<COST?C.card:GOLD, color:spinning||coins<COST?C.muted:'#fff', border:`2px solid ${spinning||coins<COST?C.border:'transparent'}`, cursor:spinning||coins<COST?'not-allowed':'pointer', letterSpacing:.3 }}>
-        {spinning?'En cours...':coins<COST?`Pas assez (min. ${COST} 🍪)`:`Tourner (${COST} 🍪)`}
-      </button>
+      {(() => {
+        const noBalance = coins < COST;
+        const noQuota   = spinsLeft <= 0;
+        const blocked   = spinning || noBalance || noQuota;
+        const label =
+          spinning  ? 'En cours…' :
+          noQuota   ? '⏳ Limite atteinte' :
+          noBalance ? `Pas assez (min. ${COST} 🍪)` :
+                      `Tourner (${COST} 🍪)`;
+        return (
+          <button
+            onClick={spin}
+            disabled={blocked}
+            className={!blocked ? 'glow-anim' : ''}
+            style={{
+              padding:'14px 40px', borderRadius:22, fontSize:15, fontWeight:800,
+              background: blocked ? C.card : GOLD,
+              color: blocked ? C.muted : '#fff',
+              border:`2px solid ${blocked ? C.border : 'transparent'}`,
+              cursor: blocked ? 'not-allowed' : 'pointer',
+              letterSpacing:.3,
+            }}
+          >
+            {label}
+          </button>
+        );
+      })()}
 
-      {result && <div style={{ fontSize:13, color:C.muted }}>Relancez pour tenter à nouveau !</div>}
+      {/* Compteur quotidien — caché si cap == Infinity (legacy / fallback) */}
+      {Number.isFinite(spinsCap) && (
+        <div style={{
+          fontSize:11.5, color: spinsLeft <= 0 ? '#7D4E1F' : C.muted,
+          fontWeight: spinsLeft <= 0 ? 800 : 600,
+          textAlign:'center',
+        }}>
+          {spinsLeft > 0
+            ? <>🎡 <strong style={{ color:'#D4A017' }}>{spinsLeft}</strong>/{spinsCap} tours restants aujourd'hui</>
+            : <>⏳ Limite atteinte — reviens demain pour {spinsCap} nouveaux tours</>}
+        </div>
+      )}
+
+      {result && spinsLeft > 0 && <div style={{ fontSize:13, color:C.muted }}>Relancez pour tenter à nouveau !</div>}
     </div>
   );
 }
