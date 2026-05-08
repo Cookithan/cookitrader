@@ -50,7 +50,7 @@ function saveCache(key, payload){
 
 export function ClassementTab({ userCode, userName, userAvatar, earnedAchievements, onOpenProfile, onOpenUserProfile, C }){
   const enabled = isSupabaseEnabled();
-  const isAdmin = (userName || '').trim().toLowerCase() === 'admin123';
+  const isAdmin = (userName || '').trim().toLowerCase() === 'admin558';
   const [mode, setMode] = useState('cookies'); /* 'cookies' | 'market' */
 
   /* Cas Supabase off : placeholder, pas de bots fictifs */

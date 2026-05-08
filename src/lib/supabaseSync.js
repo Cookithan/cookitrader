@@ -80,7 +80,7 @@ export async function getLeaderboard(limit = 50){
     const { data, error } = await supabase
       .from('users')
       .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements')
-      .not('user_name', 'ilike', 'admin123')
+      .not('user_name', 'ilike', 'admin558')
       .order('total_earned', { ascending:false })
       .limit(limit);
     if(error){
@@ -103,11 +103,11 @@ export async function getMyRank(myUserCode){
       .from('users').select('total_earned, user_name').eq('user_code', myUserCode).single();
     if(!me) return null;
     /* Si je suis Admin moi-même, je suis hors classement → null */
-    if((me.user_name || '').trim().toLowerCase() === 'admin123') return null;
+    if((me.user_name || '').trim().toLowerCase() === 'admin558') return null;
     const { count, error } = await supabase
       .from('users')
       .select('*', { count:'exact', head:true })
-      .not('user_name', 'ilike', 'admin123')
+      .not('user_name', 'ilike', 'admin558')
       .gt('total_earned', me.total_earned);
     if(error) return null;
     return (count ?? 0) + 1;
@@ -121,7 +121,7 @@ export async function getTotalPlayers(){
     const { count, error } = await supabase
       .from('users')
       .select('*', { count:'exact', head:true })
-      .not('user_name', 'ilike', 'admin123');
+      .not('user_name', 'ilike', 'admin558');
     if(error) return null;
     return count ?? 0;
   }catch{ return null; }
@@ -536,12 +536,12 @@ export async function getPublicProfile(userCode){
     /* Rang Cookies — Admin exclu, cohérent avec le reste du fichier.
        Si l'utilisateur consulté est Admin lui-même → null (hors classement). */
     let cookiesRank = null;
-    const isAdmin = (user.user_name || '').trim().toLowerCase() === 'admin123';
+    const isAdmin = (user.user_name || '').trim().toLowerCase() === 'admin558';
     if(!isAdmin){
       const { count } = await supabase
         .from('users')
         .select('*', { count:'exact', head:true })
-        .not('user_name', 'ilike', 'admin123')
+        .not('user_name', 'ilike', 'admin558')
         .gt('total_earned', user.total_earned ?? 0);
       cookiesRank = (count ?? 0) + 1;
     }
@@ -840,11 +840,11 @@ export async function getGlobalCommunityStats(){
       supabase
         .from('users')
         .select('*', { count:'exact', head:true })
-        .not('user_name', 'ilike', 'admin123'),
+        .not('user_name', 'ilike', 'admin558'),
       supabase
         .from('users')
         .select('total_earned')
-        .not('user_name', 'ilike', 'admin123'),
+        .not('user_name', 'ilike', 'admin558'),
       supabase
         .from('friendships')
         .select('*', { count:'exact', head:true })

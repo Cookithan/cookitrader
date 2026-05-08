@@ -93,7 +93,7 @@ import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from 
    Le tooltip natif (title="...") affiche la valeur exacte. */
 /* Pseudo dev — un seul endroit à changer pour rebaptiser le mode admin.
    Comparaison case-insensitive partout (toLowerCase à l'usage). */
-const ADMIN_NAME = 'admin123';
+const ADMIN_NAME = 'admin558';
 
 function fmtCompact(n){
   if(n < 10_000) return String(n);
@@ -747,7 +747,7 @@ export default function CookiMiner() {
   /* Détection des 3 badges secrets — chaque useEffect tape
      unlockSecretBadge(...) qui no-op si déjà unlocked.
 
-     Mode test Admin (`admin123`) : ne reçoit AUCUN badge ni succès —
+     Mode test Admin (`admin558`) : ne reçoit AUCUN badge ni succès —
      compte de test pur, sans pollution du système d'unlocks. */
   useEffect(() => {
     if(!userName || showOnboarding) return;
@@ -2030,7 +2030,7 @@ export default function CookiMiner() {
             setUserName(name);
             setUserAvatar(avatarIndex);
             if(!joinDate) setJoinDate(new Date().toLocaleDateString('fr-FR'));
-            /* 🔑 Code dev — pseudo `admin123` : dotation de test 10 000 🍪 +
+            /* 🔑 Code dev — pseudo `admin558` : dotation de test 10 000 🍪 +
                100 ☕, niveau max, classement filtré côté Supabase, et tous les
                succès / badges désactivés (cf. useEffects + checks ailleurs).
                TOUS les thèmes (achetables + édition limitée events) sont
