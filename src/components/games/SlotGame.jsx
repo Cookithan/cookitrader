@@ -26,21 +26,32 @@ import { playSound } from "../../lib/audio.js";
    Palette café-only — fond ESPRESSO + accents or, pas de rouge ni vert.
 ═══════════════════════════════════════════════════════ */
 
+/* Pondération : plus de cookies/cafés = triples plus fréquents.
+   P(3 cookies) = 6.4 %, P(3 cafés) = 1.56 %, P(3 croissants) = 0.34 %,
+   P(3 cakes) = 0.17 %, P(3 jackpots) = 0.05 %. Total triples ≈ 8.5 %
+   (était 4 % avec poids égaux). */
 const SYMBOLS = [
-  { id:'cookie',    icon:'🍪', payout:50  },
-  { id:'coffee',    icon:'☕', payout:80  },
-  { id:'croissant', icon:'🥐', payout:150 },
-  { id:'cake',      icon:'🍰', payout:250 },
-  { id:'seven',     icon:'7️⃣', payout:750 },
+  { id:'cookie',    icon:'🍪', payout:50,  weight:40 },
+  { id:'coffee',    icon:'☕', payout:80,  weight:25 },
+  { id:'croissant', icon:'🥐', payout:150, weight:15 },
+  { id:'cake',      icon:'🍰', payout:250, weight:12 },
+  { id:'seven',     icon:'7️⃣', payout:750, weight: 8 },
 ];
+const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
 
 const COST          = 30;
 const PAIR_PAYOUT   = 25;
 const REEL_TICK_MS  = 75;
 const LOCK_DELAYS   = [1400, 2000, 2700];
 
+/* Tirage pondéré — plus le weight est élevé, plus le symbole sort souvent. */
 function randomSymbolId(){
-  return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].id;
+  let r = Math.random() * TOTAL_WEIGHT;
+  for(const s of SYMBOLS){
+    r -= s.weight;
+    if(r <= 0) return s.id;
+  }
+  return SYMBOLS[SYMBOLS.length - 1].id;
 }
 function symIcon(id){
   return SYMBOLS.find(s => s.id === id)?.icon ?? '?';
