@@ -125,7 +125,7 @@ export const REWARDS = [
      cours. Le bonus reset à minuit en même temps que le compteur normal.
      Filtres par niveau dans BoutiqueTab : 50 visible niv 1-10 (cap 50),
      20 visible niv 10-15 (cap 20). */
-  { id:'spin_pass_50',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:50, name:'Jeton VIP +50 tours', desc:'+50 tours de roue aujourd\'hui', cost:2, type:'Premium', emoji:'🎫', levelRequired:1,  levelMax:10 },
+  { id:'spin_pass_50',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:50, name:'Jeton VIP +50 tours', desc:'+50 tours de roue aujourd\'hui', cost:3, type:'Premium', emoji:'🎫', levelRequired:1,  levelMax:10 },
   { id:'spin_pass_20',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:20, name:'Jeton VIP +20 tours', desc:'+20 tours de roue aujourd\'hui', cost:4, type:'Premium', emoji:'🎟️', levelRequired:10 },
 
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
