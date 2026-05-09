@@ -27,13 +27,24 @@ export function isAdminName(name){
    Ajouter ici un pseudo (lowercase) suffit à l'exclure partout. */
 export const NON_RANKED_NAMES = ['aaronxbox'];
 
+/* Helper : applique .not() pour exclure UNIQUEMENT les admins. À utiliser
+   sur les queries où on veut garder tous les joueurs publics (ex :
+   classement Marché — aaronxbox y reste car la concurrence trade est
+   indépendante de son niveau de jeu).
+
+   Usage : `notAdmin(supabase.from('users').select(...))` */
+export function notAdmin(query){
+  return query.not('user_name', 'ilike', ADMIN_ILIKE_PATTERN);
+}
+
 /* Helper : applique les .not() pour exclure admins + NON_RANKED_NAMES
-   sur une query Supabase. À utiliser pour TOUTES les queries de
-   classement / stats globales pour rester cohérent.
+   sur une query Supabase. À utiliser pour les queries de classement
+   Cookies / stats globales communauté. Le classement Marché utilise
+   notAdmin() à la place pour rester ouvert à tous les traders.
 
    Usage : `notInLeaderboard(supabase.from('users').select(...))` */
 export function notInLeaderboard(query){
-  let q = query.not('user_name', 'ilike', ADMIN_ILIKE_PATTERN);
+  let q = notAdmin(query);
   for(const name of NON_RANKED_NAMES){
     q = q.not('user_name', 'ilike', name);
   }

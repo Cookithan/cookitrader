@@ -1,5 +1,5 @@
 import { supabase, isSupabaseEnabled } from './supabase';
-import { isAdminName, notInLeaderboard } from '../utils/admin.js';
+import { isAdminName, notAdmin } from '../utils/admin.js';
 
 /* ════════════════════════════════════════════════════
    market.js — logique du marché $CKM en ligne (Supabase)
@@ -166,7 +166,10 @@ export async function getMarketLeaderboard(limit = 50) {
     if (pErr || !portfolios || portfolios.length === 0) return [];
 
     const codes = portfolios.map(p => p.user_code);
-    const { data: profiles, error: uErr } = await notInLeaderboard(
+    /* Marché : on n'exclut QUE les admins, pas les NON_RANKED_NAMES.
+       Un joueur retiré du classement Cookies (concurrence niveau)
+       reste valide en trader (aaronxbox p. ex.). */
+    const { data: profiles, error: uErr } = await notAdmin(
       supabase
         .from('users')
         .select('user_code, user_name, user_avatar, level, earned_achievements, active_title')
