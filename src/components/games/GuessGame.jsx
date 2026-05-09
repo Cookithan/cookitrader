@@ -15,7 +15,7 @@ const LEGENDARY_QUESTION = {
   answer: 0,
   legendary: true,
 };
-const LEGENDARY_DROP_RATE = 0.01;  // 1 % par partie, ne se déclenche qu'une seule fois (flag legendaryBaristaSeen)
+const LEGENDARY_DROP_RATE = 0.05;  // 5 % par partie, ne se déclenche qu'une seule fois (flag legendaryBaristaSeen)
 const ABSURD_TIMEOUT_MS   = 7_000; // 7s sans cliquer = +1 (absurde uniquement). Cliquer = ✗.
 /* Sentinelle utilisée comme `idx` quand le timeout déclenche onPick : sert
    à distinguer "le joueur a attendu" d'un vrai clic dans onPick. */
@@ -215,17 +215,19 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     onSpend(GUESS_COST);
     const qs = pickQuestions(NB_QUESTIONS);
     const ci = pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length);
-    /* 1 % par partie ET le légendaire n'a pas déjà été vu (flag persistent
-       legendaryBaristaSeen). On injecte un barista légendaire (5 variantes
-       visuelles, même code BARISTA05) à un slot aléatoire. Sentinelle :
-       customerIndex de ce slot = -1 - variantIdx (donc -1 pour la 1re,
-       -2 pour la 2e, etc.) — décodé au rendu. */
+    /* 5 % par partie ET le légendaire n'a pas déjà été vu (flag
+       persistent legendaryBaristaSeen). On injecte un barista légendaire
+       (5 variantes visuelles, même code BARISTA05) à un slot aléatoire.
+       Sentinelle : customerIndex de ce slot = -1 - variantIdx (donc -1
+       pour la 1re, -2 pour la 2e, etc.) — décodé au rendu.
+       Important : `onLegendarySeen` est appelé dans onPick au moment du
+       clic effectif (pas ici), pour ne pas "consommer" le drop si le
+       joueur quitte la partie avant d'atteindre le slot. */
     if(!legendarySeen && Math.random() < LEGENDARY_DROP_RATE){
       const slot     = Math.floor(Math.random() * NB_QUESTIONS);
       const variant  = Math.floor(Math.random() * LEGENDARY_BARISTAS.length);
       qs[slot] = LEGENDARY_QUESTION;
       ci[slot] = -1 - variant;
-      onLegendarySeen?.();
     }
     setQuestions(qs);
     setCustomerIndices(ci);
@@ -252,7 +254,10 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     setPicked(idx);
 
     /* Trois cas distincts :
-       - Légendaire : auto-correct (drop rare = cadeau)
+       - Légendaire : auto-correct (drop rare = cadeau). Le flag persistent
+                      `legendaryBaristaSeen` est marqué ICI (et pas dans
+                      startGame) — comme ça si le joueur quitte avant de
+                      cliquer "Recevoir le code", il garde sa chance.
        - Absurde    : seul le timeout (idx === TIMEOUT_IDX) gagne ; un
                       clic réel = mauvaise réponse (toutes les options
                       sont des pièges)
@@ -263,6 +268,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
       q.legendary ? true
     : q.absurd    ? fromTimeout
     :               idx === q.answer;
+    if(q.legendary) onLegendarySeen?.();
     playSound(isRight ? 'success' : 'error');
     if(isRight) setScore(s => s + 1);
 

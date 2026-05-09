@@ -1359,6 +1359,23 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Migration one-shot : reset du flag legendaryBaristaSeen (mai 2026).
+     Avant le fix qui déplace le set dans onPick, le flag se mettait à
+     true dès startGame — du coup les comptes ayant joué Devine la commande
+     plusieurs fois pouvaient avoir "consommé" leur drop sans jamais avoir
+     vu le légendaire (close avant d'atteindre le slot, etc.). On reset
+     une fois pour redonner sa chance à tout le monde. Si le joueur a déjà
+     unlocked theme_cookies, on ne reset pas (il a réellement vu le drop). */
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem('cookiminer:legendaryV2Cleaned') === '1') return;
+      const already = (unlockedRef.current || []).includes('theme_cookies');
+      if (!already) setLegendaryBaristaSeen(false);
+      window.localStorage.setItem('cookiminer:legendaryV2Cleaned', '1');
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const checkinReward = DAILY_REWARDS[streak % 7];
   const resetProgress = () => {
     /* Supabase : supprime le profil online en arrière-plan pour qu'il
