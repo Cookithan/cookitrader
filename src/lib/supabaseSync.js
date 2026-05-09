@@ -138,6 +138,33 @@ export async function getTopTwoTotalEarned(){
   }catch{ return [null, null]; }
 }
 
+/* Vérifie si un pseudo est déjà pris dans la base (case-insensitive,
+   trim côté client). On exclut éventuellement son propre user_code
+   (utile pour ChangeNameModal où l'utilisateur peut tomber sur une
+   variante de casse de son propre nom).
+   Retour : { taken:boolean, error?:string }. En mode dégradé (Supabase
+   off), retourne { taken:false } pour ne pas bloquer l'onboarding. */
+export async function isNameTaken(name, excludeUserCode = null){
+  if(!isSupabaseEnabled()) return { taken:false };
+  const trimmed = (name || '').trim();
+  if(!trimmed) return { taken:false };
+  try{
+    let query = supabase
+      .from('users')
+      .select('*', { count:'exact', head:true })
+      .ilike('user_name', trimmed);
+    if(excludeUserCode){
+      query = query.neq('user_code', excludeUserCode);
+    }
+    const { count, error } = await query;
+    if(error){ notifySupabaseError(); return { taken:false, error:'Erreur réseau' }; }
+    return { taken: (count ?? 0) > 0 };
+  }catch{
+    notifySupabaseError();
+    return { taken:false, error:'Erreur réseau' };
+  }
+}
+
 /* Compte total des joueurs publics (Admin + NON_RANKED_NAMES exclus). */
 export async function getTotalPlayers(){
   if(!isSupabaseEnabled()) return null;

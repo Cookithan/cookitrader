@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Cookie } from "lucide-react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { NAME_CHANGE_PRICES, getNameChangePrice } from "../../data/constants.js";
+import { isNameTaken } from "../../lib/supabaseSync.js";
 
 /* ════════════════════════════════════════════════════
    ChangeNameModal — modale payante pour changer le prénom
@@ -20,17 +21,32 @@ import { NAME_CHANGE_PRICES, getNameChangePrice } from "../../data/constants.js"
    - onClose            : ferme la modale sans rien changer
    - C                  : palette active (light/dark/thème)
 ═══════════════════════════════════════════════════════ */
-export function ChangeNameModal({ currentName, coins, nameChangeCount, onConfirm, onClose, C }){
+export function ChangeNameModal({ currentName, coins, nameChangeCount, userCode, onConfirm, onClose, C }){
   const [name, setName] = useState(currentName || '');
+  const [checking, setChecking] = useState(false);
+  const [takenError, setTakenError] = useState('');
   const price = getNameChangePrice(nameChangeCount);
   const nextPrice = getNameChangePrice(nameChangeCount + 1);
   const trimmed = name.trim();
   const enough = coins >= price;
-  const valid  = !!trimmed && trimmed !== currentName && enough;
+  const valid  = !!trimmed && trimmed !== currentName && enough && !checking;
 
-  const submit = () => {
+  const submit = async () => {
     if(!valid) return;
+    setTakenError('');
+    setChecking(true);
+    const { taken, error } = await isNameTaken(trimmed, userCode);
+    setChecking(false);
+    if(error){ setTakenError(error); return; }
+    if(taken){ setTakenError('Ce pseudo est déjà pris. Essaie-en un autre.'); return; }
     onConfirm(trimmed, price);
+  };
+
+  /* Vide l'erreur dès que l'utilisateur retape — sinon le message
+     reste collé alors qu'il est en train de corriger. */
+  const onNameChange = (e) => {
+    setName(e.target.value);
+    if(takenError) setTakenError('');
   };
 
   return (
@@ -49,13 +65,18 @@ export function ChangeNameModal({ currentName, coins, nameChangeCount, onConfirm
           <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:6 }}>NOUVEAU PSEUDO</div>
           <input
             value={name}
-            onChange={e=>setName(e.target.value)}
+            onChange={onNameChange}
             maxLength={20}
             autoFocus
             placeholder="Ton pseudo…"
-            style={{ width:'100%', padding:'13px 15px', borderRadius:13, border:`2px solid ${C.border}`, background:C.bg, color:C.text, fontSize:15, fontWeight:600, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}
+            style={{ width:'100%', padding:'13px 15px', borderRadius:13, border:`2px solid ${takenError ? '#A87858' : C.border}`, background:C.bg, color:C.text, fontSize:15, fontWeight:600, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}
           />
           <div style={{ fontSize:10, color:C.muted, marginTop:5, textAlign:'right' }}>{trimmed.length}/20</div>
+          {takenError && (
+            <div className="su" style={{ fontSize:11, color:'#A87858', marginTop:7, fontWeight:600, textAlign:'center' }}>
+              ⚠ {takenError}
+            </div>
+          )}
         </div>
 
         {/* Bloc tarif */}
@@ -110,7 +131,7 @@ export function ChangeNameModal({ currentName, coins, nameChangeCount, onConfirm
               letterSpacing:.3,
             }}
           >
-            Confirmer pour {price} 🍪
+            {checking ? 'Vérification…' : `Confirmer pour ${price} 🍪`}
           </button>
         </div>
       </div>

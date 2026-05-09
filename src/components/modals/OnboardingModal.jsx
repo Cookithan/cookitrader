@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { ONBOARDING_AVATARS, getVisibleOnboardingAvatars } from "../../data/avatars.js";
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
+import { isNameTaken } from "../../lib/supabaseSync.js";
 
 /* ════════════════════════════════════════════════════
    OnboardingModal — premier lancement
@@ -17,6 +18,8 @@ export function OnboardingModal({ onComplete, onRestore, C }) {
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(null);
   const [openTip, setOpenTip] = useState(null);
+  const [checkingName, setCheckingName] = useState(false);
+  const [nameError, setNameError] = useState('');
 
   const goldBtn = (disabled) => ({
     width:'100%', padding:'15px 22px', borderRadius:18, fontSize:15, fontWeight:800,
@@ -28,6 +31,27 @@ export function OnboardingModal({ onComplete, onRestore, C }) {
   });
 
   const trimmed = name.trim();
+
+  /* Vérifie en ligne que le pseudo n'est pas déjà pris avant de
+     passer à l'avatar. Le code dev "admin*" est laissé passer (il
+     est déjà filtré du classement public, et plusieurs sessions de
+     test peuvent réutiliser le même pseudo). */
+  const goToAvatar = async () => {
+    if(!trimmed || checkingName) return;
+    setNameError('');
+    if(/^admin/i.test(trimmed)){ setStep(1); return; }
+    setCheckingName(true);
+    const { taken, error } = await isNameTaken(trimmed);
+    setCheckingName(false);
+    if(error){ setNameError(error); return; }
+    if(taken){ setNameError('Ce pseudo est déjà pris. Essaie-en un autre.'); return; }
+    setStep(1);
+  };
+
+  const onNameChange = (e) => {
+    setName(e.target.value);
+    if(nameError) setNameError('');
+  };
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200, backdropFilter:'blur(8px)', padding:18 }}>
@@ -49,21 +73,26 @@ export function OnboardingModal({ onComplete, onRestore, C }) {
               <label style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5 }}>Choisis ton pseudo</label>
               <input
                 value={name}
-                onChange={e=>setName(e.target.value)}
+                onChange={onNameChange}
                 placeholder="Ton pseudo..."
                 maxLength={20}
                 autoFocus
                 style={{
                   width:'100%', marginTop:8, padding:'14px 16px', borderRadius:14,
-                  border:`2px solid ${C.border}`, background:C.card2, color:C.text,
+                  border:`2px solid ${nameError ? '#A87858' : C.border}`, background:C.card2, color:C.text,
                   fontSize:15, fontWeight:600, outline:'none',
                   fontFamily:'inherit'
                 }}
-                onKeyDown={e=>{ if(e.key==='Enter' && trimmed) setStep(1); }}
+                onKeyDown={e=>{ if(e.key==='Enter') goToAvatar(); }}
               />
+              {nameError && (
+                <div className="su" style={{ fontSize:11.5, color:'#A87858', marginTop:8, fontWeight:600, textAlign:'center' }}>
+                  ⚠ {nameError}
+                </div>
+              )}
             </div>
-            <button onClick={()=>setStep(1)} disabled={!trimmed} style={goldBtn(!trimmed)}>
-              Suivant →
+            <button onClick={goToAvatar} disabled={!trimmed || checkingName} style={goldBtn(!trimmed || checkingName)}>
+              {checkingName ? 'Vérification…' : 'Suivant →'}
             </button>
             {onRestore && (
               <button

@@ -496,6 +496,7 @@ export function ProfileOverlay({
           currentName={userName}
           coins={coins}
           nameChangeCount={nameChangeCount}
+          userCode={userCode}
           onConfirm={confirmNameChange}
           onClose={()=>setShowChangeName(false)}
           C={C}
