@@ -11,7 +11,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.7.0',
+  version: '1.8.0',
   releaseDate: '2026-05-09',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -19,6 +19,23 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.8.0',
+    date: '2026-05-09',
+    title: '🛍️ Boutique enrichie + audio complet',
+    changes: [
+      "🎨 9 nouveaux skins cookie (Caramel, Onyx, Doré, Phoenix, Originel…)",
+      "🏷️ 9 titres couleur shimmer pour ton pseudo (Mousse → Cosmique)",
+      "🎵 5 nouvelles musiques (Café du Matin, Velvet Smoke, Beat de l'Empereur, Veillée Lofi, Nuit Cosmique)",
+      "📈 Packs $CKM — achète directement 5 ou 10 actions",
+      "🎟️ Item premium 'Révéler Code Promo Rare' (5 ☕ niv 13)",
+      "🔊 8 sons d'effets dédiés (caisse, jackpot, slot, bulle…)",
+      "💧 Bruit du café qui coule pendant le 'Stop le café'",
+      "🪟 Sons sur tous les jeux silencieux (Click, Memory, Reflex, Devine)",
+      "👤 Sélecteurs Skin & Titre dans le profil",
+      "🛒 Chaque niveau a maintenant 3 ou 4 items à débloquer",
+    ],
+  },
   {
     version: '1.7.0',
     date: '2026-05-09',
@@ -87,17 +104,6 @@ export const CHANGELOG = [
       "🎓 Tutoriel guidé pour les nouveaux",
       "✨ Splash screen lettre par lettre",
       "📱 PWA installable sur l'écran d'accueil",
-    ],
-  },
-  {
-    version: '1.0.0',
-    date: '2026-05-02',
-    title: '🎉 Lancement initial',
-    changes: [
-      "5 mini-jeux : Check-in, Devine la commande, Roue, Défi de clics, Stop café",
-      "🛍️ Boutique : badges, titres, thèmes, avatars, skins, roues",
-      "📊 Marché $CKM local",
-      "👤 Profil avec progression sur 10 niveaux",
     ],
   },
 ];

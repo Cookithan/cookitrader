@@ -3,6 +3,7 @@ import { ChevronLeft, Settings, Lock, Mail } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
+import { APP_INFO } from "../../lib/appInfo.js";
 import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
@@ -482,7 +483,7 @@ export function ProfileOverlay({
             <div style={{ textAlign:'center', marginTop:24, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
               Réalisé avec <strong style={{ color:'#C17F3C' }}>Claude Code</strong> par <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
               <div style={{ fontSize:10, marginTop:2, opacity:0.7 }}>
-                CookiMiner v1.0
+                CookiMiner v{APP_INFO.version}
               </div>
             </div>
           </>
