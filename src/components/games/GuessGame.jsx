@@ -168,12 +168,14 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
 
   const timeoutRef = useRef(null);
 
-  /* Auto-skip 10 s : si le joueur ne répond pas pendant 10 s sur un slot
-     normal, on simule un clic correct (point gagné, client suivant). Le
-     légendaire est exempté pour laisser le temps de lire le code. */
+  /* Auto-skip 10 s : ne s'applique QU'AUX questions absurdes (flag
+     `absurd:true` dans commandes.js). Si le joueur ne répond pas, on
+     simule un clic correct (point gagné, client suivant). Les questions
+     normales gardent l'attente illimitée pour ne pas pénaliser la
+     réflexion. Le légendaire est aussi exempté. */
   useEffect(()=>{
     if(phase !== 'playing' || subPhase !== 'speaking' || picked !== null) return;
-    if(questions[qIndex]?.legendary) return;
+    if(!questions[qIndex]?.absurd) return;
     timeoutRef.current = setTimeout(()=>{
       onPickRef.current?.(questions[qIndex]?.answer ?? 0);
     }, ANSWER_TIMEOUT_MS);
