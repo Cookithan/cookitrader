@@ -50,7 +50,7 @@ export const AVATAR_PREMIUM_LIST = [
   { id:'avatar_chat',    art:'avChat',    name:'Chat Café',       bg:'linear-gradient(140deg,#8B5A2B,#D4A017)' },
   { id:'avatar_renard',  art:'avRenard',  name:'Renard',          bg:'linear-gradient(140deg,#A86028,#E5A045)' },
   { id:'avatar_panda',   art:'avPanda',   name:'Panda Café',      bg:'linear-gradient(140deg,#C8B89C,#8B7A60)' },
-  { id:'avatar_dragon',  art:'avDragon',  name:'Dragon Espresso', bg:'radial-gradient(circle at 30% 28%, #F0C890 0%, #D49050 35%, #8B5A2B 75%, #4A2C17 100%)' },
+  { id:'avatar_dragon',  art:'avDragon',  name:'Dragon Espresso', bg:'radial-gradient(circle at 50% 45%, #3D1C02 0%, #1F0A02 60%, #0A0402 100%)' },
   { id:'avatar_or',      art:'avOr',      name:'Or Massif',       bg:'linear-gradient(140deg,#D4A017,#FFE89A)', glow:true },
   { id:'avatar_legende', art:'avLegende', name:'Légende',         bg:'linear-gradient(140deg,#4A2C17,#D4A017)', glow:true },
   { id:'avatar_sage',    art:'avSage',    name:'Sage du Café',    bg:'linear-gradient(140deg,#3D2010,#8B5A2B)' },

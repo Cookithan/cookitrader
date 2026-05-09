@@ -716,32 +716,43 @@ const AvPanda = () => (
   </svg>
 );
 
+/* AvDragon — refonte complète : dragon en or/ambre lumineux qui ressort
+   sur fond espresso très sombre (cf. avatars.js). Structure : tête
+   bouclier centrée, sourcils furieux, yeux dorés glowing, scar de combat,
+   snarl avec 6 crocs, vapeur de café agressive en jets, cornes courbées,
+   crête 5 piques, ombre au sol. */
 const AvDragon = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
-      <radialGradient id="g_dr_head" cx="38%" cy="34%" r="78%">
-        <stop offset="0%"  stopColor={COOKIE} />
-        <stop offset="55%" stopColor={COOKIE_DK} />
-        <stop offset="100%" stopColor={ESPRESSO} />
+      {/* Tête : or lumineux qui ressort sur le bg sombre */}
+      <radialGradient id="g_dr_head" cx="40%" cy="32%" r="78%">
+        <stop offset="0%"   stopColor="#FFE89A" />
+        <stop offset="40%"  stopColor="#F0C050" />
+        <stop offset="80%"  stopColor="#A87510" />
+        <stop offset="100%" stopColor="#5C3614" />
       </radialGradient>
+      {/* Yeux : ambre incandescent */}
       <radialGradient id="g_dr_eye" cx="35%" cy="30%" r="80%">
-        <stop offset="0%"  stopColor={OR_LTR} />
-        <stop offset="60%" stopColor={OR} />
-        <stop offset="100%" stopColor={OR_DK} />
+        <stop offset="0%"   stopColor="#FFF5C8" />
+        <stop offset="50%"  stopColor="#FFC850" />
+        <stop offset="100%" stopColor="#A87510" />
       </radialGradient>
+      {/* Vapeur de café (filets crème translucides) */}
       <radialGradient id="g_dr_steam" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stopColor={CREME} stopOpacity=".95" />
-        <stop offset="100%" stopColor={CREME} stopOpacity="0" />
+        <stop offset="0%"   stopColor="#F5DEAA" stopOpacity=".7" />
+        <stop offset="100%" stopColor="#F5DEAA" stopOpacity="0" />
       </radialGradient>
-      <radialGradient id="g_dr_glow" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"  stopColor="#FFE066" stopOpacity=".5" />
-        <stop offset="100%" stopColor="#FFE066" stopOpacity="0" />
+      {/* Halo or autour de la tête (dépasse sur le bg sombre) */}
+      <radialGradient id="g_dr_halo" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stopColor="#F0C050" stopOpacity=".5" />
+        <stop offset="60%"  stopColor="#A87510" stopOpacity=".15" />
+        <stop offset="100%" stopColor="#000000" stopOpacity="0" />
       </radialGradient>
-      {/* Filtre ombre portée pour la tête */}
-      <filter id="f_dr_shadow" x="-20%" y="-20%" width="140%" height="140%">
-        <feGaussianBlur stdDeviation="2" />
-        <feOffset dx="0" dy="2" result="off" />
-        <feComponentTransfer><feFuncA type="linear" slope="0.55" /></feComponentTransfer>
+      {/* Drop shadow épaisse pour décoller la tête du fond */}
+      <filter id="f_dr_shadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feGaussianBlur stdDeviation="2.5" />
+        <feOffset dx="0" dy="2" />
+        <feComponentTransfer><feFuncA type="linear" slope="0.85" /></feComponentTransfer>
         <feMerge>
           <feMergeNode />
           <feMergeNode in="SourceGraphic" />
@@ -749,46 +760,45 @@ const AvDragon = () => (
       </filter>
     </defs>
 
-    {/* Halo doré derrière la tête — ajoute de la profondeur lumineuse */}
-    <circle cx="50" cy="48" r="42" fill="url(#g_dr_glow)" />
+    {/* Halo doré qui rayonne — donne de la profondeur sur le fond sombre */}
+    <circle cx="50" cy="48" r="48" fill="url(#g_dr_halo)" />
 
-    {/* Décor de fond — grains de café flottants côté sombre */}
-    <ellipse cx="14" cy="78" rx="3.2" ry="4.6" fill={ESPRESSO} opacity=".35" transform="rotate(-30 14 78)" />
-    <path d="M12 74 L16 82" stroke={ESPRESSO} strokeWidth=".8" opacity=".35" strokeLinecap="round" />
-    <ellipse cx="86" cy="82" rx="2.6" ry="3.8" fill={ESPRESSO} opacity=".3" transform="rotate(20 86 82)" />
-    <path d="M84 79 L88 85" stroke={ESPRESSO} strokeWidth=".7" opacity=".3" strokeLinecap="round" />
-    <ellipse cx="90" cy="60" rx="2.2" ry="3.2" fill={ESPRESSO} opacity=".3" transform="rotate(40 90 60)" />
-    <path d="M88 58 L92 62" stroke={ESPRESSO} strokeWidth=".6" opacity=".3" strokeLinecap="round" />
+    {/* Étincelles dorées floating dans le fond sombre */}
+    <circle cx="14" cy="20" r="1.5" fill="#FFE066" opacity=".9" />
+    <circle cx="86" cy="22" r="1.2" fill="#FFE066" opacity=".8" />
+    <circle cx="10" cy="48" r="0.9" fill="#FFE066" opacity=".6" />
+    <circle cx="92" cy="50" r="1"   fill="#FFE066" opacity=".65" />
+    <circle cx="20" cy="86" r="0.8" fill="#FFE066" opacity=".55" />
+    <circle cx="82" cy="84" r="1.1" fill="#FFE066" opacity=".7" />
+    <path d="M88 14 L89 18 L93 19 L89 20 L88 24 L87 20 L83 19 L87 18 Z" fill="#FFE066" opacity=".85" />
+    <path d="M14 70 L15 73 L18 73.5 L15 74.5 L14 77.5 L13 74.5 L10 73.5 L13 73 Z" fill="#FFE066" opacity=".7" />
 
-    {/* Étincelles dorées côté lumineux */}
-    <circle cx="18" cy="20" r="1.4" fill="#FFE066" opacity=".9" />
-    <circle cx="14" cy="40" r="0.9" fill="#FFE066" opacity=".7" />
-    <circle cx="86" cy="36" r="1.1" fill="#FFE066" opacity=".75" />
-    <path d="M22 12 L23 16 L27 17 L23 18 L22 22 L21 18 L17 17 L21 16 Z" fill="#FFE066" opacity=".8" />
+    {/* Grains de café floutés dans les coins */}
+    <ellipse cx="12" cy="86" rx="3" ry="4.4" fill="#5C3614" opacity=".6" transform="rotate(-30 12 86)" />
+    <path d="M10 82 L14 90" stroke="#3D2010" strokeWidth=".8" opacity=".55" strokeLinecap="round" />
+    <ellipse cx="92" cy="74" rx="2.4" ry="3.5" fill="#5C3614" opacity=".55" transform="rotate(35 92 74)" />
+    <path d="M90 71 L94 77" stroke="#3D2010" strokeWidth=".7" opacity=".5" strokeLinecap="round" />
 
-    {/* Vapeur de café floue derrière la tête (deux nuages diffus) */}
-    <ellipse cx="20" cy="22" rx="11" ry="7"  fill="url(#g_dr_steam)" />
-    <ellipse cx="80" cy="22" rx="11" ry="7"  fill="url(#g_dr_steam)" />
-    <ellipse cx="50" cy="14" rx="14" ry="6"  fill="url(#g_dr_steam)" opacity=".7" />
+    {/* Ombre portée au sol sous le menton (sombre + flouté) */}
+    <ellipse cx="50" cy="92" rx="24" ry="3.5" fill="#000000" opacity=".5" />
 
-    {/* Ombre portée subtile au sol sous le menton */}
-    <ellipse cx="50" cy="92" rx="22" ry="3" fill={ESPRESSO} opacity=".35" />
-
-    {/* Grosses cornes courbées vers l'extérieur — plus longues et menaçantes */}
+    {/* Cornes longues courbées vers l'extérieur (or chaud) */}
     <path d="M30 30 Q14 22 8 4 Q18 8 24 18 Q28 24 32 30 Z"
-          fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="2" strokeLinejoin="round" />
+          fill="#A87510" stroke="#3D2010" strokeWidth="2" strokeLinejoin="round" />
     <path d="M70 30 Q86 22 92 4 Q82 8 76 18 Q72 24 68 30 Z"
-          fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="2" strokeLinejoin="round" />
-    {/* Reflet sur les cornes */}
-    <path d="M14 14 Q20 12 24 18" stroke={CREME} strokeWidth="1" fill="none" opacity=".55" strokeLinecap="round" />
-    <path d="M86 14 Q80 12 76 18" stroke={CREME} strokeWidth="1" fill="none" opacity=".55" strokeLinecap="round" />
-    {/* Petits piques d'oreille latéraux */}
-    <path d="M22 38 L16 36 L22 44 Z" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="1.4" strokeLinejoin="round" />
-    <path d="M78 38 L84 36 L78 44 Z" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="1.4" strokeLinejoin="round" />
+          fill="#A87510" stroke="#3D2010" strokeWidth="2" strokeLinejoin="round" />
+    {/* Reflet métallique sur les cornes */}
+    <path d="M14 14 Q20 12 24 18" stroke="#FFE89A" strokeWidth="1.2" fill="none" opacity=".7" strokeLinecap="round" />
+    <path d="M86 14 Q80 12 76 18" stroke="#FFE89A" strokeWidth="1.2" fill="none" opacity=".7" strokeLinecap="round" />
+    {/* Piques d'oreille latéraux acérés */}
+    <path d="M22 38 L14 34 L22 44 Z" fill="#A87510" stroke="#3D2010" strokeWidth="1.4" strokeLinejoin="round" />
+    <path d="M78 38 L86 34 L78 44 Z" fill="#A87510" stroke="#3D2010" strokeWidth="1.4" strokeLinejoin="round" />
 
-    {/* Tête de dragon : front rond (curve), joues ANGULEUSES en lignes
-        droites qui descendent vers le menton pointu. Forme losange-bouclier
-        plutôt qu'ovale. Symétrique cx=50. Filtre drop-shadow pour le relief. */}
+    {/* Vapeur diffuse derrière les épaules */}
+    <ellipse cx="22" cy="44" rx="10" ry="6"  fill="url(#g_dr_steam)" />
+    <ellipse cx="78" cy="44" rx="10" ry="6"  fill="url(#g_dr_steam)" />
+
+    {/* Tête bouclier — gradient or massif, drop shadow épais */}
     <g filter="url(#f_dr_shadow)">
       <path
         d="M24 44
@@ -799,71 +809,72 @@ const AvDragon = () => (
            Q50 80 42 74
            L30 58
            Z"
-        fill="url(#g_dr_head)" stroke={ESPRESSO} strokeWidth="3" strokeLinejoin="round"
+        fill="url(#g_dr_head)" stroke="#3D2010" strokeWidth="3" strokeLinejoin="round"
       />
     </g>
     {/* Ombre interne côté droit (relief 3D) */}
-    <path
-      d="M76 44 L70 58 L58 74 Q50 80 42 74 L30 58 L24 44"
-      fill="none" stroke={ESPRESSO} strokeWidth="2.5" strokeLinejoin="round" opacity=".25"
-    />
-    <path d="M70 50 Q72 58 66 70" stroke={ESPRESSO} strokeWidth="3" fill="none" opacity=".22" strokeLinecap="round" />
+    <path d="M70 50 Q72 58 66 70" stroke="#3D2010" strokeWidth="3.5" fill="none" opacity=".3" strokeLinecap="round" />
+    <path d="M76 44 L70 58" stroke="#3D2010" strokeWidth="2" fill="none" opacity=".35" strokeLinecap="round" />
 
-    {/* Crête de 5 piques — plus longues et acérées, en arc sur le crâne */}
-    <path d="M40 35 L41 26 L43 35 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M44 33 L46 22 L48 33 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M48 31 L50 18 L52 31 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.3" strokeLinejoin="round" />
-    <path d="M52 33 L54 22 L56 33 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M57 35 L59 26 L60 35 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
+    {/* Crête de 5 piques crème acérées au sommet */}
+    <path d="M40 35 L41 26 L43 35 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M44 33 L46 22 L48 33 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M48 31 L50 18 L52 31 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth="1.4" strokeLinejoin="round" />
+    <path d="M52 33 L54 22 L56 33 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M57 35 L59 26 L60 35 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
 
-    {/* Pépites/écailles régulières sur les joues */}
-    <circle cx="33" cy="50" r="1.6" fill={ESPRESSO} opacity=".75" />
-    <circle cx="67" cy="50" r="1.6" fill={ESPRESSO} opacity=".75" />
-    <circle cx="29" cy="58" r="1.4" fill={ESPRESSO} opacity=".65" />
-    <circle cx="71" cy="58" r="1.4" fill={ESPRESSO} opacity=".65" />
-    <circle cx="38" cy="68" r="1.3" fill={ESPRESSO} opacity=".6" />
-    <circle cx="62" cy="68" r="1.3" fill={ESPRESSO} opacity=".6" />
+    {/* Pépites écailles régulières sur les joues — en sombre sur l'or */}
+    <circle cx="33" cy="50" r="1.6" fill="#3D2010" opacity=".7" />
+    <circle cx="67" cy="50" r="1.6" fill="#3D2010" opacity=".7" />
+    <circle cx="29" cy="58" r="1.4" fill="#3D2010" opacity=".6" />
+    <circle cx="71" cy="58" r="1.4" fill="#3D2010" opacity=".6" />
+    <circle cx="38" cy="68" r="1.3" fill="#3D2010" opacity=".55" />
+    <circle cx="62" cy="68" r="1.3" fill="#3D2010" opacity=".55" />
 
-    {/* Sourcils froncés — donnent l'air furieux */}
-    <path d="M30 42 L46 48" stroke={ESPRESSO} strokeWidth="3.5" strokeLinecap="round" />
-    <path d="M70 42 L54 48" stroke={ESPRESSO} strokeWidth="3.5" strokeLinecap="round" />
+    {/* Sourcils froncés — épais et noirs pour le regard furieux */}
+    <path d="M30 42 L46 48" stroke="#1A0A02" strokeWidth="3.8" strokeLinecap="round" />
+    <path d="M70 42 L54 48" stroke="#1A0A02" strokeWidth="3.8" strokeLinecap="round" />
 
-    {/* Yeux reptiliens furieux — légèrement plissés (ellipses plus aplaties) */}
-    <ellipse cx="40" cy="51" rx="6.2" ry="5.5" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.7" />
-    <ellipse cx="60" cy="51" rx="6.2" ry="5.5" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.7" />
-    {/* Ombre supérieure — paupière qui surplombe (regard menaçant) */}
-    <path d="M34 48 Q40 49 46 48 L46 47 Q40 46 34 47 Z" fill={ESPRESSO} opacity=".7" />
-    <path d="M54 48 Q60 49 66 48 L66 47 Q60 46 54 47 Z" fill={ESPRESSO} opacity=".7" />
-    {/* Pupille verticale (fente reptilienne) plus fine = plus intense */}
-    <ellipse cx="40" cy="51" rx="1.1" ry="4.6" fill={ESPRESSO} />
-    <ellipse cx="60" cy="51" rx="1.1" ry="4.6" fill={ESPRESSO} />
+    {/* Yeux reptiliens incandescents */}
+    <ellipse cx="40" cy="51" rx="6.4" ry="5.6" fill="url(#g_dr_eye)" stroke="#3D2010" strokeWidth="1.8" />
+    <ellipse cx="60" cy="51" rx="6.4" ry="5.6" fill="url(#g_dr_eye)" stroke="#3D2010" strokeWidth="1.8" />
+    {/* Glow blanc autour des yeux (effet luminescent) */}
+    <ellipse cx="40" cy="51" rx="7.5" ry="6.8" fill="none" stroke="#FFE89A" strokeWidth="0.8" opacity=".55" />
+    <ellipse cx="60" cy="51" rx="7.5" ry="6.8" fill="none" stroke="#FFE89A" strokeWidth="0.8" opacity=".55" />
+    {/* Paupière surplombante (regard menaçant) */}
+    <path d="M34 48 Q40 49.5 46 48 L46 47 Q40 46 34 47 Z" fill="#1A0A02" opacity=".75" />
+    <path d="M54 48 Q60 49.5 66 48 L66 47 Q60 46 54 47 Z" fill="#1A0A02" opacity=".75" />
+    {/* Pupille verticale fine */}
+    <ellipse cx="40" cy="51" rx="1.1" ry="4.7" fill="#1A0A02" />
+    <ellipse cx="60" cy="51" rx="1.1" ry="4.7" fill="#1A0A02" />
     {/* Reflet brillant */}
-    <circle cx="42" cy="48.5" r="1.2" fill={CREME} />
-    <circle cx="62" cy="48.5" r="1.2" fill={CREME} />
+    <circle cx="42" cy="48.5" r="1.3" fill="#FFFFFF" />
+    <circle cx="62" cy="48.5" r="1.3" fill="#FFFFFF" />
 
-    {/* SCAR de combat sur l'œil droit (deux entailles) */}
-    <path d="M55 42 L66 58" stroke={ESPRESSO} strokeWidth="1.6" strokeLinecap="round" opacity=".75" />
-    <path d="M57 42 L65 56" stroke={CREME} strokeWidth="0.7" strokeLinecap="round" opacity=".55" />
+    {/* SCAR de combat sur l'œil droit (3 entailles parallèles) */}
+    <path d="M55 41 L67 58" stroke="#3D2010" strokeWidth="1.8" strokeLinecap="round" opacity=".85" />
+    <path d="M57 41 L66 56" stroke="#FFF5C8" strokeWidth="0.7" strokeLinecap="round" opacity=".7" />
+    <path d="M52 39 L60 50" stroke="#3D2010" strokeWidth="1.2" strokeLinecap="round" opacity=".55" />
 
-    {/* Naseaux + vapeur AGGRESSIVE qui sort en jets puissants */}
-    <ellipse cx="46" cy="62" rx="1.7" ry="2.2" fill={ESPRESSO} />
-    <ellipse cx="54" cy="62" rx="1.7" ry="2.2" fill={ESPRESSO} />
-    <path d="M46 60 Q42 54 38 50 Q36 46 32 42" stroke={CREME} strokeWidth="2.2" fill="none" opacity=".85" strokeLinecap="round" />
-    <path d="M54 60 Q58 54 62 50 Q64 46 68 42" stroke={CREME} strokeWidth="2.2" fill="none" opacity=".85" strokeLinecap="round" />
-    <path d="M44 56 Q40 50 36 46" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
-    <path d="M56 56 Q60 50 64 46" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
+    {/* Naseaux + vapeur agressive en jets puissants */}
+    <ellipse cx="46" cy="62" rx="1.8" ry="2.3" fill="#1A0A02" />
+    <ellipse cx="54" cy="62" rx="1.8" ry="2.3" fill="#1A0A02" />
+    <path d="M46 60 Q42 54 38 50 Q36 46 32 42" stroke="#F5DEAA" strokeWidth="2.4" fill="none" opacity=".9" strokeLinecap="round" />
+    <path d="M54 60 Q58 54 62 50 Q64 46 68 42" stroke="#F5DEAA" strokeWidth="2.4" fill="none" opacity=".9" strokeLinecap="round" />
+    <path d="M44 56 Q40 50 36 46" stroke="#F5DEAA" strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
+    <path d="M56 56 Q60 50 64 46" stroke="#F5DEAA" strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
 
-    {/* SNARL — bouche entrouverte qui montre les crocs */}
+    {/* SNARL — bouche entrouverte sombre + crocs visibles */}
     <path d="M40 70 Q50 76 60 70 L58 73 Q50 76 42 73 Z"
-          fill={ESPRESSO} stroke={ESPRESSO} strokeWidth="1.5" strokeLinejoin="round" />
-    {/* 4 crocs supérieurs (canines + incisives latérales) */}
-    <path d="M43 70 L44 75 L45 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".8" strokeLinejoin="round" />
-    <path d="M46 70 L47 73 L48 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
-    <path d="M52 70 L53 73 L54 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
-    <path d="M55 70 L56 75 L57 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".8" strokeLinejoin="round" />
+          fill="#1A0A02" stroke="#3D2010" strokeWidth="1.5" strokeLinejoin="round" />
+    {/* 4 crocs supérieurs */}
+    <path d="M43 70 L44 75 L45 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".8" strokeLinejoin="round" />
+    <path d="M46 70 L47 73 L48 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M52 70 L53 73 L54 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M55 70 L56 75 L57 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".8" strokeLinejoin="round" />
     {/* 2 crocs inférieurs */}
-    <path d="M44 76 L45 73 L46 76 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
-    <path d="M54 76 L55 73 L56 76 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M44 76 L45 73 L46 76 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M54 76 L55 73 L56 76 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
   </svg>
 );
 
