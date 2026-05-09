@@ -16,7 +16,10 @@ const LEGENDARY_QUESTION = {
   legendary: true,
 };
 const LEGENDARY_DROP_RATE = 0.01;  // 1 % par partie, ne se déclenche qu'une seule fois (flag legendaryBaristaSeen)
-const ANSWER_TIMEOUT_MS   = 10_000; // 10s sans répondre = skip + +1 point auto (slot normal uniquement)
+const ABSURD_TIMEOUT_MS   = 7_000; // 7s sans cliquer = +1 (absurde uniquement). Cliquer = ✗.
+/* Sentinelle utilisée comme `idx` quand le timeout déclenche onPick : sert
+   à distinguer "le joueur a attendu" d'un vrai clic dans onPick. */
+const TIMEOUT_IDX = -1;
 
 /* ════════════════════════════════════════════════════
    GuessGame — Devine la commande (PHASE 6C — refonte visuelle)
@@ -168,17 +171,16 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
 
   const timeoutRef = useRef(null);
 
-  /* Auto-skip 10 s : ne s'applique QU'AUX questions absurdes (flag
-     `absurd:true` dans commandes.js). Si le joueur ne répond pas, on
-     simule un clic correct (point gagné, client suivant). Les questions
-     normales gardent l'attente illimitée pour ne pas pénaliser la
-     réflexion. Le légendaire est aussi exempté. */
+  /* Questions absurdes (`absurd:true`) — la SEULE bonne réponse est
+     d'attendre 7 s sans cliquer. Cliquer une option = mauvaise réponse
+     (toutes les options sont des pièges). Les questions normales et le
+     légendaire ne déclenchent pas ce timeout. */
   useEffect(()=>{
     if(phase !== 'playing' || subPhase !== 'speaking' || picked !== null) return;
     if(!questions[qIndex]?.absurd) return;
     timeoutRef.current = setTimeout(()=>{
-      onPickRef.current?.(questions[qIndex]?.answer ?? 0);
-    }, ANSWER_TIMEOUT_MS);
+      onPickRef.current?.(TIMEOUT_IDX);
+    }, ABSURD_TIMEOUT_MS);
     return ()=>{ if(timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, [phase, subPhase, qIndex, picked, questions]);
 
@@ -227,14 +229,22 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     if(phase !== 'playing') return;
     if(subPhase !== 'speaking') return;    // pas pendant l'entrée
     if(typeRef.current) clearInterval(typeRef.current);
+    if(timeoutRef.current) clearTimeout(timeoutRef.current);
     setTyped(questions[qIndex].desc);      // affiche le texte complet
     setPicked(idx);
 
-    /* Slot légendaire : auto-correct, pas de pénalité (drop rare = pur
-       cadeau pour le joueur). Il a juste cliqué "Recevoir le code". */
-    const isLegendary = !!questions[qIndex].legendary;
-    const correct = questions[qIndex].answer;
-    const isRight = isLegendary || idx === correct;
+    /* Trois cas distincts :
+       - Légendaire : auto-correct (drop rare = cadeau)
+       - Absurde    : seul le timeout (idx === TIMEOUT_IDX) gagne ; un
+                      clic réel = mauvaise réponse (toutes les options
+                      sont des pièges)
+       - Normale    : standard, idx === answer */
+    const q = questions[qIndex];
+    const fromTimeout = idx === TIMEOUT_IDX;
+    const isRight =
+      q.legendary ? true
+    : q.absurd    ? fromTimeout
+    :               idx === q.answer;
     playSound(isRight ? 'success' : 'error');
     if(isRight) setScore(s => s + 1);
 
@@ -280,13 +290,21 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     : phase === 'playing' ? '…'
     :                       `Rejouer (${GUESS_COST} 🍪)`;
 
-  /* Couleur d'un bouton selon état */
+  /* Couleur d'un bouton selon état. Absurd : pas de "bonne" option à
+     surligner — on highlight uniquement le clic du joueur en ✗. */
+  const isAbsurd = !!current?.absurd;
   const choiceStyle = (idx) => {
     let bg = C.card;
     let border = C.border;
     let fg = C.text;
     if(isAnswered){
-      if(idx === correctIdx){
+      if(isAbsurd){
+        if(idx === picked){
+          bg = '#E8DCC8'; border = '#8B5A2B'; fg = '#4A2C17';
+        } else {
+          bg = C.card; border = C.border; fg = C.muted;
+        }
+      } else if(idx === correctIdx){
         bg = '#FBEFD4'; border = '#D4A017'; fg = '#5D3A1F';
       } else if(idx === picked){
         bg = '#E8DCC8'; border = '#8B5A2B'; fg = '#4A2C17';
@@ -374,11 +392,14 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
         </button>
       )}
 
-      {/* Choix 2×2 — masqué pour les slots légendaires */}
+      {/* Choix 2×2 — masqué pour les slots légendaires.
+          Absurde : pas de ✓ (aucune option n'est juste), ✗ uniquement
+          sur le clic du joueur. Si timeout (picked === TIMEOUT_IDX), pas
+          de marquage — un petit bandeau "Patience" apparaît à la place. */}
       {phase === 'playing' && current && !current.legendary && (
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:360 }}>
           {current.choices.map((label, idx) => {
-            const showCheck = isAnswered && idx === correctIdx;
+            const showCheck = isAnswered && !isAbsurd && idx === correctIdx;
             const showCross = isAnswered && idx === picked && idx !== correctIdx;
             const choicesActive = subPhase === 'speaking' && !isAnswered;
             return (
@@ -394,6 +415,19 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
               </button>
             );
           })}
+        </div>
+      )}
+
+      {/* Bandeau "Patience" : feedback positif quand le joueur a bien
+          attendu sur une question absurde (picked === TIMEOUT_IDX = -1). */}
+      {phase === 'playing' && isAbsurd && picked === TIMEOUT_IDX && (
+        <div className="su" style={{
+          width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12,
+          background:'linear-gradient(135deg,#FBEFD4,#F0C050)',
+          border:'1.5px solid #D4A017', color:'#5D3A1F',
+          fontSize:13, fontWeight:800, textAlign:'center', letterSpacing:.3,
+        }}>
+          🧘 Patience récompensée — +1
         </div>
       )}
 
