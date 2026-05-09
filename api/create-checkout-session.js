@@ -59,7 +59,7 @@ export default async function handler(req, res){
 
   /* Construit les URLs de retour */
   const protocol = (req.headers['x-forwarded-proto'] || 'https').toString().split(',')[0];
-  const host     = (req.headers.host || 'cookitrader.vercel.app').toString();
+  const host     = (req.headers.host || 'cookiminer.vercel.app').toString();
   const baseUrl  = process.env.VITE_PUBLIC_APP_URL || `${protocol}://${host}`;
 
   try{
