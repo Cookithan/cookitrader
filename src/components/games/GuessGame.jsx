@@ -58,28 +58,45 @@ const TYPE_SPEED_MS = 28;
 const WALK_IN_MS    = 800;          // synchronisé avec csCustomerWalkIn (.8s)
 const ANSWER_HOLD_MS = 1100;        // temps avant de passer au client suivant
 
-/* Tire `nbQuestions` commandes uniques + mélange l'ordre des `choices`
-   à chaque tirage pour que la bonne réponse ne soit pas toujours à la
-   même position (anti-mémo). On retient le texte de la bonne réponse
-   AVANT shuffle puis on retrouve son nouvel index. */
+const ABSURD_SESSION_RATE = 0.5;  // 50 % des parties contiennent UNE absurde, max 1.
+
+/* Mélange Fisher-Yates les choices d'une question + remap l'answer index
+   (anti-mémo). Sans effet visible pour les absurdes côté UX puisque leur
+   answer n'est pas utilisé pour scoring, mais on l'applique uniformément
+   pour rester cohérent. */
+function shuffleChoices(q){
+  const correctText = q.choices[q.answer];
+  const shuffled = [...q.choices];
+  for(let j = shuffled.length - 1; j > 0; j--){
+    const k = Math.floor(Math.random() * (j + 1));
+    [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]];
+  }
+  return { ...q, choices: shuffled, answer: shuffled.indexOf(correctText) };
+}
+
+/* Tire nbQuestions commandes UNIQUES en cap'ant à 1 absurde max par
+   partie (rate ABSURD_SESSION_RATE). Approche : pioche depuis le pool
+   normal d'abord, puis avec ABSURD_SESSION_RATE de chance, on remplace
+   une question random par une absurde tirée au hasard. */
 function pickQuestions(nbQuestions){
-  const max  = COMMANDES.length;
+  const normal = COMMANDES.filter(c => !c.absurd);
+  const absurd = COMMANDES.filter(c =>  c.absurd);
+
   const indices = [];
-  while(indices.length < Math.min(nbQuestions, max)){
-    const idx = Math.floor(Math.random() * max);
+  while(indices.length < Math.min(nbQuestions, normal.length)){
+    const idx = Math.floor(Math.random() * normal.length);
     if(!indices.includes(idx)) indices.push(idx);
   }
-  return indices.map(i => {
-    const q = COMMANDES[i];
-    const correctText = q.choices[q.answer];
-    const shuffled = [...q.choices];
-    /* Fisher-Yates */
-    for(let j = shuffled.length - 1; j > 0; j--){
-      const k = Math.floor(Math.random() * (j + 1));
-      [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]];
-    }
-    return { ...q, choices: shuffled, answer: shuffled.indexOf(correctText) };
-  });
+  let qs = indices.map(i => normal[i]);
+
+  /* Inject UNE seule absurde si proba OK et pool non vide */
+  if(absurd.length > 0 && Math.random() < ABSURD_SESSION_RATE){
+    const absurdQ = absurd[Math.floor(Math.random() * absurd.length)];
+    const slot    = Math.floor(Math.random() * qs.length);
+    qs[slot] = absurdQ;
+  }
+
+  return qs.map(shuffleChoices);
 }
 
 /* Paliers de récompense — adaptés au nb de questions (5 ou 8).
