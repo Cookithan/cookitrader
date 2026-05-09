@@ -117,7 +117,11 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
     setTyped('');
     setPicked(null);
     if(enterRef.current) clearTimeout(enterRef.current);
-    enterRef.current = setTimeout(()=>setSubPhase('speaking'), WALK_IN_MS);
+    enterRef.current = setTimeout(()=>{
+      /* Son bulle pop synchronisé avec l'apparition visuelle de la bulle */
+      playSound('bubble');
+      setSubPhase('speaking');
+    }, WALK_IN_MS);
     return ()=>{ if(enterRef.current) clearTimeout(enterRef.current); };
   }, [phase, qIndex]);
 

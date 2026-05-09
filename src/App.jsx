@@ -529,11 +529,12 @@ export default function CookiMiner() {
   const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
 
-  const goToTab = (target) => {
+  const goToTab = (target, source = 'click') => {
     const i = TAB_ORDER.indexOf(tab);
     const j = TAB_ORDER.indexOf(target);
     if(j === -1 || j === i) { setTab(target); return; }
-    playSound('tab');
+    /* Son distinct selon l'origine : 'swipe' = whoosh confirm, 'tab' = clic */
+    playSound(source === 'swipe' ? 'swipe' : 'tab');
     setSlideDir(j > i ? 'next' : 'prev');
     setTab(target);
   };
@@ -543,11 +544,11 @@ export default function CookiMiner() {
     enabled: !swipeBlocked,
     onLeft:  () => {
       const i = TAB_ORDER.indexOf(tab);
-      if(i >= 0 && i < TAB_ORDER.length - 1) goToTab(TAB_ORDER[i + 1]);
+      if(i >= 0 && i < TAB_ORDER.length - 1) goToTab(TAB_ORDER[i + 1], 'swipe');
     },
     onRight: () => {
       const i = TAB_ORDER.indexOf(tab);
-      if(i > 0) goToTab(TAB_ORDER[i - 1]);
+      if(i > 0) goToTab(TAB_ORDER[i - 1], 'swipe');
     },
   });
 
@@ -1177,7 +1178,7 @@ export default function CookiMiner() {
     } catch {}
     setShowOnboarding(true);
   };
-  const doCheckin    = ()=>{ playSound('success'); addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
+  const doCheckin    = ()=>{ playSound('coin'); addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
   const unlockReward = (id)=>{
     const r=REWARDS.find(x=>x.id===id);
     if(!r) return;
@@ -1243,8 +1244,8 @@ export default function CookiMiner() {
       spendCoins(r.cost);
     }
     setUnlocked(u=>[...u,id]);
-    /* Son d'achat — confirmation auditive du débit + nouvelle possession */
-    playSound('success');
+    /* Son d'achat dédié (caisse enregistreuse) */
+    playSound('purchase');
   };
 
   /* Achievements detection */
@@ -1324,7 +1325,8 @@ export default function CookiMiner() {
   const collectAchievement = ()=>{
     const a = pendingAchievement;
     if(!a) return;
-    playSound('success');
+    /* Gain de cookies cristallin pour l'encaissement de l'achievement */
+    playSound('coin');
     addCoins(a.bonus);
     if(a.cafesBonus) addCafes(a.cafesBonus);
     setPendingAchievement(null);

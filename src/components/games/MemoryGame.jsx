@@ -81,8 +81,8 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
     if(flipped.includes(card.id)) return;
     if(matched.includes(card.id)) return;
 
-    /* Son flip à chaque carte retournée (utilise 'tap' — feutré) */
-    playSound('tap');
+    /* Son flip dédié à chaque carte retournée */
+    playSound('flip');
     const next = [...flipped, card.id];
     setFlipped(next);
 

@@ -25,15 +25,33 @@
      (Café Parisien et Lounge Doré non inclus — fichiers absents.)
 ═══════════════════════════════════════════════════════ */
 
-/* Catalogue des sons UI */
+/* Catalogue des sons UI — courts (< 2s).
+   Volume par défaut 50 %. Les sons en `loop` sont gérés via
+   playSoundLoop / stopSoundLoop (cf. plus bas). */
 const UI_SOUNDS = {
-  tap:     '/sounds/tap.mp3',
-  success: '/sounds/success.mp3',
-  error:   '/sounds/error.mp3',
-  modal:   '/sounds/modal.mp3',
-  tab:     '/sounds/tab.mp3',
-  toggle:  '/sounds/toggle.mp3',
+  tap:      '/sounds/tap.mp3',
+  success:  '/sounds/success.mp3',
+  error:    '/sounds/error.mp3',
+  modal:    '/sounds/modal.mp3',
+  tab:      '/sounds/tab.mp3',
+  toggle:   '/sounds/toggle.mp3',
+  /* Nouveaux sons (mai 2026) — assets Pixabay/Freesound CC0 */
+  bubble:   '/sounds/bubble.mp3',    // bulle de dialogue (GuessGame)
+  flip:     '/sounds/flip.mp3',      // retournement carte (Memory)
+  slot:     '/sounds/slot.mp3',      // levier slot machine
+  jackpot:  '/sounds/jackpot.mp3',   // gros gain festif
+  purchase: '/sounds/purchase.mp3',  // achat boutique (caisse)
+  coin:     '/sounds/coin.mp3',      // gain de cookies (cristallin)
+  swipe:    '/sounds/swipe.mp3',     // swipe nav onglets
 };
+
+/* Sons en boucle (start/stop manuel) — typiquement le son du café qui
+   coule pendant qu'on maintient le bouton dans PourGame. Cache séparé
+   du audioCache UI car le cycle de vie est différent (volume + loop). */
+const LOOP_SOUNDS = {
+  pour: { src:'/sounds/pour.mp3', volume:0.55 },
+};
+const loopAudioCache = {};
 
 /* Catalogue des musiques. `free:true` = jouable sans achat (default).
    Les autres déverrouillent un id `music_<key>` côté boutique
@@ -124,6 +142,44 @@ export function playSound(name){
     a.currentTime = 0;
     a.play().catch(() => {});
   }catch{ /* mobile autoplay restrictions, etc. */ }
+}
+
+/* ── LOOP SOUNDS (start/stop manuel) ────────────────
+   Pour les sons qui doivent durer pendant une action utilisateur
+   (ex: maintien de doigt sur "Verser le café" → bruit de café qui
+   coule). Respecte le toggle uiSoundEnabled.
+
+   playSoundLoop(name) :
+     - démarre si pas déjà actif (no-op sinon → évite le double play)
+     - currentTime=0 à chaque (re)démarrage pour partir du début
+   stopSoundLoop(name) :
+     - pause + currentTime=0 (reset complet) */
+export function playSoundLoop(name){
+  const s = getSettings();
+  if(!s.uiSoundEnabled) return;
+  const cfg = LOOP_SOUNDS[name];
+  if(!cfg) return;
+  try{
+    if(!loopAudioCache[name]){
+      const a = new Audio(cfg.src);
+      a.loop = true;
+      a.volume = cfg.volume ?? 0.5;
+      loopAudioCache[name] = a;
+    }
+    const a = loopAudioCache[name];
+    if(!a.paused) return;  // déjà en lecture, ne pas relancer
+    a.currentTime = 0;
+    a.play().catch(() => {});
+  }catch{ /* autoplay restrictions etc. */ }
+}
+
+export function stopSoundLoop(name){
+  const a = loopAudioCache[name];
+  if(!a) return;
+  try{
+    a.pause();
+    a.currentTime = 0;
+  }catch{}
 }
 
 /* ── PLAY MUSIC ─────────────────────────────────────

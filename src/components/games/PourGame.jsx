@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
-import { playSound } from "../../lib/audio.js";
+import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    PourGame — "Stop le café" : maintiens le bouton, relâche au bon moment
@@ -33,7 +33,12 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
 
   useEffect(()=>{ holdingRef.current  = holding;  }, [holding]);
   useEffect(()=>{ gameOverRef.current = gameOver; }, [gameOver]);
-  useEffect(()=>()=>{ if(rafRef.current) cancelAnimationFrame(rafRef.current); },[]);
+  useEffect(()=>()=>{
+    if(rafRef.current) cancelAnimationFrame(rafRef.current);
+    /* Filet de sécurité : si l'utilisateur quitte le jeu en plein hold,
+       on coupe le son du pour (sinon il joue encore après). */
+    stopSoundLoop('pour');
+  },[]);
 
   const showFeedback = (text, color) => {
     setFeedback({ text, color, key: Date.now() });
@@ -52,6 +57,9 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
     setGameOver(true); gameOverRef.current = true;
     setHolding(false); holdingRef.current = false;
     if(rafRef.current) cancelAnimationFrame(rafRef.current);
+    /* Coupe le son du café qui coule dès la résolution (gagné ou perdu)
+       — sinon il continue jusqu'à la fin du loop audio. */
+    stopSoundLoop('pour');
 
     setTotalPlayed(t => t + 1);
 
@@ -106,6 +114,10 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
   const startHold = () => {
     if(gameOverRef.current || holdingRef.current) return;
     setHolding(true); holdingRef.current = true;
+    /* Démarre le bruit de café qui coule en loop. Sera coupé soit au
+       relâchement du bouton (stopHold → resolveGame), soit au débordement
+       (tick → resolveGame), soit au démontage du composant. */
+    playSoundLoop('pour');
     lastTimeRef.current = null;
     rafRef.current = requestAnimationFrame(tick);
   };

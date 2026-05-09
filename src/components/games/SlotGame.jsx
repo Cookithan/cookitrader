@@ -120,7 +120,8 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
     const winners = getWinningReels(result);
 
     if(evaluation.type === 'jackpot'){
-      playSound('success');
+      /* Son jackpot dédié — fanfare festive */
+      playSound('jackpot');
       setReelStates(prev => prev.map((r, i) => ({ ...r, isJackpot: winners[i] })));
       setMachineEffect('jackpot-flash');
       spawnConfetti(40);
@@ -140,7 +141,8 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
       timeoutsRef.current.push(tEnd);
 
     } else if(evaluation.type === 'triple'){
-      playSound('success');
+      /* Triple = aussi un jackpot festif (gain élevé) */
+      playSound('jackpot');
       setReelStates(prev => prev.map((r, i) => ({ ...r, isWinner: winners[i] })));
       setMachineEffect('win-flash');
       spawnConfetti(20);
@@ -174,8 +176,8 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
   /* Spin handler */
   const handleSpin = useCallback(() => {
     if(!canSpin) return;
-    /* Son de lancer (clic levier) — utilise 'modal' qui a un thump grave */
-    playSound('modal');
+    /* Son dédié de lancer (coin drop dans la machine) */
+    playSound('slot');
     setIsSpinning(true);
     setLastSpinAt(Date.now());
     onSpend?.(SLOT_CONFIG.COST);
