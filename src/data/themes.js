@@ -13,14 +13,29 @@ export const DK = { bg:'#0F0804', card:'#1E100A', card2:'#2A1508', text:'#F0E6D3
 export const LT = { bg:'#F5EFE6', card:'#FDFAF6', card2:'#F0E8DC', text:'#2C1810', muted:'#8B6A5A', border:'#E8DDD0' };
 
 export const THEMES = {
-  theme_creme:     { dark:false, bg:'#F8E5D5', card:'#FFF1E4', card2:'#F0D8C0', text:'#3A2818', muted:'#9C7860', border:'#E5CDB6' },
-  theme_espresso:  { dark:true,  bg:'#0F0804', card:'#1E100A', card2:'#2A1508', text:'#F0E6D3', muted:'#6A5040', border:'#3D2015' },
-  theme_caramel:   { dark:false, bg:'linear-gradient(160deg,#F5DEB3 0%,#E8A045 100%)', card:'#FFE9CC', card2:'#F8D89C', text:'#3D2010', muted:'#8B5A2A', border:'#E8B873' },
+  /* Niv 1 — Cappuccino Mousseux : crème ivoire pur lumineux + mousse de
+     lait écumeuse. Très clair, distinct de velours (rose) et caramel
+     (orange éclatant). 1er thème accessible — doit rester accueillant. */
+  theme_creme:     { dark:false, bg:'linear-gradient(160deg,#FFF8EE 0%,#F5E8D8 50%,#E0D2B8 100%)', card:'#FFFDF7', card2:'#F5EBD8', text:'#3D2818', muted:'#968A78', border:'#E0D2B8' },
+  /* Niv 2 — Nuit Espresso : café concentré ultra-foncé + gradient subtil
+     pour le relief (au lieu d'un aplat noir). Reste sobre — c'est le
+     mode dark "neutre" de référence du jeu. */
+  theme_espresso:  { dark:true,  bg:'linear-gradient(160deg,#0A0402 0%,#1F0E04 50%,#1A0A02 100%)', card:'#2A1408', card2:'#3D1E0E', text:'#F0E6D3', muted:'#7A6048', border:'#3D2015' },
+  /* Niv 3 — Caramel Sunrise : caramel coulant orange éclatant saturé.
+     Distinct de creme (crème pur) et velours (rose). Comme un sirop chaud. */
+  theme_caramel:   { dark:false, bg:'linear-gradient(160deg,#FFE5B0 0%,#FFB860 50%,#C87020 100%)', card:'#FFEEC8', card2:'#FFD89A', text:'#4A2010', muted:'#8B5A2A', border:'#E8A045' },
+  /* Chocolat (legacy, non vendu en boutique mais garde la palette
+     pour compat profils existants qui l'auraient activé). */
   theme_chocolat:  { dark:true,  bg:'#1A0F08', card:'#2D1A0E', card2:'#3D2614', text:'#F0E6D3', muted:'#A08068', border:'#5A3520' },
-  theme_legendaire:{ dark:true,  bg:'#1A1200', card:'#2A1E00', card2:'#3D2C0A', text:'#F5E8B5', muted:'#A0884A', border:'#5A4520', sparkles:true },
-  /* Cosmos : ambiance galactique sombre — indigo nuit + violet profond + étoiles.
-     Les accents café (or, espresso, gold) restent intacts. */
-  theme_cosmos:    { dark:true, bg:'linear-gradient(160deg,#070220 0%,#160838 35%,#2A1058 65%,#0F0428 100%)', card:'#1F0F3A', card2:'#2D1854', text:'#F0E0FF', muted:'#9A85C8', border:'#4A2D7A', sparkles:true },
+  /* Niv 6 — Légendaire : OR ANTIQUE — sombre brûlé profond → or saturé →
+     ré-assombri (effet trésor enfoui qui scintille). Distinct de elixir
+     (jaune fluo en fusion) et or_limite (violet+or royal). Sparkles. */
+  theme_legendaire:{ dark:true,  bg:'linear-gradient(160deg,#1A1200 0%,#4A2C00 30%,#9B6A14 60%,#4A2400 100%)', card:'#2A1E00', card2:'#3D2C0A', text:'#F5E8B5', muted:'#B89860', border:'#7D5A20', sparkles:true },
+  /* Cosmos (PREMIUM ☕) — galaxie profonde 6 stops : noir spatial → violet
+     nébuleuse → rose stellaire → noir. Vraie immersion spatiale. Distinct
+     de or_limite (violet+or royal) — ici palette froide cosmique pure
+     sans or. Sparkles. */
+  theme_cosmos:    { dark:true, bg:'linear-gradient(140deg,#02000F 0%,#0A0228 22%,#2A0860 45%,#7820B0 60%,#3A0A78 78%,#02000F 100%)', card:'#0F0828', card2:'#1F0840', text:'#F0E0FF', muted:'#B098D8', border:'#5C2890', sparkles:true },
 
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements spéciaux,
      impossibles à acheter. Visibles dans la boutique uniquement une fois
