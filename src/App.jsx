@@ -1116,6 +1116,12 @@ export default function CookiMiner() {
       lvRef.current = promo.level;
       xpRef.current = 0;
     }
+    /* Déblocage d'un item REWARDS (typiquement un thème édition limitée
+       comme theme_noir via le code BLACK). Idempotent : pas de doublon
+       dans `unlocked`. */
+    if(promo.unlock){
+      setUnlocked(u => u.includes(promo.unlock) ? u : [...u, promo.unlock]);
+    }
     setPromoCodesUsed(arr => Array.isArray(arr) ? [...arr, promo.code] : [promo.code]);
     playSound('success');
     const parts = [];
@@ -1123,8 +1129,9 @@ export default function CookiMiner() {
     if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
     if(promo.shares) parts.push(`+${promo.shares} action${promo.shares > 1 ? 's' : ''} $CKM`);
     if(promo.level)  parts.push(`Niv ${promo.level}`);
+    if(promo.unlock) parts.push('Item débloqué');
     showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
-  }, [addCoins, setCafes, setLevel, setXp, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
+  }, [addCoins, setCafes, setLevel, setXp, setUnlocked, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard

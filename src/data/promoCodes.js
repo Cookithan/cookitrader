@@ -15,6 +15,8 @@
      - level   : si défini, force le niveau minimum après application
                  (utile pour les codes "boost" qui catapultent à un niveau
                  directement, sans passer par les addCoins palier par palier)
+     - unlock  : id d'un item REWARDS à ajouter à `unlocked` (typiquement
+                 un thème édition limitée). Le toast mentionnera le nom.
      - label   : description courte (affichée à la confirmation)
      - secret  : si true, le code n'est PAS utilisable tant qu'il n'a
                  pas été révélé via l'item premium "Révéler Code Promo
@@ -34,6 +36,9 @@ export const PROMO_CODES = {
   /* Code rare — révélé uniquement via l'item premium "Révéler Code
      Promo Rare" (5 ☕, niveau 13). Récompense exclusive. */
   'LEGENDE13': { coins: 500,  cafes: 3, label: 'Code Rare — Légende du 13', secret: true },
+  /* Code thème — débloque le thème exclusif Noir & Blanc (édition
+     limitée, pas en boutique). Pas de cookies/cafés associés. */
+  'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */

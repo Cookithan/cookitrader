@@ -69,6 +69,12 @@ export const THEMES = {
      rouge → orange feu. Plus rouge que ambre (distinct de elixir/caramel).
      Ambiance forge, phénix qui renaît. Sparkles oranges. */
   theme_renaissance:     { dark:true, bg:'linear-gradient(160deg,#1A0404 0%,#4A0808 25%,#8B1808 55%,#C84020 80%,#FF6020 100%)', card:'#2D0808', card2:'#4A1408', text:'#FFD8B8', muted:'#D88060', border:'#8B1808', sparkles:true },
+
+  /* Édition limitée — Code promo BLACK : monochrome pur N&B, distinct
+     de tous les thèmes café/caramel (aucune teinte chaude). Style
+     cinéma noir / photographie argentique. Greyscale neutre sur 3 stops :
+     noir pur → gris ardoise → noir. Texte blanc cassé pour ne pas brûler. */
+  theme_noir:            { dark:true, bg:'linear-gradient(160deg,#000000 0%,#1F1F1F 50%,#0A0A0A 100%)', card:'#171717', card2:'#262626', text:'#F5F5F5', muted:'#9A9A9A', border:'#404040' },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';

@@ -47,14 +47,16 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
     setLoading(true);
     onRedeem(promo);
     /* Construction propre du message : on ne mentionne que les
-       monnaies effectivement créditées (évite '+' isolé si coins=0). */
+       monnaies effectivement créditées (évite '+' isolé si coins=0).
+       Pour un code "unlock" pur (sans monnaie), seul le label est
+       affiché (ex : "Thème Noir & Blanc débloqué"). */
     const parts = [];
     if(promo.coins)  parts.push(`+${promo.coins} 🍪`);
     if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
     if(promo.shares) parts.push(`+${promo.shares} action${promo.shares > 1 ? 's' : ''} $CKM`);
     setFeedback({
       type:'ok',
-      msg: `${parts.join(' · ')} — ${promo.label}`,
+      msg: parts.length ? `${parts.join(' · ')} — ${promo.label}` : promo.label,
     });
     setTimeout(onCancel, 1600);
   };

@@ -91,6 +91,10 @@ export const REWARDS = [
      et sont déjà marqués comme possédés. */
   { id:'theme_or_limite', name:'Thème Or Massif Limité', desc:'Édition limitée — Tour Spécial Roue', cost:0, type:'Thème', emoji:'🥇', levelRequired:4, limited:true, event:'event_jackpot'     },
   { id:'theme_trader',    name:'Thème Trader Avisé',     desc:'Édition limitée — Marché en Folie',   cost:0, type:'Thème', emoji:'📈', levelRequired:4, limited:true, event:'event_market_pro'  },
+  /* Édition limitée — uniquement via le code promo BLACK. Pas d'event,
+     pas de boutique. `promo` mémorise la source pour info (utilisé par
+     getBadgeOrigin si un jour on étend l'idée aux thèmes). */
+  { id:'theme_noir',      name:'Thème Noir & Blanc',     desc:'Édition limitée — Code promo BLACK', cost:0, type:'Thème', emoji:'⚫', levelRequired:1, limited:true, promo:'BLACK'             },
 
   /* 7 badges événements (ajoutés 09/05/2026) — défis modérés */
   { id:'badge_tireur',     name:'Badge Tireur',     desc:'Édition limitée — Stop parfait',         cost:0, type:'Badge', emoji:'🎯', levelRequired:4, limited:true, event:'event_pour_perfect' },
