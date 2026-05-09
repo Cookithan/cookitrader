@@ -25,25 +25,34 @@ export const THEMES = {
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements spéciaux,
      impossibles à acheter. Visibles dans la boutique uniquement une fois
      gagnés, avec un badge "Édition limitée". */
-  theme_or_limite:       { dark:true, bg:'linear-gradient(140deg,#3D2810,#8B6914)', card:'#5C4014', card2:'#8B6914', text:'#FFE4A0', muted:'#C8A878', border:'#5C4014', sparkles:true },
-  /* Trader Avisé — sombre cuivré, ambiance bourse luxueuse (event_market_pro) */
-  theme_trader:          { dark:true, bg:'linear-gradient(140deg,#1A0F08 0%,#3D2010 50%,#5C3317 100%)', card:'#2D1A0E', card2:'#3D2614', text:'#F5DCB8', muted:'#B89878', border:'#5C3317' },
+  /* Or Limité — VIOLET ROYAL + OR. Couronnement, joaillerie, cathédrale.
+     Distinct de theme_legendaire (or pur jaune) et theme_cosmos (indigo froid).
+     Le violet impérial chaud + or massif = trône royal. */
+  theme_or_limite:       { dark:true, bg:'linear-gradient(140deg,#2A0F4A 0%,#4A1880 45%,#8B6914 100%)', card:'#1F0A38', card2:'#3D1864', text:'#FFE4A0', muted:'#B89AC8', border:'#5C2890', sparkles:true },
+  /* Trader Avisé — VERT BOURSE + OR FINANCIER. Wall Street la nuit,
+     marbre vert profond, accents or. Couleur unique : aucun autre thème
+     n'a de vert (cohérent avec skin_emeraude). Sobre, pas de sparkles. */
+  theme_trader:          { dark:true, bg:'linear-gradient(140deg,#0A1A0E 0%,#1A3D24 55%,#2D6040 100%)', card:'#0F2814', card2:'#1F3D24', text:'#F0E8C0', muted:'#88B098', border:'#1F5E3D' },
 
-  /* Niv 9 — Cappuccino Velours : palette douce crème mousseuse +
-     accents caramel chaud. Mode clair, ambiance cosy. */
-  theme_velours:         { dark:false, bg:'linear-gradient(160deg,#FFEED8 0%,#F0DBC0 50%,#D8B894 100%)', card:'#FFF8EC', card2:'#F5E6D2', text:'#3D2010', muted:'#8B6A50', border:'#D8B894' },
+  /* Niv 9 — Cappuccino Velours : ROSE LATTE chaud (rose poudré +
+     terracotta). Distinct de theme_creme (rosé pâle) — ici plus saturé,
+     plus chaud, ambiance "pink drink" cosy. */
+  theme_velours:         { dark:false, bg:'linear-gradient(160deg,#FFE3DD 0%,#F5C5BD 50%,#D89D95 100%)', card:'#FFF0EC', card2:'#F5D4CC', text:'#4A2018', muted:'#9B6055', border:'#D89D95' },
 
-  /* Niv 11 — Cuir & Espresso : cuir foncé tabac + accents or vif.
-     Mode sombre racé, ambiance bibliothèque-club anglais. */
-  theme_cuir:            { dark:true, bg:'linear-gradient(160deg,#1A0E08 0%,#2D1A12 40%,#3D2418 70%,#1A0E08 100%)', card:'#2A180E', card2:'#3D2418', text:'#F0E0C0', muted:'#A88060', border:'#5C3614' },
+  /* Niv 11 — Cuir & Espresso : COGNAC ROUGE BRIQUE vieilli. Distinct
+     de theme_chocolat (brun pur) — ici accents rougeâtres marqués
+     comme un fauteuil cuir patiné de bibliothèque-club. */
+  theme_cuir:            { dark:true, bg:'linear-gradient(160deg,#2D1408 0%,#4A2010 50%,#6B2814 100%)', card:'#3D1A0E', card2:'#5C2814', text:'#F5D8B0', muted:'#B8907A', border:'#7D3818' },
 
-  /* Niv 12 — Élixir Doré : or liquide en fusion. Sombre chaud, dégradé
-     ambré profond avec accents miel. Accents or sur fond bordeaux café. */
-  theme_elixir:          { dark:true, bg:'linear-gradient(160deg,#1A0E04 0%,#3D2410 30%,#8B5A14 60%,#5C3614 100%)', card:'#2D1A0A', card2:'#3D2614', text:'#FFE5A8', muted:'#C8A05A', border:'#5C3614', sparkles:true },
+  /* Niv 12 — Élixir Doré : OR LIQUIDE EN FUSION ambre vif. 5 stops pour
+     l'effet "métal en fusion" coulant du sombre vers l'or. Distinct de
+     theme_legendaire (qui est plus jaune statique). Sparkles intenses. */
+  theme_elixir:          { dark:true, bg:'linear-gradient(160deg,#1A0A00 0%,#4A2400 25%,#8B5C00 55%,#D49000 80%,#5C3000 100%)', card:'#2D1404', card2:'#4A2408', text:'#FFE8A0', muted:'#C8A040', border:'#8B5C00', sparkles:true },
 
-  /* Niv 14 — Renaissance : flammes de phénix orangées, dégradé chaud
-     avec touches dorées qui montent. Café profond → ambre → orange feu. */
-  theme_renaissance:     { dark:true, bg:'linear-gradient(160deg,#1A0804 0%,#3D1808 25%,#7D2E0E 55%,#C85820 85%,#E88840 100%)', card:'#2D1408', card2:'#4A1E0C', text:'#FFE0B8', muted:'#D49060', border:'#7D2E0E', sparkles:true },
+  /* Niv 14 — Renaissance : BRAISE ROUGE CARDINAL. Charbon noir → braise
+     rouge → orange feu. Plus rouge que ambre (distinct de elixir/caramel).
+     Ambiance forge, phénix qui renaît. Sparkles oranges. */
+  theme_renaissance:     { dark:true, bg:'linear-gradient(160deg,#1A0404 0%,#4A0808 25%,#8B1808 55%,#C84020 80%,#FF6020 100%)', card:'#2D0808', card2:'#4A1408', text:'#FFD8B8', muted:'#D88060', border:'#8B1808', sparkles:true },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';
