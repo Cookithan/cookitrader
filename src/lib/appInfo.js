@@ -11,14 +11,33 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.8.0',
-  releaseDate: '2026-05-09',
+  version: '1.9.0',
+  releaseDate: '2026-05-10',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.9.0',
+    date: '2026-05-10',
+    title: '☕ Monétisation, prestige & refonte café',
+    changes: [
+      "💳 Paiement Stripe pour acheter des cafés (10 / 50 / 200 ☕)",
+      "🌟 Système Prestige (Renaissance) — niveau 16 'Ascendant Caféiné' à 20000 XP",
+      "👑 Couronnes visibles dans le classement à chaque prestige (×10 % bonus permanent sur tous les gains 🍪)",
+      "⚡ Nouveaux boosters consommables : ×2 cookies (1 h), Skip quiz, Doubler prochain gain",
+      "🎫 Catégorie 'Bonus VIP' regroupe tous les jetons + boosters dans le Premium",
+      "🎰 Cap 50 parties / jour sur la Machine à Sous + ticket 50 parties (3 ☕)",
+      "🐺 Avatar Loup Mocha (remplace Dragon Espresso) — fourrure mocha sur fond espresso sombre",
+      "🌑 Thème exclusif 'Noir & Blanc' via code promo BLACK (greyscale total)",
+      "🍪 Thème 'Pâte de Cookie' via code rare BARISTA05 (drop 1 % chez le barista légendaire de Devine la commande)",
+      "🎓 Refonte du tour guidé — visite tab par tab",
+      "💰 Économie café rééquilibrée : sources -45 %, stock global reset à 0",
+      "🐛 Fix : sync cross-device cassait les paiements Stripe (race upsert client)",
+    ],
+  },
   {
     version: '1.8.0',
     date: '2026-05-09',

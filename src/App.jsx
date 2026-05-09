@@ -10,7 +10,7 @@ import { pickRandomEvent, buildWaitingEvent, ACTIVE_DURATION_MS, MAX_ATTEMPTS, E
 import { EventBanner } from "./components/EventBanner.jsx";
 import { EventAnnounceModal } from "./components/modals/EventAnnounceModal.jsx";
 import { EventRewardModal } from "./components/modals/EventRewardModal.jsx";
-import { TutorialOverlay } from "./components/tutorial/TutorialOverlay.jsx";
+import { WelcomeTour } from "./components/tutorial/WelcomeTour.jsx";
 import { ContextHint, CONTEXT_HINTS } from "./components/tutorial/ContextHint.jsx";
 import { SkipConfirmModal } from "./components/modals/SkipConfirmModal.jsx";
 import { useInstallPrompt } from "./hooks/useInstallPrompt.js";
@@ -737,13 +737,28 @@ export default function CookiMiner() {
     setSeenHints(s => s.includes(id) ? s : [...s, id]);
   }, [tab, tutorialStep, seenHints, setSeenHints]);
 
-  /* Avance d'une étape du tuto (avec auto-marquage à la fin) */
-  const TUTORIAL_TOTAL_STEPS = 5;
+  /* Tour guidé — étapes définies ici (réordonnable). À chaque step,
+     onNavigate change le tab ou ouvre l'overlay correspondant. La fin
+     marque tutorialCompleted en LS pour ne plus jamais re-pop. */
+  const TOUR_STEPS = [
+    { id:'accueil',    target:'tab:accueil',     emoji:'🏠',  title:'Accueil',         desc:"Ton hub principal. Tu y vois ton niveau, ta série de check-in, et tes mini-jeux quotidiens (check-in, quiz du jour)." },
+    { id:'jeux',       target:'tab:jeux',        emoji:'🎮',  title:'Jeux',            desc:"Tous les mini-jeux pour gagner des cookies 🍪 : roue, click, stop le café, devine la commande, pile de tasses, machine à sous… Chaque jeu a son coût et sa récompense." },
+    { id:'classement', target:'tab:classement',  emoji:'🏆',  title:'Classement',      desc:"Compare-toi aux autres joueurs : top par cookies cumulés et par actions $CKM détenues. Tape sur le top 1 pour voir son profil." },
+    { id:'marche',     target:'tab:marche',      emoji:'📈',  title:'Marché $CKM',     desc:"Le marché spéculatif s'ouvre au niveau 3. Achète bas, revends haut. Le cours bouge en temps réel — risqué mais lucratif." },
+    { id:'boutique',   target:'tab:boutique',    emoji:'🛍️', title:'Boutique',        desc:"Dépense tes cookies pour débloquer thèmes, badges, avatars, skins de cookie. Onglet PREMIUM = items rares achetés en cafés ☕." },
+    { id:'profil',     target:'overlay:profile', emoji:'👤',  title:'Profil',          desc:"Tes infos perso : pseudo, avatar, badges débloqués, succès, amis, code ami à partager. Tap sur l'avatar en haut à gauche pour ouvrir." },
+    { id:'settings',   target:'overlay:settings',emoji:'⚙️',  title:'Paramètres',      desc:"Active tes thèmes, gère le son, sauvegarde ton compte avec un PIN pour le restaurer sur un autre appareil. À propos = changelog complet." },
+  ];
+
   const tutorialNext = () => {
     setTutorialStep(s => {
       const next = s + 1;
-      if(next > TUTORIAL_TOTAL_STEPS){
+      if(next > TOUR_STEPS.length){
         try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
+        /* Ferme tous les overlays ouverts par le tour */
+        setShowProfile(false);
+        setShowSettings(false);
+        setTab('accueil');
         return 0;
       }
       return next;
@@ -753,7 +768,28 @@ export default function CookiMiner() {
   const tutorialConfirmSkip = () => {
     setShowSkipConfirm(false);
     setTutorialStep(0);
+    setShowProfile(false);
+    setShowSettings(false);
     try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
+  };
+
+  /* Mappe le `target` d'une étape vers une action de navigation. Tabs
+     déclenchés via setTab + ferme les overlays. Overlays via setShow*. */
+  const tourNavigate = (target) => {
+    if(!target) return;
+    if(target.startsWith('tab:')){
+      setShowProfile(false);
+      setShowSettings(false);
+      setTab(target.slice(4));
+    } else if(target === 'overlay:profile'){
+      setTab('accueil');
+      setShowSettings(false);
+      setShowProfile(true);
+    } else if(target === 'overlay:settings'){
+      setTab('accueil');
+      setShowProfile(false);
+      setShowSettings(true);
+    }
   };
 
   const lvRef = useRef(level); lvRef.current = level;
@@ -2770,12 +2806,17 @@ export default function CookiMiner() {
         />
       )}
 
-      {/* TUTORIEL GUIDÉ — déclenché au 1er lancement après onboarding */}
+      {/* TOUR GUIDÉ — déclenché au 1er lancement après onboarding.
+          Visite séquentielle : accueil → jeux → classement → marché →
+          boutique → profil → paramètres. Réinitialisable via Settings. */}
       {tutorialStep > 0 && (
-        <TutorialOverlay
-          step={tutorialStep}
+        <WelcomeTour
+          steps={TOUR_STEPS}
+          stepIndex={tutorialStep - 1}
           onNext={tutorialNext}
           onSkip={()=>setShowSkipConfirm(true)}
+          onNavigate={tourNavigate}
+          C={C}
         />
       )}
       {showSkipConfirm && (
