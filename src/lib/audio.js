@@ -46,10 +46,13 @@ const UI_SOUNDS = {
 };
 
 /* Sons en boucle (start/stop manuel) — typiquement le son du café qui
-   coule pendant qu'on maintient le bouton dans PourGame. Cache séparé
-   du audioCache UI car le cycle de vie est différent (volume + loop). */
+   coule pendant qu'on maintient le bouton dans PourGame, ou les sons
+   de défilement pendant qu'un rouleau/roue tourne. Cache séparé du
+   audioCache UI car le cycle de vie est différent (volume + loop). */
 const LOOP_SOUNDS = {
-  pour: { src:'/sounds/pour.mp3', volume:0.55 },
+  pour:  { src:'/sounds/pour.mp3',       volume:0.55 },
+  slot:  { src:'/sounds/slot-loop.mp3',  volume:0.50 },  // rouleaux Machine à Sous
+  wheel: { src:'/sounds/wheel-loop.mp3', volume:0.50 },  // rotation de la Roue
 };
 const loopAudioCache = {};
 

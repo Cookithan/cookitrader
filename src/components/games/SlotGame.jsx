@@ -6,7 +6,7 @@ import {
   evaluateResult,
   getWinningReels,
 } from "../../lib/slotMachine.js";
-import { playSound } from "../../lib/audio.js";
+import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    SlotGame — "Machine à Sous" (BRIEF refonte 09/05/2026)
@@ -70,10 +70,12 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
     }catch{}
   }, [gamesToday]);
 
-  /* Cleanup intervals/timeouts au démontage */
+  /* Cleanup intervals/timeouts au démontage + coupe le son loop si l'user
+     quitte en plein spin (sinon il joue encore après dans d'autres écrans). */
   useEffect(() => () => {
     if(cycleIntervalRef.current) clearInterval(cycleIntervalRef.current);
     timeoutsRef.current.forEach(clearTimeout);
+    stopSoundLoop('slot');
   }, []);
 
   /* Helper : peut-on lancer ? */
@@ -176,8 +178,11 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
   /* Spin handler */
   const handleSpin = useCallback(() => {
     if(!canSpin) return;
-    /* Son dédié de lancer (coin drop dans la machine) */
+    /* Son dédié de lancer (coin drop dans la machine) puis loop des
+       rouleaux qui tournent. Le loop sera coupé à l'arrêt du dernier
+       rouleau (stop3 ci-dessous). */
     playSound('slot');
+    playSoundLoop('slot');
     setIsSpinning(true);
     setLastSpinAt(Date.now());
     onSpend?.(SLOT_CONFIG.COST);
@@ -221,6 +226,8 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
 
     const stop3 = setTimeout(() => {
       playSound('tap');
+      /* Dernier rouleau calé → coupe le loop du défilement */
+      stopSoundLoop('slot');
       setReelStates(prev => {
         const next = [...prev];
         next[2] = { ...next[2], spinning:false, stopping:true, symbol: result[2] };

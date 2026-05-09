@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { SEGMENTS } from "../../data/constants.js";
 import { ROUE_PALETTES, ROUE_GLOWS, GOLD } from "../../data/themes.js";
 import { SEG_A, SEG_C, wRandom } from "../../utils/spin.js";
-import { playSound } from "../../lib/audio.js";
+import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    SpinGame — roue canvas avec 11 segments pondérés
@@ -71,12 +71,18 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
   },[palette, glowColor]);
 
   useEffect(()=>{ draw(angleRef.current); },[draw]);
+  /* Filet de sécurité : si l'user quitte le jeu en plein spin, on coupe
+     le son de rotation (sinon il joue encore après dans d'autres écrans). */
+  useEffect(()=>()=>{ stopSoundLoop('wheel'); },[]);
 
   const spin = () => {
     if(spinning || coins < COST) return;
     if(spinsLeft <= 0) return;       // cap quotidien atteint
     consumeSpin?.();                 // décrément quotidien (App.jsx)
     onSpend(COST); setSpinning(true); setResult(null);
+    /* Démarre le son de la roue qui tourne (loop). Coupé à la résolution
+       (t==1 dans l'animate ci-dessous) ou au démontage du composant. */
+    playSoundLoop('wheel');
     const idx = wRandom();
     const mid  = SEG_C[idx] + SEG_A[idx]/2;
     /* target angle so segment mid lands at top (270°) */
@@ -95,6 +101,8 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
       if(t<1){ requestAnimationFrame(animate); }
       else {
         angleRef.current=final; setSpinning(false); setResult(SEGMENTS[idx]);
+        /* Coupe le son de rotation dès que la roue se cale */
+        stopSoundLoop('wheel');
         const value = SEGMENTS[idx].value;
         playSound(value > 0 ? 'success' : 'error');
         onEarn(value);
