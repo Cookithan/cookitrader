@@ -76,6 +76,13 @@ export const THEMES = {
      combiné avec filter:grayscale(1) contrast(1.2) côté CSS pour
      écraser les éventuels mid-greys hardcodés (boutons GOLD, etc.). */
   theme_noir:            { dark:true, bg:'#000000', card:'#080808', card2:'#101010', text:'#FFFFFF', muted:'#D8D8D8', border:'#1A1A1A' },
+
+  /* Édition limitée — Code promo BARISTA05 (drop 0.5% via barista
+     légendaire dans Devine la commande). Palette pâte-de-cookie : crème
+     beurrée → caramel doré → croûte cuite. 4 stops pour le côté "biscuit
+     qui sort du four". Distinct de theme_creme (rose pâle) et
+     theme_caramel (orange saturé). */
+  theme_cookies:         { dark:false, bg:'linear-gradient(160deg,#FAEAD0 0%,#F0CC85 35%,#D49050 70%,#8B5A2B 100%)', card:'#FFF5E0', card2:'#F5DDB0', text:'#3D2010', muted:'#8B5A2B', border:'#D49050' },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';

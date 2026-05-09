@@ -10,10 +10,11 @@
    (droite). Le client se tient au centre, derrière le comptoir-front,
    et "marche" depuis la droite via l'animation csCustomerWalkIn.
 
-   Banque de 5 clients différents (CUSTOMERS) dessinés en SVG
-   directement dans ce fichier (110×120). À chaque partie, GuessGame
-   tire 5 indices distincts dans cette banque et les passe ici via la
-   prop `customer`.
+   Banque de 8 clients (CUSTOMERS) + 1 barista légendaire séparé
+   (LEGENDARY_BARISTA, drop 0.5% par partie via GuessGame). Tous
+   dessinés en SVG 110×120 dans ce fichier. À chaque partie, GuessGame
+   tire des indices distincts dans CUSTOMERS et les passe ici via la
+   prop `customer`. Le légendaire est injecté hors pool.
 
    Props :
    - customer    : { id, svg } — l'un des CUSTOMERS
@@ -134,7 +135,120 @@ export const CUSTOMERS = [
       </svg>
     ),
   },
+  /* 6 — Femme d'affaires, blazer bleu marine, queue de cheval */
+  {
+    id: 'femme_affaires',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <path d="M 16 120 L 16 86 Q 16 68 32 62 L 78 62 Q 94 68 94 86 L 94 120 Z" fill="#1F2D4A"/>
+        <path d="M 50 64 L 55 80 L 60 64 L 60 60 L 50 60 Z" fill="#FFFFFF"/>
+        <path d="M 55 80 L 50 100 L 60 100 Z" fill="#A04050"/>
+        <ellipse cx="55" cy="58" rx="9" ry="6" fill="#F5D0A0"/>
+        <circle cx="55" cy="34" r="22" fill="#FCE0B8"/>
+        <path d="M 33 28 Q 32 20 42 16 L 68 16 Q 78 20 77 28 L 77 24 L 73 26 L 38 26 L 33 24 Z" fill="#3D2010"/>
+        <path d="M 78 32 L 92 50 Q 86 56 82 50 L 82 36 Z" fill="#3D2010"/>
+        <ellipse cx="46" cy="35" rx="2.5" ry="3" fill="#2C1810"/>
+        <ellipse cx="64" cy="35" rx="2.5" ry="3" fill="#2C1810"/>
+        <path d="M 53 39 L 51 44 L 55 44 Z" fill="#D4A07C" opacity="0.5"/>
+        <path d="M 49 49 Q 55 51 61 49" stroke="#A04050" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+        <ellipse cx="38" cy="42" rx="3" ry="2.5" fill="#E59080" opacity="0.5"/>
+        <ellipse cx="72" cy="42" rx="3" ry="2.5" fill="#E59080" opacity="0.5"/>
+      </svg>
+    ),
+  },
+  /* 7 — Enfant, casquette rouge, t-shirt jaune */
+  {
+    id: 'enfant',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <path d="M 22 120 L 22 92 Q 22 76 36 70 L 74 70 Q 88 76 88 92 L 88 120 Z" fill="#E5B040"/>
+        <ellipse cx="55" cy="65" rx="8" ry="5" fill="#F5D0A0"/>
+        <circle cx="55" cy="44" r="18" fill="#FCE0B8"/>
+        <path d="M 34 36 Q 30 28 36 24 L 74 24 Q 80 28 76 36 L 76 30 Q 72 30 38 30 Q 34 30 34 36 Z" fill="#C42030"/>
+        <path d="M 76 32 L 84 30 L 84 36 L 76 38 Z" fill="#C42030"/>
+        <ellipse cx="55" cy="22" rx="22" ry="8" fill="#A01828"/>
+        <ellipse cx="48" cy="44" rx="2.5" ry="3" fill="#2C1810"/>
+        <ellipse cx="62" cy="44" rx="2.5" ry="3" fill="#2C1810"/>
+        <ellipse cx="48" cy="43" rx="0.8" ry="1" fill="white"/>
+        <ellipse cx="62" cy="43" rx="0.8" ry="1" fill="white"/>
+        <path d="M 53 48 L 51 52 L 55 52 Z" fill="#D4A07C" opacity="0.5"/>
+        <path d="M 48 56 Q 55 60 62 56" stroke="#A04050" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+        <ellipse cx="40" cy="50" rx="3.5" ry="3" fill="#E59080" opacity="0.6"/>
+        <ellipse cx="70" cy="50" rx="3.5" ry="3" fill="#E59080" opacity="0.6"/>
+      </svg>
+    ),
+  },
+  /* 8 — Dame âgée, lunettes, châle violet pâle, cheveux gris */
+  {
+    id: 'dame_agee',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <path d="M 14 120 L 14 86 Q 14 66 32 60 L 78 60 Q 96 66 96 86 L 96 120 Z" fill="#9878A8"/>
+        <path d="M 14 86 Q 22 80 30 86 L 30 95 Q 22 90 14 95 Z" fill="#7D5C8E"/>
+        <path d="M 96 86 Q 88 80 80 86 L 80 95 Q 88 90 96 95 Z" fill="#7D5C8E"/>
+        <ellipse cx="55" cy="58" rx="9" ry="6" fill="#E5B894"/>
+        <circle cx="55" cy="36" r="22" fill="#F0CCA0"/>
+        <path d="M 30 30 Q 28 14 50 10 Q 60 8 70 12 Q 84 18 82 32 Q 78 26 72 26 L 38 26 Q 32 26 30 30 Z" fill="#C8C8C8"/>
+        <ellipse cx="55" cy="12" rx="20" ry="6" fill="#B8B8B8"/>
+        <circle cx="46" cy="36" r="5" fill="none" stroke="#3D2010" strokeWidth="1.5"/>
+        <circle cx="64" cy="36" r="5" fill="none" stroke="#3D2010" strokeWidth="1.5"/>
+        <path d="M 51 36 L 59 36" stroke="#3D2010" strokeWidth="1.5"/>
+        <ellipse cx="46" cy="36" rx="2" ry="2.5" fill="#2C1810"/>
+        <ellipse cx="64" cy="36" rx="2" ry="2.5" fill="#2C1810"/>
+        <path d="M 53 42 L 51 47 L 55 47 Z" fill="#D4A07C" opacity="0.5"/>
+        <path d="M 49 53 Q 55 56 61 53" stroke="#A8506C" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
 ];
+
+/* Barista Légendaire — drop ULTRA RARE (0.5% par partie de Devine la
+   commande). Apparence dorée avec halo, sparkles. Sa bulle contient
+   le code promo BARISTA05 → débloque theme_cookies. Pas dans CUSTOMERS
+   (jamais tiré dans le pool normal) — injecté manuellement par GuessGame. */
+export const LEGENDARY_BARISTA = {
+  id: 'legendary_barista',
+  svg: (
+    <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+      {/* Halo doré derrière */}
+      <circle cx="55" cy="36" r="34" fill="#F5DC8A" opacity="0.45"/>
+      <circle cx="55" cy="36" r="28" fill="#F0C050" opacity="0.35"/>
+      {/* Corps : tablier de barista or */}
+      <path d="M 18 120 L 18 88 Q 18 70 34 64 L 76 64 Q 92 70 92 88 L 92 120 Z" fill="#D4A017"/>
+      <path d="M 42 66 L 55 80 L 68 66 L 68 60 L 42 60 Z" fill="#FFFFFF"/>
+      <path d="M 55 80 L 52 100 L 58 100 Z" fill="#8B5A2B"/>
+      {/* Cou */}
+      <ellipse cx="55" cy="60" rx="9" ry="6" fill="#F5D0A0"/>
+      {/* Tête */}
+      <circle cx="55" cy="36" r="22" fill="#FCE0B8"/>
+      {/* Cheveux dorés */}
+      <path d="M 32 30 Q 30 12 50 8 Q 60 6 70 8 Q 84 14 82 30 Q 78 24 72 24 L 38 24 Q 34 24 32 30 Z" fill="#E8B040"/>
+      <ellipse cx="55" cy="10" rx="22" ry="6" fill="#D49018"/>
+      {/* Couronne (toque dorée) */}
+      <path d="M 35 14 L 38 4 L 45 10 L 55 0 L 65 10 L 72 4 L 75 14 Z" fill="#F5DC8A" stroke="#D4A017" strokeWidth="1"/>
+      <circle cx="55" cy="6" r="2.5" fill="#FFFFFF"/>
+      {/* Yeux brillants */}
+      <ellipse cx="46" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
+      <ellipse cx="64" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
+      <ellipse cx="46" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+      <ellipse cx="64" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+      {/* Nez */}
+      <path d="M 53 41 L 51 46 L 55 46 Z" fill="#D4A07C" opacity="0.5"/>
+      {/* Sourire malin */}
+      <path d="M 47 50 Q 55 56 63 50" stroke="#8B5A2B" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      {/* Joues dorées */}
+      <ellipse cx="38" cy="44" rx="3.5" ry="3" fill="#F5C070" opacity="0.6"/>
+      <ellipse cx="72" cy="44" rx="3.5" ry="3" fill="#F5C070" opacity="0.6"/>
+      {/* Sparkles autour */}
+      <circle cx="20" cy="20" r="2" fill="#FFE066"/>
+      <circle cx="92" cy="24" r="1.5" fill="#FFE066"/>
+      <circle cx="14" cy="55" r="1.8" fill="#FFE066"/>
+      <circle cx="98" cy="50" r="1.2" fill="#FFE066"/>
+      <circle cx="8" cy="38" r="1" fill="#FFE066"/>
+      <circle cx="100" cy="38" r="1.6" fill="#FFE066"/>
+    </svg>
+  ),
+};
 
 export function CafeScene({ customer, dialogText, subPhase }){
   const showBubble = subPhase === 'speaking';

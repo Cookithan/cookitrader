@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { COMMANDES } from "../../data/commandes.js";
-import { CafeScene, CUSTOMERS } from "./CafeScene.jsx";
+import { CafeScene, CUSTOMERS, LEGENDARY_BARISTA } from "./CafeScene.jsx";
 import { playSound } from "../../lib/audio.js";
+
+/* Question fictive utilisée quand le slot tombe sur le barista
+   légendaire (drop 0.5% par partie). Texte = bulle qui révèle le code
+   promo. Pas de choices/answer — l'UI affiche un bouton unique
+   "Recevoir le code" qui valide la question (auto-correct, pas de
+   pénalité de score). */
+const LEGENDARY_QUESTION = {
+  desc: "🌟 Tu m'as l'air d'un vrai amateur... Voici un code rare rien que pour toi : BARISTA05. Saisis-le dans Paramètres → Code promo pour débloquer un thème exclusif !",
+  choices: [],
+  answer: 0,
+  legendary: true,
+};
+const LEGENDARY_DROP_RATE = 0.005;  // 0.5 % par partie
 
 /* ════════════════════════════════════════════════════
    GuessGame — Devine la commande (PHASE 6C — refonte visuelle)
@@ -164,8 +177,18 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
     playSound('modal');
     onSpend(GUESS_COST);
     const qs = pickQuestions(NB_QUESTIONS);
+    const ci = pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length);
+    /* 0.5 % par partie : on injecte le barista légendaire à un slot
+       aléatoire. Sa "question" devient LEGENDARY_QUESTION (sentinelle
+       legendary:true), et l'index client de ce slot vaut -1 pour signaler
+       "utiliser LEGENDARY_BARISTA au lieu de CUSTOMERS[i]". */
+    if(Math.random() < LEGENDARY_DROP_RATE){
+      const slot = Math.floor(Math.random() * NB_QUESTIONS);
+      qs[slot] = LEGENDARY_QUESTION;
+      ci[slot] = -1;
+    }
     setQuestions(qs);
-    setCustomerIndices(pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length));
+    setCustomerIndices(ci);
     setQIndex(0);
     setScore(0);
     setPicked(null);
@@ -183,8 +206,11 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
     setTyped(questions[qIndex].desc);      // affiche le texte complet
     setPicked(idx);
 
+    /* Slot légendaire : auto-correct, pas de pénalité (drop rare = pur
+       cadeau pour le joueur). Il a juste cliqué "Recevoir le code". */
+    const isLegendary = !!questions[qIndex].legendary;
     const correct = questions[qIndex].answer;
-    const isRight = idx === correct;
+    const isRight = isLegendary || idx === correct;
     playSound(isRight ? 'success' : 'error');
     if(isRight) setScore(s => s + 1);
 
@@ -289,19 +315,41 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
       {/* Scène café POV barista — voir CafeScene.jsx pour le détail.
           Le `key` du customer change à chaque qIndex → React démonte/
           remonte la div .cs-customer et l'anim csCustomerWalkIn se
-          rejoue. La bulle ne s'affiche qu'en sub-phase 'speaking'. */}
+          rejoue. La bulle ne s'affiche qu'en sub-phase 'speaking'.
+          customerIndices[qIndex] === -1 → barista légendaire (drop 0.5%). */}
       {phase === 'playing' && current && customerIndices.length > 0 && (
         <div style={{ width:'100%', maxWidth:360 }}>
           <CafeScene
-            customer={CUSTOMERS[customerIndices[qIndex]]}
+            customer={customerIndices[qIndex] === -1 ? LEGENDARY_BARISTA : CUSTOMERS[customerIndices[qIndex]]}
             dialogText={typed}
             subPhase={subPhase}
           />
         </div>
       )}
 
-      {/* Choix 2×2 */}
-      {phase === 'playing' && current && (
+      {/* Slot légendaire : un bouton unique "Recevoir le code". Auto-correct,
+          pas de pénalité (drop rare = bonus pur). */}
+      {phase === 'playing' && current?.legendary && (
+        <button
+          onClick={()=>onPick(0)}
+          disabled={subPhase !== 'speaking' || isAnswered}
+          style={{
+            width:'100%', maxWidth:360, padding:'16px 0', borderRadius:14,
+            background:'linear-gradient(135deg,#F5DC8A,#D4A017)',
+            color:'#3D2010', fontSize:14, fontWeight:900, letterSpacing:.5,
+            border:'2px solid #D4A017',
+            cursor: (subPhase !== 'speaking' || isAnswered) ? 'default' : 'pointer',
+            boxShadow:'0 6px 20px rgba(212,160,23,.45)',
+            opacity: subPhase==='entering' ? .55 : 1,
+            transition:'opacity .3s',
+          }}
+        >
+          {isAnswered ? '✓ Code reçu !' : '🎁 Recevoir le code'}
+        </button>
+      )}
+
+      {/* Choix 2×2 — masqué pour les slots légendaires */}
+      {phase === 'playing' && current && !current.legendary && (
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:360 }}>
           {current.choices.map((label, idx) => {
             const showCheck = isAnswered && idx === correctIdx;

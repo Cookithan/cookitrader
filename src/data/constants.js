@@ -95,6 +95,9 @@ export const REWARDS = [
      pas de boutique. `promo` mémorise la source pour info (utilisé par
      getBadgeOrigin si un jour on étend l'idée aux thèmes). */
   { id:'theme_noir',      name:'Thème Noir & Blanc',     desc:'Édition limitée — Code promo BLACK', cost:0, type:'Thème', emoji:'⚫', levelRequired:1, limited:true, promo:'BLACK'             },
+  /* Édition limitée — drop rare via le barista légendaire dans
+     Devine la commande (0.5% par partie). Code BARISTA05 affiché en bulle. */
+  { id:'theme_cookies',   name:'Thème Pâte de Cookie',   desc:'Édition limitée — Drop rare barista légendaire', cost:0, type:'Thème', emoji:'🍪', levelRequired:1, limited:true, promo:'BARISTA05' },
 
   /* 7 badges événements (ajoutés 09/05/2026) — défis modérés */
   { id:'badge_tireur',     name:'Badge Tireur',     desc:'Édition limitée — Stop parfait',         cost:0, type:'Badge', emoji:'🎯', levelRequired:4, limited:true, event:'event_pour_perfect' },
