@@ -716,40 +716,32 @@ const AvPanda = () => (
   </svg>
 );
 
-/* AvDragon — refonte complète : dragon en or/ambre lumineux qui ressort
-   sur fond espresso très sombre (cf. avatars.js). Structure : tête
-   bouclier centrée, sourcils furieux, yeux dorés glowing, scar de combat,
-   snarl avec 6 crocs, vapeur de café agressive en jets, cornes courbées,
-   crête 5 piques, ombre au sol. */
-const AvDragon = () => (
+/* AvLoup — Loup Mocha : tête de loup centrée, fourrure mocha avec
+   reflets caramel, yeux ambre intense, regard menaçant, museau pointu
+   avec crocs visibles. Sur fond espresso très sombre — la lune en
+   arrière-plan + fourrure plus claire que le bg pour le contraste. */
+const AvLoup = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
-      {/* Tête : or lumineux qui ressort sur le bg sombre */}
-      <radialGradient id="g_dr_head" cx="40%" cy="32%" r="78%">
-        <stop offset="0%"   stopColor="#FFE89A" />
-        <stop offset="40%"  stopColor="#F0C050" />
-        <stop offset="80%"  stopColor="#A87510" />
-        <stop offset="100%" stopColor="#5C3614" />
+      {/* Fourrure : mocha avec reflets caramel sur le front (lumière du dessus) */}
+      <radialGradient id="g_lp_fur" cx="50%" cy="28%" r="78%">
+        <stop offset="0%"   stopColor="#A87850" />
+        <stop offset="50%"  stopColor="#6B3D20" />
+        <stop offset="100%" stopColor="#3D2010" />
       </radialGradient>
-      {/* Yeux : ambre incandescent */}
-      <radialGradient id="g_dr_eye" cx="35%" cy="30%" r="80%">
-        <stop offset="0%"   stopColor="#FFF5C8" />
-        <stop offset="50%"  stopColor="#FFC850" />
-        <stop offset="100%" stopColor="#A87510" />
+      {/* Yeux : jaune ambre intense */}
+      <radialGradient id="g_lp_eye" cx="35%" cy="30%" r="80%">
+        <stop offset="0%"   stopColor="#FFF0A0" />
+        <stop offset="50%"  stopColor="#F5C840" />
+        <stop offset="100%" stopColor="#8B5A14" />
       </radialGradient>
-      {/* Vapeur de café (filets crème translucides) */}
-      <radialGradient id="g_dr_steam" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stopColor="#F5DEAA" stopOpacity=".7" />
-        <stop offset="100%" stopColor="#F5DEAA" stopOpacity="0" />
-      </radialGradient>
-      {/* Halo or autour de la tête (dépasse sur le bg sombre) */}
-      <radialGradient id="g_dr_halo" cx="50%" cy="50%" r="50%">
-        <stop offset="0%"   stopColor="#F0C050" stopOpacity=".5" />
-        <stop offset="60%"  stopColor="#A87510" stopOpacity=".15" />
+      {/* Halo lunaire bleuté/crème derrière */}
+      <radialGradient id="g_lp_moon" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"   stopColor="#E8D0A0" stopOpacity=".55" />
+        <stop offset="50%"  stopColor="#A87850" stopOpacity=".15" />
         <stop offset="100%" stopColor="#000000" stopOpacity="0" />
       </radialGradient>
-      {/* Drop shadow épaisse pour décoller la tête du fond */}
-      <filter id="f_dr_shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <filter id="f_lp_shadow" x="-30%" y="-30%" width="160%" height="160%">
         <feGaussianBlur stdDeviation="2.5" />
         <feOffset dx="0" dy="2" />
         <feComponentTransfer><feFuncA type="linear" slope="0.85" /></feComponentTransfer>
@@ -760,121 +752,105 @@ const AvDragon = () => (
       </filter>
     </defs>
 
-    {/* Halo doré qui rayonne — donne de la profondeur sur le fond sombre */}
-    <circle cx="50" cy="48" r="48" fill="url(#g_dr_halo)" />
+    {/* Pleine lune en arrière-plan (cercle crème lumineux) */}
+    <circle cx="50" cy="38" r="30" fill="url(#g_lp_moon)" />
+    <circle cx="50" cy="38" r="22" fill="#E8D0A0" opacity=".22" />
 
-    {/* Étincelles dorées floating dans le fond sombre */}
-    <circle cx="14" cy="20" r="1.5" fill="#FFE066" opacity=".9" />
-    <circle cx="86" cy="22" r="1.2" fill="#FFE066" opacity=".8" />
-    <circle cx="10" cy="48" r="0.9" fill="#FFE066" opacity=".6" />
-    <circle cx="92" cy="50" r="1"   fill="#FFE066" opacity=".65" />
-    <circle cx="20" cy="86" r="0.8" fill="#FFE066" opacity=".55" />
-    <circle cx="82" cy="84" r="1.1" fill="#FFE066" opacity=".7" />
-    <path d="M88 14 L89 18 L93 19 L89 20 L88 24 L87 20 L83 19 L87 18 Z" fill="#FFE066" opacity=".85" />
-    <path d="M14 70 L15 73 L18 73.5 L15 74.5 L14 77.5 L13 74.5 L10 73.5 L13 73 Z" fill="#FFE066" opacity=".7" />
+    {/* Étoiles éparses dans le fond sombre */}
+    <circle cx="14" cy="18" r="0.9" fill="#FFE89A" opacity=".75" />
+    <circle cx="22" cy="10" r="0.6" fill="#FFE89A" opacity=".55" />
+    <circle cx="86" cy="14" r="0.9" fill="#FFE89A" opacity=".7" />
+    <circle cx="92" cy="28" r="0.7" fill="#FFE89A" opacity=".55" />
+    <circle cx="10" cy="40" r="0.7" fill="#FFE89A" opacity=".5" />
+    <circle cx="94" cy="44" r="0.6" fill="#FFE89A" opacity=".5" />
+    <path d="M78 6 L79 9 L82 10 L79 11 L78 14 L77 11 L74 10 L77 9 Z" fill="#FFE89A" opacity=".75" />
 
-    {/* Grains de café floutés dans les coins */}
-    <ellipse cx="12" cy="86" rx="3" ry="4.4" fill="#5C3614" opacity=".6" transform="rotate(-30 12 86)" />
-    <path d="M10 82 L14 90" stroke="#3D2010" strokeWidth=".8" opacity=".55" strokeLinecap="round" />
-    <ellipse cx="92" cy="74" rx="2.4" ry="3.5" fill="#5C3614" opacity=".55" transform="rotate(35 92 74)" />
-    <path d="M90 71 L94 77" stroke="#3D2010" strokeWidth=".7" opacity=".5" strokeLinecap="round" />
+    {/* Ombre portée au sol */}
+    <ellipse cx="50" cy="92" rx="26" ry="3.5" fill="#000000" opacity=".55" />
 
-    {/* Ombre portée au sol sous le menton (sombre + flouté) */}
-    <ellipse cx="50" cy="92" rx="24" ry="3.5" fill="#000000" opacity=".5" />
+    {/* OREILLES — triangles pointus vers le haut, attachés au sommet de la tête */}
+    {/* Oreille gauche */}
+    <path d="M22 30 L34 6 L40 32 Z"
+          fill="url(#g_lp_fur)" stroke="#1A0A02" strokeWidth="2" strokeLinejoin="round" />
+    {/* Intérieur oreille gauche (rose mocha clair) */}
+    <path d="M28 28 L34 14 L37 30 Z" fill="#C8956A" opacity=".85" strokeLinejoin="round" />
+    {/* Oreille droite */}
+    <path d="M78 30 L66 6 L60 32 Z"
+          fill="url(#g_lp_fur)" stroke="#1A0A02" strokeWidth="2" strokeLinejoin="round" />
+    <path d="M72 28 L66 14 L63 30 Z" fill="#C8956A" opacity=".85" strokeLinejoin="round" />
 
-    {/* Cornes longues courbées vers l'extérieur (or chaud) */}
-    <path d="M30 30 Q14 22 8 4 Q18 8 24 18 Q28 24 32 30 Z"
-          fill="#A87510" stroke="#3D2010" strokeWidth="2" strokeLinejoin="round" />
-    <path d="M70 30 Q86 22 92 4 Q82 8 76 18 Q72 24 68 30 Z"
-          fill="#A87510" stroke="#3D2010" strokeWidth="2" strokeLinejoin="round" />
-    {/* Reflet métallique sur les cornes */}
-    <path d="M14 14 Q20 12 24 18" stroke="#FFE89A" strokeWidth="1.2" fill="none" opacity=".7" strokeLinecap="round" />
-    <path d="M86 14 Q80 12 76 18" stroke="#FFE89A" strokeWidth="1.2" fill="none" opacity=".7" strokeLinecap="round" />
-    {/* Piques d'oreille latéraux acérés */}
-    <path d="M22 38 L14 34 L22 44 Z" fill="#A87510" stroke="#3D2010" strokeWidth="1.4" strokeLinejoin="round" />
-    <path d="M78 38 L86 34 L78 44 Z" fill="#A87510" stroke="#3D2010" strokeWidth="1.4" strokeLinejoin="round" />
-
-    {/* Vapeur diffuse derrière les épaules */}
-    <ellipse cx="22" cy="44" rx="10" ry="6"  fill="url(#g_dr_steam)" />
-    <ellipse cx="78" cy="44" rx="10" ry="6"  fill="url(#g_dr_steam)" />
-
-    {/* Tête bouclier — gradient or massif, drop shadow épais */}
-    <g filter="url(#f_dr_shadow)">
+    {/* TÊTE — forme de loup : front large, joues touffues, museau pointu */}
+    <g filter="url(#f_lp_shadow)">
       <path
-        d="M24 44
-           Q24 28 50 28
-           Q76 28 76 44
-           L70 58
-           L58 74
-           Q50 80 42 74
-           L30 58
+        d="M28 32
+           Q22 38 22 48
+           Q22 56 28 62
+           L34 70
+           L42 78
+           Q50 84 58 78
+           L66 70
+           L72 62
+           Q78 56 78 48
+           Q78 38 72 32
            Z"
-        fill="url(#g_dr_head)" stroke="#3D2010" strokeWidth="3" strokeLinejoin="round"
+        fill="url(#g_lp_fur)" stroke="#1A0A02" strokeWidth="2.6" strokeLinejoin="round"
       />
     </g>
-    {/* Ombre interne côté droit (relief 3D) */}
-    <path d="M70 50 Q72 58 66 70" stroke="#3D2010" strokeWidth="3.5" fill="none" opacity=".3" strokeLinecap="round" />
-    <path d="M76 44 L70 58" stroke="#3D2010" strokeWidth="2" fill="none" opacity=".35" strokeLinecap="round" />
 
-    {/* Crête de 5 piques crème acérées au sommet */}
-    <path d="M40 35 L41 26 L43 35 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M44 33 L46 22 L48 33 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M48 31 L50 18 L52 31 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth="1.4" strokeLinejoin="round" />
-    <path d="M52 33 L54 22 L56 33 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M57 35 L59 26 L60 35 Z" fill="#FFE89A" stroke="#3D2010" strokeWidth="1.2" strokeLinejoin="round" />
+    {/* Touffes de fourrure latérales (cheek fluff) — petites pointes vers l'extérieur */}
+    <path d="M22 48 L16 50 L22 54 Z" fill="#5C3520" stroke="#1A0A02" strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M22 56 L17 60 L24 60 Z" fill="#5C3520" stroke="#1A0A02" strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M78 48 L84 50 L78 54 Z" fill="#5C3520" stroke="#1A0A02" strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M78 56 L83 60 L76 60 Z" fill="#5C3520" stroke="#1A0A02" strokeWidth="1.2" strokeLinejoin="round" />
 
-    {/* Pépites écailles régulières sur les joues — en sombre sur l'or */}
-    <circle cx="33" cy="50" r="1.6" fill="#3D2010" opacity=".7" />
-    <circle cx="67" cy="50" r="1.6" fill="#3D2010" opacity=".7" />
-    <circle cx="29" cy="58" r="1.4" fill="#3D2010" opacity=".6" />
-    <circle cx="71" cy="58" r="1.4" fill="#3D2010" opacity=".6" />
-    <circle cx="38" cy="68" r="1.3" fill="#3D2010" opacity=".55" />
-    <circle cx="62" cy="68" r="1.3" fill="#3D2010" opacity=".55" />
+    {/* Front : marque V sombre (typique du loup) */}
+    <path d="M40 36 L50 50 L60 36" stroke="#1A0A02" strokeWidth="2.2" fill="none"
+          strokeLinecap="round" strokeLinejoin="round" opacity=".8" />
 
-    {/* Sourcils froncés — épais et noirs pour le regard furieux */}
-    <path d="M30 42 L46 48" stroke="#1A0A02" strokeWidth="3.8" strokeLinecap="round" />
-    <path d="M70 42 L54 48" stroke="#1A0A02" strokeWidth="3.8" strokeLinecap="round" />
+    {/* Museau plus clair (lighter snout patch) */}
+    <path d="M40 60 Q50 84 60 60 Q56 64 50 64 Q44 64 40 60 Z"
+          fill="#A87850" opacity=".7" strokeLinejoin="round" />
 
-    {/* Yeux reptiliens incandescents */}
-    <ellipse cx="40" cy="51" rx="6.4" ry="5.6" fill="url(#g_dr_eye)" stroke="#3D2010" strokeWidth="1.8" />
-    <ellipse cx="60" cy="51" rx="6.4" ry="5.6" fill="url(#g_dr_eye)" stroke="#3D2010" strokeWidth="1.8" />
-    {/* Glow blanc autour des yeux (effet luminescent) */}
-    <ellipse cx="40" cy="51" rx="7.5" ry="6.8" fill="none" stroke="#FFE89A" strokeWidth="0.8" opacity=".55" />
-    <ellipse cx="60" cy="51" rx="7.5" ry="6.8" fill="none" stroke="#FFE89A" strokeWidth="0.8" opacity=".55" />
-    {/* Paupière surplombante (regard menaçant) */}
-    <path d="M34 48 Q40 49.5 46 48 L46 47 Q40 46 34 47 Z" fill="#1A0A02" opacity=".75" />
-    <path d="M54 48 Q60 49.5 66 48 L66 47 Q60 46 54 47 Z" fill="#1A0A02" opacity=".75" />
-    {/* Pupille verticale fine */}
-    <ellipse cx="40" cy="51" rx="1.1" ry="4.7" fill="#1A0A02" />
-    <ellipse cx="60" cy="51" rx="1.1" ry="4.7" fill="#1A0A02" />
+    {/* SOURCILS froncés au-dessus des yeux */}
+    <path d="M30 44 L42 47" stroke="#1A0A02" strokeWidth="2.8" strokeLinecap="round" />
+    <path d="M70 44 L58 47" stroke="#1A0A02" strokeWidth="2.8" strokeLinecap="round" />
+
+    {/* YEUX ambre intenses */}
+    <ellipse cx="38" cy="52" rx="5.5" ry="5" fill="url(#g_lp_eye)" stroke="#1A0A02" strokeWidth="1.6" />
+    <ellipse cx="62" cy="52" rx="5.5" ry="5" fill="url(#g_lp_eye)" stroke="#1A0A02" strokeWidth="1.6" />
+    {/* Pupille noire ronde (loup, pas reptilien) */}
+    <circle cx="38" cy="52" r="1.8" fill="#1A0A02" />
+    <circle cx="62" cy="52" r="1.8" fill="#1A0A02" />
     {/* Reflet brillant */}
-    <circle cx="42" cy="48.5" r="1.3" fill="#FFFFFF" />
-    <circle cx="62" cy="48.5" r="1.3" fill="#FFFFFF" />
+    <circle cx="39.2" cy="50.8" r="1" fill="#FFFFFF" />
+    <circle cx="63.2" cy="50.8" r="1" fill="#FFFFFF" />
+    {/* Glow ambre subtil autour des yeux */}
+    <ellipse cx="38" cy="52" rx="6.5" ry="6" fill="none" stroke="#F5C840" strokeWidth="0.6" opacity=".5" />
+    <ellipse cx="62" cy="52" rx="6.5" ry="6" fill="none" stroke="#F5C840" strokeWidth="0.6" opacity=".5" />
 
-    {/* SCAR de combat sur l'œil droit (3 entailles parallèles) */}
-    <path d="M55 41 L67 58" stroke="#3D2010" strokeWidth="1.8" strokeLinecap="round" opacity=".85" />
-    <path d="M57 41 L66 56" stroke="#FFF5C8" strokeWidth="0.7" strokeLinecap="round" opacity=".7" />
-    <path d="M52 39 L60 50" stroke="#3D2010" strokeWidth="1.2" strokeLinecap="round" opacity=".55" />
+    {/* NEZ noir mouillé en triangle arrondi (à la base du museau) */}
+    <path d="M46 66 Q50 64 54 66 Q56 70 50 72 Q44 70 46 66 Z"
+          fill="#1A0A02" stroke="#1A0A02" strokeWidth="1" />
+    {/* Reflet sur le nez */}
+    <ellipse cx="49" cy="66.5" rx="1.5" ry=".8" fill="#FFFFFF" opacity=".6" />
 
-    {/* Naseaux + vapeur agressive en jets puissants */}
-    <ellipse cx="46" cy="62" rx="1.8" ry="2.3" fill="#1A0A02" />
-    <ellipse cx="54" cy="62" rx="1.8" ry="2.3" fill="#1A0A02" />
-    <path d="M46 60 Q42 54 38 50 Q36 46 32 42" stroke="#F5DEAA" strokeWidth="2.4" fill="none" opacity=".9" strokeLinecap="round" />
-    <path d="M54 60 Q58 54 62 50 Q64 46 68 42" stroke="#F5DEAA" strokeWidth="2.4" fill="none" opacity=".9" strokeLinecap="round" />
-    <path d="M44 56 Q40 50 36 46" stroke="#F5DEAA" strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
-    <path d="M56 56 Q60 50 64 46" stroke="#F5DEAA" strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
+    {/* MUSEAU — ligne centrale du nez à la bouche */}
+    <path d="M50 72 L50 78" stroke="#1A0A02" strokeWidth="1.5" strokeLinecap="round" />
 
-    {/* SNARL — bouche entrouverte sombre + crocs visibles */}
-    <path d="M40 70 Q50 76 60 70 L58 73 Q50 76 42 73 Z"
-          fill="#1A0A02" stroke="#3D2010" strokeWidth="1.5" strokeLinejoin="round" />
-    {/* 4 crocs supérieurs */}
-    <path d="M43 70 L44 75 L45 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".8" strokeLinejoin="round" />
-    <path d="M46 70 L47 73 L48 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
-    <path d="M52 70 L53 73 L54 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
-    <path d="M55 70 L56 75 L57 70 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".8" strokeLinejoin="round" />
-    {/* 2 crocs inférieurs */}
-    <path d="M44 76 L45 73 L46 76 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
-    <path d="M54 76 L55 73 L56 76 Z" fill="#FFF5C8" stroke="#3D2010" strokeWidth=".7" strokeLinejoin="round" />
+    {/* SNARL — gueule entrouverte avec crocs */}
+    <path d="M44 78 Q50 82 56 78 L54 80 Q50 82 46 80 Z"
+          fill="#1A0A02" stroke="#1A0A02" strokeWidth="1.2" strokeLinejoin="round" />
+    {/* 4 crocs supérieurs (canines longues sur les côtés) */}
+    <path d="M45 78 L46 82 L47 78 Z" fill="#FFF5C8" stroke="#1A0A02" strokeWidth=".8" strokeLinejoin="round" />
+    <path d="M48 78 L49 80 L50 78 Z" fill="#FFF5C8" stroke="#1A0A02" strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M50 78 L51 80 L52 78 Z" fill="#FFF5C8" stroke="#1A0A02" strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M53 78 L54 82 L55 78 Z" fill="#FFF5C8" stroke="#1A0A02" strokeWidth=".8" strokeLinejoin="round" />
+
+    {/* Quelques poils de fourrure sur les joues (texture) */}
+    <path d="M28 60 L24 64" stroke="#3D2010" strokeWidth="1.2" opacity=".6" strokeLinecap="round" />
+    <path d="M30 64 L25 68" stroke="#3D2010" strokeWidth="1.1" opacity=".55" strokeLinecap="round" />
+    <path d="M72 60 L76 64" stroke="#3D2010" strokeWidth="1.2" opacity=".6" strokeLinecap="round" />
+    <path d="M70 64 L75 68" stroke="#3D2010" strokeWidth="1.1" opacity=".55" strokeLinecap="round" />
   </svg>
 );
 
@@ -1088,7 +1064,7 @@ export function AvatarArtwork({ art }){
     case 'avChat':    return <AvChat />;
     case 'avRenard':  return <AvRenard />;
     case 'avPanda':   return <AvPanda />;
-    case 'avDragon':  return <AvDragon />;
+    case 'avLoup':    return <AvLoup />;
     case 'avOr':      return <AvOr />;
     case 'avLegende': return <AvLegende />;
     case 'avSage':    return <AvSage />;
