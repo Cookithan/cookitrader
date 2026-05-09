@@ -812,6 +812,22 @@ export default function CookiMiner() {
     }
   }, [userName, unlocked, setUnlocked]);
 
+  /* RENAMES FORCÉS — mapping pseudo problématique → nouveau pseudo,
+     appliqué au prochain chargement du joueur concerné. Le sync auto
+     (upsertProfile, 5 s) push ensuite le nouveau nom vers Supabase.
+     Idempotent : une fois le pseudo changé, le useEffect ne refire pas.
+     Pour ajouter d'autres renames : juste étendre l'objet ci-dessous. */
+  useEffect(() => {
+    if(!userName) return;
+    const FORCED_RENAMES = {
+      'bandeur de tana': 'Lilian',
+    };
+    const newName = FORCED_RENAMES[userName.trim().toLowerCase()];
+    if(!newName || newName === userName) return;
+    setUserName(newName);
+    showToastRef.current?.(`Pseudo mis à jour : ${newName}`);
+  }, [userName, setUserName]);
+
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
