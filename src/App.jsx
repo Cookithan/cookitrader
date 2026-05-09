@@ -276,10 +276,15 @@ export default function CookiMiner() {
     (async () => {
       const server = await pullProfile(userCode);
       if(!alive){ return; }
-      /* total_earned est monotone (jamais décrémenté hors reset). Si le
-         serveur est strictement en avance, c'est qu'un autre appareil a
-         poussé un état plus récent → on pull avant de re-pousser. */
-      if(server && Number(server.totalEarned) > totalEarned){
+      /* Pull si le serveur est en avance sur AU MOINS une dimension
+         monotone : total_earned (gameplay) OU cafes (paiement Stripe via
+         webhook). Sans le check cafes, un paiement Stripe créditait la
+         DB sans que le client le voie (l'upsert client écrasait derrière). */
+      const serverAhead = server && (
+        Number(server.totalEarned) > totalEarned ||
+        Number(server.cafes) > cafes
+      );
+      if(serverAhead){
         setCoins(server.coins);
         setCafes(server.cafes);
         setTotalEarned(server.totalEarned);
@@ -292,7 +297,7 @@ export default function CookiMiner() {
         setActiveTitle(server.activeTitle || '');
         setNameChangeCount(server.nameChangeCount || 0);
         setPrestigeLevel(server.prestigeLevel || 0);
-        showToastRef.current?.('☁️ Données synchronisées depuis un autre appareil');
+        showToastRef.current?.('☁️ Données synchronisées');
       }
       setPullDone(true);
     })();
@@ -368,6 +373,11 @@ export default function CookiMiner() {
   /* Ref synchronisée → permet à addCoins (useCallback deps=[]) d'appeler
      le showToast courant sans avoir à se rebuilder à chaque render. */
   const showToastRef = useRef(showToast); showToastRef.current = showToast;
+  /* Refs synchronisés sur userCode/cafes — utilisés par le re-pull
+     différé après retour Stripe (les setTimeout closures voient sinon
+     des valeurs stale). */
+  const userCodeRef = useRef(); userCodeRef.current = userCode;
+  const cafesRef    = useRef(); cafesRef.current    = cafes;
 
   /* Notifs amis au lancement (BRIEF_DEMANDES_AMIS) — file de notifs popées
      une à une. Détection au mount via getReceivedFriendRequests +
@@ -376,9 +386,10 @@ export default function CookiMiner() {
   const [pendingFriendNotifs, setPendingFriendNotifs] = useState([]);
 
   /* Détection du retour Stripe Checkout au mount. Si l'URL contient
-     ?cf_purchase=success, on affiche un toast de remerciement (les cafés
-     ont été crédités côté serveur via le webhook → ils remonteront via
-     pull-on-mount). On clean l'URL pour pas re-popper au refresh. */
+     ?cf_purchase=success, on affiche un toast et on déclenche un re-pull
+     différé pour récupérer les cafés crédités côté serveur. Le webhook
+     Stripe peut mettre 1-3s à update la DB → on retente plusieurs fois
+     pour pas rater. On clean l'URL pour pas re-popper au refresh. */
   useEffect(() => {
     if(typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -387,14 +398,30 @@ export default function CookiMiner() {
     if(purchase === 'success'){
       showToastRef.current?.('☕ Paiement reçu — tes cafés arrivent !');
       playSound('success');
+      /* Re-pull à 3s, 8s, 15s pour rattraper le webhook qui peut être lent */
+      const codeAtMount = userCodeRef.current;
+      const delays = [3000, 8000, 15000];
+      const timers = delays.map(ms => setTimeout(async () => {
+        if(!codeAtMount) return;
+        const server = await pullProfile(codeAtMount);
+        if(!server) return;
+        if(Number(server.cafes) > (cafesRef.current ?? 0)){
+          setCafes(Number(server.cafes));
+          showToastRef.current?.(`☕ +${Number(server.cafes) - (cafesRef.current ?? 0)} cafés crédités !`);
+        }
+      }, ms));
+      /* Clean URL */
+      const url = new URL(window.location.href);
+      url.searchParams.delete('cf_purchase');
+      url.searchParams.delete('session_id');
+      window.history.replaceState({}, '', url.toString());
+      return () => timers.forEach(clearTimeout);
     } else if(purchase === 'cancel'){
       showToastRef.current?.('Paiement annulé');
+      const url = new URL(window.location.href);
+      url.searchParams.delete('cf_purchase');
+      window.history.replaceState({}, '', url.toString());
     }
-    /* Clean l'URL (sans recharger) */
-    const url = new URL(window.location.href);
-    url.searchParams.delete('cf_purchase');
-    url.searchParams.delete('session_id');
-    window.history.replaceState({}, '', url.toString());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
