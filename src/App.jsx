@@ -46,6 +46,11 @@ import { useToast } from "./components/Toaster.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
+import { UpgradeNoticeModal } from "./components/modals/UpgradeNoticeModal.jsx";
+
+/* Version de l'avis de maintenance admin — bumpe pour ré-afficher la
+   popup après une nouvelle phase (ex: 'v2', 'v3'). */
+const UPGRADE_NOTICE_VERSION = 'v1';
 import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
 import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from "./lib/audio.js";
@@ -163,6 +168,9 @@ export default function CookiMiner() {
   const [nameChangeCount, setNameChangeCount] = useLocalStorage('nameChangeCount', 0);
   const [userCode,    setUserCode]    = useLocalStorage('userCode', '');
   const [userBio,     setUserBio]     = useLocalStorage('userBio',  '');
+  /* Avis admin "phase d'amélioration" — affiché 1× par version (v1, v2…) sur
+     les comptes admin uniquement. Stocké en LS pour ne pas re-pop chaque mount. */
+  const [upgradeNoticeAck, setUpgradeNoticeAck] = useLocalStorage('upgradeNoticeAck', '');
   /* Événements spéciaux (PHASE 6E) — cycle waiting (1-24h) → active
      (1h, 3 essais) → repeat. Persistés pour survivre au refresh. */
   const [activeEvent,     setActiveEvent]     = useLocalStorage('activeEvent',     null);
@@ -2428,6 +2436,14 @@ export default function CookiMiner() {
       {/* Splash custom à chaque mount (ouverture + F5). En mode fast
           si c'est un refresh détecté via Performance API. */}
       {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
+
+      {/* Avis admin (rouge/blanc) — visible 1 fois par version, après
+          le splash + onboarding, UNIQUEMENT pour les comptes admin
+          (admin123 / admin558). Bump UPGRADE_NOTICE_VERSION pour
+          ré-afficher après une nouvelle phase d'évolution. */}
+      {!showSplash && !showOnboarding && isAdminName(userName) && upgradeNoticeAck !== UPGRADE_NOTICE_VERSION && (
+        <UpgradeNoticeModal onAck={()=>setUpgradeNoticeAck(UPGRADE_NOTICE_VERSION)} />
+      )}
 
     </div>
   );
