@@ -454,6 +454,11 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
+          {(p.prestige_level || 0) > 0 && (
+            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:isFirst ? '#5C3614' : '#D4A017', letterSpacing:.3 }}>
+              {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
+            </span>
+          )}
           <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
             Niv.{p.level}
           </span>
@@ -529,6 +534,11 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
+          {(p.prestige_level || 0) > 0 && (
+            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:isFirst ? '#5C3614' : '#D4A017', letterSpacing:.3 }}>
+              {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
+            </span>
+          )}
           <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
             Niv.{p.level}
           </span>

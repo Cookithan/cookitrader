@@ -65,7 +65,7 @@ export async function getFriends(myUserCode){
     const codes = links.map(l => l.friend_code);
     const { data: profiles, error } = await supabase
       .from('users')
-      .select('user_code, user_name, user_avatar, level, total_earned, cookies, streak, last_active, earned_achievements, active_title')
+      .select('user_code, user_name, user_avatar, level, total_earned, cookies, streak, last_active, earned_achievements, active_title, prestige_level')
       .in('user_code', codes);
     if(error){ notifySupabaseError(); return []; }
     return profiles || [];
@@ -81,7 +81,7 @@ export async function getLeaderboard(limit = 50){
     const { data, error } = await notInLeaderboard(
       supabase
         .from('users')
-        .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements, active_title')
+        .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements, active_title, prestige_level')
     )
       .order('total_earned', { ascending:false })
       .limit(limit);
@@ -860,6 +860,7 @@ export async function restoreProfile(userCode, pin = ''){
         earnedAchievements,
         nameChangeCount:    Number(user.name_change_count) || 0,
         activeTheme:        user.active_theme || '',
+        prestigeLevel:      Number(user.prestige_level) || 0,
         restorePin:         serverPin,
         joinDate:           user.join_date || null,
         friendCodes,
@@ -942,7 +943,7 @@ export async function pullProfile(userCode){
   try{
     const { data, error } = await supabase
       .from('users')
-      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, last_active')
+      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active')
       .eq('user_code', userCode)
       .maybeSingle();
     if(error || !data) return null;
@@ -962,6 +963,7 @@ export async function pullProfile(userCode){
       activeTheme:         data.active_theme || '',
       activeTitle:         data.active_title || '',
       nameChangeCount:     Number(data.name_change_count) || 0,
+      prestigeLevel:       Number(data.prestige_level) || 0,
       lastActive:          data.last_active || null,
     };
   }catch{
@@ -1003,6 +1005,10 @@ export async function upsertProfile(p){
         /* PIN de restauration (sécurité) — 4 chiffres requis pour
            restaurer le compte sur un autre appareil. */
         restore_pin:          p.restorePin || '',
+        /* Prestige (renaissance) — int croissant à chaque renaissance.
+           Visible sur le classement / profils amis. Nécessite la colonne :
+           alter table users add column if not exists prestige_level integer default 0; */
+        prestige_level:       p.prestigeLevel ?? 0,
         last_active:  new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()

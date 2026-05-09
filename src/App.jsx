@@ -284,6 +284,7 @@ export default function CookiMiner() {
         setActiveTheme(server.activeTheme || '');
         setActiveTitle(server.activeTitle || '');
         setNameChangeCount(server.nameChangeCount || 0);
+        setPrestigeLevel(server.prestigeLevel || 0);
         showToastRef.current?.('☁️ Données synchronisées depuis un autre appareil');
       }
       setPullDone(true);
@@ -316,11 +317,12 @@ export default function CookiMiner() {
         activeTheme: activeTheme || '',
         activeTitle: activeTitle || '',
         restorePin: restorePin || '',
+        prestigeLevel: prestigeLevel || 0,
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [pullDone, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin]);
+  }, [pullDone, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
@@ -1103,6 +1105,7 @@ export default function CookiMiner() {
     set('achievements',    data.earnedAchievements || []);
     set('nameChangeCount', data.nameChangeCount ?? 0);
     set('activeTheme',     data.activeTheme || '');
+    set('prestigeLevel',   data.prestigeLevel ?? 0);
     /* PIN sync : on garde le même PIN sur le nouvel appareil — le
        user n'en a qu'un seul à retenir. Il est requis pour restaurer
        sur encore un autre appareil plus tard. */
