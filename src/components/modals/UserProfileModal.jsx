@@ -199,6 +199,13 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         }}>
           {profile.user_name || 'Joueur'}
         </div>
+        {(profile.prestige_level || 0) > 0 && (
+          <div title={`Prestige ${profile.prestige_level} · multiplicateur x${(1 + profile.prestige_level * 0.1).toFixed(1)}`} style={{
+            fontSize:14, fontWeight:800, color:'#D4A017', marginTop:4, letterSpacing:.5,
+          }}>
+            {profile.prestige_level <= 5 ? '👑'.repeat(profile.prestige_level) : `👑×${profile.prestige_level}`}
+          </div>
+        )}
         <div style={{
           fontSize:11, color:'#D4A017', fontWeight:800,
           textTransform:'uppercase', letterSpacing:2, marginTop:5,
