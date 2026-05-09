@@ -17,7 +17,7 @@ import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
                 Avatar : pas de désactivation, juste switch.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, C }) {
   const [filter, setFilter] = useState('Tous');
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
@@ -246,6 +246,14 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           const lvOK       = level >= r.levelRequired;
           const canAfford  = isPremium ? cafes >= r.cost : coins >= r.cost;
           const lvLocked   = !lvOK && !isUnlocked;
+          /* Jetons VIP : achat uniquement si quota quotidien épuisé. */
+          const isSpinPass = r.applyAs === 'spin_pass';
+          const isSlotPass = r.applyAs === 'slot_pass';
+          const passLockedReason =
+              (isSpinPass && spinsLeft > 0)     ? `Reste ${spinsLeft} tour${spinsLeft>1?'s':''}`
+            : (isSlotPass && slotPlaysLeft > 0) ? `Reste ${slotPlaysLeft} partie${slotPlaysLeft>1?'s':''}`
+            : null;
+          const passLocked = !!passLockedReason;
           /* Pour les premium : on regarde applyAs pour piocher le bon activator */
           const activeKey  = isPremium
             ? (r.applyAs==='theme'  ? 'Thème'
@@ -307,9 +315,15 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
                   <Lock size={11} color="#D4A017" /> Niveau {r.levelRequired} requis
                 </div>
               ) : isPremium ? (
-                <button onClick={()=>onUnlock(r.id)} className={canAfford ? 'pulse-ring' : ''} style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:800, background:canAfford?ESPRESSO:C.card2, color:canAfford?'#F0C050':C.muted, border:`1.5px solid ${canAfford?'rgba(212,160,23,.5)':C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:5, cursor:canAfford?'pointer':'not-allowed' }}>
-                  {canAfford?<Coffee size={11} color="#F0C050"/>:<Lock size={11}/>} {r.cost} cafés
-                </button>
+                passLocked ? (
+                  <div style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:11.5, fontWeight:700, background:C.card2, color:C.muted, border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:5, fontStyle:'italic' }}>
+                    <Lock size={11}/> {passLockedReason}
+                  </div>
+                ) : (
+                  <button onClick={()=>onUnlock(r.id)} className={canAfford ? 'pulse-ring' : ''} style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:800, background:canAfford?ESPRESSO:C.card2, color:canAfford?'#F0C050':C.muted, border:`1.5px solid ${canAfford?'rgba(212,160,23,.5)':C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:5, cursor:canAfford?'pointer':'not-allowed' }}>
+                    {canAfford?<Coffee size={11} color="#F0C050"/>:<Lock size={11}/>} {r.cost} cafés
+                  </button>
+                )
               ) : (
                 <button onClick={()=>onUnlock(r.id)} className={canAfford ? 'pulse-ring' : ''} style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:700, background:canAfford?GOLD:C.card2, color:canAfford?'#fff':C.muted, border:`1px solid ${canAfford?'transparent':C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:4, cursor:canAfford?'pointer':'not-allowed' }}>
                   {canAfford?<Cookie size={11} color="#fff"/>:<Lock size={11}/>} {r.cost} cookies

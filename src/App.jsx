@@ -146,6 +146,12 @@ export default function CookiMiner() {
      Les Jetons VIP réduisent spinsToday mais ne dépassent jamais le cap. */
   const [spinsToday, setSpinsToday] = useLocalStorage('spinsToday', 0);
   const [spinsDate,  setSpinsDate]  = useLocalStorage('spinsDate', null);
+  /* Cap quotidien Machine à Sous : 50 parties. Même pattern que les
+     spins (state lifté à App.jsx pour gater l'achat du slot_pass dans
+     la boutique). Consommé par SlotGame via consumeSlotGame, bumped
+     down (récupération) via addSlotPass à l'achat. */
+  const [slotGamesToday, setSlotGamesToday] = useLocalStorage('slotGamesToday', 0);
+  const [slotGamesDate,  setSlotGamesDate]  = useLocalStorage('slotGamesDate', null);
   const [dark,        setDark]        = useLocalStorage('dark',        false);
   /* MARCHÉ ONLINE (BRIEF_MARCHE_ONLINE) — l'état du marché (prix, stock,
      historique 24h, portfolio) vit côté Supabase et est lu par MarketTab.
@@ -720,6 +726,30 @@ export default function CookiMiner() {
       setSpinsToday(n => Math.max(0, (n || 0) - amount));
     }
   }, [spinsDate, setSpinsDate, setSpinsToday]);
+
+  /* Pendant slot machine — analog des spins. Cap absolu 50, reset à minuit. */
+  const slotGamesCap   = 50;
+  const isFreshSlotDay = slotGamesDate !== todayStr;
+  const slotEffUsed    = isFreshSlotDay ? 0 : (slotGamesToday || 0);
+  const slotPlaysLeft  = Math.max(0, slotGamesCap - slotEffUsed);
+  const consumeSlotGame = useCallback(() => {
+    const t = new Date().toDateString();
+    if(slotGamesDate !== t){
+      setSlotGamesDate(t);
+      setSlotGamesToday(1);
+    } else {
+      setSlotGamesToday(n => (n || 0) + 1);
+    }
+  }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday]);
+  const addSlotPass = useCallback((amount) => {
+    const t = new Date().toDateString();
+    if(slotGamesDate !== t){
+      setSlotGamesDate(t);
+      setSlotGamesToday(0);
+    } else {
+      setSlotGamesToday(n => Math.max(0, (n || 0) - amount));
+    }
+  }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday]);
 
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
@@ -1432,10 +1462,23 @@ export default function CookiMiner() {
        L'effet (bonus de tours roue) est appliqué directement. */
     if(r.applyAs === 'spin_pass'){
       if(cafes < r.cost) return;
+      /* Achat bloqué tant qu'il reste des tours dispos — incite à
+         consommer son quota gratuit avant d'acheter. */
+      if(spinsLeft > 0) return;
       setCafes(c => Math.max(0, c - r.cost));
       addSpinPass(r.spinPassAmount || 0);
       playSound('success');
       showToast(`🎟️ +${r.spinPassAmount} tours de roue ajoutés !`);
+      return;
+    }
+    if(r.applyAs === 'slot_pass'){
+      if(cafes < r.cost) return;
+      /* Achat bloqué tant qu'il reste des parties dispos. */
+      if(slotPlaysLeft > 0) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      addSlotPass(r.slotPassAmount || 0);
+      playSound('success');
+      showToast(`🎰 +${r.slotPassAmount} parties Machine à Sous !`);
       return;
     }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
@@ -2095,6 +2138,7 @@ export default function CookiMiner() {
             activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
             activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
             userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
+            spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
             C={C}
           />
         )}
@@ -2133,6 +2177,7 @@ export default function CookiMiner() {
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
           onEventChallenge={checkEventChallenge}
           spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin}
+          slotPlaysLeft={slotPlaysLeft} slotGamesCap={slotGamesCap} consumeSlotGame={consumeSlotGame}
           activeSkin={activeSkin}
           legendarySeen={legendaryBaristaSeen}
           onLegendarySeen={()=>{

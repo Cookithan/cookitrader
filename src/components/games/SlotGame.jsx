@@ -28,9 +28,11 @@ import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
    Intégré dans GameOverlay (qui fournit le header back/title/coins).
 ═══════════════════════════════════════════════════════ */
 
-const STORAGE_KEY = 'cookiminer:slotMachineGamesToday';
+/* Compteur quotidien lifté à App.jsx (slotPlaysLeft, slotGamesCap,
+   consumeSlotGame). Permet à la boutique de gater l'achat du Jeton VIP
+   slot tant qu'il reste des parties dispos. */
 
-export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, C }){
+export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, slotPlaysLeft, slotGamesCap = 50, consumeSlotGame, C }){
   /* État des 3 rouleaux */
   const [reelStates, setReelStates] = useState([
     { spinning:false, stopping:false, symbol:'?', isWinner:false, isJackpot:false },
@@ -44,31 +46,15 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
   const [showJackpotModal, setShowJackpotModal] = useState(false);
   const [jackpotAmount,    setJackpotAmount]    = useState(0);
   const [machineConfetti,  setMachineConfetti]  = useState([]);
-  const [gamesToday,       setGamesToday]       = useState(0);
   const [lastSpinAt,       setLastSpinAt]       = useState(0);
 
   const cycleIntervalRef = useRef(null);
   const timeoutsRef      = useRef([]);
 
-  /* Load compteur quotidien depuis LS */
-  useEffect(() => {
-    try{
-      const today = new Date().toDateString();
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if(raw){
-        const data = JSON.parse(raw);
-        if(data?.date === today) setGamesToday(Number(data.count) || 0);
-      }
-    }catch{}
-  }, []);
-
-  /* Persist compteur à chaque changement */
-  useEffect(() => {
-    try{
-      const today = new Date().toDateString();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: today, count: gamesToday }));
-    }catch{}
-  }, [gamesToday]);
+  /* Compat affichage : on dérive `gamesToday` (parties consommées
+     aujourd'hui) à partir des props lifted, pour ne pas casser le bandeau
+     existant. */
+  const gamesToday = Math.max(0, slotGamesCap - (slotPlaysLeft ?? slotGamesCap));
 
   /* Cleanup intervals/timeouts au démontage + coupe le son loop si l'user
      quitte en plein spin (sinon il joue encore après dans d'autres écrans). */
@@ -78,11 +64,13 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
     stopSoundLoop('slot');
   }, []);
 
-  /* Helper : peut-on lancer ? */
+  /* Helper : peut-on lancer ? Le cap quotidien est géré par App.jsx
+     via slotPlaysLeft. SLOT_CONFIG.MAX_PER_DAY est aujourd'hui dépassé
+     par cette valeur, mais on garde la double check par sécurité. */
   const canSpin = !isSpinning
     && level >= SLOT_CONFIG.REQUIRED_LEVEL
     && coins >= SLOT_CONFIG.COST
-    && gamesToday < SLOT_CONFIG.MAX_PER_DAY
+    && (slotPlaysLeft === undefined ? gamesToday < SLOT_CONFIG.MAX_PER_DAY : slotPlaysLeft > 0)
     && (Date.now() - lastSpinAt) >= SLOT_CONFIG.COOLDOWN_MS;
 
   /* Toast helper */
@@ -186,7 +174,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
     setIsSpinning(true);
     setLastSpinAt(Date.now());
     onSpend?.(SLOT_CONFIG.COST);
-    setGamesToday(g => g + 1);
+    consumeSlotGame?.();
     setMachineEffect(null);
     setReelStates(prev => prev.map(r => ({
       ...r, spinning:true, stopping:false, isWinner:false, isJackpot:false,
@@ -247,7 +235,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
   /* Label du bouton */
   let buttonLabel;
   if(level < SLOT_CONFIG.REQUIRED_LEVEL) buttonLabel = `🔒 Niveau ${SLOT_CONFIG.REQUIRED_LEVEL} requis`;
-  else if(gamesToday >= SLOT_CONFIG.MAX_PER_DAY) buttonLabel = '🔒 Limite atteinte';
+  else if((slotPlaysLeft ?? 1) <= 0) buttonLabel = '🔒 Limite atteinte';
   else if(coins < SLOT_CONFIG.COST) buttonLabel = '🔒 Pas assez de cookies';
   else if(isSpinning) buttonLabel = '...';
   else buttonLabel = `▶ Lancer (${SLOT_CONFIG.COST} 🍪)`;
@@ -326,7 +314,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
         textAlign:'center', marginTop:4,
         fontSize:11, color:'#A0784E', fontStyle:'italic',
       }}>
-        {gamesToday} / {SLOT_CONFIG.MAX_PER_DAY} partie{gamesToday > 1 ? 's' : ''} aujourd'hui
+        {gamesToday} / {slotGamesCap} partie{gamesToday > 1 ? 's' : ''} aujourd'hui
       </div>
 
       {/* Modal jackpot */}
