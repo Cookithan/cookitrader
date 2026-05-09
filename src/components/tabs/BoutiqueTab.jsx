@@ -3,6 +3,7 @@ import { Cookie, Coffee, Check, Lock, ChevronRight, ChevronLeft } from "lucide-r
 import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
+import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
 
 /* ════════════════════════════════════════════════════
    BoutiqueTab — onglet boutique (mode 'shop' | 'premium')
@@ -17,12 +18,13 @@ import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
                 Avatar : pas de désactivation, juste switch.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', C }) {
   const [filter, setFilter] = useState('Tous');
   /* Sous-vue du premium : 'main' (catégories + items normaux) ou 'jetons'
      (spin_pass + slot_pass uniquement). On ne pollue pas la grid premium
      principale avec les jetons consommables — ils ont leur dédiée. */
   const [premiumView, setPremiumView] = useState('main');
+  const [showBuyCafes, setShowBuyCafes] = useState(false);
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
      pendant cette session restent visibles jusqu'au prochain mount. */
@@ -219,6 +221,34 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           </div>
           <ChevronRight size={18} color={C.muted} />
         </button>
+      )}
+
+      {/* Carte achat de cafés réels (Stripe) — vue main premium uniquement */}
+      {mode === 'premium' && premiumView === 'main' && userCode && (
+        <button
+          onClick={()=>{ playSound('modal'); setShowBuyCafes(true); }}
+          style={{
+            width:'100%', display:'flex', alignItems:'center', gap:14,
+            padding:'14px 16px', borderRadius:16, marginBottom:14,
+            background:ESPRESSO,
+            border:'1.5px solid rgba(212,160,23,.55)',
+            boxShadow:'0 4px 16px rgba(74,44,23,.4)',
+            cursor:'pointer', color:'#fff', textAlign:'left',
+          }}
+        >
+          <div style={{ fontSize:32 }}>☕</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:13, fontWeight:900, color:'#F0C050', marginBottom:2, letterSpacing:.3 }}>Acheter des cafés</div>
+            <div style={{ fontSize:11.5, color:'rgba(255,255,255,.75)', lineHeight:1.4 }}>
+              10 / 50 / 200 ☕ — paiement sécurisé Stripe
+            </div>
+          </div>
+          <ChevronRight size={18} color="#F0C050" />
+        </button>
+      )}
+
+      {showBuyCafes && (
+        <BuyCafesModal userCode={userCode} onClose={()=>setShowBuyCafes(false)} C={C} />
       )}
 
       {/* Bandeau Niveau Boutique (mode='shop' uniquement) — montre la progression

@@ -11,7 +11,11 @@
       "Bash(git commit -m 'tune\\(market\\): chart 1h/24h seulement, défaut 24h *)",
       "Bash(git commit -m 'ui\\(spin\\): reformule la récompense de la roue pour s'\\\\''aligner avec les autres jeux *)",
       "Bash(git commit -m 'fix\\(promo\\): retire le '\\\\''+'\\\\'' isolé du feedback quand coins=0 *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(npx vite *)",
+      "Bash(grep *)",
+      "Bash(npm install *)"
     ]
   }
 }

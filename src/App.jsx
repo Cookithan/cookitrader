@@ -375,6 +375,29 @@ export default function CookiMiner() {
      déjà notifiés pour ne pas re-popper la même demande à chaque ouverture. */
   const [pendingFriendNotifs, setPendingFriendNotifs] = useState([]);
 
+  /* Détection du retour Stripe Checkout au mount. Si l'URL contient
+     ?cf_purchase=success, on affiche un toast de remerciement (les cafés
+     ont été crédités côté serveur via le webhook → ils remonteront via
+     pull-on-mount). On clean l'URL pour pas re-popper au refresh. */
+  useEffect(() => {
+    if(typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const purchase = params.get('cf_purchase');
+    if(!purchase) return;
+    if(purchase === 'success'){
+      showToastRef.current?.('☕ Paiement reçu — tes cafés arrivent !');
+      playSound('success');
+    } else if(purchase === 'cancel'){
+      showToastRef.current?.('Paiement annulé');
+    }
+    /* Clean l'URL (sans recharger) */
+    const url = new URL(window.location.href);
+    url.searchParams.delete('cf_purchase');
+    url.searchParams.delete('session_id');
+    window.history.replaceState({}, '', url.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   /* Profil public d'un autre joueur (BRIEF_PROFIL_VISIBLE).
      viewingProfile = { userCode, isCrown } | null. */
   const [viewingProfile, setViewingProfile] = useState(null);
@@ -2337,6 +2360,7 @@ export default function CookiMiner() {
             activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
             userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
             spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
+            userCode={userCode}
             C={C}
           />
         )}

@@ -231,4 +231,8 @@ export const GLOBAL_CSS = `
      la palette du thème est déjà tunée extrême noir/blanc pour
      compenser. */
   body.theme-noir-on{filter:grayscale(1)}
+
+  /* Spin pour les loaders (BuyCafesModal pendant fetch Stripe) */
+  @keyframes spin360{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+  .spin-anim{animation:spin360 1s linear infinite}
 `;
