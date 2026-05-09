@@ -1,7 +1,7 @@
 import { supabase, isSupabaseEnabled } from './supabase';
 import { notifySupabaseError } from './supabaseError';
 import { createInboxMessage } from './inbox.js';
-import { isAdminName, ADMIN_ILIKE_PATTERN } from '../utils/admin.js';
+import { isAdminName, notInLeaderboard } from '../utils/admin.js';
 
 /* ════════════════════════════════════════════════════
    supabaseSync — opérations sur la table public.users
@@ -78,10 +78,11 @@ export async function getFriends(myUserCode){
 export async function getLeaderboard(limit = 50){
   if(!isSupabaseEnabled()) return [];
   try{
-    const { data, error } = await supabase
-      .from('users')
-      .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements, active_title')
-      .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN)
+    const { data, error } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements, active_title')
+    )
       .order('total_earned', { ascending:false })
       .limit(limit);
     if(error){
@@ -105,24 +106,26 @@ export async function getMyRank(myUserCode){
     if(!me) return null;
     /* Si je suis Admin moi-même, je suis hors classement → null */
     if(isAdminName(me.user_name)) return null;
-    const { count, error } = await supabase
-      .from('users')
-      .select('*', { count:'exact', head:true })
-      .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN)
+    const { count, error } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('*', { count:'exact', head:true })
+    )
       .gt('total_earned', me.total_earned);
     if(error) return null;
     return (count ?? 0) + 1;
   }catch{ return null; }
 }
 
-/* Compte total des joueurs publics (Admin exclu). */
+/* Compte total des joueurs publics (Admin + NON_RANKED_NAMES exclus). */
 export async function getTotalPlayers(){
   if(!isSupabaseEnabled()) return null;
   try{
-    const { count, error } = await supabase
-      .from('users')
-      .select('*', { count:'exact', head:true })
-      .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN);
+    const { count, error } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('*', { count:'exact', head:true })
+    );
     if(error) return null;
     return count ?? 0;
   }catch{ return null; }
@@ -539,10 +542,11 @@ export async function getPublicProfile(userCode){
     let cookiesRank = null;
     const isAdmin = isAdminName(user.user_name);
     if(!isAdmin){
-      const { count } = await supabase
-        .from('users')
-        .select('*', { count:'exact', head:true })
-        .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN)
+      const { count } = await notInLeaderboard(
+        supabase
+          .from('users')
+          .select('*', { count:'exact', head:true })
+      )
         .gt('total_earned', user.total_earned ?? 0);
       cookiesRank = (count ?? 0) + 1;
     }
@@ -838,14 +842,16 @@ export async function getGlobalCommunityStats(){
   if(!isSupabaseEnabled()) return null;
   try{
     const [userCountR, sumR, friendsR, txR] = await Promise.all([
-      supabase
-        .from('users')
-        .select('*', { count:'exact', head:true })
-        .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN),
-      supabase
-        .from('users')
-        .select('total_earned')
-        .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN),
+      notInLeaderboard(
+        supabase
+          .from('users')
+          .select('*', { count:'exact', head:true })
+      ),
+      notInLeaderboard(
+        supabase
+          .from('users')
+          .select('total_earned')
+      ),
       supabase
         .from('friendships')
         .select('*', { count:'exact', head:true })
