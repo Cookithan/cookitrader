@@ -2118,7 +2118,16 @@ export default function CookiMiner() {
           spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin}
           activeSkin={activeSkin}
           legendarySeen={legendaryBaristaSeen}
-          onLegendarySeen={()=>setLegendaryBaristaSeen(true)}
+          onLegendarySeen={()=>{
+            setLegendaryBaristaSeen(true);
+            /* Le code BARISTA05 est `secret:true` — on le dévoile sur
+               ce compte au moment du drop. Sans ça, le joueur ne pourrait
+               pas l'utiliser même en l'ayant vu en bulle. */
+            setRevealedPromoCodes(prev => {
+              const arr = Array.isArray(prev) ? prev : [];
+              return arr.includes('BARISTA05') ? arr : [...arr, 'BARISTA05'];
+            });
+          }}
           C={C}
         />
       )}

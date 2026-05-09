@@ -47,8 +47,12 @@ export const PROMO_CODES = {
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
   /* Drop rare via le barista légendaire dans Devine la commande
-     (0.5% par partie). Le code apparaît dans sa bulle de dialogue. */
-  'BARISTA05': { coins: 0,    cafes: 0, unlock: 'theme_cookies', label: 'Thème Pâte de Cookie débloqué' },
+     (1 % par partie, one-shot). `secret:true` → utilisable uniquement
+     si l'utilisateur a effectivement croisé le barista (ajouté à
+     revealedPromoCodes au moment du drop, cf. App.jsx). Empêche
+     qu'un joueur récupère le code via Discord et l'utilise sans
+     l'avoir mérité. */
+  'BARISTA05': { coins: 0,    cafes: 0, unlock: 'theme_cookies', secret: true, label: 'Thème Pâte de Cookie débloqué' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */
