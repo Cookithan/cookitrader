@@ -26,7 +26,7 @@ const ANSWER_TIMEOUT_MS   = 10_000; // 10s sans répondre = skip + +1 point auto
    la droite, énonce sa demande dans une bulle (texte progressif), le
    joueur choisit parmi 4 réponses. 5 questions par partie (8 au niv 10+).
 
-   - COST   = 5 cookies
+   - COST   = 10 cookies
    - Phases globales : idle → playing → done
    - Sous-phases d'une question (`subPhase`) :
        'entering' (.8s anim walk-in synchronisée avec le CSS de
@@ -50,7 +50,7 @@ const ANSWER_TIMEOUT_MS   = 10_000; // 10s sans répondre = skip + +1 point auto
    Props : coins, onEarn, onSpend, level, C
 ═══════════════════════════════════════════════════════ */
 
-export const GUESS_COST = 5;
+export const GUESS_COST = 10;
 const TYPE_SPEED_MS = 28;
 const WALK_IN_MS    = 800;          // synchronisé avec csCustomerWalkIn (.8s)
 const ANSWER_HOLD_MS = 1100;        // temps avant de passer au client suivant
