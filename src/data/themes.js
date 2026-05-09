@@ -70,11 +70,12 @@ export const THEMES = {
      Ambiance forge, phénix qui renaît. Sparkles oranges. */
   theme_renaissance:     { dark:true, bg:'linear-gradient(160deg,#1A0404 0%,#4A0808 25%,#8B1808 55%,#C84020 80%,#FF6020 100%)', card:'#2D0808', card2:'#4A1408', text:'#FFD8B8', muted:'#D88060', border:'#8B1808', sparkles:true },
 
-  /* Édition limitée — Code promo BLACK : monochrome pur N&B, distinct
-     de tous les thèmes café/caramel (aucune teinte chaude). Style
-     cinéma noir / photographie argentique. Greyscale neutre sur 3 stops :
-     noir pur → gris ardoise → noir. Texte blanc cassé pour ne pas brûler. */
-  theme_noir:            { dark:true, bg:'linear-gradient(160deg,#000000 0%,#1F1F1F 50%,#0A0A0A 100%)', card:'#171717', card2:'#262626', text:'#F5F5F5', muted:'#9A9A9A', border:'#404040' },
+  /* Édition limitée — Code promo BLACK : N&B EXTRÊME, le moins de gris
+     possible. Pas de gradient — fond noir absolu uniforme. Cards très
+     sombres (presque indistinguables du bg), texte blanc pur. Sera
+     combiné avec filter:grayscale(1) contrast(1.2) côté CSS pour
+     écraser les éventuels mid-greys hardcodés (boutons GOLD, etc.). */
+  theme_noir:            { dark:true, bg:'#000000', card:'#080808', card2:'#101010', text:'#FFFFFF', muted:'#D8D8D8', border:'#1A1A1A' },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';

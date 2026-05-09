@@ -225,6 +225,9 @@ export const GLOBAL_CSS = `
   /* Thème Noir & Blanc — désature TOUTE l'UI quand activé. La classe est
      toggle sur <body> par App.jsx selon activeTheme. Couvre les couleurs
      hardcodées (GOLD, ESPRESSO, gradients), les emojis et les overlays
-     fixed (qui resteraient hors d'un filter sur le wrapper React). */
-  body.theme-noir-on{filter:grayscale(1)}
+     fixed (qui resteraient hors d'un filter sur le wrapper React).
+     contrast(1.2) écrase les mid-greys vers les extrêmes pour une lecture
+     plus tranchée N&B (sinon tout est gris-moyen et la palette du jeu
+     vire au mou). */
+  body.theme-noir-on{filter:grayscale(1) contrast(1.2)}
 `;
