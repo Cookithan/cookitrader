@@ -223,10 +223,10 @@ export const GLOBAL_CSS = `
   @keyframes rxPlusOneFloat{0%{transform:translate(-50%,0) scale(1);opacity:1}100%{transform:translate(-50%,-50px) scale(1.4);opacity:0}}
 
   /* Thème Noir & Blanc — désature TOUTE l'UI quand activé. La classe est
-     toggle sur <body> par App.jsx selon activeTheme. Couvre les couleurs
+     toggle sur body par App.jsx selon activeTheme. Couvre les couleurs
      hardcodées (GOLD, ESPRESSO, gradients), les emojis et les overlays
      fixed (qui resteraient hors d'un filter sur le wrapper React).
-     `contrast()` retiré car coûteux à chaque repaint (lag perceptible
+     contrast() retiré car coûteux à chaque repaint (lag perceptible
      sur switch d'onglet / animations). On garde grayscale(1) seul, et
      la palette du thème est déjà tunée extrême noir/blanc pour
      compenser. */
