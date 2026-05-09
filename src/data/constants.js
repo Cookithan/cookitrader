@@ -188,6 +188,13 @@ export const REWARDS = [
      en cookies (pack_shares_5/10) reste, celui-ci est l'option "petit
      volume cher" en café pour les joueurs qui veulent juste 1 action. */
   { id:'pack_share_premium', currency:'cafe', applyAs:'pack_shares', sharesAmount:1, name:'1 Action $CKM', desc:'+1 action sur ton portefeuille', cost:1, type:'Premium', emoji:'📈', levelRequired:3 },
+
+  /* Boosters consommables (sinks récurrents pour pousser à dépenser ☕).
+     Tous CONSUMABLES : pas d'ajout à `unlocked`, rachetables à volonté.
+     Cf. unlockReward dans App.jsx pour les effets. */
+  { id:'quiz_skip',          currency:'cafe', applyAs:'quiz_skip',          name:'Skip Quiz',           desc:'Réinitialise instantanément le cooldown du quiz', cost:2, type:'Premium', emoji:'⏭️',  levelRequired:1 },
+  { id:'next_game_doubler',  currency:'cafe', applyAs:'next_game_doubler',  name:'Double prochain gain',desc:'Le prochain gain 🍪 d\'un mini-jeu est doublé',    cost:1, type:'Premium', emoji:'🎯',  levelRequired:1 },
+  { id:'boost_x2_1h',        currency:'cafe', applyAs:'boost_x2_1h',        name:'Boost ×2 (1 h)',      desc:'Tous tes gains 🍪 doublés pendant 1 heure',        cost:3, type:'Premium', emoji:'⚡',  levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */

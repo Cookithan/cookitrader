@@ -139,6 +139,13 @@ export default function CookiMiner() {
      🍪. Indicateur visuel par couronne(s) sur le pseudo. Items/achievements/
      cafés/actions $CKM/amis sont préservés. */
   const [prestigeLevel, setPrestigeLevel] = useLocalStorage('prestigeLevel', 0);
+  /* Boosters consommables ☕ (sinks récurrents).
+     - nextGameDoubler : bool, double le prochain addCoins(>0). Auto-clear
+       après usage. Acheté via item `next_game_doubler`.
+     - boostUntil : timestamp ms ; si Date.now() < boostUntil → multiplicateur
+       x2 sur tous les gains 🍪. Acheté via `boost_x2_1h` (+1 h cumulables). */
+  const [nextGameDoubler, setNextGameDoubler] = useLocalStorage('nextGameDoubler', false);
+  const [boostUntil,      setBoostUntil]      = useLocalStorage('boostUntil', 0);
   /* Drop one-shot du barista légendaire dans Devine la commande. Une fois
      true, plus jamais de roll. Pas synchro Supabase — c'est du loot local
      (cf. theme_cookies qui est synchronisé via `unlocked`). Reset par
@@ -688,6 +695,15 @@ export default function CookiMiner() {
     if(tab !== 'boutique' && boutiqueMode === 'premium') setBoutiqueMode('shop');
   },[tab, boutiqueMode]);
 
+  /* Tick 10 s pour rafraîchir le countdown du Boost ×2 (lecture Date.now()
+     dans le rendu, ce useState force un re-render). Léger, sans impact perf. */
+  const [, setBoostTick] = useState(0);
+  useEffect(()=>{
+    if(!boostUntil || boostUntil <= Date.now()) return;
+    const id = setInterval(() => setBoostTick(t => t + 1), 10_000);
+    return () => clearInterval(id);
+  }, [boostUntil]);
+
   /* Thème Noir & Blanc : désature globalement tout en posant une classe
      sur <body>. Plus efficace que d'overrider chaque GOLD/ESPRESSO ; vise
      aussi les overlays fixed qui se rendent hors du wrapper React. Reset
@@ -777,12 +793,22 @@ export default function CookiMiner() {
                     récupère proceeds en coins mais on ne progresse
                     qu'à hauteur de la plus-value (pnl). */
   const addCoins = useCallback((amount, gainAmount = amount)=>{
-    /* Multiplicateur Prestige : tous les gains positifs sont boostés de
-       +10 % par niveau de prestige. Pertes (amount<=0) inchangées. */
-    if(amount > 0 && prestigeLevel > 0){
-      const mult = 1 + prestigeLevel * 0.1;
-      amount     = Math.round(amount * mult);
-      gainAmount = Math.round(gainAmount * mult);
+    /* Multiplicateurs cumulés sur gains positifs uniquement :
+       - Prestige     : +10 % par niveau (permanent)
+       - Boost ×2 1h  : ×2 si boostUntil > now
+       - Doubler      : ×2 sur le prochain gain (one-shot, auto-clear)
+       Pertes (amount<=0) inchangées. */
+    if(amount > 0){
+      const prestigeMult = 1 + (prestigeLevel || 0) * 0.1;
+      const boostActive  = boostUntil && Date.now() < boostUntil;
+      const boostMult    = boostActive ? 2 : 1;
+      const doublerMult  = nextGameDoubler ? 2 : 1;
+      const totalMult    = prestigeMult * boostMult * doublerMult;
+      if(totalMult !== 1){
+        amount     = Math.round(amount * totalMult);
+        gainAmount = Math.round(gainAmount * totalMult);
+      }
+      if(nextGameDoubler) setNextGameDoubler(false);
     }
     if(amount<=0){ setCoins(c=>Math.max(0,c+amount)); return; }
     setCoins(c=>c+amount);
@@ -847,7 +873,7 @@ export default function CookiMiner() {
       const bonus = 10*nl;
       setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
     }
-  },[prestigeLevel]);
+  },[prestigeLevel, boostUntil, nextGameDoubler, setNextGameDoubler]);
 
   const spendCoins   = useCallback((a)=>setCoins(c=>Math.max(0,c-a)),[]);
 
@@ -1446,6 +1472,7 @@ export default function CookiMiner() {
 
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
     setStreak(0); setClickRecord(0); setUnlocked([]); setLegendaryBaristaSeen(false); setPrestigeLevel(0);
+    setNextGameDoubler(false); setBoostUntil(0);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
     setMarketRealized(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
@@ -1525,6 +1552,39 @@ export default function CookiMiner() {
       addSlotPass(r.slotPassAmount || 0);
       playSound('success');
       showToast(`🎰 +${r.slotPassAmount} parties Machine à Sous !`);
+      return;
+    }
+    /* Skip Quiz — reset le timer, dispo seulement quand quiz est en cooldown. */
+    if(r.applyAs === 'quiz_skip'){
+      if(cafes < r.cost) return;
+      if(canQuiz) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      setLastQuiz(0);   /* timestamp 0 → cooldown écoulé → canQuiz = true */
+      playSound('success');
+      showToast('⏭️ Quiz à nouveau disponible !');
+      return;
+    }
+    /* Doubler le prochain gain — flag one-shot consommé par addCoins.
+       Refuse si déjà armé pour ne pas griller des cafés inutilement. */
+    if(r.applyAs === 'next_game_doubler'){
+      if(cafes < r.cost) return;
+      if(nextGameDoubler) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      setNextGameDoubler(true);
+      playSound('success');
+      showToast('🎯 Prochain gain 🍪 doublé !');
+      return;
+    }
+    /* Boost ×2 cookies pendant 1h — cumulable (extend si déjà actif). */
+    if(r.applyAs === 'boost_x2_1h'){
+      if(cafes < r.cost) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      const ONE_HOUR = 60 * 60 * 1000;
+      const now = Date.now();
+      const baseFrom = (boostUntil && boostUntil > now) ? boostUntil : now;
+      setBoostUntil(baseFrom + ONE_HOUR);
+      playSound('success');
+      showToast('⚡ Boost ×2 activé pendant 1 heure !');
       return;
     }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
@@ -1857,6 +1917,59 @@ export default function CookiMiner() {
                 </div>
               )}
             </button>
+
+            {/* Indicateurs boosters actifs (boost ×2 en cours / doubler armé) */}
+            {(() => {
+              const now = Date.now();
+              const boostActive = boostUntil && now < boostUntil;
+              if(!boostActive && !nextGameDoubler) return null;
+              const formatLeft = (ms) => {
+                const totalMin = Math.floor(ms / 60000);
+                const h = Math.floor(totalMin / 60);
+                const m = totalMin % 60;
+                return h > 0 ? `${h}h ${String(m).padStart(2,'0')}min` : `${m}min`;
+              };
+              return (
+                <div className="su" style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:14 }}>
+                  {boostActive && (
+                    <div style={{
+                      padding:'10px 14px', borderRadius:14,
+                      background:'linear-gradient(135deg, #D4A017, #C17F3C)',
+                      border:'1.5px solid rgba(212,160,23,.6)',
+                      boxShadow:'0 4px 14px rgba(212,160,23,.35)',
+                      color:'#fff', display:'flex', alignItems:'center', gap:10,
+                    }}>
+                      <span style={{ fontSize:22 }}>⚡</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:11, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase', opacity:.9 }}>
+                          Boost ×2 actif
+                        </div>
+                        <div style={{ fontSize:13, fontWeight:700 }}>
+                          {formatLeft(boostUntil - now)} restantes
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {nextGameDoubler && (
+                    <div style={{
+                      padding:'10px 14px', borderRadius:14,
+                      background:C.card, border:`1.5px solid #D4A017`,
+                      color:C.text, display:'flex', alignItems:'center', gap:10,
+                    }}>
+                      <span style={{ fontSize:22 }}>🎯</span>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:11, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase', color:'#D4A017' }}>
+                          Doubler armé
+                        </div>
+                        <div style={{ fontSize:12.5, fontWeight:600, color:C.muted }}>
+                          Le prochain gain 🍪 sera ×2
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Carte Prestige — visible quand niveau 16 atteint avec
                 20000 XP cumulés. Renaître = repartir lvl 1 avec un

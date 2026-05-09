@@ -82,8 +82,10 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     ? Math.round((earnedAtRevealed / totalAtRevealed) * 100)
     : 100;
 
-  /* Helper : un item est-il un "Jeton" (consommable spin_pass / slot_pass) ? */
-  const isJeton = (r) => r.applyAs === 'spin_pass' || r.applyAs === 'slot_pass';
+  /* Helper : un item est-il un consommable "Bonus VIP" (jetons jeux +
+     boosters café) ? Tous regroupés dans la sous-vue 'jetons' du Premium. */
+  const CONSUMABLE_APPLY_AS = ['spin_pass', 'slot_pass', 'quiz_skip', 'next_game_doubler', 'boost_x2_1h'];
+  const isJeton = (r) => CONSUMABLE_APPLY_AS.includes(r.applyAs);
 
   let visible;
   if(mode === 'premium'){
@@ -210,9 +212,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         >
           <div style={{ fontSize:32 }}>🎫</div>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:13, fontWeight:900, color:C.text, marginBottom:2 }}>Jetons VIP</div>
+            <div style={{ fontSize:13, fontWeight:900, color:C.text, marginBottom:2 }}>Bonus VIP</div>
             <div style={{ fontSize:11.5, color:C.muted, lineHeight:1.4 }}>
-              Tickets bonus : tours de roue, parties machine à sous
+              Jetons (roue, slot) + boosters (×2 cookies, skip quiz…)
             </div>
           </div>
           <ChevronRight size={18} color={C.muted} />
