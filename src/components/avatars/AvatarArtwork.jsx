@@ -747,10 +747,18 @@ const AvDragon = () => (
     <path d="M30 14 L34 30" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" transform="rotate(-22 32 22)" />
     <path d="M70 14 L66 30" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" transform="rotate(22 68 22)" />
 
-    {/* Tête : ovale arrondi, parfaitement centré sur cx=50.
-        Bas légèrement effilé (museau) sans pointe excessive. */}
+    {/* Tête de dragon : front rond (curve), joues ANGULEUSES en lignes
+        droites qui descendent vers le menton pointu. Forme losange-bouclier
+        plutôt qu'ovale. Symétrique cx=50. */}
     <path
-      d="M22 50 Q22 30 50 30 Q78 30 78 50 Q78 64 70 72 Q60 80 50 80 Q40 80 30 72 Q22 64 22 50 Z"
+      d="M24 44
+         Q24 28 50 28
+         Q76 28 76 44
+         L70 58
+         L58 74
+         Q50 80 42 74
+         L30 58
+         Z"
       fill="url(#g_dr_head)" stroke={ESPRESSO} strokeWidth="3" strokeLinejoin="round"
     />
 
@@ -778,15 +786,15 @@ const AvDragon = () => (
     <circle cx="62" cy="47.5" r="1.3" fill={CREME} />
 
     {/* Naseaux + vapeur fine qui sort */}
-    <ellipse cx="46" cy="65" rx="1.6" ry="2"   fill={ESPRESSO} />
-    <ellipse cx="54" cy="65" rx="1.6" ry="2"   fill={ESPRESSO} />
-    <path d="M46 63 Q44 58 42 56" stroke={CREME} strokeWidth="1.8" fill="none" opacity=".75" strokeLinecap="round" />
-    <path d="M54 63 Q56 58 58 56" stroke={CREME} strokeWidth="1.8" fill="none" opacity=".75" strokeLinecap="round" />
+    <ellipse cx="46" cy="62" rx="1.5" ry="1.9" fill={ESPRESSO} />
+    <ellipse cx="54" cy="62" rx="1.5" ry="1.9" fill={ESPRESSO} />
+    <path d="M46 60 Q44 56 42 54" stroke={CREME} strokeWidth="1.8" fill="none" opacity=".75" strokeLinecap="round" />
+    <path d="M54 60 Q56 56 58 54" stroke={CREME} strokeWidth="1.8" fill="none" opacity=".75" strokeLinecap="round" />
 
-    {/* Bouche fermée (légère courbe) + 2 crocs visibles */}
-    <path d="M42 73 Q50 78 58 73" stroke={ESPRESSO} strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    <path d="M44 74 L45 78 L46 74 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".9" strokeLinejoin="round" />
-    <path d="M54 74 L55 78 L56 74 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".9" strokeLinejoin="round" />
+    {/* Bouche fermée + 2 crocs visibles, ajustés à la nouvelle forme losange */}
+    <path d="M42 70 Q50 74 58 70" stroke={ESPRESSO} strokeWidth="2.4" fill="none" strokeLinecap="round" />
+    <path d="M45 71 L46 75 L47 71 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".9" strokeLinejoin="round" />
+    <path d="M53 71 L54 75 L55 71 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".9" strokeLinejoin="round" />
   </svg>
 );
 
