@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Cookie, Coffee, Check, Lock } from "lucide-react";
+import { Cookie, Coffee, Check, Lock, ChevronRight, ChevronLeft } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
@@ -19,6 +19,10 @@ import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
 
 export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, C }) {
   const [filter, setFilter] = useState('Tous');
+  /* Sous-vue du premium : 'main' (catégories + items normaux) ou 'jetons'
+     (spin_pass + slot_pass uniquement). On ne pollue pas la grid premium
+     principale avec les jetons consommables — ils ont leur dédiée. */
+  const [premiumView, setPremiumView] = useState('main');
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
      pendant cette session restent visibles jusqu'au prochain mount. */
@@ -78,6 +82,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     ? Math.round((earnedAtRevealed / totalAtRevealed) * 100)
     : 100;
 
+  /* Helper : un item est-il un "Jeton" (consommable spin_pass / slot_pass) ? */
+  const isJeton = (r) => r.applyAs === 'spin_pass' || r.applyAs === 'slot_pass';
+
   let visible;
   if(mode === 'premium'){
     visible = REWARDS.filter(r => {
@@ -87,11 +94,10 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
          - levelMax      : niveau maximum (au-dessus, l'item est caché) */
       if(r.levelRequired && level < r.levelRequired) return false;
       if(r.levelMax && level > r.levelMax) return false;
-      /* Items consommables (spin_pass) : toujours visibles tant qu'ils
-         passent les filtres niveau — rachetables à volonté.
-         (Le pack_shares premium est désormais one-shot — il sort de
-         l'exemption pour être caché après achat unique.) */
-      if(r.applyAs === 'spin_pass') return true;
+      /* Sous-vue jetons : uniquement les jetons consommables. */
+      if(premiumView === 'jetons') return isJeton(r);
+      /* Sous-vue main : on cache les jetons (ils sont dans leur catégorie). */
+      if(isJeton(r)) return false;
       return !initialUnlocked.includes(r.id);
     });
   } else {
@@ -129,7 +135,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
       {/* Toggle Boutique / Premium */}
       <div style={{ display:'flex', gap:6, padding:4, borderRadius:14, background:C.card2, marginBottom:14 }}>
         <button
-          onClick={()=>{ if(mode!=='shop'){ playSound('tab'); setMode('shop'); } }}
+          onClick={()=>{ if(mode!=='shop'){ playSound('tab'); setMode('shop'); setPremiumView('main'); } }}
           style={{
             flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:800, letterSpacing:.4,
             background: mode==='shop' ? GOLD : 'transparent',
@@ -142,7 +148,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           BOUTIQUE
         </button>
         <button
-          onClick={()=>{ if(mode!=='premium'){ playSound('tab'); setMode('premium'); } }}
+          onClick={()=>{ if(mode!=='premium'){ playSound('tab'); setMode('premium'); setPremiumView('main'); } }}
           style={{
             flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:800, letterSpacing:.4,
             background: mode==='premium' ? ESPRESSO : 'transparent',
@@ -157,8 +163,8 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </button>
       </div>
 
-      {/* Bandeau Premium (mode='premium' uniquement) */}
-      {mode === 'premium' && (
+      {/* Bandeau Premium — différent selon la sous-vue (main / jetons). */}
+      {mode === 'premium' && premiumView === 'main' && (
         <div className="su" style={{
           padding:'14px 16px', borderRadius:16, marginBottom:14,
           background:ESPRESSO, border:'1.5px solid rgba(212,160,23,.45)',
@@ -173,6 +179,44 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
             </div>
           </div>
         </div>
+      )}
+      {mode === 'premium' && premiumView === 'jetons' && (
+        <button
+          onClick={()=>{ playSound('tab'); setPremiumView('main'); }}
+          style={{
+            display:'flex', alignItems:'center', gap:8,
+            padding:'10px 14px', borderRadius:12, marginBottom:14,
+            background:'transparent', color:C.text,
+            border:`1.5px solid ${C.border}`,
+            fontSize:13, fontWeight:700, cursor:'pointer',
+          }}
+        >
+          <ChevronLeft size={16} /> Retour Premium
+        </button>
+      )}
+
+      {/* Carte d'entrée vers les Jetons VIP (vue main premium uniquement) */}
+      {mode === 'premium' && premiumView === 'main' && (
+        <button
+          onClick={()=>{ playSound('tab'); setPremiumView('jetons'); }}
+          style={{
+            width:'100%', display:'flex', alignItems:'center', gap:14,
+            padding:'14px 16px', borderRadius:16, marginBottom:14,
+            background:`linear-gradient(135deg, ${C.card}, ${C.card2})`,
+            border:'1.5px solid rgba(212,160,23,.45)',
+            boxShadow:'0 4px 14px rgba(74,44,23,.25)',
+            cursor:'pointer', color:C.text, textAlign:'left',
+          }}
+        >
+          <div style={{ fontSize:32 }}>🎫</div>
+          <div style={{ flex:1 }}>
+            <div style={{ fontSize:13, fontWeight:900, color:C.text, marginBottom:2 }}>Jetons VIP</div>
+            <div style={{ fontSize:11.5, color:C.muted, lineHeight:1.4 }}>
+              Tickets bonus : tours de roue, parties machine à sous
+            </div>
+          </div>
+          <ChevronRight size={18} color={C.muted} />
+        </button>
       )}
 
       {/* Bandeau Niveau Boutique (mode='shop' uniquement) — montre la progression
