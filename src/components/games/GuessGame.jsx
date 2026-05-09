@@ -15,7 +15,8 @@ const LEGENDARY_QUESTION = {
   answer: 0,
   legendary: true,
 };
-const LEGENDARY_DROP_RATE = 0.05;  // 5 % par partie, ne se déclenche qu'une seule fois (flag legendaryBaristaSeen)
+const LEGENDARY_DROP_RATE       = 0.05;  // 5 % par partie en mode normal
+const LEGENDARY_DROP_RATE_ADMIN = 0.50;  // 50 % pour les comptes admin (test/QA)
 const ABSURD_TIMEOUT_MS   = 7_000; // 7s sans cliquer = +1 (absurde uniquement). Cliquer = ✗.
 /* Sentinelle utilisée comme `idx` quand le timeout déclenche onPick : sert
    à distinguer "le joueur a attendu" d'un vrai clic dans onPick. */
@@ -140,7 +141,7 @@ function pickCustomerIndices(n, max){
   return result;
 }
 
-export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, level = 1, C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, C }){
   /* Niveau 10+ : 8 questions par partie au lieu de 5, pour le même
      palier de récompense (= plus exigeant, pas plus rentable). */
   const NB_QUESTIONS = level >= 10 ? 8 : 5;
@@ -223,7 +224,8 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
        Important : `onLegendarySeen` est appelé dans onPick au moment du
        clic effectif (pas ici), pour ne pas "consommer" le drop si le
        joueur quitte la partie avant d'atteindre le slot. */
-    if(!legendarySeen && Math.random() < LEGENDARY_DROP_RATE){
+    const dropRate = isAdmin ? LEGENDARY_DROP_RATE_ADMIN : LEGENDARY_DROP_RATE;
+    if(!legendarySeen && Math.random() < dropRate){
       const slot     = Math.floor(Math.random() * NB_QUESTIONS);
       const variant  = Math.floor(Math.random() * LEGENDARY_BARISTAS.length);
       qs[slot] = LEGENDARY_QUESTION;

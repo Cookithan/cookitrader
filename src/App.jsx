@@ -2145,6 +2145,7 @@ export default function CookiMiner() {
               return arr.includes('BARISTA05') ? arr : [...arr, 'BARISTA05'];
             });
           }}
+          isAdmin={isAdminName(userName)}
           C={C}
         />
       )}
