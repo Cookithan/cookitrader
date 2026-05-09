@@ -120,7 +120,7 @@ export const REWARDS = [
   { id:'music_velvet',   name:'Velvet Smoke',        desc:'Slow jazz velouté & fumé',  cost:700,  type:'Musique', emoji:'🍷', levelRequired:9 },
   { id:'music_empereur', name:"Beat de l'Empereur",  desc:'Drill puissant et urbain',  cost:800,  type:'Musique', emoji:'👑', levelRequired:11 },
   { id:'music_veillee',  name:'Veillée Lofi',        desc:'Lofi cinématique posé',     cost:900,  type:'Musique', emoji:'🌙', levelRequired:14 },
-  { id:'music_cosmique', name:'Nuit Cosmique',       desc:'Lofi nocturne stellaire',   cost:1000, type:'Musique', emoji:'🌌', levelRequired:15 },
+  { id:'music_cosmique', name:'Nuit Cosmique',       desc:'Lofi nocturne stellaire',   cost:1000, type:'Musique', emoji:'🌠', levelRequired:15 },
 
   // SKINS COOKIE — change l'apparence du cookie central tappable
   // id:'skin_<key>' → COOKIE_SKINS.<key> côté src/data/themes.js
@@ -132,7 +132,7 @@ export const REWARDS = [
   { id:'skin_cuir',     name:'Cookie Cuir',     desc:'Tabac sombre + or',           cost:1600, type:'Skin', emoji:'🛋️', levelRequired:11 },
   { id:'skin_mythique', name:'Cookie Mythique', desc:'Glaçage + halo mythique',     cost:2500, type:'Skin', emoji:'🌟', levelRequired:13 },
   { id:'skin_phoenix',  name:'Cookie Phoenix',  desc:'Flammes ambrées vives',       cost:2700, type:'Skin', emoji:'🔥', levelRequired:14 },
-  { id:'skin_originel', name:'Cookie Originel', desc:'Or cosmique + violet',        cost:3500, type:'Skin', emoji:'🌌', levelRequired:15 },
+  { id:'skin_originel', name:'Cookie Originel', desc:'Or cosmique + violet',        cost:3500, type:'Skin', emoji:'🪐', levelRequired:15 },
 
   // TITRES COULEUR — effet shimmer sur le pseudo (cf. src/data/titles.js)
   // Sélectionnable depuis Profil. Priorité après Créateur et Légende Vivante.
@@ -144,12 +144,12 @@ export const REWARDS = [
   { id:'title_elixir',   name:'Titre Élixir',   desc:'Éclat or liquide',        cost:1700, type:'Titre', emoji:'🧪', levelRequired:12 },
   { id:'title_saveur',   name:'Titre Saveur',   desc:'Dégradé café-épices',     cost:2200, type:'Titre', emoji:'🌶️', levelRequired:13 },
   { id:'title_phenix',   name:'Titre Phénix',   desc:'Flammes ardentes',        cost:2400, type:'Titre', emoji:'🔥', levelRequired:14 },
-  { id:'title_cosmique', name:'Titre Cosmique', desc:'Lueur stellaire violette',cost:3500, type:'Titre', emoji:'🌌', levelRequired:15 },
+  { id:'title_cosmique', name:'Titre Cosmique', desc:'Lueur stellaire violette',cost:3500, type:'Titre', emoji:'💜', levelRequired:15 },
 
   // PACKS $CKM — crédite N actions instantanément (via creditFreeShares).
   // Item consommable : pas d'ajout à `unlocked`, rachetable à volonté.
-  { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:1200, type:'Pack', emoji:'📈', levelRequired:7 },
-  { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:3000, type:'Pack', emoji:'📊', levelRequired:12 },
+  { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:450, type:'Pack', emoji:'📈', levelRequired:7 },
+  { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:850, type:'Pack', emoji:'📊', levelRequired:12 },
 
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
   /* Jetons VIP — items premium CONSOMMABLES (pas d'ajout à unlocked).
