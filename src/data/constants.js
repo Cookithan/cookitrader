@@ -115,12 +115,12 @@ export const REWARDS = [
   // id:'music_<key>' → MUSICS.<key> côté src/lib/audio.js
   // Catalogue 5 nouvelles + 2 existantes en 🍪 (assets Pixabay CC0 mai 2026).
   { id:'music_matin',    name:'Café du Matin',       desc:'Jazz café du petit matin',  cost:100,  type:'Musique', emoji:'🌅', levelRequired:1 },
-  { id:'music_bossa',    name:'Musique Bossa Nova',  desc:'Soleil brésilien',          cost:1500, type:'Musique', emoji:'🇧🇷', levelRequired:5 },
-  { id:'music_royale',   name:'Symphonie Royale',    desc:'Musique classique baroque', cost:2000, type:'Musique', emoji:'💎', levelRequired:5 },
-  { id:'music_velvet',   name:'Velvet Smoke',        desc:'Slow jazz velouté & fumé',  cost:1300, type:'Musique', emoji:'🍷', levelRequired:9 },
-  { id:'music_empereur', name:"Beat de l'Empereur",  desc:'Drill puissant et urbain',  cost:1500, type:'Musique', emoji:'👑', levelRequired:11 },
-  { id:'music_veillee',  name:'Veillée Lofi',        desc:'Lofi cinématique posé',     cost:2500, type:'Musique', emoji:'🌙', levelRequired:14 },
-  { id:'music_cosmique', name:'Nuit Cosmique',       desc:'Lofi nocturne stellaire',   cost:3000, type:'Musique', emoji:'🌌', levelRequired:15 },
+  { id:'music_bossa',    name:'Musique Bossa Nova',  desc:'Soleil brésilien',          cost:500,  type:'Musique', emoji:'🇧🇷', levelRequired:5 },
+  { id:'music_royale',   name:'Symphonie Royale',    desc:'Musique classique baroque', cost:600,  type:'Musique', emoji:'💎', levelRequired:5 },
+  { id:'music_velvet',   name:'Velvet Smoke',        desc:'Slow jazz velouté & fumé',  cost:700,  type:'Musique', emoji:'🍷', levelRequired:9 },
+  { id:'music_empereur', name:"Beat de l'Empereur",  desc:'Drill puissant et urbain',  cost:800,  type:'Musique', emoji:'👑', levelRequired:11 },
+  { id:'music_veillee',  name:'Veillée Lofi',        desc:'Lofi cinématique posé',     cost:900,  type:'Musique', emoji:'🌙', levelRequired:14 },
+  { id:'music_cosmique', name:'Nuit Cosmique',       desc:'Lofi nocturne stellaire',   cost:1000, type:'Musique', emoji:'🌌', levelRequired:15 },
 
   // SKINS COOKIE — change l'apparence du cookie central tappable
   // id:'skin_<key>' → COOKIE_SKINS.<key> côté src/data/themes.js
