@@ -793,6 +793,20 @@ export default function CookiMiner() {
     }
   }, [userName, level, setLevel, setXp]);
 
+  /* Admin doit avoir TOUS les thèmes débloqués à tout moment (test/debug).
+     Resync à chaque chargement : si on rajoute un nouveau thème dans
+     REWARDS, le compte admin existant le récupère automatiquement sans
+     refaire l'onboarding. Idempotent : ne touche `unlocked` que s'il
+     manque effectivement un id thème (Set diff). */
+  useEffect(() => {
+    if(!isAdminName(userName)) return;
+    const allThemeIds = REWARDS.filter(r => r.type === 'Thème').map(r => r.id);
+    const missing = allThemeIds.filter(id => !unlocked.includes(id));
+    if(missing.length > 0){
+      setUnlocked(u => Array.from(new Set([...(u || []), ...missing])));
+    }
+  }, [userName, unlocked, setUnlocked]);
+
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
      l'unicité via is_processed côté Supabase, donc pas de garde ici.
