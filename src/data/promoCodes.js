@@ -12,6 +12,9 @@
      - coins   : montant 🍪 crédité (peut être 0)
      - cafes   : montant ☕ crédité (peut être 0)
      - shares  : actions $CKM offertes (peut être 0) — nécessite Supabase
+     - level   : si défini, force le niveau minimum après application
+                 (utile pour les codes "boost" qui catapultent à un niveau
+                 directement, sans passer par les addCoins palier par palier)
      - label   : description courte (affichée à la confirmation)
      - secret  : si true, le code n'est PAS utilisable tant qu'il n'a
                  pas été révélé via l'item premium "Révéler Code Promo
@@ -31,6 +34,9 @@ export const PROMO_CODES = {
   /* Code rare — révélé uniquement via l'item premium "Révéler Code
      Promo Rare" (5 ☕, niveau 13). Récompense exclusive. */
   'LEGENDE13': { coins: 500,  cafes: 3, label: 'Code Rare — Légende du 13', secret: true },
+  /* Code boost — distribué manuellement par Cookithan pour catapulter
+     un nouveau joueur. 4000 🍪 + force niveau 6 d'un coup. */
+  'BOOST6':    { coins: 4000, cafes: 0, level: 6, label: 'Boost Niveau 6 + 4000 🍪' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */
