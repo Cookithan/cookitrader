@@ -805,25 +805,13 @@ export default function CookiMiner() {
     const lv  = lvRef.current;
     const cur = xpRef.current;
 
-    /* Endgame : niveau 16 = palier final. XP accumule de 0 à 20000.
-       Tous les 1000 XP franchis, +1 ☕ (loop café). À 20000 XP, l'XP
-       est cappée — pas de level-up vers 17, le prestige prend le relais.
-       Niv 15 redevient un palier normal (level-up vers 16 standard). */
-    const ENDGAME_XP_TIER = 1000;
-    const ENDGAME_XP_CAP  = 20000;   // = xpRequired(16)
+    /* Endgame : niveau 16 = palier final. XP accumule de 0 à 20000
+       (cap), pas de café loop, pas de level-up vers 17 — le prestige
+       prend le relais une fois les 20000 XP atteints. */
+    const ENDGAME_XP_CAP = 20000;   // = xpRequired(16)
     if(lv === 16){
       const newXp = Math.min(cur + xpDelta, ENDGAME_XP_CAP);
-      const oldMile = Math.floor(cur   / ENDGAME_XP_TIER);
-      const newMile = Math.floor(newXp / ENDGAME_XP_TIER);
-      const cfsEarned = newMile - oldMile;
       setXp(newXp); xpRef.current = newXp;
-      if(cfsEarned > 0){
-        setTimeout(()=>{
-          setCafes(c=>c+cfsEarned);
-          playSound('success');
-          showToastRef.current?.(`🎉 Palier endgame ! +${cfsEarned} ☕`);
-        }, 700);
-      }
       return;
     }
 
