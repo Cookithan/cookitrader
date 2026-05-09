@@ -151,4 +151,24 @@ export const COMMANDES = [
     choices:['Pu-erh','Oolong','Sencha','Matcha'], answer:0 },
   { desc:"Le thé indien noir fort et tannique, base du chai.",
     choices:['Assam','Darjeeling','Ceylan','Pu-erh'], answer:0 },
+
+  /* ─── Questions absurdes (commandes farfelues) — la "bonne" réponse
+     est juste celle qui colle vaguement à la demande loufoque, mais
+     toutes les options sont délirantes. Ambiance comique. ─── */
+  { desc:"Bonjour, je voudrais quelque chose qui me rend invisible aux lundis matin.",
+    choices:['Latte fantôme','Espresso furtif','Mocha disparaissant','Cappuccino transparent'], answer:1 },
+  { desc:"Je cherche un café qui parle aux plantes, c'est urgent elles déprimaient.",
+    choices:['Mocha murmureur','Latte végétal','Espresso poétique','Café qui chante'], answer:3 },
+  { desc:"Avez-vous un truc qui me téléporte dans la salle de réunion ? Je suis en retard.",
+    choices:['Espresso quantique','Latte d\'évasion','Café WiFi','Cookie warp'], answer:0 },
+  { desc:"Je voudrais un dessert qui me console après avoir perdu aux échecs contre mon chat.",
+    choices:['Tiramisu thérapeutique','Cookie réconfort','Macaron du regret','Brownie de défaite'], answer:1 },
+  { desc:"Donnez-moi une boisson qui rendrait mon boss sympathique.",
+    choices:['Cappuccino diplomatique','Latte miracle','Mocha hypnotique','Espresso amnésique'], answer:2 },
+  { desc:"Je cherche un café fait à partir d'eau de pluie tombée un mardi.",
+    choices:['Bio-mardi','Cold Brew lunaire','Espresso pluvial','Café météo'], answer:2 },
+  { desc:"J'aimerais une pâtisserie qui ressemble à mon ex, mais en plus comestible.",
+    choices:['Tarte aux regrets','Cookie ironique','Éclair amer','Macaron passif-agressif'], answer:0 },
+  { desc:"Vous avez un café qui me ferait gagner au loto demain ? J'ai pas dormi.",
+    choices:['Espresso prophétique','Mocha de la chance','Latte chiffré','Cappuccino jackpot'], answer:3 },
 ];

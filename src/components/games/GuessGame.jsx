@@ -15,7 +15,8 @@ const LEGENDARY_QUESTION = {
   answer: 0,
   legendary: true,
 };
-const LEGENDARY_DROP_RATE = 0.005;  // 0.5 % par partie
+const LEGENDARY_DROP_RATE = 0.01;  // 1 % par partie, ne se déclenche qu'une seule fois (flag legendaryBaristaSeen)
+const ANSWER_TIMEOUT_MS   = 10_000; // 10s sans répondre = skip + +1 point auto (slot normal uniquement)
 
 /* ════════════════════════════════════════════════════
    GuessGame — Devine la commande (PHASE 6C — refonte visuelle)
@@ -119,7 +120,7 @@ function pickCustomerIndices(n, max){
   return result;
 }
 
-export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, level = 1, C }){
   /* Niveau 10+ : 8 questions par partie au lieu de 5, pour le même
      palier de récompense (= plus exigeant, pas plus rentable). */
   const NB_QUESTIONS = level >= 10 ? 8 : 5;
@@ -165,11 +166,26 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
     return ()=>{ if(typeRef.current) clearInterval(typeRef.current); };
   }, [phase, subPhase, qIndex, questions]);
 
+  const timeoutRef = useRef(null);
+
+  /* Auto-skip 10 s : si le joueur ne répond pas pendant 10 s sur un slot
+     normal, on simule un clic correct (point gagné, client suivant). Le
+     légendaire est exempté pour laisser le temps de lire le code. */
+  useEffect(()=>{
+    if(phase !== 'playing' || subPhase !== 'speaking' || picked !== null) return;
+    if(questions[qIndex]?.legendary) return;
+    timeoutRef.current = setTimeout(()=>{
+      onPickRef.current?.(questions[qIndex]?.answer ?? 0);
+    }, ANSWER_TIMEOUT_MS);
+    return ()=>{ if(timeoutRef.current) clearTimeout(timeoutRef.current); };
+  }, [phase, subPhase, qIndex, picked, questions]);
+
   /* Cleanup global */
   useEffect(()=>()=>{
     if(typeRef.current)    clearInterval(typeRef.current);
     if(enterRef.current)   clearTimeout(enterRef.current);
     if(advanceRef.current) clearTimeout(advanceRef.current);
+    if(timeoutRef.current) clearTimeout(timeoutRef.current);
   },[]);
 
   const startGame = () => {
@@ -178,14 +194,16 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
     onSpend(GUESS_COST);
     const qs = pickQuestions(NB_QUESTIONS);
     const ci = pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length);
-    /* 0.5 % par partie : on injecte le barista légendaire à un slot
+    /* 1 % par partie ET le légendaire n'a pas déjà été vu (flag persistent
+       legendaryBaristaSeen). On injecte le barista légendaire à un slot
        aléatoire. Sa "question" devient LEGENDARY_QUESTION (sentinelle
        legendary:true), et l'index client de ce slot vaut -1 pour signaler
        "utiliser LEGENDARY_BARISTA au lieu de CUSTOMERS[i]". */
-    if(Math.random() < LEGENDARY_DROP_RATE){
+    if(!legendarySeen && Math.random() < LEGENDARY_DROP_RATE){
       const slot = Math.floor(Math.random() * NB_QUESTIONS);
       qs[slot] = LEGENDARY_QUESTION;
       ci[slot] = -1;
+      onLegendarySeen?.();   // marque le drop pour ne plus jamais retomber
     }
     setQuestions(qs);
     setCustomerIndices(ci);
@@ -197,6 +215,10 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
   };
 
   const replay = () => { playSound('modal'); setPhase('idle'); };
+
+  /* Ref vers la dernière version de onPick — le useEffect timeout
+     reste stable (pas de closure stale) en l'appelant via cette ref. */
+  const onPickRef = useRef(null);
 
   const onPick = (idx) => {
     if(picked !== null) return;            // déjà choisi
@@ -231,6 +253,8 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
       }
     }, ANSWER_HOLD_MS);
   };
+  /* Garde le ref synchro avec la dernière version de onPick */
+  onPickRef.current = onPick;
 
   const canPlay = coins >= GUESS_COST;
   const current = questions[qIndex];

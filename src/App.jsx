@@ -133,6 +133,11 @@ export default function CookiMiner() {
   const [xp,          setXp]          = useLocalStorage('xp',          0);
   const [streak,      setStreak]      = useLocalStorage('streak',      0);
   const [clickRecord, setClickRecord] = useLocalStorage('clickRecord', 0);
+  /* Drop one-shot du barista légendaire dans Devine la commande. Une fois
+     true, plus jamais de roll. Pas synchro Supabase — c'est du loot local
+     (cf. theme_cookies qui est synchronisé via `unlocked`). Reset par
+     resetProgress (cf. plus bas). */
+  const [legendaryBaristaSeen, setLegendaryBaristaSeen] = useLocalStorage('legendaryBaristaSeen', false);
   const [unlocked,    setUnlocked]    = useLocalStorage('unlocked',    []);
   const [lastCheckin, setLastCheckin] = useLocalStorage('lastCheckin', null);
   const [lastQuiz,    setLastQuiz]    = useLocalStorage('lastQuiz',    null);
@@ -1369,7 +1374,7 @@ export default function CookiMiner() {
     try{ sessionStorage.removeItem('leaderboard:cache'); }catch{}
 
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
-    setStreak(0); setClickRecord(0); setUnlocked([]);
+    setStreak(0); setClickRecord(0); setUnlocked([]); setLegendaryBaristaSeen(false);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
     setMarketRealized(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
@@ -2112,6 +2117,8 @@ export default function CookiMiner() {
           onEventChallenge={checkEventChallenge}
           spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin}
           activeSkin={activeSkin}
+          legendarySeen={legendaryBaristaSeen}
+          onLegendarySeen={()=>setLegendaryBaristaSeen(true)}
           C={C}
         />
       )}
