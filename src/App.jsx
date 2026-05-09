@@ -685,16 +685,12 @@ export default function CookiMiner() {
     if(xpDelta <= 0) return;
 
     /* Multiplicateur XP par palier :
-       - niv 9  : +15 % bonus passif (Maître Mythique) — palier de
-         récompense, n'existe qu'à ce niveau précis.
-       - niv 10+ : malus -40 % (x0.6) — la progression devient plus
-         lente une fois la "première barre" franchie, pour étirer le jeu
-         en endgame. Affecte aussi le compteur endgame du niv 15
-         (1000 XP = +1 ☕ devient ~1667 cookies bruts pour 1 ☕). */
+       - niv 1-9 : x1.0 (normal, plus de bonus passif niv 9)
+       - niv 10+ : malus -20 % (x0.8) — étire la progression en endgame.
+         Affecte aussi le compteur du niv 15 (1000 XP = +1 ☕ devient
+         ~1250 cookies bruts pour 1 ☕). */
     if(lvRef.current >= 10){
-      xpDelta = Math.round(xpDelta * 0.6);
-    } else if(lvRef.current >= 9){
-      xpDelta = Math.round(xpDelta * 1.15);
+      xpDelta = Math.round(xpDelta * 0.8);
     }
 
     setTotalEarned(t=>t+xpDelta);
