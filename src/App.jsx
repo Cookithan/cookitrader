@@ -832,8 +832,17 @@ export default function CookiMiner() {
     setXp(0);       xpRef.current = 0;
     setPendingLvUp(nl);
     playSound('levelup');
-    if(nl >= 6){
+    /* Bonus de level-up :
+       - Paliers majeurs (6, 10, 15, 16) → +1 ☕ (les "milestones")
+       - Autres paliers post-6 (7-9, 11-14) → cookies bonus 50+10*nl
+       - Niv 1-5 → cookies bonus 10*nl (inchangé)
+       Cuts -45% sur la production de café (rareté demandée). */
+    const isCafeMilestone = (nl === 6 || nl === 10 || nl === 15 || nl === 16);
+    if(isCafeMilestone){
       setTimeout(()=>{ setCafes(c=>c+1); }, 700);
+    } else if(nl >= 6){
+      const bonus = 50 + 10 * nl;
+      setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
     } else {
       const bonus = 10*nl;
       setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);

@@ -73,7 +73,7 @@ export const SPECIAL_EVENTS = [
     description: 'Atteins un score parfait (15 🍪) à "Stop le Café" !',
     tease: 'Ni trop, ni trop peu. La main connaît le bon moment.',
     challenge: 'pour_perfect',
-    reward: { type:'badge', id:'badge_tireur', name:'Badge Tireur', cafeBonus:1 },
+    reward: { type:'badge', id:'badge_tireur', name:'Badge Tireur', cafeBonus:0 },
   },
   {
     id: 'event_quiz_perfect',
@@ -89,7 +89,7 @@ export const SPECIAL_EVENTS = [
     description: 'Devine toutes les commandes (5/5 ou 8/8) à "Devine la commande" !',
     tease: 'Lis le client comme un livre — sans rater une page.',
     challenge: 'guess_perfect',
-    reward: { type:'badge', id:'badge_erudit', name:'Badge Érudit', cafeBonus:1 },
+    reward: { type:'badge', id:'badge_erudit', name:'Badge Érudit', cafeBonus:0 },
   },
   {
     id: 'event_click_sprint',
@@ -97,7 +97,7 @@ export const SPECIAL_EVENTS = [
     description: 'Atteins 60 clics ou plus au Cookie Click en une partie !',
     tease: 'Que tes doigts brûlent — la vitesse fait pleuvoir.',
     challenge: 'click_sprint',
-    reward: { type:'badge', id:'badge_sprinter', name:'Badge Sprinter', cafeBonus:1 },
+    reward: { type:'badge', id:'badge_sprinter', name:'Badge Sprinter', cafeBonus:0 },
   },
   {
     id: 'event_pyramid_15',
@@ -113,7 +113,7 @@ export const SPECIAL_EVENTS = [
     description: 'Aligne 3 symboles identiques à la Machine à Sous !',
     tease: 'Trois fois la même chose, et la fortune sourit.',
     challenge: 'slot_three',
-    reward: { type:'badge', id:'badge_tirelire', name:'Badge Tirelire', cafeBonus:1 },
+    reward: { type:'badge', id:'badge_tirelire', name:'Badge Tirelire', cafeBonus:0 },
   },
   {
     id: 'event_reflex_pro',
