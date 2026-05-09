@@ -2039,7 +2039,12 @@ export default function CookiMiner() {
         <EventRewardModal
           reward={eventReward}
           onClose={()=>setEventReward(null)}
-          onView={()=>{ setShowSettings(true); }}
+          /* Thèmes vivent dans Settings, badges dans le profil — route en
+             conséquence pour que l'utilisateur voie effectivement sa récompense. */
+          onView={()=>{
+            if(eventReward?.type === 'badge') setShowProfile(true);
+            else                              setShowSettings(true);
+          }}
           C={C}
         />
       )}

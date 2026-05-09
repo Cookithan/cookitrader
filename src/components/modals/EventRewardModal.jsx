@@ -7,18 +7,28 @@ import { GOLD } from "../../data/themes.js";
    checkEventChallenge dans App.jsx.
 
    Affiche : confettis dorés, titre "🏆 ÉVÉNEMENT RÉUSSI !",
-   nom du thème débloqué, bouton "Voir mon thème" qui ferme la modale
-   (et idéalement renvoie sur les paramètres pour appliquer le thème).
+   nom de l'item débloqué, bouton "Voir mon X" qui ferme la modale
+   et navigue vers la bonne destination (App.jsx route via reward.type).
+
+   reward.type ∈ {'theme','badge'} — détermine le libellé du bouton.
+   Au-delà de ces deux types, on retombe sur "Voir" générique pour
+   ne pas casser si un nouveau type d'event apparaît.
 
    Props :
-   - reward  : { type:'theme', id, name }
+   - reward  : { type:'theme'|'badge', id, name }
    - onClose : ferme la modale
    - onView  : optionnel, appelé en plus de onClose au clic sur "Voir"
    - C       : palette
 ═══════════════════════════════════════════════════════ */
 
+const VIEW_LABELS = {
+  theme: 'Voir mon thème',
+  badge: 'Voir mon badge',
+};
+
 export function EventRewardModal({ reward, onClose, onView, C }){
   if(!reward) return null;
+  const viewLabel = VIEW_LABELS[reward.type] || 'Voir la récompense';
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:96, backdropFilter:'blur(6px)', padding:16 }}>
@@ -109,7 +119,7 @@ export function EventRewardModal({ reward, onClose, onView, C }){
                   cursor:'pointer',
                 }}
               >
-                Voir mon thème
+                {viewLabel}
               </button>
             )}
           </div>
