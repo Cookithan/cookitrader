@@ -65,7 +65,7 @@ export async function getFriends(myUserCode){
     const codes = links.map(l => l.friend_code);
     const { data: profiles, error } = await supabase
       .from('users')
-      .select('user_code, user_name, user_avatar, level, total_earned, cookies, streak, last_active, earned_achievements')
+      .select('user_code, user_name, user_avatar, level, total_earned, cookies, streak, last_active, earned_achievements, active_title')
       .in('user_code', codes);
     if(error){ notifySupabaseError(); return []; }
     return profiles || [];
@@ -80,7 +80,7 @@ export async function getLeaderboard(limit = 50){
   try{
     const { data, error } = await supabase
       .from('users')
-      .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements')
+      .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements, active_title')
       .not('user_name', 'ilike', ADMIN_ILIKE_PATTERN)
       .order('total_earned', { ascending:false })
       .limit(limit);
@@ -902,6 +902,10 @@ export async function upsertProfile(p){
         name_change_count:    p.nameChangeCount ?? 0,
         earned_achievements:  (p.earnedAchievements || []).join(','),
         active_theme:         p.activeTheme || '',
+        /* Titre couleur actif (data/titles.js) — sync pour qu'il
+           apparaisse aussi sur le pseudo dans les classements / amis /
+           profil consultés par d'autres joueurs. */
+        active_title:         p.activeTitle || '',
         /* PIN de restauration (sécurité) — 4 chiffres requis pour
            restaurer le compte sur un autre appareil. */
         restore_pin:          p.restorePin || '',

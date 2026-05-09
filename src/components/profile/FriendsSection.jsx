@@ -382,7 +382,7 @@ export function FriendsSection({ userCode, myCoins = 0, myCafes = 0, onRequestsC
                           <span style={{
                             fontSize:13, fontWeight:800, color:C.text,
                             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-                            ...(getNameStyle(f.user_name, f.earned_achievements) || {}),
+                            ...(getNameStyle(f.user_name, f.earned_achievements, f.active_title) || {}),
                           }}>
                             {f.user_name}
                           </span>

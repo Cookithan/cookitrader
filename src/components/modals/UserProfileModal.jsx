@@ -195,7 +195,7 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         <AvatarFigure value={profile.user_avatar} size={92} />
         <div style={{
           fontSize:22, fontWeight:900, color:C.text, marginTop:12, textAlign:'center',
-          ...(getNameStyle(profile.user_name, profile.earned_achievements) || {}),
+          ...(getNameStyle(profile.user_name, profile.earned_achievements, profile.active_title) || {}),
         }}>
           {profile.user_name || 'Joueur'}
         </div>

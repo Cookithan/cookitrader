@@ -450,7 +450,7 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements) || {}) : {}),
+            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, p.active_title) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
@@ -525,7 +525,7 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements) || {}) : {}),
+            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, p.active_title) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>

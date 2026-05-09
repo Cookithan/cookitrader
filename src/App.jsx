@@ -196,6 +196,10 @@ export default function CookiMiner() {
      déclarés ici (avant le useEffect) pour éviter une TDZ sur la deps array. */
   const [earnedAchievements, setEarnedAchievements] = useLocalStorage('achievements', []);
   const [activeTheme,        setActiveTheme]        = useLocalStorage('activeTheme', '');
+  /* Titre couleur affiché sur le pseudo (cf. data/titles.js).
+     Priorité dans getNameStyle : Créateur > Légende > Titre. '' = aucun.
+     Sync via upsertProfile pour visibilité cross-device. */
+  const [activeTitle,        setActiveTitle]        = useLocalStorage('activeTitle', '');
   /* PIN de restauration (BRIEF_RESTAURATION sécurité) : 4 chiffres
      auto-générés au 1er besoin pour bloquer les restaurations
      non-autorisées. Visible dans Settings, requis dans RestoreProfileModal. */
@@ -255,20 +259,19 @@ export default function CookiMiner() {
         nameChangeCount,
         earnedAchievements: earnedAchievements || [],
         activeTheme: activeTheme || '',
+        activeTitle: activeTitle || '',
         restorePin: restorePin || '',
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, restorePin]);
+  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
   /* Skin du cookie central tappable (cf. COOKIE_SKINS). '' = défaut. */
   const [activeSkin,   setActiveSkin]   = useLocalStorage('activeSkin','');
-  /* Titre couleur affiché sur le pseudo (cf. data/titles.js).
-     Priorité dans getNameStyle : Créateur > Légende > Titre. '' = aucun. */
-  const [activeTitle,  setActiveTitle]  = useLocalStorage('activeTitle','');
+  /* (activeTitle est déclaré plus haut — utilisé dans le upsertProfile.) */
   /* Codes promo rares révélés via items premium (cf. promoCodes.js
      PROMO_CODES.<X>.secret). Une fois révélé, le code apparaît dans
      PromoCodeModal et peut être saisi pour récupérer la récompense. */

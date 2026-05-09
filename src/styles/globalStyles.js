@@ -49,6 +49,10 @@ export const GLOBAL_CSS = `
   @keyframes coinPop{0%{transform:scale(.5)}45%{transform:scale(1.35)}100%{transform:scale(1)}}
   @keyframes glow{0%,100%{box-shadow:0 0 16px rgba(212,160,23,.35),0 4px 16px rgba(212,160,23,.4)}50%{box-shadow:0 0 32px rgba(212,160,23,.75),0 4px 16px rgba(212,160,23,.6)}}
   @keyframes latteShimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+  /* Titres couleur (data/titles.js) — variations animées pour distinguer */
+  @keyframes titleSpin{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+  @keyframes titleFlicker{0%,100%{filter:drop-shadow(0 0 6px rgba(255,140,40,.8))}25%{filter:drop-shadow(0 0 12px rgba(255,180,60,.95))}50%{filter:drop-shadow(0 0 4px rgba(255,80,20,.7))}75%{filter:drop-shadow(0 0 14px rgba(255,200,80,1))}}
+  @keyframes titlePulse{0%,100%{filter:drop-shadow(0 0 6px rgba(212,160,23,.55))}50%{filter:drop-shadow(0 0 16px rgba(255,215,90,.95))}}
   /* Pile de Tasses (BRIEF) — vapeur, pulse zone tap, +5 floating, halo perfect */
   @keyframes cupGameSteamRise{0%{transform:translateY(8px) scale(.7);opacity:0}30%{opacity:1}100%{transform:translateY(-26px) scale(1.3);opacity:0}}
   @keyframes cupGameTapPulse{0%,100%{opacity:.75;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.04)}}
