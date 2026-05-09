@@ -703,7 +703,11 @@ export default function CookiMiner() {
   const todayStr   = new Date().toDateString();
   const spinsCap   = level <= 9 ? 50 : 20;
   const isFreshDay = spinsDate !== todayStr;
-  const effUsed    = isFreshDay ? 0 : (spinsToday || 0);
+  /* Clamp à spinsCap : si spinsToday était saved sous un cap supérieur
+     (ex: niv 1-9 cap 50, puis niv 10 cap 20 hérité avec value 50), on
+     plafonne pour éviter un compteur "fantôme" qui empêcherait l'achat
+     d'avoir un effet. */
+  const effUsed    = isFreshDay ? 0 : Math.min(spinsToday || 0, spinsCap);
   const spinsLeft  = Math.max(0, spinsCap - effUsed);
   const consumeSpin = useCallback(() => {
     const t = new Date().toDateString();
@@ -717,15 +721,18 @@ export default function CookiMiner() {
   const addSpinPass = useCallback((amount) => {
     /* Cap absolu : on déduit du compteur utilisé sans aller en dessous
        de 0, donc l'user ne dépasse jamais spinsCap (et perd l'excédent
-       du jeton s'il l'achète sans avoir consommé assez). */
+       du jeton s'il l'achète sans avoir consommé assez).
+       On clamp spinsToday au cap COURANT avant déduction — sinon une
+       transition de cap (50 niv 1-9 → 20 niv 10+) avec spinsToday=50
+       saved garderait spinsLeft à 0 même après achat (50-20=30 > 20). */
     const t = new Date().toDateString();
     if(spinsDate !== t){
       setSpinsDate(t);
       setSpinsToday(0);   // new day, jeton inutile car déjà à 0
     } else {
-      setSpinsToday(n => Math.max(0, (n || 0) - amount));
+      setSpinsToday(n => Math.max(0, Math.min(n || 0, spinsCap) - amount));
     }
-  }, [spinsDate, setSpinsDate, setSpinsToday]);
+  }, [spinsDate, setSpinsDate, setSpinsToday, spinsCap]);
 
   /* Pendant slot machine — analog des spins. Cap absolu 50, reset à minuit. */
   const slotGamesCap   = 50;
@@ -747,9 +754,10 @@ export default function CookiMiner() {
       setSlotGamesDate(t);
       setSlotGamesToday(0);
     } else {
-      setSlotGamesToday(n => Math.max(0, (n || 0) - amount));
+      /* Idem spin : clamp au cap pour que l'achat soit toujours efficace. */
+      setSlotGamesToday(n => Math.max(0, Math.min(n || 0, slotGamesCap) - amount));
     }
-  }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday]);
+  }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday, slotGamesCap]);
 
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
