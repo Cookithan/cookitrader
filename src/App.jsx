@@ -1498,20 +1498,17 @@ export default function CookiMiner() {
     if(showOnboarding) return;
     /* Mode admin → aucun succès attribué (compte de test). */
     if(isAdminName(userName)) return;
-    /* "master_succes" : caché tant que reveal_master n'est pas acheté.
-       Se déclenche si TOUS les autres succès (sauf end_game) sont gagnés. */
-    const otherIds = ACHIEVEMENTS
-      .filter(a => a.id !== 'master_succes' && a.id !== 'end_game')
-      .map(a => a.id);
-    const allOthersDone = otherIds.every(id => earnedAchievements.includes(id));
+    /* "master_succes" : se déclenche dès que reveal_master est acheté
+       (item premium 7 ☕ niveau 3). Avant on exigeait aussi "tous les
+       autres succès gagnés", mais c'était confus côté UX — l'utilisateur
+       payait sans rien obtenir tant qu'il n'avait pas tout fini. */
 
     /* "end_game" — apex absolu. Conditions très exigeantes pour vraiment
        le mériter :
        1. Niveau 15 (max)
        2. Tous les autres succès visibles gagnés
        3. Le Succès Café (master_succes) — implique d'acheter "Révéler le
-          Succès Café" en boutique premium (7 ☕) puis de compléter tous
-          les autres succès pour qu'il se déclenche.
+          Succès Café" en boutique premium (7 ☕, niveau 3+).
        4. Boutique 100 % complétée (tous items en 🍪, hors limited)
        5. Les 3 badges secrets débloqués
        6. Les 10 récompenses événements débloquées (3 thèmes + 7 badges
@@ -1547,7 +1544,7 @@ export default function CookiMiner() {
       ['level_10',       level >= 10],
       ['level_15',       level >= 15],
       ['trader',         totalInvested >= 500],
-      ['master_succes',  masterRevealed && allOthersDone],
+      ['master_succes',  masterRevealed],
       ['end_game',       endGameReady],
     ];
     for(const [id,ok] of checks){

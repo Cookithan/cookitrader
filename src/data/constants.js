@@ -165,7 +165,7 @@ export const REWARDS = [
   { id:'spin_pass_20',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:20, name:'Jeton VIP +20 tours', desc:'+20 tours de roue aujourd\'hui', cost:3, type:'Premium', emoji:'🎟️', levelRequired:10 },
 
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
-  { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Révéler le Succès Café',  desc:'Débloque la visibilité du succès secret',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:1 },
+  { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Révéler le Succès Café',  desc:'Débloque le succès secret immédiatement',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:3 },
   /* Niv 13 — Code rare. Une fois acheté, le code LEGENDE13 est activé
      sur ce compte (state LS revealedPromoCodes) et utilisable depuis
      Settings → Code promo. Récompense : +500 🍪 + 3 ☕. Achat unique. */
