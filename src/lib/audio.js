@@ -43,6 +43,7 @@ const UI_SOUNDS = {
   purchase: '/sounds/purchase.mp3',  // achat boutique (caisse)
   coin:     '/sounds/coin.mp3',      // gain de cookies (cristallin)
   swipe:    '/sounds/swipe.mp3',     // swipe nav onglets
+  levelup:  '/sounds/levelup.mp3',   // fanfare festive level-up (universfield CC0)
 };
 
 /* Sons en boucle (start/stop manuel) — typiquement le son du café qui

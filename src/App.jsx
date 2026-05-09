@@ -729,7 +729,7 @@ export default function CookiMiner() {
     setLevel(nl);   lvRef.current = nl;
     setXp(0);       xpRef.current = 0;
     setPendingLvUp(nl);
-    playSound('success');
+    playSound('levelup');
     if(nl >= 6){
       setTimeout(()=>{ setCafes(c=>c+1); }, 700);
     } else {
