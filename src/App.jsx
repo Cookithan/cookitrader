@@ -829,16 +829,17 @@ export default function CookiMiner() {
     showToastRef.current?.(`Pseudo mis à jour : ${newName}`);
   }, [userName, setUserName]);
 
-  /* AVERTISSEMENT ANTI-ÉCART TOP 1 — détecte si je suis le leader avec
-     plus de GAP_PCT % d'avance sur le 2e, et déclenche un popup
-     préventif. PAS bloquant : aucun gain n'est freiné, c'est juste un
-     rappel pour préserver l'équilibre du classement.
-     Trigger : 1 fois au mount + 1 fois après chaque level-up. Affichée
-     au max 1 fois par session via flag state pour pas spammer. */
-  const [gapWarning, setGapWarning] = useState(null);  // { myTotal, topTwo } | null
+  /* CAP ANTI-ÉCART TOP 1 — quand je suis le leader avec plus de 30 %
+     d'avance sur le 2e, on RECALIBRE automatiquement mon total_earned
+     à pile (top2 × 1.30). Le sync auto (5 s) push ensuite la nouvelle
+     valeur vers Supabase et le classement remonte le 2e à 30 % d'écart.
+     Le cap est silencieux à l'avant-plan : seul un popup explicatif
+     s'affiche (1 fois max par session) pour que l'user comprenne ce
+     qui s'est passé.
+     Trigger : 1 fois au mount + 1 fois après chaque level-up. */
+  const [gapWarning, setGapWarning] = useState(null);  // { myTotal, topTwo, capped } | null
   const [gapShownThisSession, setGapShownThisSession] = useState(false);
   const checkLeaderGap = useCallback(async () => {
-    if(gapShownThisSession) return;
     if(!userCode) return;
     if(isAdminName(userName)) return;            // admins exclus du classement → pas concernés
     const [topOne, topTwo] = await getTopTwoTotalEarned();
@@ -846,13 +847,20 @@ export default function CookiMiner() {
     if(topOne.user_code !== userCode) return;    // je ne suis pas le top 1 → rien
     const t2 = Number(topTwo.total_earned) || 0;
     if(t2 <= 0) return;
-    const ratio = totalEarned / t2;
     const GAP_PCT = 1.30;
-    if(ratio > GAP_PCT){
-      setGapWarning({ myTotal: totalEarned, topTwo: t2 });
-      setGapShownThisSession(true);
+    const cap = Math.floor(t2 * GAP_PCT);
+    if(totalEarned > cap){
+      /* Recalibrage silencieux du total_earned (le sync push à Supabase
+         dans les 5 s suivantes). Le popup n'apparaît que la 1re fois
+         dans la session pour pas spammer si l'user retrigger plusieurs
+         fois (ex : level-up qui re-bump puis re-cap). */
+      setTotalEarned(cap);
+      if(!gapShownThisSession){
+        setGapWarning({ myTotal: totalEarned, topTwo: t2, capped: cap });
+        setGapShownThisSession(true);
+      }
     }
-  }, [userCode, userName, totalEarned, gapShownThisSession]);
+  }, [userCode, userName, totalEarned, gapShownThisSession, setTotalEarned]);
 
   /* Check au mount (debounce 3s pour laisser le upsertProfile pousser
      les valeurs locales d'abord — sinon le check tomberait sur des
@@ -2175,12 +2183,13 @@ export default function CookiMiner() {
       {/* LEVEL UP MODAL */}
       {pendingLvUp && <LevelUpModal level={pendingLvUp} onCollect={()=>setPendingLvUp(null)} />}
 
-      {/* AVERTISSEMENT ANTI-ÉCART TOP 1 — affichée si je suis le leader
-          avec >30 % d'avance sur le 2e. Préventif, pas bloquant. */}
+      {/* CAP ANTI-ÉCART TOP 1 — total_earned déjà recalé silencieusement
+          à pile 30 % d'avance, le popup explique juste pourquoi. */}
       {gapWarning && !pendingLvUp && (
         <LeaderGapWarningModal
           myTotal={gapWarning.myTotal}
           topTwo={gapWarning.topTwo}
+          capped={gapWarning.capped}
           onClose={()=>setGapWarning(null)}
           C={C}
         />
