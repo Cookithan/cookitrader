@@ -978,6 +978,7 @@ export default function CookiMiner() {
      compte de test pur, sans pollution du système d'unlocks. */
   useEffect(() => {
     if(!userName || showOnboarding) return;
+    if(tutorialStep > 0) return;   /* attends fin du tuto avant pop badge */
     const isAdmin = isAdminName(userName);
     if(isAdmin) return;  /* admin → aucun badge */
     /* Cas normal : Noctambule selon l'heure. */
@@ -985,17 +986,19 @@ export default function CookiMiner() {
     if(hour < 4){
       unlockSecretBadge('noctambule');
     }
-  }, [userName, showOnboarding, unlockSecretBadge]);
+  }, [userName, showOnboarding, tutorialStep, unlockSecretBadge]);
 
   useEffect(() => {
     if(isAdminName(userName)) return;
+    if(tutorialStep > 0) return;   /* attends fin du tuto avant pop badge */
     if(marketRealized >= 1000) unlockSecretBadge('investisseur');
-  }, [marketRealized, unlockSecretBadge, userName]);
+  }, [marketRealized, tutorialStep, unlockSecretBadge, userName]);
 
   useEffect(() => {
     if(isAdminName(userName)) return;
+    if(tutorialStep > 0) return;   /* attends fin du tuto avant pop badge */
     if(friendCodes.length >= 3) unlockSecretBadge('amical');
-  }, [friendCodes, unlockSecretBadge, userName]);
+  }, [friendCodes, tutorialStep, unlockSecretBadge, userName]);
 
   /* Admin doit toujours être au niveau max (test/debug). Bump le compte
      admin existant qui serait resté à 10 après l'extension niv 11-15. */
