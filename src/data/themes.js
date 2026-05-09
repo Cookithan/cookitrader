@@ -13,10 +13,11 @@ export const DK = { bg:'#0F0804', card:'#1E100A', card2:'#2A1508', text:'#F0E6D3
 export const LT = { bg:'#F5EFE6', card:'#FDFAF6', card2:'#F0E8DC', text:'#2C1810', muted:'#8B6A5A', border:'#E8DDD0' };
 
 export const THEMES = {
-  /* Niv 1 — Cappuccino Mousseux : crème ivoire pur lumineux + mousse de
-     lait écumeuse. Très clair, distinct de velours (rose) et caramel
-     (orange éclatant). 1er thème accessible — doit rester accueillant. */
-  theme_creme:     { dark:false, bg:'linear-gradient(160deg,#FFF8EE 0%,#F5E8D8 50%,#E0D2B8 100%)', card:'#FFFDF7', card2:'#F5EBD8', text:'#3D2818', muted:'#968A78', border:'#E0D2B8' },
+  /* Niv 1 — Cappuccino Mousseux : VRAI effet cappuccino — mousse blanche
+     en haut, latte chaud en bas (gradient vertical 180°). Distinct du
+     LT par défaut (qui est crème uniforme pâle). Cards crème pour
+     contraster avec le bas du gradient. */
+  theme_creme:     { dark:false, bg:'linear-gradient(180deg,#FFFAF0 0%,#F0DCB8 35%,#C89860 75%,#A07840 100%)', card:'#FFF8E8', card2:'#F0DCB8', text:'#3D2010', muted:'#8B5A2A', border:'#D4A878' },
   /* Niv 2 — Nuit Espresso : café concentré ultra-foncé + gradient subtil
      pour le relief (au lieu d'un aplat noir). Reste sobre — c'est le
      mode dark "neutre" de référence du jeu. */
