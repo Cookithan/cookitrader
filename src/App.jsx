@@ -828,6 +828,28 @@ export default function CookiMiner() {
     showToastRef.current?.(`Pseudo mis à jour : ${newName}`);
   }, [userName, setUserName]);
 
+  /* CAPS FORCÉS — limite max sur totalEarned pour certains joueurs
+     (rééquilibrage classement). Appliqué au 1er chargement après push,
+     puis flag LS pour ne plus retoucher (l'user peut re-progresser
+     depuis le cap sans être recapé en boucle).
+     Pour ajouter un cap : étendre l'objet (pseudo lowercase → max). */
+  useEffect(() => {
+    if(!userName) return;
+    const TOTAL_EARNED_CAPS = {
+      'aaronxbox': 15000,
+    };
+    const cap = TOTAL_EARNED_CAPS[userName.trim().toLowerCase()];
+    if(!cap) return;
+    try{
+      if(window.localStorage.getItem('cookiminer:totalEarnedCapped') === '1') return;
+    }catch{ return; }
+    if(totalEarned > cap){
+      setTotalEarned(cap);
+      showToastRef.current?.(`📊 Total recalibré à ${cap} 🍪`);
+    }
+    try{ window.localStorage.setItem('cookiminer:totalEarnedCapped', '1'); }catch{}
+  }, [userName, totalEarned, setTotalEarned]);
+
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit

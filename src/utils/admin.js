@@ -23,9 +23,10 @@ export function isAdminName(name){
 
 /* Pseudos hors-classement (en plus des admins) — joueurs trop avancés
    qui rendent la concurrence impossible pour les nouveaux. Exclus des
-   leaderboards (cookies + marché) et des stats globales communauté.
-   Ajouter ici un pseudo (lowercase) suffit à l'exclure partout. */
-export const NON_RANKED_NAMES = ['aaronxbox'];
+   leaderboards Cookies + stats globales (PAS du marché, qui utilise
+   notAdmin() à la place). Ajouter ici un pseudo (lowercase) suffit à
+   l'exclure partout. */
+export const NON_RANKED_NAMES = [];
 
 /* Helper : applique .not() pour exclure UNIQUEMENT les admins. À utiliser
    sur les queries où on veut garder tous les joueurs publics (ex :
