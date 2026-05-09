@@ -10,6 +10,8 @@ import { AvatarFigure } from "../AvatarFigure.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
+import { BadgeOriginModal } from "../modals/BadgeOriginModal.jsx";
+import { getBadgeOrigin } from "../../utils/badgeOrigin.js";
 import { FriendsSection } from "../profile/FriendsSection.jsx";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 import { getNameStyle } from "../../utils/legend.js";
@@ -61,6 +63,9 @@ export function ProfileOverlay({
   const [editAvatar, setEditAvatar] = useState(userAvatar);
   const [showChangeName, setShowChangeName] = useState(false);
   const [showChangeBio,  setShowChangeBio]  = useState(false);
+  /* Badge cliqué → modale "comment j'ai débloqué". null = pas de modale. */
+  const [originBadge, setOriginBadge] = useState(null);
+  const originInfo = originBadge ? getBadgeOrigin(originBadge.id) : null;
 
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
@@ -345,13 +350,19 @@ export function ProfileOverlay({
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
                   {/* Badges secrets en premier (effet "découvert" plus marquant) */}
                   {secretBadgesUnlocked.map(sb => (
-                    <div key={sb.id} title={sb.description} style={{
-                      borderRadius:12, padding:'10px 4px',
-                      background: sb.bgGradient,
-                      border: `2px solid ${sb.color}`,
-                      boxShadow: `0 4px 12px ${sb.color}33`,
-                      color:'#fff', textAlign:'center', position:'relative',
-                    }}>
+                    <button
+                      key={sb.id}
+                      onClick={()=>setOriginBadge(sb)}
+                      aria-label={`Voir comment j'ai débloqué ${sb.shortName}`}
+                      style={{
+                        borderRadius:12, padding:'10px 4px',
+                        background: sb.bgGradient,
+                        border: `2px solid ${sb.color}`,
+                        boxShadow: `0 4px 12px ${sb.color}33`,
+                        color:'#fff', textAlign:'center', position:'relative',
+                        cursor:'pointer', font:'inherit',
+                      }}
+                    >
                       <div style={{ fontSize:24, marginBottom:4 }}>{sb.icon}</div>
                       <div style={{ fontSize:9, fontWeight:800, lineHeight:1.2 }}>{sb.shortName}</div>
                       <div style={{
@@ -361,13 +372,23 @@ export function ProfileOverlay({
                         padding:'2px 6px', borderRadius:8,
                         border:'1px solid rgba(212,160,23,.5)',
                       }}>SECRET</div>
-                    </div>
+                    </button>
                   ))}
                   {badges.map(b => (
-                    <div key={b.id} style={{ borderRadius:12, background:C.card, border:'1px solid rgba(212,160,23,.4)', padding:'10px 4px', textAlign:'center' }}>
+                    <button
+                      key={b.id}
+                      onClick={()=>setOriginBadge(b)}
+                      aria-label={`Voir comment j'ai débloqué ${b.name}`}
+                      style={{
+                        borderRadius:12, background:C.card,
+                        border:'1px solid rgba(212,160,23,.4)',
+                        padding:'10px 4px', textAlign:'center',
+                        cursor:'pointer', font:'inherit', color:'inherit',
+                      }}
+                    >
                       <div style={{ fontSize:24, marginBottom:4 }}>{b.emoji}</div>
                       <div style={{ fontSize:9, fontWeight:700, color:C.text, lineHeight:1.2 }}>{b.name.replace(/^Badge\s+/, '')}</div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
@@ -508,6 +529,15 @@ export function ProfileOverlay({
           currentBio={userBio}
           onSave={confirmBio}
           onClose={()=>setShowChangeBio(false)}
+          C={C}
+        />
+      )}
+
+      {originBadge && originInfo && (
+        <BadgeOriginModal
+          badge={originBadge}
+          origin={originInfo}
+          onClose={()=>setOriginBadge(null)}
           C={C}
         />
       )}
