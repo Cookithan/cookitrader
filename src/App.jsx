@@ -1285,6 +1285,21 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Migration one-shot : reset des codes promo déjà utilisés (mai 2026).
+     Avant fix f576186, resetProgress oubliait de vider promoCodesUsed.
+     Du coup les comptes existants traînent une liste de codes "consommés"
+     issue d'anciens tests/resets et bloquent toute nouvelle saisie.
+     On vide la liste une seule fois pour offrir un fresh start ; les
+     codes utilisés APRÈS cette migration seront tracés normalement. */
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem('cookiminer:promoCodesV2Cleaned') === '1') return;
+      setPromoCodesUsed([]);
+      window.localStorage.setItem('cookiminer:promoCodesV2Cleaned', '1');
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const checkinReward = DAILY_REWARDS[streak % 7];
   const resetProgress = () => {
     /* Supabase : supprime le profil online en arrière-plan pour qu'il
