@@ -768,16 +768,16 @@ const AvLoup = () => (
     {/* Ombre portée au sol */}
     <ellipse cx="50" cy="92" rx="26" ry="3.5" fill="#000000" opacity=".55" />
 
-    {/* OREILLES — triangles pointus vers le haut, attachés au sommet de la tête */}
+    {/* OREILLES — triangles pointus vers le haut, rapprochées vers le centre */}
     {/* Oreille gauche */}
-    <path d="M22 30 L34 6 L40 32 Z"
+    <path d="M30 30 L40 6 L46 32 Z"
           fill="url(#g_lp_fur)" stroke="#1A0A02" strokeWidth="2" strokeLinejoin="round" />
     {/* Intérieur oreille gauche (rose mocha clair) */}
-    <path d="M28 28 L34 14 L37 30 Z" fill="#C8956A" opacity=".85" strokeLinejoin="round" />
+    <path d="M35 28 L40 14 L43 30 Z" fill="#C8956A" opacity=".85" strokeLinejoin="round" />
     {/* Oreille droite */}
-    <path d="M78 30 L66 6 L60 32 Z"
+    <path d="M70 30 L60 6 L54 32 Z"
           fill="url(#g_lp_fur)" stroke="#1A0A02" strokeWidth="2" strokeLinejoin="round" />
-    <path d="M72 28 L66 14 L63 30 Z" fill="#C8956A" opacity=".85" strokeLinejoin="round" />
+    <path d="M65 28 L60 14 L57 30 Z" fill="#C8956A" opacity=".85" strokeLinejoin="round" />
 
     {/* TÊTE — forme de loup : front large, joues touffues, museau pointu */}
     <g filter="url(#f_lp_shadow)">
