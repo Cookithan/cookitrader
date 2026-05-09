@@ -71,60 +71,76 @@ export const COOKIE_SKINS = {
   '': {
     body:[{o:'0%',c:'#E8B57A'},{o:'55%',c:'#B86A28'},{o:'100%',c:'#6B3812'}],
     chip:[{o:'0%',c:'#5A2D14'},{o:'100%',c:'#1A0A04'}],
-    ring:'#3D1F0A', cracks:'#5A2D10', glow:false, icing:false, shine:'rgba(255,240,210,.32)'
+    ring:'#3D1F0A', cracks:'#5A2D10', icing:false, shine:'rgba(255,240,210,.32)'
   },
-  /* Niv 2 — Caramel : pâte ambrée chaude, pépites blondes claires */
+  /* Niv 2 — Caramel : ambré miel très chaud, chips chocolat très foncés
+     (contraste max avec le body clair → pépites bien lisibles). */
   skin_caramel: {
-    body:[{o:'0%',c:'#FFD4A0'},{o:'55%',c:'#E08838'},{o:'100%',c:'#8B4810'}],
-    chip:[{o:'0%',c:'#7A4818'},{o:'100%',c:'#3D1F0A'}],
-    ring:'#5C2E0E', cracks:'#7D4818', glow:false, icing:false, shine:'rgba(255,235,200,.4)'
+    body:[{o:'0%',c:'#FFEBC7'},{o:'50%',c:'#F0AB5A'},{o:'100%',c:'#9B5418'}],
+    chip:[{o:'0%',c:'#5C2C0A'},{o:'100%',c:'#1A0A02'}],
+    ring:'#7D4818', cracks:'#9B5418', icing:false, shine:'rgba(255,240,210,.5)'
   },
-  /* Niv 4 — Noisette : ton plus brun rouge, pépites foncées noisette */
+  /* Niv 4 — Noisette : brun roux profond, chips presque noires (pépites cacao). */
   skin_noisette: {
-    body:[{o:'0%',c:'#D49060'},{o:'55%',c:'#8B5028'},{o:'100%',c:'#4A2410'}],
-    chip:[{o:'0%',c:'#3D1F0A'},{o:'100%',c:'#1A0A04'}],
-    ring:'#2D1606', cracks:'#3D1F0A', glow:false, icing:false, shine:'rgba(255,220,180,.32)'
+    body:[{o:'0%',c:'#D49060'},{o:'55%',c:'#7A4520'},{o:'100%',c:'#3D1F08'}],
+    chip:[{o:'0%',c:'#1F0E04'},{o:'100%',c:'#000000'}],
+    ring:'#2D1606', cracks:'#3D1F0A', icing:false, shine:'rgba(255,220,180,.35)'
   },
-  /* Niv 8 — Onyx : cookie cacao très foncé, pépites or scintillantes */
+  /* Niv 8 — Onyx : cacao très très foncé, pépites or vif (contraste ultime).
+     Halo doré chaud — la signature visuelle "premium" du cookie. */
   skin_onyx: {
-    body:[{o:'0%',c:'#3D2818'},{o:'55%',c:'#1F1006'},{o:'100%',c:'#0A0402'}],
-    chip:[{o:'0%',c:'#D4A017'},{o:'100%',c:'#8B5A14'}],
-    ring:'#0A0402', cracks:'#1A0A04', glow:true, icing:false, shine:'rgba(212,160,23,.32)'
+    body:[{o:'0%',c:'#3D2818'},{o:'55%',c:'#1A0E04'},{o:'100%',c:'#000000'}],
+    chip:[{o:'0%',c:'#FFD24D'},{o:'100%',c:'#A07021'}],
+    ring:'#000000', cracks:'#1F0E04', icing:false, shine:'rgba(212,160,23,.55)',
+    glowColor:'rgba(212,160,23,.55)'
   },
-  /* Niv 9 — Émeraude : tons bruns avec halo doré chaud (pas de vert — palette café) */
+  /* Niv 9 — Émeraude : palette café-only (pas de vert), or-olive saturé,
+     halo très doré marqué — l'effet "joyau" sans sortir de la charte. */
   skin_emeraude: {
-    body:[{o:'0%',c:'#E8C078'},{o:'55%',c:'#8B6014'},{o:'100%',c:'#3D2A04'}],
-    chip:[{o:'0%',c:'#5C3614'},{o:'100%',c:'#1A0E04'}],
-    ring:'#5C4014', cracks:'#7D4F18', glow:true, icing:false, shine:'rgba(255,232,160,.4)'
+    body:[{o:'0%',c:'#F5DC8A'},{o:'55%',c:'#9B7818'},{o:'100%',c:'#3A2604'}],
+    chip:[{o:'0%',c:'#3D2604'},{o:'100%',c:'#1A1000'}],
+    ring:'#5C4014', cracks:'#7D4F18', icing:false, shine:'rgba(255,232,160,.55)',
+    glowColor:'rgba(255,215,60,.55)'
   },
-  /* Niv 10 — Doré : cookie or massif, pépites espresso */
+  /* Niv 10 — Doré : or pur massif, body éclatant, halo intense.
+     Le skin "trophée" — saturation max, contraste fort sur les chips foncés. */
   skin_dore: {
-    body:[{o:'0%',c:'#FFE5A0'},{o:'45%',c:'#E8B81B'},{o:'100%',c:'#8B5A14'}],
-    chip:[{o:'0%',c:'#3D1F0A'},{o:'100%',c:'#1A0A04'}],
-    ring:'#8B5A14', cracks:'#5C3614', glow:true, icing:false, shine:'rgba(255,240,200,.55)'
+    body:[{o:'0%',c:'#FFF0B0'},{o:'40%',c:'#FFD24D'},{o:'80%',c:'#C99607'},{o:'100%',c:'#7D5A0E'}],
+    chip:[{o:'0%',c:'#3D1F0A'},{o:'100%',c:'#0A0402'}],
+    ring:'#A07B0E', cracks:'#5C3614', icing:false, shine:'rgba(255,240,200,.65)',
+    glowColor:'rgba(255,215,90,.7)'
   },
-  /* Niv 11 — Cuir : pâte cuir tabac sombre, pépites dorées */
+  /* Niv 11 — Cuir : tabac chaleureux profond, pépites or vif (cuir & espresso). */
   skin_cuir: {
-    body:[{o:'0%',c:'#A07050'},{o:'55%',c:'#5C3614'},{o:'100%',c:'#2D1A0E'}],
-    chip:[{o:'0%',c:'#D4A017'},{o:'100%',c:'#8B5A14'}],
-    ring:'#3D2418', cracks:'#5C3614', glow:false, icing:false, shine:'rgba(232,184,90,.35)'
+    body:[{o:'0%',c:'#9F6B4A'},{o:'55%',c:'#5C3614'},{o:'100%',c:'#1F1006'}],
+    chip:[{o:'0%',c:'#E8B81B'},{o:'100%',c:'#8B5A14'}],
+    ring:'#3D2418', cracks:'#5C3614', icing:false, shine:'rgba(232,184,90,.45)'
   },
-  /* Niv 13 — Mythique : double glaçage clair + halo lumineux */
+  /* Niv 13 — Mythique : glaçage blanc + halo crème + sparkles dorés animés.
+     Le skin "rare" — vraie signature visuelle distincte. */
   skin_mythique: {
-    body:[{o:'0%',c:'#F0E5C8'},{o:'55%',c:'#D4A85C'},{o:'100%',c:'#8B6014'}],
-    chip:[{o:'0%',c:'#5C3614'},{o:'100%',c:'#1A0E04'}],
-    ring:'#5C4014', cracks:'#7D4F18', glow:true, icing:true, shine:'rgba(255,245,200,.6)'
+    body:[{o:'0%',c:'#FFEBD0'},{o:'55%',c:'#D4B888'},{o:'100%',c:'#7D6014'}],
+    chip:[{o:'0%',c:'#7D4F18'},{o:'100%',c:'#1F1408'}],
+    ring:'#5C4014', cracks:'#7D4F18', icing:true, shine:'rgba(255,245,200,.7)',
+    glowColor:'rgba(255,235,180,.65)',
+    pattern:'sparkles'
   },
-  /* Niv 14 — Phoenix : tons orangés feu (compatible palette café — ambre vif) */
+  /* Niv 14 — Phoenix : ambre → orange → rouge profond, flammes animées
+     en overlay. Saturation maximale sur les ambres (palette café étendue). */
   skin_phoenix: {
-    body:[{o:'0%',c:'#FFD080'},{o:'45%',c:'#E08828'},{o:'85%',c:'#A03808'},{o:'100%',c:'#5C1808'}],
-    chip:[{o:'0%',c:'#5C1808'},{o:'100%',c:'#1A0408'}],
-    ring:'#7D2E0E', cracks:'#A03808', glow:true, icing:false, shine:'rgba(255,224,168,.55)'
+    body:[{o:'0%',c:'#FFE08A'},{o:'40%',c:'#FF8800'},{o:'80%',c:'#A02000'},{o:'100%',c:'#3D0808'}],
+    chip:[{o:'0%',c:'#5C0808'},{o:'100%',c:'#1A0000'}],
+    ring:'#7D2E0E', cracks:'#A03808', icing:false, shine:'rgba(255,224,168,.65)',
+    glowColor:'rgba(255,140,40,.7)',
+    pattern:'flames'
   },
-  /* Niv 15 — Originel : cookie cosmique violet+or scintillant glaçage */
+  /* Niv 15 — Originel : cookie cosmique or → indigo, étoiles cosmos animées,
+     glaçage. Le skin ultime — contraste maximum (chaud doré → froid violet). */
   skin_originel: {
-    body:[{o:'0%',c:'#FFE5A0'},{o:'30%',c:'#D4A017'},{o:'65%',c:'#5C3614'},{o:'100%',c:'#0A0224'}],
+    body:[{o:'0%',c:'#FFE5A0'},{o:'30%',c:'#D4A017'},{o:'65%',c:'#5C2480'},{o:'100%',c:'#0A0224'}],
     chip:[{o:'0%',c:'#FFE5A0'},{o:'100%',c:'#9A85C8'}],
-    ring:'#8B5A14', cracks:'#5C3614', glow:true, icing:true, shine:'rgba(255,232,160,.65)'
+    ring:'#9A85C8', cracks:'#5C2480', icing:true, shine:'rgba(255,232,160,.75)',
+    glowColor:'rgba(180,120,255,.6)',
+    pattern:'stars'
   },
 };

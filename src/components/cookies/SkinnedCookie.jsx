@@ -1,14 +1,24 @@
 /* ════════════════════════════════════════════════════
    SkinnedCookie — SVG paramétrable par un objet skin
-   - Reçoit un skin (issu de COOKIE_SKINS dans data/themes.js) avec
-     body[], chip[], ring, cracks, shine, icing, glow, pulse
-   - Les arrays body[]/chip[] alimentent les <stop> des linearGradient SVG
-   - icing : ajoute le glaçage haut + sparkles (skin Cookie Glacé)
+   ────────────────────────────────────────────────────
+   Reçoit un skin (issu de COOKIE_SKINS dans data/themes.js) avec :
+     · body[]      — stops du gradient principal du cookie
+     · chip[]      — stops du gradient des pépites
+     · ring        — couleur du contour
+     · cracks      — couleur des fissures
+     · shine       — couleur du reflet spéculaire (rgba)
+     · icing       — bool : ajoute un glaçage couvrant la moitié haute
+     · glow        — bool legacy (préférer glowColor pour skins premium)
+     · glowColor   — couleur RGBA du halo lumineux autour du cookie
+                     (rendu via filter drop-shadow CSS, ajout net)
+     · pattern     — overlay SVG signature : 'sparkles' | 'flames' | 'stars'
+                     (mythique = sparkles dorés, phoenix = pétales de
+                      flamme, originel = étoiles 4 branches cosmos)
 
-   ⚠ IDs SVG préfixés par useId() : un sélecteur de skins (ProfileOverlay)
-   peut rendre plusieurs SkinnedCookie en même temps. Sans préfixe, tous
-   les `<radialGradient id="cookieBody">` collisionnent dans le DOM et
-   tous les cookies prennent le rendu du PREMIER (collision SVG defs).
+   ⚠ IDs SVG préfixés par useId() : le sélecteur de skins (ProfileOverlay)
+   peut rendre plusieurs SkinnedCookie en même temps. Sans préfixe,
+   tous les `<radialGradient id="cookieBody">` collisionnent dans le
+   DOM et tous les cookies prennent le rendu du PREMIER (collision SVG defs).
 ═══════════════════════════════════════════════════════ */
 import { useId } from "react";
 
@@ -16,8 +26,16 @@ export function SkinnedCookie({ skin }){
   const uid = useId().replace(/:/g, '');
   const bodyId = `cookieBody-${uid}`;
   const chipId = `chipShine-${uid}`;
+
+  /* Halo lumineux : empilage de drop-shadows. Le 1er garde l'ombre
+     portée café (relief sur fond), le 2e ajoute le glow coloré
+     (signature des skins premium). */
+  const halo = skin.glowColor
+    ? `drop-shadow(0 10px 18px rgba(74,44,23,.4)) drop-shadow(0 0 12px ${skin.glowColor})`
+    : 'drop-shadow(0 10px 18px rgba(74,44,23,.4))';
+
   return (
-    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', display:'block', filter:'drop-shadow(0 10px 18px rgba(74,44,23,.4))' }}>
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', display:'block', filter: halo }}>
       <defs>
         <radialGradient id={bodyId} cx="40%" cy="35%" r="75%">
           {skin.body.map((s,i)=>(<stop key={i} offset={s.o} stopColor={s.c} />))}
@@ -77,6 +95,94 @@ export function SkinnedCookie({ skin }){
       )}
       <ellipse cx="68" cy="62" rx="22" ry="11" fill={skin.shine} transform="rotate(-32 68 62)" />
       <ellipse cx="58" cy="55" rx="9" ry="4" fill="rgba(255,255,255,.55)" transform="rotate(-32 58 55)" />
+
+      {/* ── PATTERN OVERLAYS — signatures visuelles distinctives ── */}
+
+      {/* Sparkles (mythique) — points scintillants dorés répartis */}
+      {skin.pattern === 'sparkles' && (
+        <g>
+          <circle cx="56" cy="44" r="2.2" fill="#FFF8DC">
+            <animate attributeName="opacity" values=".4;1;.4" dur="2s"   repeatCount="indefinite" />
+            <animate attributeName="r"       values="1.4;2.6;1.4" dur="2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="144" cy="56" r="1.8" fill="#FFE8A0">
+            <animate attributeName="opacity" values=".4;.95;.4" dur="1.6s" repeatCount="indefinite" />
+            <animate attributeName="r"       values="1;2;1"     dur="1.6s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="166" cy="118" r="2" fill="#FFD24D">
+            <animate attributeName="opacity" values=".5;1;.5" dur="1.8s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="38" cy="124" r="1.6" fill="#FFE8A0">
+            <animate attributeName="opacity" values=".3;.95;.3" dur="2.2s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="100" cy="166" r="1.5" fill="#FFD24D">
+            <animate attributeName="opacity" values=".4;1;.4" dur="2.4s" repeatCount="indefinite" />
+          </circle>
+          <circle cx="78" cy="32" r="1.3" fill="#FFF8DC">
+            <animate attributeName="opacity" values=".3;.9;.3" dur="1.4s" repeatCount="indefinite" />
+          </circle>
+        </g>
+      )}
+
+      {/* Flames (phoenix) — pétales orangés autour du haut + côtés du cookie */}
+      {skin.pattern === 'flames' && (
+        <g>
+          {/* Flamme principale au sommet */}
+          <path d="M 100,8 Q 92,22 95,38 Q 100,30 100,42 Q 105,32 105,42 Q 108,22 100,8 Z"
+                fill="#FF8830" opacity=".82">
+            <animate attributeName="opacity" values=".55;.95;.55" dur="1.2s" repeatCount="indefinite" />
+          </path>
+          <path d="M 100,12 Q 96,24 99,36 Q 101,30 101,40 Q 103,30 104,38 Q 106,24 100,12 Z"
+                fill="#FFE060" opacity=".75">
+            <animate attributeName="opacity" values=".4;.85;.4" dur="1s" repeatCount="indefinite" />
+          </path>
+          {/* Flammes secondaires gauche/droite haut */}
+          <path d="M 70,18 Q 65,30 72,40 Q 75,32 76,40 Q 80,28 70,18 Z" fill="#FFA040" opacity=".75">
+            <animate attributeName="opacity" values=".4;.85;.4" dur="1.5s" repeatCount="indefinite" />
+          </path>
+          <path d="M 130,18 Q 135,30 128,40 Q 125,32 124,40 Q 120,28 130,18 Z" fill="#FFA040" opacity=".75">
+            <animate attributeName="opacity" values=".4;.85;.4" dur="1.7s" repeatCount="indefinite" />
+          </path>
+          {/* Petites flammes basses sur les côtés */}
+          <path d="M 16,90 Q 8,100 16,110 Q 20,100 22,108 Q 24,98 16,90 Z" fill="#FF7820" opacity=".7">
+            <animate attributeName="opacity" values=".35;.8;.35" dur="1.3s" repeatCount="indefinite" />
+          </path>
+          <path d="M 184,90 Q 192,100 184,110 Q 180,100 178,108 Q 176,98 184,90 Z" fill="#FF7820" opacity=".7">
+            <animate attributeName="opacity" values=".35;.8;.35" dur="1.6s" repeatCount="indefinite" />
+          </path>
+        </g>
+      )}
+
+      {/* Stars (originel) — étoiles 4 branches cosmos + poussière stellaire */}
+      {skin.pattern === 'stars' && (
+        <g>
+          <g transform="translate(50 46)">
+            <path d="M 0,-7 L 1.6,-1.6 L 7,0 L 1.6,1.6 L 0,7 L -1.6,1.6 L -7,0 L -1.6,-1.6 Z" fill="#FFE5A0">
+              <animate attributeName="opacity" values=".5;1;.5" dur="2.2s" repeatCount="indefinite" />
+            </path>
+          </g>
+          <g transform="translate(154 64)">
+            <path d="M 0,-5.5 L 1.3,-1.3 L 5.5,0 L 1.3,1.3 L 0,5.5 L -1.3,1.3 L -5.5,0 L -1.3,-1.3 Z" fill="#D4A017">
+              <animate attributeName="opacity" values=".5;1;.5" dur="1.8s" repeatCount="indefinite" />
+            </path>
+          </g>
+          <g transform="translate(170 130)">
+            <path d="M 0,-4 L 1,-1 L 4,0 L 1,1 L 0,4 L -1,1 L -4,0 L -1,-1 Z" fill="#B8A0FF">
+              <animate attributeName="opacity" values=".5;1;.5" dur="2.4s" repeatCount="indefinite" />
+            </path>
+          </g>
+          <g transform="translate(36 132)">
+            <path d="M 0,-5 L 1.2,-1.2 L 5,0 L 1.2,1.2 L 0,5 L -1.2,1.2 L -5,0 L -1.2,-1.2 Z" fill="#FFE5A0">
+              <animate attributeName="opacity" values=".4;1;.4" dur="2s" repeatCount="indefinite" />
+            </path>
+          </g>
+          {/* Poussière cosmique (petits points) */}
+          <circle cx="98" cy="32" r="1.3" fill="#FFE5A0" opacity=".75" />
+          <circle cx="118" cy="166" r="1" fill="#B8A0FF" opacity=".7" />
+          <circle cx="76" cy="172" r="1.2" fill="#FFE5A0" opacity=".75" />
+          <circle cx="186" cy="100" r=".9" fill="#D4A017" opacity=".7" />
+        </g>
+      )}
     </svg>
   );
 }
