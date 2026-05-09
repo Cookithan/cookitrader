@@ -929,6 +929,46 @@ export async function getGlobalCommunityStats(){
   }
 }
 
+/* Pull-on-mount : récupère l'état serveur d'un userCode pour réconcilier
+   avec le localStorage. Utilisé par App.jsx après hydratation pour
+   détecter si un AUTRE appareil a poussé un état plus avancé entre
+   deux sessions (la vraie cause du "j'ai perdu mes cookies en
+   reconnectant") — on compare total_earned (monotone) et on pull si
+   serveur > local.
+   Retour : null si pas de profil ou erreur, sinon un objet plat
+   compatible avec les setters App.jsx. */
+export async function pullProfile(userCode){
+  if(!isSupabaseEnabled() || !userCode) return null;
+  try{
+    const { data, error } = await supabase
+      .from('users')
+      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, last_active')
+      .eq('user_code', userCode)
+      .maybeSingle();
+    if(error || !data) return null;
+    const splitCsv = (raw) => (raw || '').split(',').map(s => s.trim()).filter(Boolean);
+    const unlocked = (data.unlocked && data.unlocked.length)
+      ? splitCsv(data.unlocked)
+      : splitCsv(data.badges);
+    return {
+      coins:               Number(data.cookies) || 0,
+      cafes:               Number(data.cafes) || 0,
+      totalEarned:         Number(data.total_earned) || 0,
+      level:               Number(data.level) || 1,
+      xp:                  Number(data.xp) || 0,
+      streak:              Number(data.streak) || 0,
+      unlocked,
+      earnedAchievements:  splitCsv(data.earned_achievements),
+      activeTheme:         data.active_theme || '',
+      activeTitle:         data.active_title || '',
+      nameChangeCount:     Number(data.name_change_count) || 0,
+      lastActive:          data.last_active || null,
+    };
+  }catch{
+    return null;
+  }
+}
+
 export async function upsertProfile(p){
   if(!isSupabaseEnabled()) return { ok:false, reason:'disabled' };
   try{

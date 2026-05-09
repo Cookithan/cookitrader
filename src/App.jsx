@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile } from "./lib/supabaseSync.js";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -238,9 +238,46 @@ export default function CookiMiner() {
      à `error` que si un upsert échoue (réseau, RLS, etc.). Ça évite
      l'effet "Hors ligne" pendant les 5s du debounce initial. */
   const [supabaseError, setSupabaseError] = useState(false);
+  /* Pull-on-mount : tant que false, on bloque les pushs. Évite que le
+     localStorage stale d'un device écrase l'état avancé poussé par un
+     autre device sous le même userCode (cas "j'ai perdu 10k cookies en
+     reconnectant sur mobile"). Bascule à true une fois la réconciliation
+     faite (ou immédiatement si Supabase off / pas encore d'identité). */
+  const [pullDone, setPullDone] = useState(false);
+  useEffect(()=>{
+    if(!isSupabaseEnabled()){ setPullDone(true); return; }
+    if(!userCode || !userName){ return; }
+    if(pullDone) return;
+    let alive = true;
+    (async () => {
+      const server = await pullProfile(userCode);
+      if(!alive){ return; }
+      /* total_earned est monotone (jamais décrémenté hors reset). Si le
+         serveur est strictement en avance, c'est qu'un autre appareil a
+         poussé un état plus récent → on pull avant de re-pousser. */
+      if(server && Number(server.totalEarned) > totalEarned){
+        setCoins(server.coins);
+        setCafes(server.cafes);
+        setTotalEarned(server.totalEarned);
+        setLevel(server.level);              lvRef.current = server.level;
+        setXp(server.xp);                    xpRef.current = server.xp;
+        setStreak(server.streak);
+        setUnlocked(server.unlocked || []);
+        setEarnedAchievements(server.earnedAchievements || []);
+        setActiveTheme(server.activeTheme || '');
+        setActiveTitle(server.activeTitle || '');
+        setNameChangeCount(server.nameChangeCount || 0);
+        showToastRef.current?.('☁️ Données synchronisées depuis un autre appareil');
+      }
+      setPullDone(true);
+    })();
+    return ()=>{ alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCode, userName, pullDone]);
   useEffect(()=>{
     if(!isSupabaseEnabled()) return;
     if(!userCode || !userName) return;
+    if(!pullDone) return;   /* ⬅ gate : on attend la réconciliation */
     const t = setTimeout(async ()=>{
       /* Filtre `unlocked` aux IDs de badges (REWARDS type='Badge' + secrets)
          pour que les amis voient ma collection sans bloater la requête avec
@@ -266,7 +303,7 @@ export default function CookiMiner() {
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin]);
+  }, [pullDone, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
