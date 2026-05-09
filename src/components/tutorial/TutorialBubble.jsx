@@ -35,13 +35,16 @@ export function TutorialBubble({ text, position, actionRequired, onNext, onSkip,
 
   if(!shouldShow) return null;
 
+  /* Bulle TOUJOURS centrée écran (verticalement + horizontalement). Le
+     spotlight rond (au-dessus) montre la cible mise en lumière, donc la
+     bulle n'a pas besoin d'être ancrée à la cible — elle reste lisible
+     sur mobile peu importe où la cible se trouve. */
   return (
     <div
       style={{
         position:'fixed',
-        top:    position === 'bottom' ? '60%' : 'auto',
-        bottom: position === 'bottom' ? 'auto' : 100,
-        left:'50%', transform:'translateX(-50%)',
+        top:'50%', left:'50%',
+        transform:'translate(-50%, -50%)',
         maxWidth:320, width:'calc(100% - 40px)',
         zIndex:210,
       }}

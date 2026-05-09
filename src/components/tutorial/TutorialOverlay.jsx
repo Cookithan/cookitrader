@@ -18,12 +18,16 @@ import { TutorialBubble } from "./TutorialBubble.jsx";
    - onSkip     : ouvre la modale de confirmation (App.jsx)
 ═══════════════════════════════════════════════════════ */
 
+/* Tuto SIMPLE — spotlight rond sur la cible + bulle centrée à l'écran.
+   Textes courts (1 phrase). Couvre toutes les sections principales. */
 export const TUTORIAL_STEPS = [
-  { target:'card-niveau',    text:'Voici ton niveau de Barista. Joue pour monter !',         position:'bottom', actionRequired:false },
-  { target:'cookie-counter', text:'Les cookies 🍪 sont ta monnaie principale.',               position:'bottom', actionRequired:false },
-  { target:'card-checkin',   text:'Récupère ton bonus quotidien ici quand tu veux.',         position:'top',    actionRequired:false },
-  { target:'nav-jeux',       text:"D'autres mini-jeux t'attendent ici !",                    position:'top',    actionRequired:false },
-  { target:'nav-boutique',   text:'Et dépense tes cookies pour personnaliser ton profil.',   position:'top',    actionRequired:false },
+  { target:'card-niveau',    text:'Ton niveau et ta progression. Joue pour monter ! 🚀',         actionRequired:false },
+  { target:'cookie-counter', text:'Les cookies 🍪 — ta monnaie principale.',                     actionRequired:false },
+  { target:'card-checkin',   text:'Ton bonus quotidien à récupérer chaque jour. ☕',             actionRequired:false },
+  { target:'nav-jeux',       text:"Les mini-jeux pour gagner des cookies. 🎮",                   actionRequired:false },
+  { target:'nav-classement', text:'Le classement face aux autres joueurs. 🏆',                   actionRequired:false },
+  { target:'nav-marche',     text:'Le marché $CKM — achète/revends pour faire fructifier (niv 3+). 📈', actionRequired:false },
+  { target:'nav-boutique',   text:'La boutique pour débloquer thèmes, badges, items premium ☕.', actionRequired:false },
 ];
 
 export function TutorialOverlay({ step, onNext, onSkip }){
@@ -43,7 +47,6 @@ export function TutorialOverlay({ step, onNext, onSkip }){
       <SpotlightOverlay target={config.target} />
       <TutorialBubble
         text={config.text}
-        position={config.position}
         actionRequired={config.actionRequired}
         onNext={onNext}
         onSkip={step === 1 ? onSkip : null}

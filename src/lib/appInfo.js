@@ -33,7 +33,7 @@ export const CHANGELOG = [
       "🐺 Avatar Loup Mocha (remplace Dragon Espresso) — fourrure mocha sur fond espresso sombre",
       "🌑 Thème exclusif 'Noir & Blanc' via code promo BLACK (greyscale total)",
       "🍪 Thème 'Pâte de Cookie' via code rare BARISTA05 (drop 1 % chez le barista légendaire de Devine la commande)",
-      "🎓 Refonte du tour guidé — visite tab par tab",
+      "🎓 Tutoriel élargi : 7 étapes couvrant classement, marché, boutique en plus",
       "💰 Économie café rééquilibrée : sources -45 %, stock global reset à 0",
       "🐛 Fix : sync cross-device cassait les paiements Stripe (race upsert client)",
     ],
