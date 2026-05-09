@@ -314,12 +314,12 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
       {/* Tableau des gains + probabilités */}
       <PayoutTable C={C} />
 
-      {/* Compteur quotidien */}
+      {/* Compteur quotidien — plus de cap, juste un compteur informatif */}
       <div style={{
         textAlign:'center', marginTop:4,
         fontSize:11, color:'#A0784E', fontStyle:'italic',
       }}>
-        {gamesToday} / {SLOT_CONFIG.MAX_PER_DAY} parties aujourd'hui
+        {gamesToday} partie{gamesToday > 1 ? 's' : ''} aujourd'hui
       </div>
 
       {/* Modal jackpot */}
