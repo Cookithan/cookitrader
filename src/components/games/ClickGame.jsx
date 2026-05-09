@@ -140,6 +140,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   };
 
   const replay = () => {
+    playSound('modal');
     setPhase('idle');
     setClicks(0); clickRef.current = 0;
     setTimeLeft(CLICK_DURATION);

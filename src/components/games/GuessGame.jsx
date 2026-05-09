@@ -160,7 +160,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, level = 1,
     setPhase('playing');
   };
 
-  const replay = () => setPhase('idle');
+  const replay = () => { playSound('modal'); setPhase('idle'); };
 
   const onPick = (idx) => {
     if(picked !== null) return;            // déjà choisi

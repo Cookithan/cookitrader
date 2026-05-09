@@ -509,6 +509,7 @@ function PayoutTable({ C }){
 }
 
 function JackpotModal({ amount, onClose }){
+  const handleClose = () => { playSound('coin'); onClose(); };
   return (
     <div style={{
       position:'fixed', inset:0,
@@ -547,7 +548,7 @@ function JackpotModal({ amount, onClose }){
           margin:'14px 0', display:'inline-block',
         }}>+{amount} 🍪</div>
         <button
-          onClick={onClose}
+          onClick={handleClose}
           style={{
             background:'white', color:'#D4A017',
             border:'none', borderRadius:14,

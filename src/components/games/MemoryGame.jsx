@@ -73,7 +73,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
     setPhase('playing');
   };
 
-  const replay = () => setPhase('idle');
+  const replay = () => { playSound('modal'); setPhase('idle'); };
 
   const handleTap = (card) => {
     if(phase !== 'playing') return;
@@ -114,6 +114,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
   };
 
   const giveUp = () => {
+    playSound('toggle');
     setPhase('done');
   };
 
