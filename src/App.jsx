@@ -1313,7 +1313,7 @@ export default function CookiMiner() {
     } catch {}
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
-    setActiveTheme(''); setActiveBanner(''); setActiveSkin(''); setActiveTitle(''); setRevealedPromoCodes([]);
+    setActiveTheme(''); setActiveBanner(''); setActiveSkin(''); setActiveTitle(''); setRevealedPromoCodes([]); setPromoCodesUsed([]);
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
     /* Tuto : reset complet pour qu'un reset rejoue le tuto au démarrage */
