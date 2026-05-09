@@ -94,13 +94,14 @@ export const COOKIE_SKINS = {
     ring:'#000000', cracks:'#1F0E04', icing:false, shine:'rgba(212,160,23,.55)',
     glowColor:'rgba(212,160,23,.55)'
   },
-  /* Niv 9 — Émeraude : palette café-only (pas de vert), or-olive saturé,
-     halo très doré marqué — l'effet "joyau" sans sortir de la charte. */
+  /* Niv 9 — Émeraude : vrai vert émeraude (exception à la charte café-only,
+     décision user). Jade clair → émeraude profond → vert très foncé.
+     Chips or pour rappeler le côté joyau précieux. */
   skin_emeraude: {
-    body:[{o:'0%',c:'#F5DC8A'},{o:'55%',c:'#9B7818'},{o:'100%',c:'#3A2604'}],
-    chip:[{o:'0%',c:'#3D2604'},{o:'100%',c:'#1A1000'}],
-    ring:'#5C4014', cracks:'#7D4F18', icing:false, shine:'rgba(255,232,160,.55)',
-    glowColor:'rgba(255,215,60,.55)'
+    body:[{o:'0%',c:'#B8EFC4'},{o:'55%',c:'#2E8B5F'},{o:'100%',c:'#0F3D26'}],
+    chip:[{o:'0%',c:'#D4A017'},{o:'100%',c:'#7D4F18'}],
+    ring:'#1F5E3D', cracks:'#0F3D26', icing:false, shine:'rgba(200,255,220,.55)',
+    glowColor:'rgba(64,200,120,.55)'
   },
   /* Niv 10 — Doré : or pur massif, body éclatant, halo intense.
      Le skin "trophée" — saturation max, contraste fort sur les chips foncés. */
@@ -116,13 +117,14 @@ export const COOKIE_SKINS = {
     chip:[{o:'0%',c:'#E8B81B'},{o:'100%',c:'#8B5A14'}],
     ring:'#3D2418', cracks:'#5C3614', icing:false, shine:'rgba(232,184,90,.45)'
   },
-  /* Niv 13 — Mythique : glaçage blanc + halo crème + sparkles dorés animés.
-     Le skin "rare" — vraie signature visuelle distincte. */
+  /* Niv 13 — Mythique : marbre nacré rosé/crème, veines or vibrantes,
+     pas de glaçage blanc (le donut faisait moche), halo crème, sparkles.
+     Esthétique antique précieuse, pas pâtisserie. */
   skin_mythique: {
-    body:[{o:'0%',c:'#FFEBD0'},{o:'55%',c:'#D4B888'},{o:'100%',c:'#7D6014'}],
-    chip:[{o:'0%',c:'#7D4F18'},{o:'100%',c:'#1F1408'}],
-    ring:'#5C4014', cracks:'#7D4F18', icing:true, shine:'rgba(255,245,200,.7)',
-    glowColor:'rgba(255,235,180,.65)',
+    body:[{o:'0%',c:'#FFE8DC'},{o:'40%',c:'#E8C4A8'},{o:'80%',c:'#A07060'},{o:'100%',c:'#3D2A1E'}],
+    chip:[{o:'0%',c:'#FFD24D'},{o:'100%',c:'#9B7014'}],
+    ring:'#C99607', cracks:'#A07014', icing:false, shine:'rgba(255,235,210,.7)',
+    glowColor:'rgba(255,200,140,.6)',
     pattern:'sparkles'
   },
   /* Niv 14 — Phoenix : ambre → orange → rouge profond, flammes animées
