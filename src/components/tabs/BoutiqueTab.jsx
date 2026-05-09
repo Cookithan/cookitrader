@@ -87,10 +87,11 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
          - levelMax      : niveau maximum (au-dessus, l'item est caché) */
       if(r.levelRequired && level < r.levelRequired) return false;
       if(r.levelMax && level > r.levelMax) return false;
-      /* Items consommables (spin_pass + pack_shares premium) : toujours
-         visibles tant qu'ils passent les filtres niveau, peu importe
-         initialUnlocked — rachetables à volonté. */
-      if(r.applyAs === 'spin_pass' || r.applyAs === 'pack_shares') return true;
+      /* Items consommables (spin_pass) : toujours visibles tant qu'ils
+         passent les filtres niveau — rachetables à volonté.
+         (Le pack_shares premium est désormais one-shot — il sort de
+         l'exemption pour être caché après achat unique.) */
+      if(r.applyAs === 'spin_pass') return true;
       return !initialUnlocked.includes(r.id);
     });
   } else {

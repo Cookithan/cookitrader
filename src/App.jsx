@@ -1240,14 +1240,16 @@ export default function CookiMiner() {
       showToast(`🎟️ +${r.spinPassAmount} tours de roue ajoutés !`);
       return;
     }
-    /* Pack actions $CKM CONSOMMABLE — crédite N actions via Supabase
-       (creditFreeShares). Pas d'ajout à `unlocked` : rachetable à volonté
-       (les Packs sont des items consommables). Mode admin bloqué pour
-       éviter de polluer la circulation $CKM.
-       Supporte 2 monnaies : cookies (packs shop) et cafés (pack premium
-       1 action) — gestion du débit + rollback selon r.currency. */
+    /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
+       2 modes selon currency :
+         · cookies (pack_shares_5/10) → CONSOMMABLE rachetable à volonté,
+           jamais ajouté à `unlocked`
+         · cafés  (pack_share_premium) → ONE-SHOT : ajouté à `unlocked`
+           après achat, rejeté si déjà acheté
+       Mode admin bloqué dans les 2 cas pour pas polluer la circulation. */
     if(r.applyAs === 'pack_shares'){
       const isCafe = r.currency === 'cafe';
+      if(isCafe && unlocked.includes(id)) return;
       if(isCafe ? cafes < r.cost : coins < r.cost) return;
       if(isAdminName(userName)){
         showToast('🛠️ Mode admin — packs $CKM désactivés');
@@ -1265,6 +1267,9 @@ export default function CookiMiner() {
           showToast(`⚠️ ${res?.error || 'Pack non crédité'}`);
           return;
         }
+        /* Pack premium : marqué comme acheté pour disparaître de la
+           boutique (one-shot). Crédité une fois, plus jamais offert. */
+        if(isCafe) setUnlocked(u => [...u, id]);
         playSound('success');
         showToast(`📈 +${n} action${n > 1 ? 's' : ''} $CKM créditée${n > 1 ? 's' : ''} !`);
       })();
