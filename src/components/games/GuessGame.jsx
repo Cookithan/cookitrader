@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { COMMANDES } from "../../data/commandes.js";
-import { CafeScene, CUSTOMERS, LEGENDARY_BARISTA } from "./CafeScene.jsx";
+import { CafeScene, CUSTOMERS, LEGENDARY_BARISTAS } from "./CafeScene.jsx";
 import { playSound } from "../../lib/audio.js";
 
 /* Question fictive utilisée quand le slot tombe sur le barista
@@ -199,15 +199,16 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     const qs = pickQuestions(NB_QUESTIONS);
     const ci = pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length);
     /* 1 % par partie ET le légendaire n'a pas déjà été vu (flag persistent
-       legendaryBaristaSeen). On injecte le barista légendaire à un slot
-       aléatoire. Sa "question" devient LEGENDARY_QUESTION (sentinelle
-       legendary:true), et l'index client de ce slot vaut -1 pour signaler
-       "utiliser LEGENDARY_BARISTA au lieu de CUSTOMERS[i]". */
+       legendaryBaristaSeen). On injecte un barista légendaire (5 variantes
+       visuelles, même code BARISTA05) à un slot aléatoire. Sentinelle :
+       customerIndex de ce slot = -1 - variantIdx (donc -1 pour la 1re,
+       -2 pour la 2e, etc.) — décodé au rendu. */
     if(!legendarySeen && Math.random() < LEGENDARY_DROP_RATE){
-      const slot = Math.floor(Math.random() * NB_QUESTIONS);
+      const slot     = Math.floor(Math.random() * NB_QUESTIONS);
+      const variant  = Math.floor(Math.random() * LEGENDARY_BARISTAS.length);
       qs[slot] = LEGENDARY_QUESTION;
-      ci[slot] = -1;
-      onLegendarySeen?.();   // marque le drop pour ne plus jamais retomber
+      ci[slot] = -1 - variant;
+      onLegendarySeen?.();
     }
     setQuestions(qs);
     setCustomerIndices(ci);
@@ -360,11 +361,16 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
           Le `key` du customer change à chaque qIndex → React démonte/
           remonte la div .cs-customer et l'anim csCustomerWalkIn se
           rejoue. La bulle ne s'affiche qu'en sub-phase 'speaking'.
-          customerIndices[qIndex] === -1 → barista légendaire (drop 0.5%). */}
+          customerIndices[qIndex] < 0 → barista légendaire variant
+          (-1 - variantIdx, cf. startGame). Sinon index dans CUSTOMERS. */}
       {phase === 'playing' && current && customerIndices.length > 0 && (
         <div style={{ width:'100%', maxWidth:360 }}>
           <CafeScene
-            customer={customerIndices[qIndex] === -1 ? LEGENDARY_BARISTA : CUSTOMERS[customerIndices[qIndex]]}
+            customer={
+              customerIndices[qIndex] < 0
+                ? LEGENDARY_BARISTAS[-1 - customerIndices[qIndex]] || LEGENDARY_BARISTAS[0]
+                : CUSTOMERS[customerIndices[qIndex]]
+            }
             dialogText={typed}
             subPhase={subPhase}
           />

@@ -202,53 +202,202 @@ export const CUSTOMERS = [
   },
 ];
 
-/* Barista Légendaire — drop ULTRA RARE (0.5% par partie de Devine la
-   commande). Apparence dorée avec halo, sparkles. Sa bulle contient
-   le code promo BARISTA05 → débloque theme_cookies. Pas dans CUSTOMERS
-   (jamais tiré dans le pool normal) — injecté manuellement par GuessGame. */
-export const LEGENDARY_BARISTA = {
-  id: 'legendary_barista',
-  svg: (
-    <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
-      {/* Halo doré derrière */}
-      <circle cx="55" cy="36" r="34" fill="#F5DC8A" opacity="0.45"/>
-      <circle cx="55" cy="36" r="28" fill="#F0C050" opacity="0.35"/>
-      {/* Corps : tablier de barista or */}
-      <path d="M 18 120 L 18 88 Q 18 70 34 64 L 76 64 Q 92 70 92 88 L 92 120 Z" fill="#D4A017"/>
-      <path d="M 42 66 L 55 80 L 68 66 L 68 60 L 42 60 Z" fill="#FFFFFF"/>
-      <path d="M 55 80 L 52 100 L 58 100 Z" fill="#8B5A2B"/>
-      {/* Cou */}
-      <ellipse cx="55" cy="60" rx="9" ry="6" fill="#F5D0A0"/>
-      {/* Tête */}
-      <circle cx="55" cy="36" r="22" fill="#FCE0B8"/>
-      {/* Cheveux dorés */}
-      <path d="M 32 30 Q 30 12 50 8 Q 60 6 70 8 Q 84 14 82 30 Q 78 24 72 24 L 38 24 Q 34 24 32 30 Z" fill="#E8B040"/>
-      <ellipse cx="55" cy="10" rx="22" ry="6" fill="#D49018"/>
-      {/* Couronne (toque dorée) */}
-      <path d="M 35 14 L 38 4 L 45 10 L 55 0 L 65 10 L 72 4 L 75 14 Z" fill="#F5DC8A" stroke="#D4A017" strokeWidth="1"/>
-      <circle cx="55" cy="6" r="2.5" fill="#FFFFFF"/>
-      {/* Yeux brillants */}
-      <ellipse cx="46" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
-      <ellipse cx="64" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
-      <ellipse cx="46" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
-      <ellipse cx="64" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
-      {/* Nez */}
-      <path d="M 53 41 L 51 46 L 55 46 Z" fill="#D4A07C" opacity="0.5"/>
-      {/* Sourire malin */}
-      <path d="M 47 50 Q 55 56 63 50" stroke="#8B5A2B" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      {/* Joues dorées */}
-      <ellipse cx="38" cy="44" rx="3.5" ry="3" fill="#F5C070" opacity="0.6"/>
-      <ellipse cx="72" cy="44" rx="3.5" ry="3" fill="#F5C070" opacity="0.6"/>
-      {/* Sparkles autour */}
-      <circle cx="20" cy="20" r="2" fill="#FFE066"/>
-      <circle cx="92" cy="24" r="1.5" fill="#FFE066"/>
-      <circle cx="14" cy="55" r="1.8" fill="#FFE066"/>
-      <circle cx="98" cy="50" r="1.2" fill="#FFE066"/>
-      <circle cx="8" cy="38" r="1" fill="#FFE066"/>
-      <circle cx="100" cy="38" r="1.6" fill="#FFE066"/>
-    </svg>
-  ),
-};
+/* Barista Légendaire — drop ULTRA RARE (1 % par partie, one-shot par
+   compte cf. legendaryBaristaSeen). Sa bulle contient le code promo
+   BARISTA05 → débloque theme_cookies. 5 variantes visuelles, toutes
+   dorées avec halo + sparkles. GuessGame en pioche une au hasard
+   pour le drop. Pas dans CUSTOMERS — injecté manuellement. */
+export const LEGENDARY_BARISTAS = [
+  /* 1 — Barista Légendaire (original) : toque + couronne + tablier or */
+  {
+    id: 'legendary_barista',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <circle cx="55" cy="36" r="34" fill="#F5DC8A" opacity="0.45"/>
+        <circle cx="55" cy="36" r="28" fill="#F0C050" opacity="0.35"/>
+        <path d="M 18 120 L 18 88 Q 18 70 34 64 L 76 64 Q 92 70 92 88 L 92 120 Z" fill="#D4A017"/>
+        <path d="M 42 66 L 55 80 L 68 66 L 68 60 L 42 60 Z" fill="#FFFFFF"/>
+        <path d="M 55 80 L 52 100 L 58 100 Z" fill="#8B5A2B"/>
+        <ellipse cx="55" cy="60" rx="9" ry="6" fill="#F5D0A0"/>
+        <circle cx="55" cy="36" r="22" fill="#FCE0B8"/>
+        <path d="M 32 30 Q 30 12 50 8 Q 60 6 70 8 Q 84 14 82 30 Q 78 24 72 24 L 38 24 Q 34 24 32 30 Z" fill="#E8B040"/>
+        <ellipse cx="55" cy="10" rx="22" ry="6" fill="#D49018"/>
+        <path d="M 35 14 L 38 4 L 45 10 L 55 0 L 65 10 L 72 4 L 75 14 Z" fill="#F5DC8A" stroke="#D4A017" strokeWidth="1"/>
+        <circle cx="55" cy="6" r="2.5" fill="#FFFFFF"/>
+        <ellipse cx="46" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
+        <ellipse cx="64" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
+        <ellipse cx="46" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <ellipse cx="64" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <path d="M 53 41 L 51 46 L 55 46 Z" fill="#D4A07C" opacity="0.5"/>
+        <path d="M 47 50 Q 55 56 63 50" stroke="#8B5A2B" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+        <ellipse cx="38" cy="44" rx="3.5" ry="3" fill="#F5C070" opacity="0.6"/>
+        <ellipse cx="72" cy="44" rx="3.5" ry="3" fill="#F5C070" opacity="0.6"/>
+        <circle cx="20" cy="20" r="2" fill="#FFE066"/>
+        <circle cx="92" cy="24" r="1.5" fill="#FFE066"/>
+        <circle cx="14" cy="55" r="1.8" fill="#FFE066"/>
+        <circle cx="98" cy="50" r="1.2" fill="#FFE066"/>
+        <circle cx="8" cy="38" r="1" fill="#FFE066"/>
+        <circle cx="100" cy="38" r="1.6" fill="#FFE066"/>
+      </svg>
+    ),
+  },
+  /* 2 — La Sirène du Café : longs cheveux dorés flottants, étoiles */
+  {
+    id: 'legendary_sirene',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <circle cx="55" cy="36" r="34" fill="#F5DC8A" opacity="0.45"/>
+        <circle cx="55" cy="36" r="28" fill="#F0C050" opacity="0.35"/>
+        {/* Cheveux longs flottants doré (derrière le corps) */}
+        <path d="M 6 80 Q 10 60 18 50 Q 14 70 16 90 Q 6 100 6 80 Z" fill="#F0C050"/>
+        <path d="M 104 80 Q 100 60 92 50 Q 96 70 94 90 Q 104 100 104 80 Z" fill="#F0C050"/>
+        {/* Corps : robe perle/dorée */}
+        <path d="M 18 120 L 18 88 Q 18 68 34 62 L 76 62 Q 92 68 92 88 L 92 120 Z" fill="#F5DC8A"/>
+        <path d="M 35 64 Q 55 78 75 64 L 75 60 Q 55 64 35 60 Z" fill="#D4A017"/>
+        <ellipse cx="55" cy="58" rx="9" ry="6" fill="#FCE0B8"/>
+        <circle cx="55" cy="34" r="22" fill="#FCE0B8"/>
+        {/* Longs cheveux dorés cascadant */}
+        <path d="M 30 32 Q 26 60 22 90 Q 30 70 34 50 Z" fill="#F0C050"/>
+        <path d="M 80 32 Q 84 60 88 90 Q 80 70 76 50 Z" fill="#F0C050"/>
+        <path d="M 30 24 Q 28 8 50 4 Q 60 2 70 4 Q 82 8 80 24 Q 76 18 72 18 L 38 18 Q 34 18 30 24 Z" fill="#F0C050"/>
+        {/* Diadème étoile */}
+        <path d="M 55 4 L 58 12 L 66 12 L 60 17 L 62 24 L 55 20 L 48 24 L 50 17 L 44 12 L 52 12 Z" fill="#FFFFFF" stroke="#D4A017" strokeWidth=".8"/>
+        <ellipse cx="46" cy="34" rx="2.5" ry="3" fill="#5C3015"/>
+        <ellipse cx="64" cy="34" rx="2.5" ry="3" fill="#5C3015"/>
+        <ellipse cx="46" cy="33" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <ellipse cx="64" cy="33" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <path d="M 53 39 L 51 44 L 55 44 Z" fill="#D4A07C" opacity="0.5"/>
+        <path d="M 49 49 Q 55 52 61 49" stroke="#A04050" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+        <ellipse cx="38" cy="42" rx="3.5" ry="3" fill="#F5B080" opacity="0.55"/>
+        <ellipse cx="72" cy="42" rx="3.5" ry="3" fill="#F5B080" opacity="0.55"/>
+        {/* Sparkles + mini-étoiles */}
+        <text x="14" y="22" fill="#FFE066" fontSize="10">✦</text>
+        <text x="92" y="20" fill="#FFE066" fontSize="8">✦</text>
+        <text x="6" y="48" fill="#FFE066" fontSize="7">✦</text>
+        <text x="98" y="52" fill="#FFE066" fontSize="9">✦</text>
+      </svg>
+    ),
+  },
+  /* 3 — Le Vieux Sage : barbe blanche scintillante, robe dorée, capuchon */
+  {
+    id: 'legendary_sage',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <circle cx="55" cy="36" r="34" fill="#F5DC8A" opacity="0.45"/>
+        <circle cx="55" cy="36" r="28" fill="#F0C050" opacity="0.35"/>
+        {/* Robe dorée */}
+        <path d="M 14 120 L 14 86 Q 14 64 34 58 L 76 58 Q 96 64 96 86 L 96 120 Z" fill="#C8901C"/>
+        <path d="M 50 60 L 55 100 L 60 60 L 60 56 L 50 56 Z" fill="#F5DC8A"/>
+        {/* Capuchon */}
+        <path d="M 28 26 Q 26 -2 55 -2 Q 84 -2 82 26 L 80 22 Q 75 18 70 18 L 40 18 Q 35 18 30 22 Z" fill="#A87510"/>
+        <ellipse cx="55" cy="58" rx="9" ry="6" fill="#E5B894"/>
+        <circle cx="55" cy="36" r="22" fill="#F0CCA0"/>
+        {/* Cheveux/sourcils blancs */}
+        <ellipse cx="55" cy="14" rx="22" ry="6" fill="#F0EFE5"/>
+        <path d="M 41 32 L 51 32 M 59 32 L 69 32" stroke="#F0EFE5" strokeWidth="2.5"/>
+        <ellipse cx="46" cy="36" rx="2.5" ry="3" fill="#3D2010"/>
+        <ellipse cx="64" cy="36" rx="2.5" ry="3" fill="#3D2010"/>
+        <ellipse cx="46" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <ellipse cx="64" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <path d="M 53 41 L 51 46 L 55 46 Z" fill="#D4A07C" opacity="0.6"/>
+        {/* Barbe longue blanche */}
+        <path d="M 36 48 Q 40 70 55 78 Q 70 70 74 48 Q 70 54 64 54 L 46 54 Q 40 54 36 48 Z" fill="#F0EFE5"/>
+        <path d="M 42 56 Q 48 76 55 80 Q 62 76 68 56" stroke="#D8D0BC" strokeWidth="1" fill="none"/>
+        <circle cx="14" cy="20" r="1.6" fill="#FFE066"/>
+        <circle cx="92" cy="22" r="1.4" fill="#FFE066"/>
+        <circle cx="6" cy="48" r="1.2" fill="#FFE066"/>
+        <circle cx="100" cy="46" r="1.8" fill="#FFE066"/>
+      </svg>
+    ),
+  },
+  /* 4 — Le Robot Doré : tête métallique, antenne, yeux LED */
+  {
+    id: 'legendary_robot',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <circle cx="55" cy="36" r="34" fill="#F5DC8A" opacity="0.45"/>
+        <circle cx="55" cy="36" r="28" fill="#F0C050" opacity="0.35"/>
+        {/* Corps métallique */}
+        <path d="M 18 120 L 18 88 Q 18 70 34 64 L 76 64 Q 92 70 92 88 L 92 120 Z" fill="#D4A017"/>
+        <rect x="42" y="68" width="26" height="14" rx="2" fill="#3D2010"/>
+        <circle cx="48" cy="75" r="2" fill="#FFE066"/>
+        <circle cx="55" cy="75" r="2" fill="#FFE066"/>
+        <circle cx="62" cy="75" r="2" fill="#FFE066"/>
+        {/* Cou métallique */}
+        <rect x="48" y="56" width="14" height="10" fill="#A87510"/>
+        <rect x="48" y="58" width="14" height="2" fill="#5C3015"/>
+        <rect x="48" y="62" width="14" height="2" fill="#5C3015"/>
+        {/* Tête (rectangle arrondi) */}
+        <rect x="32" y="14" width="46" height="42" rx="6" fill="#F5DC8A" stroke="#D4A017" strokeWidth="2"/>
+        <rect x="32" y="14" width="46" height="6" fill="#D4A017"/>
+        {/* Antenne */}
+        <line x1="55" y1="14" x2="55" y2="2" stroke="#D4A017" strokeWidth="2"/>
+        <circle cx="55" cy="2" r="3" fill="#FFE066"/>
+        {/* Yeux LED carrés */}
+        <rect x="40" y="30" width="10" height="8" rx="1" fill="#5C3015"/>
+        <rect x="60" y="30" width="10" height="8" rx="1" fill="#5C3015"/>
+        <circle cx="45" cy="34" r="2.5" fill="#FFE066"/>
+        <circle cx="65" cy="34" r="2.5" fill="#FFE066"/>
+        <circle cx="44" cy="33" r="1" fill="#FFFFFF"/>
+        <circle cx="64" cy="33" r="1" fill="#FFFFFF"/>
+        {/* Bouche (grille parleur) */}
+        <rect x="45" y="44" width="20" height="6" rx="1" fill="#5C3015"/>
+        <line x1="48" y1="44" x2="48" y2="50" stroke="#3D2010" strokeWidth="1"/>
+        <line x1="52" y1="44" x2="52" y2="50" stroke="#3D2010" strokeWidth="1"/>
+        <line x1="56" y1="44" x2="56" y2="50" stroke="#3D2010" strokeWidth="1"/>
+        <line x1="60" y1="44" x2="60" y2="50" stroke="#3D2010" strokeWidth="1"/>
+        <circle cx="14" cy="22" r="1.6" fill="#FFE066"/>
+        <circle cx="96" cy="20" r="1.8" fill="#FFE066"/>
+        <circle cx="6" cy="50" r="1.4" fill="#FFE066"/>
+        <circle cx="102" cy="48" r="1.2" fill="#FFE066"/>
+      </svg>
+    ),
+  },
+  /* 5 — Le Roi du Cookie : couronne royale extravagante, sceptre cookie */
+  {
+    id: 'legendary_roi',
+    svg: (
+      <svg viewBox="0 0 110 120" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'auto', display:'block' }}>
+        <circle cx="55" cy="36" r="34" fill="#F5DC8A" opacity="0.45"/>
+        <circle cx="55" cy="36" r="28" fill="#F0C050" opacity="0.35"/>
+        {/* Manteau royal pourpre + or */}
+        <path d="M 14 120 L 14 86 Q 14 66 34 60 L 76 60 Q 96 66 96 86 L 96 120 Z" fill="#5A2080"/>
+        <path d="M 14 86 Q 24 80 34 88 L 34 100 Q 24 92 14 100 Z" fill="#3D1458"/>
+        <path d="M 96 86 Q 86 80 76 88 L 76 100 Q 86 92 96 100 Z" fill="#3D1458"/>
+        <path d="M 36 62 L 55 96 L 74 62 L 74 58 L 36 58 Z" fill="#F5DC8A"/>
+        <path d="M 36 62 L 55 96 L 74 62" stroke="#D4A017" strokeWidth="1.5" fill="none"/>
+        <ellipse cx="55" cy="58" rx="9" ry="6" fill="#F5D0A0"/>
+        <circle cx="55" cy="34" r="22" fill="#FCE0B8"/>
+        {/* Cheveux dorés courts */}
+        <path d="M 32 28 Q 30 14 50 10 Q 60 8 70 10 Q 82 14 80 28 Q 76 22 72 22 L 38 22 Q 34 22 32 28 Z" fill="#D49018"/>
+        {/* Couronne royale extravagante */}
+        <path d="M 30 16 L 33 2 L 40 10 L 47 0 L 55 8 L 63 0 L 70 10 L 77 2 L 80 16 Z" fill="#F5DC8A" stroke="#D4A017" strokeWidth="1.5"/>
+        <circle cx="33" cy="6" r="2" fill="#FF6080"/>
+        <circle cx="55" cy="2" r="2.5" fill="#80E0FF"/>
+        <circle cx="77" cy="6" r="2" fill="#FF6080"/>
+        <rect x="30" y="14" width="50" height="3" fill="#D4A017"/>
+        <ellipse cx="46" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
+        <ellipse cx="64" cy="36" rx="2.5" ry="3" fill="#5C3015"/>
+        <ellipse cx="46" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <ellipse cx="64" cy="35" rx="1" ry="1.2" fill="#FFFFFF"/>
+        <path d="M 53 41 L 51 46 L 55 46 Z" fill="#D4A07C" opacity="0.5"/>
+        {/* Sourire royal */}
+        <path d="M 47 50 Q 55 54 63 50" stroke="#5C2090" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
+        {/* Moustache royale */}
+        <path d="M 44 49 Q 50 47 53 49 M 67 49 Q 61 47 58 49" stroke="#A87510" strokeWidth="2" fill="none" strokeLinecap="round"/>
+        {/* Sparkles royaux */}
+        <text x="12" y="22" fill="#FFE066" fontSize="9">✦</text>
+        <text x="94" y="22" fill="#FFE066" fontSize="9">✦</text>
+        <circle cx="6" cy="48" r="1.5" fill="#FFE066"/>
+        <circle cx="102" cy="48" r="1.6" fill="#FFE066"/>
+      </svg>
+    ),
+  },
+];
+
+/* Compat — quelques imports historiques attendent encore le single
+   `LEGENDARY_BARISTA`. Pointer sur le 1er = comportement inchangé. */
+export const LEGENDARY_BARISTA = LEGENDARY_BARISTAS[0];
 
 export function CafeScene({ customer, dialogText, subPhase }){
   const showBubble = subPhase === 'speaking';
