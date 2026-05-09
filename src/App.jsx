@@ -1151,7 +1151,18 @@ export default function CookiMiner() {
         return;  // ne pas marquer le code comme utilisé si l'action a échoué
       }
     }
-    if(promo.coins) addCoins(promo.coins);
+    if(promo.coins){
+      /* Mode silencieux côté XP : direct setCoins + setTotalEarned, sans
+         toucher xp/level. Sert aux gros codes qui ne doivent pas faire
+         exploser la progression (ex : RICHE +4000). Sinon parcours normal
+         via addCoins (qui crédite XP + déclenche level-up éventuel). */
+      if(promo.noXp){
+        setCoins(c => c + promo.coins);
+        setTotalEarned(t => t + promo.coins);
+      } else {
+        addCoins(promo.coins);
+      }
+    }
     if(promo.cafes) setCafes(c => c + promo.cafes);
     /* Boost niveau : si le code définit un niveau minimum et qu'on est
        en dessous, on saute directement (sans déclencher pendingLvUp pour
@@ -1201,7 +1212,7 @@ export default function CookiMiner() {
     if(parts.length){
       showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
     }
-  }, [addCoins, setCafes, setLevel, setXp, setUnlocked, setEventReward, setTotalEarned, totalEarned, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
+  }, [addCoins, setCoins, setCafes, setLevel, setXp, setUnlocked, setEventReward, setTotalEarned, totalEarned, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
