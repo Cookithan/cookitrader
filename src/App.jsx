@@ -29,6 +29,7 @@ import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
+import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
@@ -133,6 +134,11 @@ export default function CookiMiner() {
   const [xp,          setXp]          = useLocalStorage('xp',          0);
   const [streak,      setStreak]      = useLocalStorage('streak',      0);
   const [clickRecord, setClickRecord] = useLocalStorage('clickRecord', 0);
+  /* Système Prestige : à chaque renaissance (niveau 15 atteint), le joueur
+     repart au niveau 1 avec un multiplicateur permanent +10% sur les gains
+     🍪. Indicateur visuel par couronne(s) sur le pseudo. Items/achievements/
+     cafés/actions $CKM/amis sont préservés. */
+  const [prestigeLevel, setPrestigeLevel] = useLocalStorage('prestigeLevel', 0);
   /* Drop one-shot du barista légendaire dans Devine la commande. Une fois
      true, plus jamais de roll. Pas synchro Supabase — c'est du loot local
      (cf. theme_cookies qui est synchronisé via `unlocked`). Reset par
@@ -332,6 +338,7 @@ export default function CookiMiner() {
   const [showProfile,  setShowProfile]  = useState(false);
   const [showLevels,   setShowLevels]   = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [showPrestigeModal, setShowPrestigeModal] = useState(false);
   const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium'
   const [cafeToast,    setCafeToast]    = useState(null);   // { amount, key } | null
   const cafeToastTimerRef = useRef(null);
@@ -768,6 +775,13 @@ export default function CookiMiner() {
                     récupère proceeds en coins mais on ne progresse
                     qu'à hauteur de la plus-value (pnl). */
   const addCoins = useCallback((amount, gainAmount = amount)=>{
+    /* Multiplicateur Prestige : tous les gains positifs sont boostés de
+       +10 % par niveau de prestige. Pertes (amount<=0) inchangées. */
+    if(amount > 0 && prestigeLevel > 0){
+      const mult = 1 + prestigeLevel * 0.1;
+      amount     = Math.round(amount * mult);
+      gainAmount = Math.round(gainAmount * mult);
+    }
     if(amount<=0){ setCoins(c=>Math.max(0,c+amount)); return; }
     setCoins(c=>c+amount);
 
@@ -832,7 +846,7 @@ export default function CookiMiner() {
       const bonus = 10*nl;
       setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
     }
-  },[]);
+  },[prestigeLevel]);
 
   const spendCoins   = useCallback((a)=>setCoins(c=>Math.max(0,c-a)),[]);
 
@@ -1429,7 +1443,7 @@ export default function CookiMiner() {
     try{ sessionStorage.removeItem('leaderboard:cache'); }catch{}
 
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
-    setStreak(0); setClickRecord(0); setUnlocked([]); setLegendaryBaristaSeen(false);
+    setStreak(0); setClickRecord(0); setUnlocked([]); setLegendaryBaristaSeen(false); setPrestigeLevel(0);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
     setMarketRealized(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
@@ -1461,6 +1475,28 @@ export default function CookiMiner() {
     } catch {}
     setShowOnboarding(true);
   };
+
+  /* Prestige (renaissance) — disponible dès le niveau 15. Reset les
+     progressions volatiles (niveau, XP, cookies, totalEarned, streak,
+     clickRecord) et incrémente prestigeLevel pour booster le multiplicateur
+     de gains de +10 %. Garde tout le reste : items, succès, cafés, actions
+     $CKM, identité, amis. */
+  const doPrestige = () => {
+    if(level < 15) return;
+    /* Évite tout bonus level-up flottant */
+    setPendingLvUp(null);
+    setLevel(1);   lvRef.current = 1;
+    setXp(0);      xpRef.current = 0;
+    setCoins(0);
+    setTotalEarned(0);
+    setStreak(0);
+    setClickRecord(0);
+    setPrestigeLevel(p => (p || 0) + 1);
+    setShowPrestigeModal(false);
+    playSound('levelup');
+    showToast(`🌟 Renaissance ! Multiplicateur x${(1 + ((prestigeLevel || 0) + 1) * 0.1).toFixed(1)} sur tous les gains 🍪`);
+  };
+
   const doCheckin    = ()=>{ playSound('coin'); addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
   const unlockReward = (id)=>{
     const r=REWARDS.find(x=>x.id===id);
@@ -1790,7 +1826,14 @@ export default function CookiMiner() {
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12, marginTop:14 }}>
                 <div>
-                  <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:2 }}>NIVEAU {level}</div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:2, display:'flex', alignItems:'center', gap:6 }}>
+                    NIVEAU {level}
+                    {prestigeLevel > 0 && (
+                      <span title={`Prestige ${prestigeLevel} · multiplicateur x${(1 + prestigeLevel * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:'#FFE066', letterSpacing:.5 }}>
+                        {prestigeLevel <= 5 ? '👑'.repeat(prestigeLevel) : `👑×${prestigeLevel}`}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{LEVEL_NAMES[level]}</div>
                 </div>
                 <div style={{ textAlign:'right' }}>
@@ -1812,6 +1855,37 @@ export default function CookiMiner() {
                 </div>
               )}
             </button>
+
+            {/* Carte Prestige — visible uniquement au niveau max (15).
+                Renaître = repartir lvl 1 avec un multiplicateur permanent. */}
+            {level >= 15 && (
+              <button
+                onClick={()=>{ playSound('modal'); setShowPrestigeModal(true); }}
+                className="su"
+                style={{
+                  width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:14,
+                  padding:'14px 16px', borderRadius:18, marginBottom:14,
+                  background:'linear-gradient(135deg, #4A2C17, #1F0E04)',
+                  border:'2px solid #D4A017',
+                  boxShadow:'0 4px 18px rgba(212,160,23,.4), 0 0 24px rgba(212,160,23,.2)',
+                  cursor:'pointer', color:'#fff',
+                }}
+              >
+                <div className="float-anim" style={{ fontSize:34, lineHeight:1 }}>🌟</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:11, fontWeight:900, color:'#FFE066', letterSpacing:1.5, textTransform:'uppercase', marginBottom:2 }}>
+                    Renaissance disponible
+                  </div>
+                  <div style={{ fontSize:13, fontWeight:700, color:'#fff', lineHeight:1.4, marginBottom:2 }}>
+                    Recommence niveau 1 — multiplicateur permanent
+                  </div>
+                  <div style={{ fontSize:11.5, color:'#F0C050', fontWeight:700 }}>
+                    Prochain bonus : x{(1 + (prestigeLevel + 1) * 0.1).toFixed(1)} 🍪
+                  </div>
+                </div>
+                <ChevronLeft size={18} color="#F0C050" style={{ transform:'rotate(180deg)' }} />
+              </button>
+            )}
 
             {/* Stats — Série uniquement (Record clics retiré) */}
             <div style={{ marginBottom:14 }}>
@@ -2266,6 +2340,16 @@ export default function CookiMiner() {
           onRedeem={redeemPromoCode}
           usedCodes={Array.isArray(promoCodesUsed) ? promoCodesUsed : []}
           revealedCodes={Array.isArray(revealedPromoCodes) ? revealedPromoCodes : []}
+          C={C}
+        />
+      )}
+
+      {/* PRESTIGE CONFIRM MODAL — confirmation de la renaissance lvl 15 */}
+      {showPrestigeModal && (
+        <PrestigeConfirmModal
+          prestigeLevel={prestigeLevel}
+          onConfirm={doPrestige}
+          onCancel={()=>setShowPrestigeModal(false)}
           C={C}
         />
       )}
