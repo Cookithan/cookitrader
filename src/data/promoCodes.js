@@ -46,14 +46,6 @@ export const PROMO_CODES = {
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
-  /* Code restauration ponctuel (mai 2026) — pour le pote de Régis qui a
-     perdu son state cookies après bug de sync cross-device pré-6469c9f.
-     Restaure : 500 🍪 dispo, 3 ☕, niveau 8, total_earned 8000.
-     À retirer du catalogue après usage. */
-  'RESTORE8':  { coins: 500,  cafes: 3, level: 8, totalEarnedFloor: 8000, label: 'Restauration de progression' },
-  /* Code "riche" — gros bonus distribuable. noXp pour pas faire
-     exploser le niveau du joueur en un coup. */
-  'RICHE':     { coins: 4000, cafes: 4, noXp: true, label: 'Jackpot du riche' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */
