@@ -28,10 +28,10 @@ export const SLOT_CONFIG = {
   COST: 20,
   REQUIRED_LEVEL: 10,
   COOLDOWN_MS: 1000,
-  /* Plus de limite quotidienne (mai 2026). Conservé en clé pour le
-     compteur d'affichage interne ; les checks `gamesToday >= MAX_PER_DAY`
-     restent toujours faux. */
-  MAX_PER_DAY: Infinity,
+  /* Limite quotidienne (re-instauré mai 2026, demande user) — 50 essais
+     par jour. Reset auto à minuit local via le compteur gamesToday côté
+     SlotGame qui regarde le date string. */
+  MAX_PER_DAY: 50,
   PAIR_GAIN: 25,
   REEL_FIRST_STOP_MS: 800,
   REEL_STOP_DELAY_MS: 500,

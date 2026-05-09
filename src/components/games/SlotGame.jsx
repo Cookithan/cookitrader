@@ -326,7 +326,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
         textAlign:'center', marginTop:4,
         fontSize:11, color:'#A0784E', fontStyle:'italic',
       }}>
-        {gamesToday} partie{gamesToday > 1 ? 's' : ''} aujourd'hui
+        {gamesToday} / {SLOT_CONFIG.MAX_PER_DAY} partie{gamesToday > 1 ? 's' : ''} aujourd'hui
       </div>
 
       {/* Modal jackpot */}
