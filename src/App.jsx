@@ -1225,25 +1225,30 @@ export default function CookiMiner() {
     /* Pack actions $CKM CONSOMMABLE — crédite N actions via Supabase
        (creditFreeShares). Pas d'ajout à `unlocked` : rachetable à volonté
        (les Packs sont des items consommables). Mode admin bloqué pour
-       éviter de polluer la circulation $CKM. */
+       éviter de polluer la circulation $CKM.
+       Supporte 2 monnaies : cookies (packs shop) et cafés (pack premium
+       1 action) — gestion du débit + rollback selon r.currency. */
     if(r.applyAs === 'pack_shares'){
-      if(coins < r.cost) return;
+      const isCafe = r.currency === 'cafe';
+      if(isCafe ? cafes < r.cost : coins < r.cost) return;
       if(isAdminName(userName)){
         showToast('🛠️ Mode admin — packs $CKM désactivés');
         return;
       }
       const n = r.sharesAmount || 0;
-      spendCoins(r.cost);
+      if(isCafe) setCafes(c => Math.max(0, c - r.cost));
+      else spendCoins(r.cost);
       (async () => {
         const res = await creditFreeShares(userCode, n);
         if(!res?.success){
           /* Rollback du débit si Supabase a refusé */
-          addCoins(r.cost);
+          if(isCafe) setCafes(c => c + r.cost);
+          else addCoins(r.cost);
           showToast(`⚠️ ${res?.error || 'Pack non crédité'}`);
           return;
         }
         playSound('success');
-        showToast(`📈 +${n} action${n > 1 ? 's' : ''} $CKM créditées !`);
+        showToast(`📈 +${n} action${n > 1 ? 's' : ''} $CKM créditée${n > 1 ? 's' : ''} !`);
       })();
       return;
     }

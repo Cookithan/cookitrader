@@ -168,6 +168,10 @@ export const REWARDS = [
   { id:'reveal_promo_rare', currency:'cafe', applyAs:'reveal_promo', revealCode:'LEGENDE13', name:'Révéler Code Promo Rare', desc:'Dévoile un code promo unique exclusif', cost:5, type:'Premium', emoji:'🎟️', levelRequired:13 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },
   { id:'music_lofi',     currency:'cafe', applyAs:'music',       name:'Musique Lofi Hip-Hop', desc:'Ambiance étudiant chill',      cost:3,  type:'Premium', emoji:'🎵', levelRequired:1 },
+  /* Pack 1 action premium — consommable, rachetable à volonté. Le pack
+     en cookies (pack_shares_5/10) reste, celui-ci est l'option "petit
+     volume cher" en café pour les joueurs qui veulent juste 1 action. */
+  { id:'pack_share_premium', currency:'cafe', applyAs:'pack_shares', sharesAmount:1, name:'1 Action $CKM', desc:'+1 action sur ton portefeuille', cost:1, type:'Premium', emoji:'📈', levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */
