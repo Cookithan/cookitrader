@@ -12,7 +12,7 @@ import { SingleCup } from "./SingleCup.jsx";
 
    Économie :
    - COÛT = 10 🍪 par partie · niveau requis 10
-   - +2 🍪 par tasse posée · cap 100 🍪
+   - +3 🍪 par tasse posée · cap 100 🍪
    - Bonus combo +10 🍪 si > 30 tasses
 
    Le composant est intégré dans GameOverlay qui fournit le header
@@ -23,7 +23,7 @@ const GAME_AREA_WIDTH    = 320;
 const INITIAL_CUP_WIDTH  = 160;        // 130 → 160 (tasses encore + grosses)
 const MIN_CUP_WIDTH      = 38;         // 30 → 38 (cohérent avec ratio ~25%)
 const INITIAL_SPEED      = 120;        // px/seconde
-const REWARD_PER_CUP     = 2;
+const REWARD_PER_CUP     = 3;
 const REWARD_CAP         = 100;
 const COMBO_THRESHOLD    = 30;
 const COMBO_BONUS_AMOUNT = 10;         // 50 → 10 (bonus combo)
