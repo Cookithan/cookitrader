@@ -40,7 +40,7 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
         {gameView==='pour'    && <PourGame    onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} C={C} />}
         {gameView==='memory'  && <MemoryGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} C={C} />}
         {gameView==='guess'   && <GuessGame   coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} C={C} />}
-        {gameView==='reflex'  && <ReflexGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} C={C} />}
+        {gameView==='reflex'  && <ReflexGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} activeSkin={activeSkin} C={C} />}
         {gameView==='pyramid' && <PyramidGame coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} C={C} />}
         {gameView==='slot'    && <SlotGame    coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} C={C} />}
       </div>

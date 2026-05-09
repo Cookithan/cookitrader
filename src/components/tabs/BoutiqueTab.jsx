@@ -232,7 +232,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
       {mode === 'shop' && (
         <div style={{ display:'flex', gap:8, marginBottom:16, overflowX:'auto', paddingBottom:2 }}>
           {FILTERS.map(f=>(
-            <button key={f} onClick={()=>setFilter(f)} style={{ padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:700, whiteSpace:'nowrap', background:filter===f?GOLD:C.card, color:filter===f?'#fff':C.muted, border:`1px solid ${filter===f?'transparent':C.border}`, transition:'all .2s' }}>{f}</button>
+            <button key={f} onClick={()=>{ if(filter!==f){ playSound('tab'); setFilter(f); } }} style={{ padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:700, whiteSpace:'nowrap', background:filter===f?GOLD:C.card, color:filter===f?'#fff':C.muted, border:`1px solid ${filter===f?'transparent':C.border}`, transition:'all .2s' }}>{f}</button>
           ))}
         </div>
       )}

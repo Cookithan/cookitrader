@@ -22,6 +22,7 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
   const [qIndices,         setQIndices]         = useState([]);
 
   const pickQuestions = (difficulty) => {
+    playSound('modal');
     const pool = QUESTIONS.map((_,i)=>i).filter(i => QUESTIONS[i].difficulty === difficulty);
     const picks = [];
     for (let n=0; n<QUIZ_QUESTIONS_PER_SESSION && pool.length; n++){
@@ -88,7 +89,7 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
       <div style={{ fontSize:14, color:C.muted, marginBottom:24 }}>{correctCount}/{QUIZ_QUESTIONS_PER_SESSION} questions</div>
 
       <button
-        onClick={onClose}
+        onClick={()=>{ playSound(score>0 ? 'coin' : 'toggle'); onClose(); }}
         className={score>0 ? 'glow-anim' : ''}
         style={{
           display:'inline-flex', alignItems:'center', gap:10,
@@ -187,6 +188,7 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
 
   const useHint = () => {
     if(hintUsed || coins < QUIZ_HINT_COST || sel !== null) return;
+    playSound('toggle');
     onSpend(QUIZ_HINT_COST);
     const wrong = [0,1,2,3].filter(i=>i!==q.answer);
     /* shuffle */

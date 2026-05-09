@@ -112,6 +112,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   /* ── Démarrer une partie ───────────────────────── */
   const handleStart = () => {
     if(coins < COST_TO_PLAY) return;
+    playSound('modal');
     onSpend(COST_TO_PLAY);
 
     /* Base de départ : une tasse posée au centre comme repère visuel.
@@ -344,7 +345,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
 
           <div style={{ display:'flex', gap:8, width:'100%', maxWidth:260, marginTop:6 }}>
             <button
-              onClick={() => setPhase('intro')}
+              onClick={() => { playSound('toggle'); setPhase('intro'); }}
               style={{
                 flex:1, padding:'12px',
                 background:'rgba(245, 239, 230, 0.1)',

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { GOLD } from "../../data/themes.js";
+import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
+import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
@@ -45,7 +46,13 @@ function rewardFor(score){
   return 0;
 }
 
-export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
+export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', C }){
+  /* Skin cookie : si l'user a un skin custom équipé, on remplace le SVG
+     hardcodé par <SkinnedCookie> pour rester cohérent avec ClickGame +
+     ProfileOverlay. Sinon on garde le SVG ci-dessous (calibré 70x70). */
+  const customSkin = activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== ''
+    ? COOKIE_SKINS[activeSkin]
+    : null;
   const [phase,         setPhase]         = useState('idle');     // idle | countdown | playing | done
   const [score,         setScore]         = useState(0);
   const [timeLeft,      setTimeLeft]      = useState(REFLEX_DURATION);
@@ -102,7 +109,8 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
     const c = newCookie();
     setCookie(c);
     cookieTORef.current = setTimeout(()=>{
-      /* Miss : décrémente le score (min 0), shake bref, reset combo */
+      /* Miss : son d'erreur léger, décrémente le score (min 0), shake bref, reset combo */
+      playSound('error');
       const dropped = Math.max(0, scoreRef.current - 1);
       scoreRef.current = dropped;
       setScore(dropped);
@@ -132,6 +140,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
 
   const startGame = () => {
     if(coins < REFLEX_COST) return;
+    playSound('modal');
     onSpend(REFLEX_COST);
     scoreRef.current = 0;
     setScore(0);
@@ -170,6 +179,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   };
 
   const replay = () => {
+    playSound('modal');
     setPhase('idle');
     phaseRef.current = 'idle';
     setScore(0); scoreRef.current = 0;
@@ -361,40 +371,47 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, C }){
             onPointerDown={handleTap}
             style={{ left:`${cookie.x}%`, top:`${cookie.y}%` }}
           >
-            <svg
-              viewBox="0 0 70 70"
-              xmlns="http://www.w3.org/2000/svg"
-              style={{ width:'100%', height:'100%', display:'block', filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}
-            >
-              <defs>
-                <radialGradient id="ckGrad" cx="38%" cy="32%" r="78%">
-                  <stop offset="0%"   stopColor="#F0BB7A" />
-                  <stop offset="45%"  stopColor="#C17F3C" />
-                  <stop offset="100%" stopColor="#7D4E1F" />
-                </radialGradient>
-                <radialGradient id="ckChip" cx="35%" cy="30%" r="80%">
-                  <stop offset="0%"   stopColor="#5C2C0A" />
-                  <stop offset="100%" stopColor="#1A0A00" />
-                </radialGradient>
-              </defs>
-              <circle cx="35" cy="36" r="32" fill="#7D4E1F" />
-              <circle cx="35" cy="35" r="32" fill="url(#ckGrad)" />
-              <circle cx="35" cy="35" r="32" fill="none" stroke="rgba(255,225,170,0.4)" strokeWidth="1" />
-              <ellipse cx="22" cy="22" rx="5"   ry="4"   fill="#1F0E04"      transform="rotate(-20 22 22)" />
-              <ellipse cx="22" cy="22" rx="4"   ry="3"   fill="url(#ckChip)" transform="rotate(-20 22 22)" />
-              <ellipse cx="46" cy="20" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(15 46 20)" />
-              <ellipse cx="46" cy="20" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(15 46 20)" />
-              <ellipse cx="18" cy="44" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(-10 18 44)" />
-              <ellipse cx="18" cy="44" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(-10 18 44)" />
-              <ellipse cx="50" cy="44" rx="5"   ry="4"   fill="#1F0E04"      transform="rotate(25 50 44)" />
-              <ellipse cx="50" cy="44" rx="4"   ry="3"   fill="url(#ckChip)" transform="rotate(25 50 44)" />
-              <ellipse cx="34" cy="52" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(-5 34 52)" />
-              <ellipse cx="34" cy="52" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(-5 34 52)" />
-              <ellipse cx="36" cy="34" rx="3"   ry="2.3" fill="#1F0E04" />
-              <ellipse cx="36" cy="34" rx="2.3" ry="1.5" fill="url(#ckChip)" />
-              <ellipse cx="22" cy="16" rx="10" ry="5"   fill="rgba(255,235,200,0.4)"  transform="rotate(-30 22 16)" />
-              <ellipse cx="20" cy="14" rx="5"  ry="2"   fill="rgba(255,250,225,0.55)" transform="rotate(-30 20 14)" />
-            </svg>
+            {customSkin ? (
+              /* Quand l'user a équipé un skin custom : on rend le SkinnedCookie
+                 contraint à 100 % de la div .rx-cookie. Le drop-shadow vient
+                 déjà du SVG SkinnedCookie. */
+              <SkinnedCookie skin={customSkin} />
+            ) : (
+              <svg
+                viewBox="0 0 70 70"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ width:'100%', height:'100%', display:'block', filter:'drop-shadow(0 4px 8px rgba(0,0,0,0.4))' }}
+              >
+                <defs>
+                  <radialGradient id="ckGrad" cx="38%" cy="32%" r="78%">
+                    <stop offset="0%"   stopColor="#F0BB7A" />
+                    <stop offset="45%"  stopColor="#C17F3C" />
+                    <stop offset="100%" stopColor="#7D4E1F" />
+                  </radialGradient>
+                  <radialGradient id="ckChip" cx="35%" cy="30%" r="80%">
+                    <stop offset="0%"   stopColor="#5C2C0A" />
+                    <stop offset="100%" stopColor="#1A0A00" />
+                  </radialGradient>
+                </defs>
+                <circle cx="35" cy="36" r="32" fill="#7D4E1F" />
+                <circle cx="35" cy="35" r="32" fill="url(#ckGrad)" />
+                <circle cx="35" cy="35" r="32" fill="none" stroke="rgba(255,225,170,0.4)" strokeWidth="1" />
+                <ellipse cx="22" cy="22" rx="5"   ry="4"   fill="#1F0E04"      transform="rotate(-20 22 22)" />
+                <ellipse cx="22" cy="22" rx="4"   ry="3"   fill="url(#ckChip)" transform="rotate(-20 22 22)" />
+                <ellipse cx="46" cy="20" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(15 46 20)" />
+                <ellipse cx="46" cy="20" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(15 46 20)" />
+                <ellipse cx="18" cy="44" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(-10 18 44)" />
+                <ellipse cx="18" cy="44" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(-10 18 44)" />
+                <ellipse cx="50" cy="44" rx="5"   ry="4"   fill="#1F0E04"      transform="rotate(25 50 44)" />
+                <ellipse cx="50" cy="44" rx="4"   ry="3"   fill="url(#ckChip)" transform="rotate(25 50 44)" />
+                <ellipse cx="34" cy="52" rx="4"   ry="3"   fill="#1F0E04"      transform="rotate(-5 34 52)" />
+                <ellipse cx="34" cy="52" rx="3.2" ry="2.3" fill="url(#ckChip)" transform="rotate(-5 34 52)" />
+                <ellipse cx="36" cy="34" rx="3"   ry="2.3" fill="#1F0E04" />
+                <ellipse cx="36" cy="34" rx="2.3" ry="1.5" fill="url(#ckChip)" />
+                <ellipse cx="22" cy="16" rx="10" ry="5"   fill="rgba(255,235,200,0.4)"  transform="rotate(-30 22 16)" />
+                <ellipse cx="20" cy="14" rx="5"  ry="2"   fill="rgba(255,250,225,0.55)" transform="rotate(-30 20 14)" />
+              </svg>
+            )}
           </div>
         )}
 
