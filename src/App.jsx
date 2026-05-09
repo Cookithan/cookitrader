@@ -30,6 +30,7 @@ import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
+import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
@@ -365,6 +366,8 @@ export default function CookiMiner() {
   const [showLevels,   setShowLevels]   = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [showPrestigeModal, setShowPrestigeModal] = useState(false);
+  /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
+  const [paymentReceived, setPaymentReceived] = useState(null);
   const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium'
   const [cafeToast,    setCafeToast]    = useState(null);   // { amount, key } | null
   const cafeToastTimerRef = useRef(null);
@@ -408,22 +411,25 @@ export default function CookiMiner() {
     const purchase = params.get('cf_purchase');
     if(!purchase) return;
     if(purchase === 'success'){
-      showToastRef.current?.('☕ Paiement reçu — tes cafés arrivent !');
       playSound('success');
       /* PAUSE l'upsert auto pendant 60 s — le temps que le webhook +
          re-pulls finalisent. Sinon le push client à 5s écraserait le
          crédit Stripe (race condition documentée). */
       setPauseUpsertUntil(Date.now() + 60_000);
-      /* Re-pull à 3s, 8s, 15s pour rattraper le webhook qui peut être lent */
+      /* Re-pull à 3s, 8s, 15s pour rattraper le webhook qui peut être lent.
+         Le 1er qui détecte un delta cafés > 0 ouvre la PaymentSuccessModal
+         (popup festif). Les retries suivants ne font rien si l'écart est
+         déjà rattrapé. */
       const codeAtMount = userCodeRef.current;
       const delays = [3000, 8000, 15000];
       const timers = delays.map(ms => setTimeout(async () => {
         if(!codeAtMount) return;
         const server = await pullProfile(codeAtMount);
         if(!server) return;
-        if(Number(server.cafes) > (cafesRef.current ?? 0)){
+        const delta = Number(server.cafes) - (cafesRef.current ?? 0);
+        if(delta > 0){
           setCafes(Number(server.cafes));
-          showToastRef.current?.(`☕ +${Number(server.cafes) - (cafesRef.current ?? 0)} cafés crédités !`);
+          setPaymentReceived(delta);
         }
       }, ms));
       /* Clean URL */
@@ -2533,6 +2539,15 @@ export default function CookiMiner() {
           prestigeLevel={prestigeLevel}
           onConfirm={doPrestige}
           onCancel={()=>setShowPrestigeModal(false)}
+          C={C}
+        />
+      )}
+
+      {/* PAYMENT SUCCESS MODAL — popup festif post-achat Stripe */}
+      {paymentReceived && (
+        <PaymentSuccessModal
+          cafesReceived={paymentReceived}
+          onClose={()=>setPaymentReceived(null)}
           C={C}
         />
       )}

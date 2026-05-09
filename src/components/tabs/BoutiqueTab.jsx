@@ -223,27 +223,102 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </button>
       )}
 
-      {/* Carte achat de cafés réels (Stripe) — vue main premium uniquement */}
+      {/* Carte achat de cafés réels (Stripe) — vue main premium uniquement.
+          Style "premium glow" : grande carte avec bandeau "BOOST", preview
+          inline des 3 bundles avec prix, animation float sur l'icône. */}
       {mode === 'premium' && premiumView === 'main' && userCode && (
         <button
           onClick={()=>{ playSound('modal'); setShowBuyCafes(true); }}
+          className="su"
           style={{
-            width:'100%', display:'flex', alignItems:'center', gap:14,
-            padding:'14px 16px', borderRadius:16, marginBottom:14,
-            background:ESPRESSO,
-            border:'1.5px solid rgba(212,160,23,.55)',
-            boxShadow:'0 4px 16px rgba(74,44,23,.4)',
-            cursor:'pointer', color:'#fff', textAlign:'left',
+            width:'100%', display:'block', textAlign:'left',
+            padding:'18px 18px 14px', borderRadius:20, marginBottom:14,
+            background:'linear-gradient(135deg, #5C3614 0%, #4A2C17 50%, #3D2010 100%)',
+            border:'2px solid #D4A017',
+            boxShadow:'0 6px 24px rgba(212,160,23,.35), 0 0 32px rgba(212,160,23,.15)',
+            cursor:'pointer', color:'#fff', position:'relative', overflow:'hidden',
           }}
         >
-          <div style={{ fontSize:32 }}>☕</div>
-          <div style={{ flex:1 }}>
-            <div style={{ fontSize:13, fontWeight:900, color:'#F0C050', marginBottom:2, letterSpacing:.3 }}>Acheter des cafés</div>
-            <div style={{ fontSize:11.5, color:'rgba(255,255,255,.75)', lineHeight:1.4 }}>
-              10 / 50 / 200 ☕ — paiement sécurisé Stripe
+          {/* Sparkles décoratifs */}
+          <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none' }}>
+            <span className="sparkle-anim" style={{ position:'absolute', top:'12%', right:'8%', fontSize:14 }}>✨</span>
+            <span className="sparkle-anim" style={{ position:'absolute', top:'58%', right:'18%', fontSize:10, animationDelay:'0.6s' }}>✨</span>
+            <span className="sparkle-anim" style={{ position:'absolute', top:'24%', left:'10%', fontSize:11, animationDelay:'1.2s' }}>✨</span>
+          </div>
+
+          <div style={{ position:'relative' }}>
+            {/* Header */}
+            <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
+              <div className="float-anim" style={{ fontSize:42, lineHeight:1 }}>☕</div>
+              <div style={{ flex:1 }}>
+                <div style={{
+                  display:'inline-block',
+                  fontSize:9, fontWeight:900, color:'#3D2010',
+                  letterSpacing:2.5, textTransform:'uppercase',
+                  background:'linear-gradient(135deg,#FFE066,#F0C050)',
+                  padding:'2px 8px', borderRadius:8,
+                  marginBottom:4,
+                  boxShadow:'0 2px 6px rgba(212,160,23,.4)',
+                }}>
+                  💎 Boost premium
+                </div>
+                <div style={{ fontSize:16, fontWeight:900, color:'#FFE066', letterSpacing:.3 }}>
+                  Acheter des cafés
+                </div>
+                <div style={{ fontSize:11.5, color:'rgba(255,255,255,.7)', lineHeight:1.4, marginTop:1 }}>
+                  Soutiens le développeur, débloquer plus vite
+                </div>
+              </div>
+            </div>
+
+            {/* Preview des 3 bundles (mini-tiles) */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6, marginBottom:10 }}>
+              {[
+                { cafes:10,  price:'0,99 €', highlight:false },
+                { cafes:50,  price:'3,99 €', highlight:false },
+                { cafes:200, price:'9,99 €', highlight:true },
+              ].map((b, i) => (
+                <div key={i} style={{
+                  padding:'8px 4px', borderRadius:10,
+                  background: b.highlight
+                    ? 'linear-gradient(135deg,#D4A017,#F0C050)'
+                    : 'rgba(255,255,255,.08)',
+                  border: b.highlight ? '1px solid #FFE066' : '1px solid rgba(255,255,255,.15)',
+                  textAlign:'center',
+                  position:'relative',
+                }}>
+                  {b.highlight && (
+                    <div style={{
+                      position:'absolute', top:-8, left:'50%', transform:'translateX(-50%)',
+                      fontSize:8, fontWeight:900, color:'#3D2010',
+                      background:'#FFE066', padding:'1px 6px', borderRadius:6,
+                      letterSpacing:1, textTransform:'uppercase',
+                      boxShadow:'0 2px 4px rgba(0,0,0,.2)',
+                    }}>
+                      Top
+                    </div>
+                  )}
+                  <div style={{ fontSize:13, fontWeight:900, color: b.highlight ? '#3D2010' : '#FFE066', lineHeight:1.1 }}>
+                    {b.cafes} ☕
+                  </div>
+                  <div style={{ fontSize:10, fontWeight:700, color: b.highlight ? '#5C3614' : 'rgba(255,255,255,.7)', marginTop:2 }}>
+                    {b.price}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer call-to-action */}
+            <div style={{
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              fontSize:10.5, color:'rgba(255,255,255,.55)',
+            }}>
+              <span>🔒 Paiement sécurisé Stripe</span>
+              <span style={{ color:'#FFE066', fontWeight:800, display:'flex', alignItems:'center', gap:4 }}>
+                Choisir <ChevronRight size={12} />
+              </span>
             </div>
           </div>
-          <ChevronRight size={18} color="#F0C050" />
         </button>
       )}
 
