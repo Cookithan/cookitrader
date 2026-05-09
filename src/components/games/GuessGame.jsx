@@ -41,7 +41,10 @@ const TYPE_SPEED_MS = 28;
 const WALK_IN_MS    = 800;          // synchronisé avec csCustomerWalkIn (.8s)
 const ANSWER_HOLD_MS = 1100;        // temps avant de passer au client suivant
 
-/* Tire `nbQuestions` commandes uniques du pool unique. */
+/* Tire `nbQuestions` commandes uniques + mélange l'ordre des `choices`
+   à chaque tirage pour que la bonne réponse ne soit pas toujours à la
+   même position (anti-mémo). On retient le texte de la bonne réponse
+   AVANT shuffle puis on retrouve son nouvel index. */
 function pickQuestions(nbQuestions){
   const max  = COMMANDES.length;
   const indices = [];
@@ -49,7 +52,17 @@ function pickQuestions(nbQuestions){
     const idx = Math.floor(Math.random() * max);
     if(!indices.includes(idx)) indices.push(idx);
   }
-  return indices.map(i => COMMANDES[i]);
+  return indices.map(i => {
+    const q = COMMANDES[i];
+    const correctText = q.choices[q.answer];
+    const shuffled = [...q.choices];
+    /* Fisher-Yates */
+    for(let j = shuffled.length - 1; j > 0; j--){
+      const k = Math.floor(Math.random() * (j + 1));
+      [shuffled[j], shuffled[k]] = [shuffled[k], shuffled[j]];
+    }
+    return { ...q, choices: shuffled, answer: shuffled.indexOf(correctText) };
+  });
 }
 
 /* Paliers de récompense — adaptés au nb de questions (5 ou 8).
