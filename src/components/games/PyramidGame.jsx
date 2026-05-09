@@ -58,6 +58,10 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   const [comboBonus,      setComboBonus]      = useState(false);
   const [showRewardPopup, setShowRewardPopup] = useState(false);
   const [showPerfectGlow, setShowPerfectGlow] = useState(false);
+  /* Particules grains de café qui jaillissent au tap d'une tasse posée
+     (5 grains éphémères avec angle/distance aléatoires). Cleanup auto
+     après 700 ms. */
+  const [tapParticles,    setTapParticles]    = useState([]);
 
   const rafRef     = useRef(null);
   const lastTRef   = useRef(0);
@@ -180,6 +184,25 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
     }
     setShowRewardPopup(true);
     setTimeout(() => setShowRewardPopup(false), 1000);
+
+    /* Spawn de 5 grains de café éphémères au point de pose. Angle
+       réparti en cercle, distance et rotation aléatoires pour un effet
+       feu d'artifice naturel. Auto-cleanup après 700ms via setTimeout. */
+    const burstId = Date.now();
+    const burst = Array.from({ length: 5 }, (_, i) => {
+      const angle = (i / 5) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const dist  = 45 + Math.random() * 35;
+      return {
+        id: `${burstId}-${i}`,
+        tx: Math.cos(angle) * dist,
+        ty: Math.sin(angle) * dist - 10,  // biais vers le haut
+        rot: (Math.random() - 0.5) * 540,
+      };
+    });
+    setTapParticles(prev => [...prev, ...burst]);
+    setTimeout(() => {
+      setTapParticles(prev => prev.filter(p => !p.id.startsWith(`${burstId}-`)));
+    }, 700);
 
     if(newScore === COMBO_THRESHOLD){
       setComboBonus(true);
@@ -407,15 +430,49 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
           position:'relative',
           width:'100%', maxWidth:GAME_AREA_WIDTH,
           height:520,
-          background:'linear-gradient(180deg, #3D2010 0%, #4A2C17 100%)',
+          background:'linear-gradient(180deg, #2A1408 0%, #3D2010 50%, #4A2C17 100%)',
           borderRadius:20,
-          border:'1.5px solid rgba(212, 160, 23, 0.15)',
+          border:'1.5px solid rgba(212, 160, 23, 0.2)',
           overflow:'hidden',
           cursor:'pointer',
           touchAction:'manipulation',
           userSelect:'none', WebkitUserSelect:'none',
+          boxShadow:'inset 0 0 60px rgba(0,0,0,.4)',
         }}
       >
+        {/* Lumière d'ambiance — halo radial doré centré, donne un côté
+            "spot lumineux d'un café feutré". */}
+        <div style={{
+          position:'absolute', inset:0,
+          background:'radial-gradient(ellipse at 50% 35%, rgba(212,160,23,.18) 0%, transparent 60%)',
+          pointerEvents:'none', zIndex:0,
+        }}/>
+
+        {/* Grains de café flottants en arrière-plan (6 grains, animation
+            float décalée). Pure déco, pointer-events:none pour pas
+            bouffer les taps. */}
+        <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:0, overflow:'hidden' }}>
+          {[
+            { top:'10%',  left:'8%',  size:18, rot:-25, delay:0    },
+            { top:'70%',  left:'88%', size:16, rot:18,  delay:1.2  },
+            { top:'42%',  left:'4%',  size:14, rot:35,  delay:.6   },
+            { top:'85%',  left:'14%', size:15, rot:-18, delay:2.1  },
+            { top:'18%',  left:'85%', size:17, rot:8,   delay:1.6  },
+            { top:'58%',  left:'72%', size:13, rot:-30, delay:.3   },
+          ].map((g, i) => (
+            <CoffeeBean
+              key={i}
+              size={g.size}
+              style={{
+                position:'absolute', top:g.top, left:g.left,
+                transform:`rotate(${g.rot}deg)`,
+                opacity:.16,
+                animation:`pyramidBeanFloat 6s ease-in-out ${g.delay}s infinite`,
+              }}
+            />
+          ))}
+        </div>
+
         {/* Indicateur niveau */}
         <div style={{
           position:'absolute', top:14, left:14,
@@ -484,6 +541,36 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
             ))}
           </div>
         </div>
+
+        {/* Particules grains au tap — jaillissent depuis le centre de
+            la pile, biais vers le haut, rotation aléatoire. Pure déco. */}
+        {tapParticles.length > 0 && (
+          <div style={{
+            position:'absolute',
+            bottom: movingBottom * stackScale,
+            left:'50%',
+            pointerEvents:'none', zIndex:7,
+            width:0, height:0,
+          }}>
+            {tapParticles.map(p => (
+              <div
+                key={p.id}
+                style={{
+                  position:'absolute', top:0, left:0,
+                  width:8, height:6,
+                  marginLeft:-4, marginTop:-3,
+                  background:'#3D2010',
+                  borderRadius:'50% / 60%',
+                  border:'1px solid #5C3317',
+                  '--ptx': `${p.tx}px`,
+                  '--pty': `${p.ty}px`,
+                  '--prot': `${p.rot}deg`,
+                  animation:'pyramidBeanFly .7s ease-out forwards',
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Pop-up +{REWARD_PER_CUP} 🍪 */}
         {showRewardPopup && (
@@ -560,5 +647,26 @@ function Saucer(){
         boxShadow:'inset 0 -2px 4px rgba(0,0,0,0.5)',
       }}/>
     </div>
+  );
+}
+
+/* CoffeeBean — petit grain de café SVG décoratif. Forme ovoïde brun
+   foncé avec rainure centrale, utilisé en arrière-plan flottant et
+   en particule éphémère au tap. */
+function CoffeeBean({ size = 16, style = {} }){
+  return (
+    <svg
+      width={size} height={size * 1.3}
+      viewBox="0 0 16 21"
+      xmlns="http://www.w3.org/2000/svg"
+      style={style}
+    >
+      {/* Corps du grain */}
+      <ellipse cx="8" cy="10.5" rx="6.5" ry="9.5" fill="#3D2010" stroke="#5C3317" strokeWidth=".8"/>
+      {/* Rainure centrale */}
+      <path d="M 8 2 Q 6 10.5 8 19" stroke="#1A0A04" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+      {/* Highlight subtil */}
+      <ellipse cx="6" cy="6" rx="1.5" ry="2.5" fill="rgba(255,200,140,.15)"/>
+    </svg>
   );
 }

@@ -58,6 +58,10 @@ export const GLOBAL_CSS = `
   @keyframes cupGameTapPulse{0%,100%{opacity:.75;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.04)}}
   @keyframes cupGameRewardFloat{0%{transform:translate(-50%,30px);opacity:0}15%{opacity:1}100%{transform:translate(-50%,-80px);opacity:0}}
   @keyframes cupGameGlowPulse{0%,100%{opacity:.4;transform:translateX(-50%) scale(.95)}50%{opacity:.8;transform:translateX(-50%) scale(1.05)}}
+  /* Pile de Tasses — refonte design : grains café flottants en BG +
+     particules grains qui jaillissent au tap. */
+  @keyframes pyramidBeanFloat{0%,100%{transform:translateY(0) rotate(var(--rot,0deg))}50%{transform:translateY(-8px) rotate(var(--rot,0deg))}}
+  @keyframes pyramidBeanFly{0%{transform:translate(0,0) rotate(0);opacity:1}100%{transform:translate(var(--ptx,0),var(--pty,0)) rotate(var(--prot,360deg));opacity:0}}
   /* Machine à Sous (BRIEF) — rouleau qui défile, arrêt rebond, halo gagnants, jackpot */
   @keyframes slotReelSpin{0%{transform:translateY(-100%);opacity:.3}50%{transform:translateY(0);opacity:1}100%{transform:translateY(100%);opacity:.3}}
   @keyframes slotReelStop{0%{transform:translateY(-50px) scale(.8);opacity:0}60%{transform:translateY(5px) scale(1.1);opacity:1}100%{transform:translateY(0) scale(1);opacity:1}}
