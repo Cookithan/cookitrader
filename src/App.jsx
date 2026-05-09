@@ -1118,20 +1118,37 @@ export default function CookiMiner() {
     }
     /* Déblocage d'un item REWARDS (typiquement un thème édition limitée
        comme theme_noir via le code BLACK). Idempotent : pas de doublon
-       dans `unlocked`. */
+       dans `unlocked`. Si on trouve l'item, on déclenche la modale
+       festive (réutilise EventRewardModal avec headline "Code promo"). */
+    let unlockedItem = null;
     if(promo.unlock){
       setUnlocked(u => u.includes(promo.unlock) ? u : [...u, promo.unlock]);
+      unlockedItem = REWARDS.find(r => r.id === promo.unlock) || null;
+      if(unlockedItem){
+        const typeMap = { 'Thème':'theme', 'Badge':'badge' };
+        setEventReward({
+          source:    'promo',
+          type:      typeMap[unlockedItem.type] || 'theme',
+          id:        unlockedItem.id,
+          name:      unlockedItem.name,
+          cafeBonus: 0,
+        });
+      }
     }
     setPromoCodesUsed(arr => Array.isArray(arr) ? [...arr, promo.code] : [promo.code]);
     playSound('success');
+    /* Toast minimal — la modale festive prend le relais quand un item
+       est débloqué, donc on ne mentionne pas l'item dans le toast pour
+       éviter la redondance. */
     const parts = [];
     if(promo.coins)  parts.push(`+${promo.coins} 🍪`);
     if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
     if(promo.shares) parts.push(`+${promo.shares} action${promo.shares > 1 ? 's' : ''} $CKM`);
     if(promo.level)  parts.push(`Niv ${promo.level}`);
-    if(promo.unlock) parts.push('Item débloqué');
-    showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
-  }, [addCoins, setCafes, setLevel, setXp, setUnlocked, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
+    if(parts.length){
+      showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
+    }
+  }, [addCoins, setCafes, setLevel, setXp, setUnlocked, setEventReward, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
@@ -2045,6 +2062,11 @@ export default function CookiMiner() {
       {eventReward && (
         <EventRewardModal
           reward={eventReward}
+          /* La même modale sert pour les events et pour les codes promo
+             qui débloquent un item (cf. promo.unlock dans redeemPromoCode).
+             headline + ribbon adaptés selon la source. */
+          headline={eventReward?.source === 'promo' ? 'Code promo validé !' : 'Événement réussi !'}
+          ribbon={eventReward?.source === 'promo' ? 'Code promo' : 'Édition limitée'}
           onClose={()=>setEventReward(null)}
           /* Thèmes vivent dans Settings, badges dans le profil — route en
              conséquence pour que l'utilisateur voie effectivement sa récompense. */

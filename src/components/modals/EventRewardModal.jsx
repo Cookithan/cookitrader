@@ -1,24 +1,27 @@
 import { GOLD } from "../../data/themes.js";
 
 /* ════════════════════════════════════════════════════
-   EventRewardModal — récompense d'événement réussi (PHASE 6E)
+   EventRewardModal — récompense débloquée (PHASE 6E + codes promo)
    ────────────────────────────────────────────────────
-   S'ouvre quand le challenge d'un event a été validé via
-   checkEventChallenge dans App.jsx.
+   S'ouvre quand :
+   - le challenge d'un event est validé (checkEventChallenge)
+   - un code promo avec champ `unlock` est appliqué (redeemPromoCode)
 
-   Affiche : confettis dorés, titre "🏆 ÉVÉNEMENT RÉUSSI !",
-   nom de l'item débloqué, bouton "Voir mon X" qui ferme la modale
-   et navigue vers la bonne destination (App.jsx route via reward.type).
+   Affiche : confettis dorés, headline configurable, ribbon source
+   ("Édition limitée" par défaut, "Code promo" pour les promos), nom
+   de l'item débloqué, bouton "Voir mon X" routé selon reward.type.
 
    reward.type ∈ {'theme','badge'} — détermine le libellé du bouton.
    Au-delà de ces deux types, on retombe sur "Voir" générique pour
-   ne pas casser si un nouveau type d'event apparaît.
+   ne pas casser si un nouveau type apparaît.
 
    Props :
-   - reward  : { type:'theme'|'badge', id, name }
-   - onClose : ferme la modale
-   - onView  : optionnel, appelé en plus de onClose au clic sur "Voir"
-   - C       : palette
+   - reward   : { type:'theme'|'badge', id, name, cafeBonus? }
+   - headline : texte sous le 🏆 (défaut "Événement réussi !")
+   - ribbon   : texte du badge (défaut "Édition limitée")
+   - onClose  : ferme la modale
+   - onView   : optionnel, appelé en plus de onClose au clic sur "Voir"
+   - C        : palette
 ═══════════════════════════════════════════════════════ */
 
 const VIEW_LABELS = {
@@ -26,7 +29,7 @@ const VIEW_LABELS = {
   badge: 'Voir mon badge',
 };
 
-export function EventRewardModal({ reward, onClose, onView, C }){
+export function EventRewardModal({ reward, headline = 'Événement réussi !', ribbon = 'Édition limitée', onClose, onView, C }){
   if(!reward) return null;
   const viewLabel = VIEW_LABELS[reward.type] || 'Voir la récompense';
 
@@ -67,7 +70,7 @@ export function EventRewardModal({ reward, onClose, onView, C }){
             fontSize:11, fontWeight:900, color:'#5D3A1F',
             letterSpacing:3, textTransform:'uppercase', marginBottom:10,
           }}>
-            Événement réussi !
+            {headline}
           </div>
           <div style={{ fontSize:13, color:'#5D3A1F', marginBottom:6, fontWeight:600 }}>
             Tu as débloqué :
@@ -81,7 +84,7 @@ export function EventRewardModal({ reward, onClose, onView, C }){
               background:'rgba(60,30,10,.18)', color:'#3D2010',
               fontSize:10, fontWeight:800, letterSpacing:1.5, textTransform:'uppercase',
             }}>
-              Édition limitée
+              {ribbon}
             </span>
             {reward.cafeBonus > 0 && (
               <span style={{
