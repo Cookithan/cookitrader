@@ -17,7 +17,7 @@ import { playSound } from "../../lib/audio.js";
 
    Anti auto-clicker (BRIEF_ANTICHEAT) — tout est délégué au ClickTracker
    instancié au début de chaque partie :
-   - Cap dur 12 CPS (fenêtre glissante 1 s)
+   - Cap dur 15 CPS (fenêtre glissante 1 s)
    - Score max 150 clics par partie
    - Détection de pattern bot (variance des intervalles < 5 ms sur 10 clics)
    Les clics rejetés ne sont pas comptés ni animés. Si un cheat est
@@ -153,7 +153,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     if(e && e.preventDefault) e.preventDefault();
     if(!trackerRef.current) return;
 
-    /* Délégation au ClickTracker : 12 CPS max + cap 150 + détection
+    /* Délégation au ClickTracker : 15 CPS max + cap 150 + détection
        pattern bot. Si le clic est rejeté on n'incrémente rien et on
        affiche un warning si c'est de la triche. */
     const result = trackerRef.current.registerClick();
@@ -170,7 +170,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     }
 
     const now = Date.now();
-    /* Son pop à chaque clic validé. Le throttle anti-cheat (12 CPS max)
+    /* Son pop à chaque clic validé. Le throttle anti-cheat (15 CPS max)
        limite déjà naturellement la fréquence à un niveau acoustiquement
        supportable — pas de throttle audio supplémentaire. */
     playSound('tap');

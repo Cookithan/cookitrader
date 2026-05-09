@@ -3,8 +3,8 @@
    ────────────────────────────────────────────────────
    3 protections combinées contre les auto-clickers et scripts console :
 
-   1. **Cap dur 12 CPS** : un humain rapide tape ~10-12 clics/s, donc
-      au-delà de 12 dans une fenêtre glissante d'1 s → clic ignoré.
+   1. **Cap dur 15 CPS** : un humain rapide tape ~10-12 clics/s, donc
+      au-delà de 15 dans une fenêtre glissante d'1 s → clic ignoré.
    2. **Score max 150** par partie : même un joueur très bon tient
       dans cette enveloppe ; un bot serait coupé bien avant.
    3. **Détection de pattern bot** : si les 10 derniers clics sont
@@ -21,7 +21,7 @@
 ═══════════════════════════════════════════════════════ */
 
 const CLICK_LIMITS = {
-  MAX_CLICKS_PER_SECOND: 12,
+  MAX_CLICKS_PER_SECOND: 15,
   MAX_CLICKS_PER_GAME: 150,
   PATTERN_DETECTION_WINDOW: 10,
   PATTERN_TOLERANCE_MS: 5,
@@ -44,14 +44,14 @@ export class ClickTracker {
   registerClick() {
     const now = performance.now();
 
-    // 1. Cap dur (12 clics/s)
+    // 1. Cap dur (15 clics/s)
     const oneSecondAgo = now - 1000;
     const recentClicks = this.clickTimestamps.filter(t => t > oneSecondAgo);
 
     if (recentClicks.length >= CLICK_LIMITS.MAX_CLICKS_PER_SECOND) {
       return {
         accepted: false,
-        reason: 'Trop rapide ! Maximum 12 clics par seconde.',
+        reason: 'Trop rapide ! Maximum 15 clics par seconde.',
         isCheat: true,
       };
     }
