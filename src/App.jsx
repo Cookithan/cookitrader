@@ -805,16 +805,18 @@ export default function CookiMiner() {
     const lv  = lvRef.current;
     const cur = xpRef.current;
 
-    /* Endgame : à partir du niveau 15 (max), chaque palier de 1000 XP
-       gagnés rapporte 1 ☕. L'XP visible repart de 0 à chaque palier
-       (xp = total % 1000). Multi-CF possible si xpDelta très gros.
-       (Décalé de 10→15 le 09/05/2026 avec l'extension niv 11-15.) */
+    /* Endgame : niveau 16 = palier final. XP accumule de 0 à 20000.
+       Tous les 1000 XP franchis, +1 ☕ (loop café). À 20000 XP, l'XP
+       est cappée — pas de level-up vers 17, le prestige prend le relais.
+       Niv 15 redevient un palier normal (level-up vers 16 standard). */
     const ENDGAME_XP_TIER = 1000;
-    if(lv>=15){
-      const total = cur + xpDelta;
-      const cfsEarned = Math.floor(total / ENDGAME_XP_TIER);
-      const remainder = total - cfsEarned * ENDGAME_XP_TIER;
-      setXp(remainder); xpRef.current = remainder;
+    const ENDGAME_XP_CAP  = 20000;   // = xpRequired(16)
+    if(lv === 16){
+      const newXp = Math.min(cur + xpDelta, ENDGAME_XP_CAP);
+      const oldMile = Math.floor(cur   / ENDGAME_XP_TIER);
+      const newMile = Math.floor(newXp / ENDGAME_XP_TIER);
+      const cfsEarned = newMile - oldMile;
+      setXp(newXp); xpRef.current = newXp;
       if(cfsEarned > 0){
         setTimeout(()=>{
           setCafes(c=>c+cfsEarned);
@@ -1479,13 +1481,13 @@ export default function CookiMiner() {
     setShowOnboarding(true);
   };
 
-  /* Prestige (renaissance) — disponible dès le niveau 15. Reset les
-     progressions volatiles (niveau, XP, cookies, totalEarned, streak,
-     clickRecord) et incrémente prestigeLevel pour booster le multiplicateur
-     de gains de +10 %. Garde tout le reste : items, succès, cafés, actions
-     $CKM, identité, amis. */
+  /* Prestige (renaissance) — disponible quand niveau 16 atteint avec
+     20000 XP cumulés sur ce palier. Reset les progressions volatiles
+     (niveau, XP, cookies, totalEarned, streak, clickRecord) et incrémente
+     prestigeLevel pour booster le multiplicateur de gains de +10 %.
+     Garde tout le reste : items, succès, cafés, actions $CKM, identité, amis. */
   const doPrestige = () => {
-    if(level < 15) return;
+    if(level < 16 || xp < 20000) return;
     /* Évite tout bonus level-up flottant */
     setPendingLvUp(null);
     setLevel(1);   lvRef.current = 1;
@@ -1640,7 +1642,7 @@ export default function CookiMiner() {
     const allEventsOwned = eventThemeIds.every(id => unlocked.includes(id));
 
     const endGameReady =
-      level >= 15 &&
+      level >= 16 &&
       allEndGameAchievementsDone &&
       allShopOwned &&
       allSecretsOwned &&
@@ -1859,9 +1861,10 @@ export default function CookiMiner() {
               )}
             </button>
 
-            {/* Carte Prestige — visible uniquement au niveau max (15).
-                Renaître = repartir lvl 1 avec un multiplicateur permanent. */}
-            {level >= 15 && (
+            {/* Carte Prestige — visible quand niveau 16 atteint avec
+                20000 XP cumulés. Renaître = repartir lvl 1 avec un
+                multiplicateur permanent. */}
+            {level >= 16 && xp >= 20000 && (
               <button
                 onClick={()=>{ playSound('modal'); setShowPrestigeModal(true); }}
                 className="su"

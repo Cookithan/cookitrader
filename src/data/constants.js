@@ -29,14 +29,19 @@ export const LEVEL_NAMES = [
   'Alchimiste du Cookie',       // 12
   'Gardien des Saveurs',        // 13 — débloque la Machine à Sous
   'Phoenix du Café',            // 14
-  'Cookie Originel',            // 15 — niveau max, endgame XP→☕ démarre ici
+  'Cookie Originel',            // 15
+  'Ascendant Caféiné',          // 16 — palier endgame : 20000 XP à grinder, café loop actif (1000 XP = 1 ☕), prestige proposé à 20000
 ];
 
 /* XP requise dans le niveau `level` pour passer à `level+1`.
    Discontinuité volontaire entre 5 et 6 : passage en mode "end-game"
-   où chaque palier débloque +1 ☕ (au lieu de cookies). */
+   où chaque palier débloque +1 ☕ (au lieu de cookies).
+   Niveau 16 : palier endgame final = 20000 XP à grinder, à la fin
+   le prestige (renaissance) est proposé. Pas de niveau 17 — au-delà
+   c'est uniquement le prestige qui fait progresser. */
 export function xpRequired(level){
   if(level <= 5) return level * 100 + 50;
+  if(level === 16) return 20000;
   return level * level * 50;
 }
 
