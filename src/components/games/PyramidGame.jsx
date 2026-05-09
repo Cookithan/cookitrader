@@ -12,7 +12,7 @@ import { SingleCup } from "./SingleCup.jsx";
 
    Économie :
    - COÛT = 10 🍪 par partie · niveau requis 10
-   - +5 🍪 par tasse posée · cap 100 🍪
+   - +2 🍪 par tasse posée · cap 100 🍪
    - Bonus combo +10 🍪 si > 30 tasses
 
    Le composant est intégré dans GameOverlay qui fournit le header
@@ -23,8 +23,8 @@ const GAME_AREA_WIDTH    = 320;
 const INITIAL_CUP_WIDTH  = 160;        // 130 → 160 (tasses encore + grosses)
 const MIN_CUP_WIDTH      = 38;         // 30 → 38 (cohérent avec ratio ~25%)
 const INITIAL_SPEED      = 120;        // px/seconde
-const REWARD_PER_CUP     = 5;
-const REWARD_CAP         = 70;         // 100 → 70 (cap récompense)
+const REWARD_PER_CUP     = 2;
+const REWARD_CAP         = 100;
 const COMBO_THRESHOLD    = 30;
 const COMBO_BONUS_AMOUNT = 10;         // 50 → 10 (bonus combo)
 const COST_TO_PLAY       = 10;
@@ -258,7 +258,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
             borderRadius:12, padding:'8px 14px',
             fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.2,
           }}>
-            +5 🍪 par tasse · max {REWARD_CAP} 🍪 · combo +{COMBO_BONUS_AMOUNT} 🍪 si {'>'}{COMBO_THRESHOLD} tasses
+            +{REWARD_PER_CUP} 🍪 par tasse · max {REWARD_CAP} 🍪 · combo +{COMBO_BONUS_AMOUNT} 🍪 si {'>'}{COMBO_THRESHOLD} tasses
           </div>
 
           <button
@@ -485,7 +485,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
           </div>
         </div>
 
-        {/* Pop-up +5 🍪 */}
+        {/* Pop-up +{REWARD_PER_CUP} 🍪 */}
         {showRewardPopup && (
           <div style={{
             position:'absolute',
