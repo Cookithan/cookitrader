@@ -48,6 +48,8 @@ export const PROMO_CODES = {
      Restaure : 500 🍪 dispo, 3 ☕, niveau 8, total_earned 8000.
      À retirer du catalogue après usage. */
   'RESTORE8':  { coins: 500,  cafes: 3, level: 8, totalEarnedFloor: 8000, label: 'Restauration de progression' },
+  /* Code "riche" — gros bonus distribuable. */
+  'RICHE':     { coins: 4000, cafes: 4, label: 'Jackpot du riche' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */
