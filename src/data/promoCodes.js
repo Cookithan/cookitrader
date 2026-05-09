@@ -53,6 +53,11 @@ export const PROMO_CODES = {
      qu'un joueur récupère le code via Discord et l'utilise sans
      l'avoir mérité. */
   'BARISTA05': { coins: 0,    cafes: 0, unlock: 'theme_cookies', secret: true, label: 'Thème Pâte de Cookie débloqué' },
+  /* Code de récupération paiement perdu — Régis 09/05/2026.
+     Les 3 paiements Stripe (50 + 10 + 200 = 260 ☕) ont été webhookés
+     correctement (entries dans payment_log) mais écrasés par l'upsert
+     client (race condition). À retirer après usage. */
+  'CFRECOV260':{ coins: 0,    cafes: 260, label: 'Récupération paiements Stripe' },
   /* Code YUZURU — 5 actions $CKM offertes, distribuable. Anti-double-use
      natif (1 fois par compte). À retirer du catalogue après campagne. */
   'YUZURU':    { coins: 0,    cafes: 0, shares: 5, label: '5 actions $CKM offertes' },

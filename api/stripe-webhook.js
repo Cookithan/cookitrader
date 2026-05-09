@@ -114,27 +114,39 @@ export default async function handler(req, res){
       return res.status(500).end('Logging failed');
     }
 
-    /* Crédit atomic : on lit cafes courant, on ajoute, on update.
-       Idéalement RPC SQL, mais en JS pur avec service-role ça suffit. */
-    const { data: user, error: readErr } = await supabase
-      .from('users')
-      .select('cafes')
-      .eq('user_code', userCode)
-      .maybeSingle();
-    if(readErr || !user){
+    /* Crédit atomique via RPC SQL : `update users set cafes = cafes + X`
+       en une seule transaction. Évite la race condition read-modify-write
+       si plusieurs webhooks arrivent en parallèle.
+       (Le client peut quand même écraser via upsert non-atomique côté
+       JS — mitigé en pausant l'upsert client 60s après retour Stripe.) */
+    const { error: rpcErr } = await supabase.rpc('increment_cafes', {
+      p_user_code: userCode,
+      p_amount:    cafes,
+    });
+    if(rpcErr){
+      /* Fallback read-modify-write si la RPC n'existe pas encore */
       // eslint-disable-next-line no-console
-      console.error('[stripe-webhook] user not found:', userCode, readErr);
-      return res.status(500).end('User not found');
-    }
-    const newCafes = (Number(user.cafes) || 0) + cafes;
-    const { error: updErr } = await supabase
-      .from('users')
-      .update({ cafes: newCafes })
-      .eq('user_code', userCode);
-    if(updErr){
-      // eslint-disable-next-line no-console
-      console.error('[stripe-webhook] update error:', updErr);
-      return res.status(500).end('Update failed');
+      console.warn('[stripe-webhook] RPC increment_cafes failed, fallback:', rpcErr.message);
+      const { data: user, error: readErr } = await supabase
+        .from('users')
+        .select('cafes')
+        .eq('user_code', userCode)
+        .maybeSingle();
+      if(readErr || !user){
+        // eslint-disable-next-line no-console
+        console.error('[stripe-webhook] user not found:', userCode, readErr);
+        return res.status(500).end('User not found');
+      }
+      const newCafes = (Number(user.cafes) || 0) + cafes;
+      const { error: updErr } = await supabase
+        .from('users')
+        .update({ cafes: newCafes })
+        .eq('user_code', userCode);
+      if(updErr){
+        // eslint-disable-next-line no-console
+        console.error('[stripe-webhook] update error:', updErr);
+        return res.status(500).end('Update failed');
+      }
     }
 
     return res.status(200).end('OK');

@@ -268,6 +268,11 @@ export default function CookiMiner() {
      reconnectant sur mobile"). Bascule à true une fois la réconciliation
      faite (ou immédiatement si Supabase off / pas encore d'identité). */
   const [pullDone, setPullDone] = useState(false);
+  /* Pause de l'upsert auto (timestamp). Tant que pauseUpsertUntil > now,
+     on push pas vers Supabase. Utilisé après retour Stripe pour laisser
+     le webhook + les re-pulls finaliser sans race condition (l'upsert
+     client écrasait sinon les cafés crédités par Stripe). */
+  const [pauseUpsertUntil, setPauseUpsertUntil] = useState(0);
   useEffect(()=>{
     if(!isSupabaseEnabled()){ setPullDone(true); return; }
     if(!userCode || !userName){ return; }
@@ -308,6 +313,13 @@ export default function CookiMiner() {
     if(!isSupabaseEnabled()) return;
     if(!userCode || !userName) return;
     if(!pullDone) return;   /* ⬅ gate : on attend la réconciliation */
+    /* Pause post-Stripe : on skip pour ne pas écraser un crédit webhook
+       en cours. Reschedule au moment du déblocage pour pousser ensuite. */
+    if(pauseUpsertUntil > Date.now()){
+      const remaining = pauseUpsertUntil - Date.now();
+      const t = setTimeout(() => setPauseUpsertUntil(0), remaining + 100);
+      return () => clearTimeout(t);
+    }
     const t = setTimeout(async ()=>{
       /* Filtre `unlocked` aux IDs de badges (REWARDS type='Badge' + secrets)
          pour que les amis voient ma collection sans bloater la requête avec
@@ -334,7 +346,7 @@ export default function CookiMiner() {
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [pullDone, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel]);
+  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
@@ -398,6 +410,10 @@ export default function CookiMiner() {
     if(purchase === 'success'){
       showToastRef.current?.('☕ Paiement reçu — tes cafés arrivent !');
       playSound('success');
+      /* PAUSE l'upsert auto pendant 60 s — le temps que le webhook +
+         re-pulls finalisent. Sinon le push client à 5s écraserait le
+         crédit Stripe (race condition documentée). */
+      setPauseUpsertUntil(Date.now() + 60_000);
       /* Re-pull à 3s, 8s, 15s pour rattraper le webhook qui peut être lent */
       const codeAtMount = userCodeRef.current;
       const delays = [3000, 8000, 15000];
