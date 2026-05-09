@@ -810,6 +810,37 @@ export default function CookiMiner() {
     }
   }, [userName, unlocked, setUnlocked]);
 
+  /* ⚙️ ONE-SHOT — boost manuel du compte "regis le vrai" (2026-05-10) :
+     niv 6 + 4122 🍪 + tous items boutique niv 1-4. Auto-applied au 1er
+     chargement après déploiement, puis flag LS pour ne plus retoucher.
+     Sync auto vers Supabase via le upsertProfile suivant.
+
+     ⚠ Pour retirer après usage : supprimer ce useEffect ET la clé LS
+     `cookiminer:regisBoostApplied` côté tous les appareils si besoin. */
+  useEffect(() => {
+    if(!userName) return;
+    if((userName || '').trim().toLowerCase() !== 'regis le vrai') return;
+    try{
+      if(window.localStorage.getItem('cookiminer:regisBoostApplied') === '1') return;
+    }catch{ return; }
+
+    setCoins(4122);
+    setTotalEarned(t => Math.max(t || 0, 4122));
+    setLevel(6);
+    setXp(0);
+
+    const itemsNiv1to4 = [
+      'badge_debutant','theme_creme','music_matin',
+      'badge_barista','theme_espresso','avatar_chef','skin_caramel',
+      'theme_caramel','avatar_robot','avatar_chat','title_mousse',
+      'avatar_renard','avatar_panda','skin_noisette',
+    ];
+    setUnlocked(u => Array.from(new Set([...(u || []), ...itemsNiv1to4])));
+
+    try{ window.localStorage.setItem('cookiminer:regisBoostApplied', '1'); }catch{}
+    showToastRef.current?.('🎁 Boost appliqué : niv 6 + 4122 🍪 + items niv 1-4');
+  }, [userName, setCoins, setTotalEarned, setLevel, setXp, setUnlocked]);
+
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
      l'unicité via is_processed côté Supabase, donc pas de garde ici.
