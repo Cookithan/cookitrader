@@ -1528,6 +1528,20 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /* Migration one-shot : reset des cafés à 0 pour tous les utilisateurs
+     (mai 2026, refonte économie premium → café devient rare). Ancien
+     stock = trop d'avantage vs nouvelle distribution réduite (-45%).
+     Flag LS pour idempotence ; au prochain upsert (5s), la valeur 0 est
+     poussée vers Supabase. Les paiements Stripe futurs partent de 0. */
+  useEffect(() => {
+    try {
+      if (window.localStorage.getItem('cookiminer:cafesResetMay10') === '1') return;
+      setCafes(0);
+      window.localStorage.setItem('cookiminer:cafesResetMay10', '1');
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const checkinReward = DAILY_REWARDS[streak % 7];
   const resetProgress = () => {
     /* Supabase : supprime le profil online en arrière-plan pour qu'il
