@@ -15,6 +15,10 @@
      - level   : si défini, force le niveau minimum après application
                  (utile pour les codes "boost" qui catapultent à un niveau
                  directement, sans passer par les addCoins palier par palier)
+     - totalEarnedFloor : si défini, garantit que totalEarned est >= valeur
+                 (utilisé pour les codes de RESTAURATION quand on a besoin
+                 de raligner total_earned avec le level forcé pour rester
+                 cohérent au classement)
      - unlock  : id d'un item REWARDS à ajouter à `unlocked` (typiquement
                  un thème édition limitée). Le toast mentionnera le nom.
      - label   : description courte (affichée à la confirmation)
@@ -39,6 +43,11 @@ export const PROMO_CODES = {
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
+  /* Code restauration ponctuel (mai 2026) — pour le pote de Régis qui a
+     perdu son state cookies après bug de sync cross-device pré-6469c9f.
+     Restaure : 500 🍪 dispo, 3 ☕, niveau 8, total_earned 8000.
+     À retirer du catalogue après usage. */
+  'RESTORE8':  { coins: 500,  cafes: 3, level: 8, totalEarnedFloor: 8000, label: 'Restauration de progression' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */

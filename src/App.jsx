@@ -1163,6 +1163,12 @@ export default function CookiMiner() {
       lvRef.current = promo.level;
       xpRef.current = 0;
     }
+    /* Restauration totalEarned : code de récupération qui ramène la
+       valeur cumulée à un seuil (ex: après une perte de sync). Idempotent —
+       n'écrase JAMAIS une valeur supérieure. */
+    if(promo.totalEarnedFloor && totalEarned < promo.totalEarnedFloor){
+      setTotalEarned(promo.totalEarnedFloor);
+    }
     /* Déblocage d'un item REWARDS (typiquement un thème édition limitée
        comme theme_noir via le code BLACK). Idempotent : pas de doublon
        dans `unlocked`. Si on trouve l'item, on déclenche la modale
@@ -1195,7 +1201,7 @@ export default function CookiMiner() {
     if(parts.length){
       showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
     }
-  }, [addCoins, setCafes, setLevel, setXp, setUnlocked, setEventReward, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
+  }, [addCoins, setCafes, setLevel, setXp, setUnlocked, setEventReward, setTotalEarned, totalEarned, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
 
   /* Cadeaux entre amis (BRIEF_CADEAUX_AMIS). Le débit du sender est local
      (spendCoins / setCafes) ; le crédit du destinataire arrive plus tard
