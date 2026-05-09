@@ -44,6 +44,7 @@ const UI_SOUNDS = {
   coin:     '/sounds/coin.mp3',      // gain de cookies (cristallin)
   swipe:    '/sounds/swipe.mp3',     // swipe nav onglets
   levelup:  '/sounds/levelup.mp3',   // fanfare festive level-up (universfield CC0)
+  wheel:    '/sounds/wheel-loop.mp3',// rotation roue (one-shot, slowdown intégré)
 };
 
 /* Sons en boucle (start/stop manuel) — typiquement le son du café qui
@@ -53,7 +54,6 @@ const UI_SOUNDS = {
 const LOOP_SOUNDS = {
   pour:  { src:'/sounds/pour.mp3',       volume:0.55 },
   slot:  { src:'/sounds/slot-loop.mp3',  volume:0.50 },  // rouleaux Machine à Sous
-  wheel: { src:'/sounds/wheel-loop.mp3', volume:0.50 },  // rotation de la Roue
 };
 const loopAudioCache = {};
 
