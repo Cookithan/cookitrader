@@ -221,4 +221,10 @@ export const GLOBAL_CSS = `
   @keyframes rxCrumbFly{0%{transform:translate(0,0) rotate(0) scale(1);opacity:1}100%{transform:translate(var(--tx),var(--ty)) rotate(var(--rot)) scale(.4);opacity:0}}
   .rx-plus-one{position:absolute;font-size:18px;font-weight:900;color:#D4A017;text-shadow:0 2px 4px rgba(0,0,0,.4);animation:rxPlusOneFloat .7s ease-out forwards;pointer-events:none}
   @keyframes rxPlusOneFloat{0%{transform:translate(-50%,0) scale(1);opacity:1}100%{transform:translate(-50%,-50px) scale(1.4);opacity:0}}
+
+  /* Thème Noir & Blanc — désature TOUTE l'UI quand activé. La classe est
+     toggle sur <body> par App.jsx selon activeTheme. Couvre les couleurs
+     hardcodées (GOLD, ESPRESSO, gradients), les emojis et les overlays
+     fixed (qui resteraient hors d'un filter sur le wrapper React). */
+  body.theme-noir-on{filter:grayscale(1)}
 `;

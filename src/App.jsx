@@ -630,6 +630,16 @@ export default function CookiMiner() {
   useEffect(()=>{
     if(tab !== 'boutique' && boutiqueMode === 'premium') setBoutiqueMode('shop');
   },[tab, boutiqueMode]);
+
+  /* Thème Noir & Blanc : désature globalement tout en posant une classe
+     sur <body>. Plus efficace que d'overrider chaque GOLD/ESPRESSO ; vise
+     aussi les overlays fixed qui se rendent hors du wrapper React. Reset
+     propre quand on quitte le thème ou au unmount. */
+  useEffect(()=>{
+    const on = activeTheme === 'theme_noir';
+    document.body.classList.toggle('theme-noir-on', on);
+    return ()=>{ document.body.classList.remove('theme-noir-on'); };
+  },[activeTheme]);
   const xpReq    = xpRequired(level);
   const xpPct    = Math.min((xp/xpReq)*100, 100);
   const canCheckin = lastCheckin !== new Date().toDateString();
