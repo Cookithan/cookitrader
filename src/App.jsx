@@ -31,6 +31,7 @@ import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
+import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
@@ -368,6 +369,9 @@ export default function CookiMiner() {
   const [showPrestigeModal, setShowPrestigeModal] = useState(false);
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
   const [paymentReceived, setPaymentReceived] = useState(null);
+  /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
+     la migration cafesResetMay10 trigger pour expliquer le reset à 0. */
+  const [showCafesResetNotice, setShowCafesResetNotice] = useState(false);
   const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium'
   const [cafeToast,    setCafeToast]    = useState(null);   // { amount, key } | null
   const cafeToastTimerRef = useRef(null);
@@ -1532,12 +1536,17 @@ export default function CookiMiner() {
      (mai 2026, refonte économie premium → café devient rare). Ancien
      stock = trop d'avantage vs nouvelle distribution réduite (-45%).
      Flag LS pour idempotence ; au prochain upsert (5s), la valeur 0 est
-     poussée vers Supabase. Les paiements Stripe futurs partent de 0. */
+     poussée vers Supabase. Les paiements Stripe futurs partent de 0.
+     Affiche une notice (CafesResetNoticeModal) pour expliquer. On évite
+     de pop la notice pour les fresh installs (pas d'utilisateur encore
+     connecté, ou stock déjà = 0). */
   useEffect(() => {
     try {
       if (window.localStorage.getItem('cookiminer:cafesResetMay10') === '1') return;
+      const hadCafes = (cafesRef.current ?? 0) > 0;
       setCafes(0);
       window.localStorage.setItem('cookiminer:cafesResetMay10', '1');
+      if (hadCafes) setShowCafesResetNotice(true);
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -2562,6 +2571,14 @@ export default function CookiMiner() {
         <PaymentSuccessModal
           cafesReceived={paymentReceived}
           onClose={()=>setPaymentReceived(null)}
+          C={C}
+        />
+      )}
+
+      {/* CAFES RESET NOTICE — annonce 1× de la refonte économie premium */}
+      {showCafesResetNotice && (
+        <CafesResetNoticeModal
+          onClose={()=>setShowCafesResetNotice(false)}
           C={C}
         />
       )}
