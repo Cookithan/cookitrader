@@ -719,7 +719,7 @@ const AvPanda = () => (
 const AvDragon = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
-      <radialGradient id="g_dr_head" cx="40%" cy="38%" r="78%">
+      <radialGradient id="g_dr_head" cx="38%" cy="34%" r="78%">
         <stop offset="0%"  stopColor={COOKIE} />
         <stop offset="55%" stopColor={COOKIE_DK} />
         <stop offset="100%" stopColor={ESPRESSO} />
@@ -733,12 +733,46 @@ const AvDragon = () => (
         <stop offset="0%"  stopColor={CREME} stopOpacity=".95" />
         <stop offset="100%" stopColor={CREME} stopOpacity="0" />
       </radialGradient>
+      <radialGradient id="g_dr_glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%"  stopColor="#FFE066" stopOpacity=".5" />
+        <stop offset="100%" stopColor="#FFE066" stopOpacity="0" />
+      </radialGradient>
+      {/* Filtre ombre portée pour la tête */}
+      <filter id="f_dr_shadow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="2" />
+        <feOffset dx="0" dy="2" result="off" />
+        <feComponentTransfer><feFuncA type="linear" slope="0.55" /></feComponentTransfer>
+        <feMerge>
+          <feMergeNode />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
     </defs>
+
+    {/* Halo doré derrière la tête — ajoute de la profondeur lumineuse */}
+    <circle cx="50" cy="48" r="42" fill="url(#g_dr_glow)" />
+
+    {/* Décor de fond — grains de café flottants côté sombre */}
+    <ellipse cx="14" cy="78" rx="3.2" ry="4.6" fill={ESPRESSO} opacity=".35" transform="rotate(-30 14 78)" />
+    <path d="M12 74 L16 82" stroke={ESPRESSO} strokeWidth=".8" opacity=".35" strokeLinecap="round" />
+    <ellipse cx="86" cy="82" rx="2.6" ry="3.8" fill={ESPRESSO} opacity=".3" transform="rotate(20 86 82)" />
+    <path d="M84 79 L88 85" stroke={ESPRESSO} strokeWidth=".7" opacity=".3" strokeLinecap="round" />
+    <ellipse cx="90" cy="60" rx="2.2" ry="3.2" fill={ESPRESSO} opacity=".3" transform="rotate(40 90 60)" />
+    <path d="M88 58 L92 62" stroke={ESPRESSO} strokeWidth=".6" opacity=".3" strokeLinecap="round" />
+
+    {/* Étincelles dorées côté lumineux */}
+    <circle cx="18" cy="20" r="1.4" fill="#FFE066" opacity=".9" />
+    <circle cx="14" cy="40" r="0.9" fill="#FFE066" opacity=".7" />
+    <circle cx="86" cy="36" r="1.1" fill="#FFE066" opacity=".75" />
+    <path d="M22 12 L23 16 L27 17 L23 18 L22 22 L21 18 L17 17 L21 16 Z" fill="#FFE066" opacity=".8" />
 
     {/* Vapeur de café floue derrière la tête (deux nuages diffus) */}
     <ellipse cx="20" cy="22" rx="11" ry="7"  fill="url(#g_dr_steam)" />
     <ellipse cx="80" cy="22" rx="11" ry="7"  fill="url(#g_dr_steam)" />
     <ellipse cx="50" cy="14" rx="14" ry="6"  fill="url(#g_dr_steam)" opacity=".7" />
+
+    {/* Ombre portée subtile au sol sous le menton */}
+    <ellipse cx="50" cy="92" rx="22" ry="3" fill={ESPRESSO} opacity=".35" />
 
     {/* Cornes (grains de café stylisés) — symétriques */}
     <ellipse cx="32" cy="22" rx="5"  ry="11" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="2" transform="rotate(-22 32 22)" />
@@ -749,18 +783,26 @@ const AvDragon = () => (
 
     {/* Tête de dragon : front rond (curve), joues ANGULEUSES en lignes
         droites qui descendent vers le menton pointu. Forme losange-bouclier
-        plutôt qu'ovale. Symétrique cx=50. */}
+        plutôt qu'ovale. Symétrique cx=50. Filtre drop-shadow pour le relief. */}
+    <g filter="url(#f_dr_shadow)">
+      <path
+        d="M24 44
+           Q24 28 50 28
+           Q76 28 76 44
+           L70 58
+           L58 74
+           Q50 80 42 74
+           L30 58
+           Z"
+        fill="url(#g_dr_head)" stroke={ESPRESSO} strokeWidth="3" strokeLinejoin="round"
+      />
+    </g>
+    {/* Ombre interne côté droit (relief 3D) */}
     <path
-      d="M24 44
-         Q24 28 50 28
-         Q76 28 76 44
-         L70 58
-         L58 74
-         Q50 80 42 74
-         L30 58
-         Z"
-      fill="url(#g_dr_head)" stroke={ESPRESSO} strokeWidth="3" strokeLinejoin="round"
+      d="M76 44 L70 58 L58 74 Q50 80 42 74 L30 58 L24 44"
+      fill="none" stroke={ESPRESSO} strokeWidth="2.5" strokeLinejoin="round" opacity=".25"
     />
+    <path d="M70 50 Q72 58 66 70" stroke={ESPRESSO} strokeWidth="3" fill="none" opacity=".22" strokeLinecap="round" />
 
     {/* Crête centrale (3 piques crème) — au sommet de la tête */}
     <path d="M44 33 L46 25 L48 33 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
