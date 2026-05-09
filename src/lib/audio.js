@@ -29,7 +29,9 @@
    Volume par défaut 50 %. Les sons en `loop` sont gérés via
    playSoundLoop / stopSoundLoop (cf. plus bas). */
 const UI_SOUNDS = {
-  tap:      '/sounds/tap.mp3',
+  /* tap : pas de MP3 dédié — on réutilise tab.mp3 (cliquetis court, 18 KB)
+     pour les claps de cookies (ClickGame, ReflexGame, Pyramid, Slot stops). */
+  tap:      '/sounds/tab.mp3',
   success:  '/sounds/success.mp3',
   error:    '/sounds/error.mp3',
   modal:    '/sounds/modal.mp3',
