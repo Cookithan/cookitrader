@@ -226,8 +226,9 @@ export const GLOBAL_CSS = `
      toggle sur <body> par App.jsx selon activeTheme. Couvre les couleurs
      hardcodées (GOLD, ESPRESSO, gradients), les emojis et les overlays
      fixed (qui resteraient hors d'un filter sur le wrapper React).
-     contrast(1.2) écrase les mid-greys vers les extrêmes pour une lecture
-     plus tranchée N&B (sinon tout est gris-moyen et la palette du jeu
-     vire au mou). */
-  body.theme-noir-on{filter:grayscale(1) contrast(1.2)}
+     `contrast()` retiré car coûteux à chaque repaint (lag perceptible
+     sur switch d'onglet / animations). On garde grayscale(1) seul, et
+     la palette du thème est déjà tunée extrême noir/blanc pour
+     compenser. */
+  body.theme-noir-on{filter:grayscale(1)}
 `;
