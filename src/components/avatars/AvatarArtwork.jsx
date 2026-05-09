@@ -774,12 +774,17 @@ const AvDragon = () => (
     {/* Ombre portée subtile au sol sous le menton */}
     <ellipse cx="50" cy="92" rx="22" ry="3" fill={ESPRESSO} opacity=".35" />
 
-    {/* Cornes (grains de café stylisés) — symétriques */}
-    <ellipse cx="32" cy="22" rx="5"  ry="11" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="2" transform="rotate(-22 32 22)" />
-    <ellipse cx="68" cy="22" rx="5"  ry="11" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="2" transform="rotate(22 68 22)" />
-    {/* Sillon central des grains */}
-    <path d="M30 14 L34 30" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" transform="rotate(-22 32 22)" />
-    <path d="M70 14 L66 30" stroke={ESPRESSO} strokeWidth="1.4" strokeLinecap="round" transform="rotate(22 68 22)" />
+    {/* Grosses cornes courbées vers l'extérieur — plus longues et menaçantes */}
+    <path d="M30 30 Q14 22 8 4 Q18 8 24 18 Q28 24 32 30 Z"
+          fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="2" strokeLinejoin="round" />
+    <path d="M70 30 Q86 22 92 4 Q82 8 76 18 Q72 24 68 30 Z"
+          fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="2" strokeLinejoin="round" />
+    {/* Reflet sur les cornes */}
+    <path d="M14 14 Q20 12 24 18" stroke={CREME} strokeWidth="1" fill="none" opacity=".55" strokeLinecap="round" />
+    <path d="M86 14 Q80 12 76 18" stroke={CREME} strokeWidth="1" fill="none" opacity=".55" strokeLinecap="round" />
+    {/* Petits piques d'oreille latéraux */}
+    <path d="M22 38 L16 36 L22 44 Z" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="1.4" strokeLinejoin="round" />
+    <path d="M78 38 L84 36 L78 44 Z" fill={COOKIE_DK} stroke={ESPRESSO} strokeWidth="1.4" strokeLinejoin="round" />
 
     {/* Tête de dragon : front rond (curve), joues ANGULEUSES en lignes
         droites qui descendent vers le menton pointu. Forme losange-bouclier
@@ -804,10 +809,12 @@ const AvDragon = () => (
     />
     <path d="M70 50 Q72 58 66 70" stroke={ESPRESSO} strokeWidth="3" fill="none" opacity=".22" strokeLinecap="round" />
 
-    {/* Crête centrale (3 piques crème) — au sommet de la tête */}
-    <path d="M44 33 L46 25 L48 33 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M48 31 L50 22 L52 31 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M52 33 L54 25 L56 33 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
+    {/* Crête de 5 piques — plus longues et acérées, en arc sur le crâne */}
+    <path d="M40 35 L41 26 L43 35 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M44 33 L46 22 L48 33 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M48 31 L50 18 L52 31 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.3" strokeLinejoin="round" />
+    <path d="M52 33 L54 22 L56 33 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
+    <path d="M57 35 L59 26 L60 35 Z" fill={CREME} stroke={ESPRESSO} strokeWidth="1.2" strokeLinejoin="round" />
 
     {/* Pépites/écailles régulières sur les joues */}
     <circle cx="33" cy="50" r="1.6" fill={ESPRESSO} opacity=".75" />
@@ -817,26 +824,46 @@ const AvDragon = () => (
     <circle cx="38" cy="68" r="1.3" fill={ESPRESSO} opacity=".6" />
     <circle cx="62" cy="68" r="1.3" fill={ESPRESSO} opacity=".6" />
 
-    {/* Yeux reptiliens — grands, dorés, alignés horizontalement */}
-    <ellipse cx="40" cy="50" rx="6" ry="6.5" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.6" />
-    <ellipse cx="60" cy="50" rx="6" ry="6.5" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.6" />
-    {/* Pupille verticale (fente reptilienne) */}
-    <ellipse cx="40" cy="50" rx="1.4" ry="5" fill={ESPRESSO} />
-    <ellipse cx="60" cy="50" rx="1.4" ry="5" fill={ESPRESSO} />
+    {/* Sourcils froncés — donnent l'air furieux */}
+    <path d="M30 42 L46 48" stroke={ESPRESSO} strokeWidth="3.5" strokeLinecap="round" />
+    <path d="M70 42 L54 48" stroke={ESPRESSO} strokeWidth="3.5" strokeLinecap="round" />
+
+    {/* Yeux reptiliens furieux — légèrement plissés (ellipses plus aplaties) */}
+    <ellipse cx="40" cy="51" rx="6.2" ry="5.5" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.7" />
+    <ellipse cx="60" cy="51" rx="6.2" ry="5.5" fill="url(#g_dr_eye)" stroke={ESPRESSO} strokeWidth="1.7" />
+    {/* Ombre supérieure — paupière qui surplombe (regard menaçant) */}
+    <path d="M34 48 Q40 49 46 48 L46 47 Q40 46 34 47 Z" fill={ESPRESSO} opacity=".7" />
+    <path d="M54 48 Q60 49 66 48 L66 47 Q60 46 54 47 Z" fill={ESPRESSO} opacity=".7" />
+    {/* Pupille verticale (fente reptilienne) plus fine = plus intense */}
+    <ellipse cx="40" cy="51" rx="1.1" ry="4.6" fill={ESPRESSO} />
+    <ellipse cx="60" cy="51" rx="1.1" ry="4.6" fill={ESPRESSO} />
     {/* Reflet brillant */}
-    <circle cx="42" cy="47.5" r="1.3" fill={CREME} />
-    <circle cx="62" cy="47.5" r="1.3" fill={CREME} />
+    <circle cx="42" cy="48.5" r="1.2" fill={CREME} />
+    <circle cx="62" cy="48.5" r="1.2" fill={CREME} />
 
-    {/* Naseaux + vapeur fine qui sort */}
-    <ellipse cx="46" cy="62" rx="1.5" ry="1.9" fill={ESPRESSO} />
-    <ellipse cx="54" cy="62" rx="1.5" ry="1.9" fill={ESPRESSO} />
-    <path d="M46 60 Q44 56 42 54" stroke={CREME} strokeWidth="1.8" fill="none" opacity=".75" strokeLinecap="round" />
-    <path d="M54 60 Q56 56 58 54" stroke={CREME} strokeWidth="1.8" fill="none" opacity=".75" strokeLinecap="round" />
+    {/* SCAR de combat sur l'œil droit (deux entailles) */}
+    <path d="M55 42 L66 58" stroke={ESPRESSO} strokeWidth="1.6" strokeLinecap="round" opacity=".75" />
+    <path d="M57 42 L65 56" stroke={CREME} strokeWidth="0.7" strokeLinecap="round" opacity=".55" />
 
-    {/* Bouche fermée + 2 crocs visibles, ajustés à la nouvelle forme losange */}
-    <path d="M42 70 Q50 74 58 70" stroke={ESPRESSO} strokeWidth="2.4" fill="none" strokeLinecap="round" />
-    <path d="M45 71 L46 75 L47 71 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".9" strokeLinejoin="round" />
-    <path d="M53 71 L54 75 L55 71 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".9" strokeLinejoin="round" />
+    {/* Naseaux + vapeur AGGRESSIVE qui sort en jets puissants */}
+    <ellipse cx="46" cy="62" rx="1.7" ry="2.2" fill={ESPRESSO} />
+    <ellipse cx="54" cy="62" rx="1.7" ry="2.2" fill={ESPRESSO} />
+    <path d="M46 60 Q42 54 38 50 Q36 46 32 42" stroke={CREME} strokeWidth="2.2" fill="none" opacity=".85" strokeLinecap="round" />
+    <path d="M54 60 Q58 54 62 50 Q64 46 68 42" stroke={CREME} strokeWidth="2.2" fill="none" opacity=".85" strokeLinecap="round" />
+    <path d="M44 56 Q40 50 36 46" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
+    <path d="M56 56 Q60 50 64 46" stroke={CREME} strokeWidth="1.4" fill="none" opacity=".55" strokeLinecap="round" />
+
+    {/* SNARL — bouche entrouverte qui montre les crocs */}
+    <path d="M40 70 Q50 76 60 70 L58 73 Q50 76 42 73 Z"
+          fill={ESPRESSO} stroke={ESPRESSO} strokeWidth="1.5" strokeLinejoin="round" />
+    {/* 4 crocs supérieurs (canines + incisives latérales) */}
+    <path d="M43 70 L44 75 L45 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".8" strokeLinejoin="round" />
+    <path d="M46 70 L47 73 L48 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M52 70 L53 73 L54 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M55 70 L56 75 L57 70 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".8" strokeLinejoin="round" />
+    {/* 2 crocs inférieurs */}
+    <path d="M44 76 L45 73 L46 76 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
+    <path d="M54 76 L55 73 L56 76 Z" fill={CREME} stroke={ESPRESSO} strokeWidth=".7" strokeLinejoin="round" />
   </svg>
 );
 
