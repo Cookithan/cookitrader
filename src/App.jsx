@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned } from "./lib/supabaseSync.js";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -26,6 +26,7 @@ import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
+import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
@@ -827,6 +828,48 @@ export default function CookiMiner() {
     setUserName(newName);
     showToastRef.current?.(`Pseudo mis à jour : ${newName}`);
   }, [userName, setUserName]);
+
+  /* AVERTISSEMENT ANTI-ÉCART TOP 1 — détecte si je suis le leader avec
+     plus de GAP_PCT % d'avance sur le 2e, et déclenche un popup
+     préventif. PAS bloquant : aucun gain n'est freiné, c'est juste un
+     rappel pour préserver l'équilibre du classement.
+     Trigger : 1 fois au mount + 1 fois après chaque level-up. Affichée
+     au max 1 fois par session via flag state pour pas spammer. */
+  const [gapWarning, setGapWarning] = useState(null);  // { myTotal, topTwo } | null
+  const [gapShownThisSession, setGapShownThisSession] = useState(false);
+  const checkLeaderGap = useCallback(async () => {
+    if(gapShownThisSession) return;
+    if(!userCode) return;
+    if(isAdminName(userName)) return;            // admins exclus du classement → pas concernés
+    const [topOne, topTwo] = await getTopTwoTotalEarned();
+    if(!topOne || !topTwo) return;               // moins de 2 joueurs publics
+    if(topOne.user_code !== userCode) return;    // je ne suis pas le top 1 → rien
+    const t2 = Number(topTwo.total_earned) || 0;
+    if(t2 <= 0) return;
+    const ratio = totalEarned / t2;
+    const GAP_PCT = 1.30;
+    if(ratio > GAP_PCT){
+      setGapWarning({ myTotal: totalEarned, topTwo: t2 });
+      setGapShownThisSession(true);
+    }
+  }, [userCode, userName, totalEarned, gapShownThisSession]);
+
+  /* Check au mount (debounce 3s pour laisser le upsertProfile pousser
+     les valeurs locales d'abord — sinon le check tomberait sur des
+     valeurs Supabase périmées). */
+  useEffect(() => {
+    const t = setTimeout(checkLeaderGap, 3000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Re-check après chaque level-up (moment où l'écart peut bondir). */
+  useEffect(() => {
+    if(!pendingLvUp) return;
+    const t = setTimeout(checkLeaderGap, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingLvUp]);
 
   /* CAPS FORCÉS — limite max sur totalEarned pour certains joueurs
      (rééquilibrage classement). Appliqué au 1er chargement après push,
@@ -2131,6 +2174,17 @@ export default function CookiMiner() {
 
       {/* LEVEL UP MODAL */}
       {pendingLvUp && <LevelUpModal level={pendingLvUp} onCollect={()=>setPendingLvUp(null)} />}
+
+      {/* AVERTISSEMENT ANTI-ÉCART TOP 1 — affichée si je suis le leader
+          avec >30 % d'avance sur le 2e. Préventif, pas bloquant. */}
+      {gapWarning && !pendingLvUp && (
+        <LeaderGapWarningModal
+          myTotal={gapWarning.myTotal}
+          topTwo={gapWarning.topTwo}
+          onClose={()=>setGapWarning(null)}
+          C={C}
+        />
+      )}
 
       {/* ACHIEVEMENT MODAL */}
       {pendingAchievement && !pendingLvUp && (

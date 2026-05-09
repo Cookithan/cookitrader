@@ -117,6 +117,27 @@ export async function getMyRank(myUserCode){
   }catch{ return null; }
 }
 
+/* Top 1 et Top 2 du classement Cookies (par total_earned desc, admins
+   et NON_RANKED_NAMES exclus). Utilisé par App.jsx pour détecter si
+   le leader actuel a un écart trop grand avec le second et déclencher
+   un avertissement préventif. Retourne `[topOne, topTwo]` (chaque
+   entrée = { user_code, user_name, total_earned } ou null si moins
+   de 2 joueurs publics). */
+export async function getTopTwoTotalEarned(){
+  if(!isSupabaseEnabled()) return [null, null];
+  try{
+    const { data } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('user_code, user_name, total_earned')
+    )
+      .order('total_earned', { ascending:false })
+      .limit(2);
+    const arr = data || [];
+    return [arr[0] || null, arr[1] || null];
+  }catch{ return [null, null]; }
+}
+
 /* Compte total des joueurs publics (Admin + NON_RANKED_NAMES exclus). */
 export async function getTotalPlayers(){
   if(!isSupabaseEnabled()) return null;
