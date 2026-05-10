@@ -54,7 +54,7 @@ export const MARKET_CONFIG = {
     { minMs:  0,                    bonus: 0,    label: '< 1 h'      },  // pas de bonus
   ],
   MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du total = 500 actions max par user (un whale n'influence le prix que de ~5 %)
-  MAX_SHARES_PER_TX:       100,   // Max 100 actions par tx (= 1 % impact prix, bien visible mais pas catastrophique)
+  MAX_SHARES_PER_TX:       20,    // Max 20 actions par tx — couplé au cooldown 60 s entre achats, force à étaler les gros achats. 20 actions = 0.2 % impact prix.
   MAX_DAILY_VOLUME:        1000,  // Volume cumulé (achats + ventes) sur 24 h, ajusté à la nouvelle profondeur
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
@@ -363,6 +363,16 @@ export async function buyShares(userCode, shares) {
     return {
       error: `Limite max ${MAX_SHARES_PER_USER} actions par utilisateur. Tu peux en acheter ${Math.max(0, remaining)} de plus`
     };
+  }
+
+  /* Cooldown 60 s entre 2 achats — empêche d'acheter en spam pour faire
+     monter le prix rapidement. Force à étaler les achats dans le temps. */
+  if (portfolio.last_buy_at) {
+    const elapsed = Date.now() - new Date(portfolio.last_buy_at).getTime();
+    if (elapsed < MARKET_CONFIG.SELL_COOLDOWN_MS) {
+      const wait = Math.ceil((MARKET_CONFIG.SELL_COOLDOWN_MS - elapsed) / 1000);
+      return { error: `Cooldown achat — patiente ${wait} s avant le prochain achat` };
+    }
   }
 
   const currentPrice = state.current_price;
