@@ -34,7 +34,7 @@ export const MARKET_CONFIG = {
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
   MEAN_REVERSION_TARGET: 100,     // Prix cible vers lequel le marché revient
-  MEAN_REVERSION_RATE: 0.04,      // Reversion vers TARGET active TOUT LE TEMPS (rate × 50 vs avant). Récupère ~50 % de l'écart en 12 h. Empêche les prix bloqués à 87 ou 200.
+  MEAN_REVERSION_RATE: 0.20,      // Reversion vers TARGET active TOUT LE TEMPS. Rate 0.20 = 50 % de l'écart corrigé en ~3.5 h, 95 % en ~12 h. Stabilisation rapide après les chocs.
   MEAN_REVERSION_LOW: 30,         // Plancher dur : sous ce prix, accélération de la reversion
   MEAN_REVERSION_HIGH: 700,       // Plafond dur : au-dessus, accélération inverse
   /* Circuit breaker auto : si le prix bouge de plus de
