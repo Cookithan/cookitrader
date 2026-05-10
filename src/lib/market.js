@@ -30,7 +30,7 @@ export const MARKET_CONFIG = {
      Repasser à false dès que les déséquilibres sont corrigés. */
   MAINTENANCE_MODE: true,
   TOTAL_SHARES: 1000,             // calibré pour une petite base de joueurs (passer à 10000+ quand l'app décolle)
-  IMPACT_PER_SHARE: 0.0005,       // +0.05 % par action (réduit depuis 0.001 pour limiter les chocs violents — un user à 140 actions pouvait faire chuter le prix de 14 % d'un coup)
+  IMPACT_PER_SHARE: 0.0007,       // +0.07 % par action — calibré pour que 1000 actions achetées (= toutes) fassent monter le prix à ~200, et toutes vendues à ~49. Range stable et lisible : 50-200.
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
   MEAN_REVERSION_TARGET: 100,     // Prix cible vers lequel le marché revient
