@@ -48,6 +48,8 @@ export const PROMO_CODES = {
      Convention : préfixe `CMK` (et non `CKM`) — cohérent historique
      même si le ticker affiché est $CKM. */
   'CMK1':      { coins: 0,    cafes: 0, shares: 1,  label: '1 action $CKM offerte' },
+  /* Code dédié 3 actions $CKM — distribution ponctuelle. */
+  '3TROIS':    { coins: 0,    cafes: 0, shares: 3,  label: '3 actions $CKM offertes' },
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },

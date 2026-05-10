@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ESPRESSO } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
-import { getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount } from "../../lib/supabaseSync.js";
+import { getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount, ONLINE_WINDOW_MS } from "../../lib/supabaseSync.js";
 import { getCurrentWeekId, getNextResetAt, formatTimeUntil } from "../../lib/weeklyCycle.js";
 import { isSanctionPublic } from "../../data/sanctions.js";
 import {
@@ -554,7 +554,30 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
       }}>
         #{rank}
       </div>
-      <AvatarFigure value={p.user_avatar} size={40} />
+      {(() => {
+        /* Pastille en ligne — caramel pulse en bas-droite de l'avatar
+           si last_active < ONLINE_WINDOW_MS. Affiché aussi pour soi. */
+        const lastMs = p.last_active ? new Date(p.last_active).getTime() : 0;
+        const isOnline = lastMs > 0 && (Date.now() - lastMs) < ONLINE_WINDOW_MS;
+        return (
+          <div style={{ position:'relative', flexShrink:0, lineHeight:0 }}>
+            <AvatarFigure value={p.user_avatar} size={40} />
+            {isOnline && (
+              <span
+                title="En ligne"
+                style={{
+                  position:'absolute', right:-2, bottom:0,
+                  width:11, height:11, borderRadius:'50%',
+                  background:'#D4A017',
+                  border:'2px solid #2A1408',
+                  boxShadow:'0 0 6px rgba(212,160,23,.85)',
+                  animation:'pulse-dot 1.6s ease-in-out infinite',
+                }}
+              />
+            )}
+          </div>
+        );
+      })()}
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
@@ -645,7 +668,30 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
       }}>
         #{rank}
       </div>
-      <AvatarFigure value={p.user_avatar} size={40} />
+      {(() => {
+        /* Pastille en ligne — caramel pulse en bas-droite de l'avatar
+           si last_active < ONLINE_WINDOW_MS. Affiché aussi pour soi. */
+        const lastMs = p.last_active ? new Date(p.last_active).getTime() : 0;
+        const isOnline = lastMs > 0 && (Date.now() - lastMs) < ONLINE_WINDOW_MS;
+        return (
+          <div style={{ position:'relative', flexShrink:0, lineHeight:0 }}>
+            <AvatarFigure value={p.user_avatar} size={40} />
+            {isOnline && (
+              <span
+                title="En ligne"
+                style={{
+                  position:'absolute', right:-2, bottom:0,
+                  width:11, height:11, borderRadius:'50%',
+                  background:'#D4A017',
+                  border:'2px solid #2A1408',
+                  boxShadow:'0 0 6px rgba(212,160,23,.85)',
+                  animation:'pulse-dot 1.6s ease-in-out infinite',
+                }}
+              />
+            )}
+          </div>
+        );
+      })()}
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
