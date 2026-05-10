@@ -976,9 +976,17 @@ export default function CookiMiner() {
 
      Mode test Admin (`admin558`) : ne reçoit AUCUN badge ni succès —
      compte de test pur, sans pollution du système d'unlocks. */
+  /* Helper : tuto fini (lu en LS, pas dans le state).
+     Couvre les nouveaux comptes où tutorialStep = 0 AVANT le démarrage du
+     tuto (faux positif si on gate juste sur tutorialStep > 0). */
+  const isTutorialDone = () => {
+    try { return window.localStorage.getItem('cookiminer:tutorialCompleted') === '1'; }
+    catch { return true; }
+  };
+
   useEffect(() => {
     if(!userName || showOnboarding) return;
-    if(tutorialStep > 0) return;   /* attends fin du tuto avant pop badge */
+    if(!isTutorialDone()) return;   /* attends fin du tuto avant pop badge */
     const isAdmin = isAdminName(userName);
     if(isAdmin) return;  /* admin → aucun badge */
     /* Cas normal : Noctambule selon l'heure. */
@@ -990,13 +998,13 @@ export default function CookiMiner() {
 
   useEffect(() => {
     if(isAdminName(userName)) return;
-    if(tutorialStep > 0) return;   /* attends fin du tuto avant pop badge */
+    if(!isTutorialDone()) return;   /* attends fin du tuto avant pop badge */
     if(marketRealized >= 1000) unlockSecretBadge('investisseur');
   }, [marketRealized, tutorialStep, unlockSecretBadge, userName]);
 
   useEffect(() => {
     if(isAdminName(userName)) return;
-    if(tutorialStep > 0) return;   /* attends fin du tuto avant pop badge */
+    if(!isTutorialDone()) return;   /* attends fin du tuto avant pop badge */
     if(friendCodes.length >= 3) unlockSecretBadge('amical');
   }, [friendCodes, tutorialStep, unlockSecretBadge, userName]);
 
