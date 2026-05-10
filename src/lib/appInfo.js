@@ -11,7 +11,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.9.0',
+  version: '1.10.0',
   releaseDate: '2026-05-10',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -19,6 +19,22 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.10.0',
+    date: '2026-05-10',
+    title: '👑 Boutique premium augmentée + raretés ☕',
+    changes: [
+      "👑 'Coup de Grâce' (200 ☕) — débloque toute la boutique 🍪 d'un coup, festivité post-achat",
+      "🧑‍🚀 Avatar Cosmonaute Caféiné (25 ☕) + Skin Cookie Galactique (15 ☕) ultra-premium",
+      "📈 Nouveaux packs $CKM en cafés : 25 / 50 / 100 actions (jusqu'à -40 % vs unitaire)",
+      "💰 Pack 5 000 🍪 (15 ☕) — boost cash direct rachetable",
+      "⏰ Bonus VIP cappés à 1 achat / jour — fini le cumul de boosts",
+      "⚡ Popup festif quand un boost ×2 ou Doubler amplifie un gain mini-jeu",
+      "💳 Bundle Stripe 0,99 € : 10 ☕ → 15 ☕ (meilleur ratio entry-level)",
+      "🌑 Fix : nav du bas ne disparaît plus en thème Noir & Blanc",
+      "🍪 Décor festif : cookies tournants en arrière-plan pour le thème Pâte de Cookie",
+    ],
+  },
   {
     version: '1.9.0',
     date: '2026-05-10',
