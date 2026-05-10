@@ -40,13 +40,13 @@ const COST_TO_PLAY       = 10;
 
 /* Modes de jeu (sélection avant partie). Les multiplicateurs s'appliquent
    au temps réel (vitesse) et au reward by-the-cup. Le `rewardCap` par
-   mode équilibre le risque/récompense : Rapide donne ×2 par tasse mais
-   cap plus bas (70 vs 80) — plus rapide à plafonner, donc partie plus
-   courte effective. */
+   mode équilibre le risque/récompense. `maxCups` (optionnel) termine
+   automatiquement la partie au seuil donné (utile pour Rapide qui irait
+   sinon trop loin grâce à la vitesse ×2). */
 const MODES = {
-  normal:    { label:'Normal',    emoji:'☕', desc:'Vitesse + reward standard · cap 80 🍪',         speedMul:1.0, rewardMul:1.0, perfectBonus:0, missPenalty:0, rewardCap:80 },
-  rapide:    { label:'Rapide',    emoji:'⚡', desc:'×2 vitesse, ×2 cookies · cap 70 🍪',            speedMul:2.0, rewardMul:2.0, perfectBonus:0, missPenalty:0, rewardCap:70 },
-  precision: { label:'Précision', emoji:'🎯', desc:'+2 🍪 parfait, -1 raté · cap 80 🍪',           speedMul:1.0, rewardMul:1.0, perfectBonus:2, missPenalty:1, rewardCap:80 },
+  normal:    { label:'Normal',    emoji:'☕', desc:'Vitesse + reward standard · cap 80 🍪',         speedMul:1.0, rewardMul:1.0, perfectBonus:0, missPenalty:0, rewardCap:80, maxCups:null },
+  rapide:    { label:'Rapide',    emoji:'⚡', desc:'×2 vitesse, ×2 cookies · cap 70 🍪 · max 50 tasses', speedMul:2.0, rewardMul:2.0, perfectBonus:0, missPenalty:0, rewardCap:70, maxCups:50 },
+  precision: { label:'Précision', emoji:'🎯', desc:'+2 🍪 parfait, -1 raté · cap 80 🍪',           speedMul:1.0, rewardMul:1.0, perfectBonus:2, missPenalty:1, rewardCap:80, maxCups:null },
 };
 
 /* Skins visuels (esthétique pure, pas d'impact gameplay) — tirés au
@@ -306,6 +306,13 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
 
     if(newScore === COMBO_THRESHOLD){
       setComboBonus(true);
+    }
+
+    /* Limite maxCups du mode (Rapide : 50 tasses) → fin auto.
+       On stoppe ici avant de spawn la prochaine tasse mobile. */
+    if(modeCfg.maxCups && newScore >= modeCfg.maxCups){
+      handleGameOver();
+      return;
     }
 
     /* Prépare la tasse suivante. Width = overlap (normal) OU
