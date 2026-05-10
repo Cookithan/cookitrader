@@ -45,6 +45,8 @@ export const MARKET_CONFIG = {
   CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
   CIRCUIT_BREAKER_PAUSE_MS:     60 * 60 * 1000, // pause 1 h
   MAX_SHARES_PER_USER_PCT: 0.10,  // 10 % du total = 100 actions max par user (rebaissé depuis 0.30 après l'incident du whale à 140 actions qui a fait chuter le prix de 30 %)
+  MAX_SHARES_PER_TX:       30,    // Max 30 actions par transaction unique (force à splitter les gros trades). Couplé au cooldown 60 s, dumper 100 actions prend 4 min min.
+  MAX_DAILY_VOLUME:        200,   // Volume cumulé (achats + ventes) sur 24 h. Bloque le day trading agressif tout en permettant un trading régulier.
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
@@ -162,6 +164,19 @@ export async function getDailyVolume() {
     result.total += t.shares;
   });
   return result;
+}
+
+/* Volume quotidien (24 h) d'UN user — pour le cap MAX_DAILY_VOLUME.
+   Cumul achats + ventes. Permet de bloquer le day trading agressif. */
+export async function getUserDailyVolume(userCode) {
+  if (!isSupabaseEnabled() || !userCode) return 0;
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data } = await supabase
+    .from('market_transactions')
+    .select('shares')
+    .eq('user_code', userCode)
+    .gte('created_at', since);
+  return (data || []).reduce((sum, t) => sum + Number(t.shares || 0), 0);
 }
 
 export async function getUserPortfolio(userCode) {
@@ -287,6 +302,21 @@ export async function getMarketTraderCount() {
 export async function buyShares(userCode, shares) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
+
+  /* Cap par transaction : force à splitter les gros trades. Couplé au
+     cooldown 60 s entre 2 ventes, ça impose un délai de 4 min minimum
+     pour dumper 100 actions (au lieu de pouvoir le faire en 1 sec). */
+  if (shares > MARKET_CONFIG.MAX_SHARES_PER_TX) {
+    return { error: `Max ${MARKET_CONFIG.MAX_SHARES_PER_TX} actions par transaction. Splitte ton ordre en plusieurs.` };
+  }
+
+  /* Volume quotidien max (cumul achats + ventes sur 24 h). Bloque
+     le day trading agressif. */
+  const dailyVolume = await getUserDailyVolume(userCode);
+  if (dailyVolume + shares > MARKET_CONFIG.MAX_DAILY_VOLUME) {
+    const remaining = Math.max(0, MARKET_CONFIG.MAX_DAILY_VOLUME - dailyVolume);
+    return { error: `Volume quotidien plafonné à ${MARKET_CONFIG.MAX_DAILY_VOLUME} actions. Reste ${remaining} pour aujourd'hui.` };
+  }
 
   const state = await getMarketState();
   if (!state) return { error: 'Marché indisponible' };
@@ -433,6 +463,16 @@ export async function creditFreeShares(userCode, sharesToAdd) {
 export async function sellShares(userCode, shares) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
+
+  /* Mêmes caps que buyShares : par transaction + volume quotidien. */
+  if (shares > MARKET_CONFIG.MAX_SHARES_PER_TX) {
+    return { error: `Max ${MARKET_CONFIG.MAX_SHARES_PER_TX} actions par transaction. Splitte ton ordre en plusieurs.` };
+  }
+  const dailyVolume = await getUserDailyVolume(userCode);
+  if (dailyVolume + shares > MARKET_CONFIG.MAX_DAILY_VOLUME) {
+    const remaining = Math.max(0, MARKET_CONFIG.MAX_DAILY_VOLUME - dailyVolume);
+    return { error: `Volume quotidien plafonné à ${MARKET_CONFIG.MAX_DAILY_VOLUME} actions. Reste ${remaining} pour aujourd'hui.` };
+  }
 
   const stateForStatus = await getMarketState();
   if (!stateForStatus) return { error: 'Marché indisponible' };
