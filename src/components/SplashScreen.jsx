@@ -75,6 +75,10 @@ export default function SplashScreen({ onFinish, fast = false }){
         <div className="splash-dot" />
         <div className="splash-dot" />
       </div>
+
+      <div className="splash-credit">
+        Réalisé par <strong>Ethan Cuomo</strong>
+      </div>
     </div>
   );
 }

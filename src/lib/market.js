@@ -506,6 +506,66 @@ export async function creditFreeShares(userCode, sharesToAdd) {
   }
 }
 
+/* ════════════════════════════════════════════════════
+   adminDebitShares — débit administratif d'actions (sanction)
+   ────────────────────────────────────────────────────
+   Retire jusqu'à `sharesToRemove` actions du portefeuille d'un user.
+   Si l'user a moins de shares que demandé, on retire tout ce qu'il a
+   (pas d'erreur). total_invested est réduit proportionnellement pour
+   éviter de fausser l'avg buy price restant. shares_in_circulation
+   est décrémenté du montant réellement retiré pour cohérence offre/
+   demande.
+
+   Utilisé par App.jsx (PACK_EXPLOIT_SANCTIONS) — appelé une fois
+   par device via flag LS. Pas de log dans market_transactions (ce
+   n'est pas une vente). Retourne { removed, success } ou { error }. */
+export async function adminDebitShares(userCode, sharesToRemove) {
+  if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
+  if (!userCode || !sharesToRemove || sharesToRemove <= 0) return { error: 'Args invalides' };
+  try {
+    const { data: portfolio } = await supabase
+      .from('market_portfolio')
+      .select('shares, total_invested')
+      .eq('user_code', userCode)
+      .maybeSingle();
+    if (!portfolio) return { removed: 0, success: true };
+    const currentShares = Number(portfolio.shares) || 0;
+    const removed       = Math.min(currentShares, Math.floor(sharesToRemove));
+    if (removed <= 0) return { removed: 0, success: true };
+    const newShares = currentShares - removed;
+    const newInvested = newShares === 0
+      ? 0
+      : Math.floor((Number(portfolio.total_invested) || 0) * newShares / currentShares);
+    await supabase
+      .from('market_portfolio')
+      .update({
+        shares: newShares,
+        total_invested: newInvested,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_code', userCode);
+    /* Décrémente shares_in_circulation pour cohérence (les shares
+       sortent du marché, ils n'ont jamais existé légitimement). */
+    const { data: state } = await supabase
+      .from('market_state')
+      .select('shares_in_circulation')
+      .eq('id', 1)
+      .maybeSingle();
+    if (state) {
+      await supabase
+        .from('market_state')
+        .update({
+          shares_in_circulation: Math.max(0, (Number(state.shares_in_circulation) || 0) - removed),
+        })
+        .eq('id', 1);
+    }
+    return { removed, success: true };
+  } catch (e) {
+    console.warn('[market] adminDebitShares error:', e);
+    return { error: 'Erreur réseau' };
+  }
+}
+
 // ═══════════════════════════════════════════
 // VENTE
 // ═══════════════════════════════════════════

@@ -5,6 +5,11 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
 import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
 
+/* Achat de cafés via Stripe — masqué tant qu'on est en mode test (pas de
+   live keys, pas de mentions légales). Flip à `true` pour réafficher la
+   carte d'entrée dans la vue Premium et le BuyCafesModal associé. */
+const STRIPE_ENABLED = false;
+
 /* ════════════════════════════════════════════════════
    BoutiqueTab — onglet boutique (mode 'shop' | 'premium')
    - SHOP : items en cookies, filtrés par type (Tous / Badge / Titre / Thème /
@@ -228,8 +233,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
       )}
 
       {/* Carte achat de cafés réels (Stripe) — affichée en 1er, version
-         simple (style ESPRESSO discret, plus la grande carte glow). */}
-      {mode === 'premium' && premiumView === 'main' && userCode && (
+         simple (style ESPRESSO discret, plus la grande carte glow).
+         Gated par STRIPE_ENABLED — désactivé tant qu'on est en mode test. */}
+      {STRIPE_ENABLED && mode === 'premium' && premiumView === 'main' && userCode && (
         <button
           onClick={()=>{ playSound('modal'); setShowBuyCafes(true); }}
           style={{
@@ -276,7 +282,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </button>
       )}
 
-      {showBuyCafes && (
+      {STRIPE_ENABLED && showBuyCafes && (
         <BuyCafesModal userCode={userCode} onClose={()=>setShowBuyCafes(false)} C={C} />
       )}
 

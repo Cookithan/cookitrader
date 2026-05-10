@@ -102,7 +102,7 @@ export const REWARDS = [
   { id:'theme_noir',      name:'Thème Noir & Blanc',     desc:'Édition limitée — Code promo BLACK', cost:0, type:'Thème', emoji:'⚫', levelRequired:1, limited:true, promo:'BLACK'             },
   /* Édition limitée — drop rare via le barista légendaire dans
      Devine la commande (0.5% par partie). Code BARISTA05 affiché en bulle. */
-  { id:'theme_cookies',   name:'Thème Pâte de Cookie',   desc:'Édition limitée — Drop rare barista légendaire', cost:0, type:'Thème', emoji:'🍪', levelRequired:1, limited:true, promo:'BARISTA05' },
+  { id:'theme_grains',    name:'Thème Cookie & Espresso', desc:'Édition limitée — Drop rare barista légendaire', cost:0, type:'Thème', emoji:'☕', levelRequired:1, limited:true, promo:'BARISTA05' },
 
   /* 7 badges événements (ajoutés 09/05/2026) — défis modérés */
   { id:'badge_tireur',     name:'Badge Tireur',     desc:'Édition limitée — Stop parfait',         cost:0, type:'Badge', emoji:'🎯', levelRequired:4, limited:true, event:'event_pour_perfect' },
@@ -159,7 +159,9 @@ export const REWARDS = [
   { id:'title_cosmique', name:'Titre Cosmique', desc:'Lueur stellaire violette',cost:3500, type:'Titre', emoji:'💜', levelRequired:15 },
 
   // PACKS $CKM — crédite N actions instantanément (via creditFreeShares).
-  // Item consommable : pas d'ajout à `unlocked`, rachetable à volonté.
+  // ONE-SHOT (fix mai 2026 anti-exploit) : ajoutés à `unlocked` après
+  // achat, disparaissent de la boutique. Avant le fix, c'était consommable
+  // et un joueur pouvait grinder cookies + acheter en boucle jusqu'au cap.
   { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:450, type:'Pack', emoji:'📈', levelRequired:7 },
   { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:850, type:'Pack', emoji:'📊', levelRequired:12 },
 
@@ -195,9 +197,9 @@ export const REWARDS = [
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },
   { id:'music_lofi',     currency:'cafe', applyAs:'music',       name:'Musique Lofi Hip-Hop', desc:'Ambiance étudiant chill',      cost:3,  type:'Premium', emoji:'🎵', levelRequired:1 },
-  /* Pack 1 action premium — consommable, rachetable à volonté. Le pack
-     en cookies (pack_shares_5/10) reste, celui-ci est l'option "petit
-     volume cher" en café pour les joueurs qui veulent juste 1 action. */
+  /* Pack 1 action premium — ONE-SHOT (ajouté à unlocked après achat).
+     Option "petit volume cher" en café pour les joueurs qui veulent juste
+     1 action sans grinder. Cohérent avec pack_shares_5/10 cookies one-shot. */
   { id:'pack_share_premium', currency:'cafe', applyAs:'pack_shares', sharesAmount:1, name:'1 Action $CKM', desc:'+1 action sur ton portefeuille', cost:1, type:'Premium', emoji:'📈', levelRequired:3 },
 
   /* Boosters consommables (sinks récurrents pour pousser à dépenser ☕).
@@ -225,8 +227,9 @@ export const ACHIEVEMENTS = [
 ];
 
 /* Pool Quiz du jour — questions sur CookiMiner et le thème café/cookie.
-   32 questions tirées 3 par session (cf QUIZ_QUESTIONS_PER_SESSION).
-   Mix ~50% mécaniques de l'app, ~50% culture café/pâtisserie.
+   65 questions (21 Facile · 21 Moyen · 23 Expert) tirées 3 par session
+   (cf QUIZ_QUESTIONS_PER_SESSION). Mix ~50 % mécaniques de l'app,
+   ~50 % culture café/pâtisserie.
    3 niveaux : Facile (20 🍪), Moyen (35 🍪), Expert (60 🍪). */
 export const QUESTIONS = [
   // FACILE (reward: 20)
@@ -242,6 +245,14 @@ export const QUESTIONS = [
   { q:"Quelle est la monnaie premium dans CookiMiner ?", choices:["Cookies","Cafés","Diamants","Étoiles"], answer:1, reward:20, difficulty:'Facile' },
   { q:"Quel emoji représente la monnaie principale CookiMiner ?", choices:["🍰","🥐","🍪","☕"], answer:2, reward:20, difficulty:'Facile' },
   { q:"Quel ingrédient principal du chocolat chaud ?", choices:["Caféine","Cacao","Cannelle","Curcuma"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Comment se nomme le métier de celui qui prépare le café ?", choices:["Sommelier","Pâtissier","Barista","Maître d'hôtel"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Quel pays est mondialement célèbre pour ses cafés italiens ?", choices:["Espagne","Italie","Grèce","Portugal"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle boisson chaude a un fort goût amer et concentré ?", choices:["Latte","Espresso","Chocolat chaud","Thé vert"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Toutes les combien d'heures le Quiz du jour redevient disponible ?", choices:["1 h","3 h","5 h","24 h"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Quel mini-jeu fait tourner une grande roue dans CookiMiner ?", choices:["Roue de la chance","Machine à sous","Quiz","Memory"], answer:0, reward:20, difficulty:'Facile' },
+  { q:"Quel ingrédient incontournable pour un cookie maison ?", choices:["Levure","Beurre","Curry","Sirop d'agave"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel emoji représente une tasse de café fumante ?", choices:["🍵","🍫","☕","🥤"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Le café se boit le plus souvent à quel moment de la journée ?", choices:["Au coucher","Le matin","À 22 h","Avant un sport intense"], answer:1, reward:20, difficulty:'Facile' },
 
   // MOYEN (reward: 35)
   { q:"Combien de variétés principales de café cultivées commercialement ?", choices:["1","2","3","5"], answer:1, reward:35, difficulty:'Moyen' },
@@ -256,6 +267,14 @@ export const QUESTIONS = [
   { q:"Quel mini-jeu est débloqué dès le niveau 1 ?", choices:["Pile de Tasses","Stop le café","Devine la commande","Machine à Sous"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Quel ticker représente l'action de CookiMiner sur le marché ?", choices:["$CKM","$CKO","$CKC","$CMK"], answer:0, reward:35, difficulty:'Moyen' },
   { q:"Quel cookie classique américain a été inventé par Ruth Wakefield en 1938 ?", choices:["Cookie nature","Cookie aux pépites de chocolat","Brownie","Sablé"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Comment appelle-t-on un espresso allongé à l'eau chaude ?", choices:["Macchiato","Americano","Cortado","Lungo Royal"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"À quel niveau s'ouvre le marché $CKM dans CookiMiner ?", choices:["1","3","5","10"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Comment appelle-t-on l'infusion à froid du café (méthode longue) ?", choices:["Iced coffee","Cold brew","Frappé","Affogato"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel breuvage italien combine espresso et chocolat ?", choices:["Cappuccino","Affogato","Mocaccino","Bicerin"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"Quel terme désigne un café provenant d'une seule origine géographique ?", choices:["Blend","Single Origin","Mélange","Tradition"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"À quoi sert le « marc » du café après extraction ?", choices:["Engrais ou exfoliant","Pâte à tartiner","Sucre brut","Conservateur"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quelle méthode douce verse l'eau goutte à goutte sur le café moulu ?", choices:["Espresso","Pour-over (V60)","Mokapot","Frappé"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel cookie célèbre est fourré de crème blanche entre deux biscuits chocolat ?", choices:["Macaron","Oreo","Sablé breton","Stroopwafel"], answer:1, reward:35, difficulty:'Moyen' },
 
   // EXPERT (reward: 60)
   { q:"Quelle légende attribue la découverte du café à un berger ?", choices:["Pythagore","Kaldi","Marco Polo","Saladin"], answer:1, reward:60, difficulty:'Expert' },
@@ -266,7 +285,23 @@ export const QUESTIONS = [
   { q:"Quelle variété de café est la plus résistante aux maladies ?", choices:["Arabica","Robusta","Liberica","Geisha"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel pourcentage approximatif de la production mondiale est de l'Arabica ?", choices:["30%","60%","80%","95%"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Combien de tours bonus donne le Jeton VIP +50 dans CookiMiner ?", choices:["20","30","50","100"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"Qui est le créateur de l'application CookiMiner ?", choices:["Cookithan","BaristaDev","CookieMaker","GrindMaster"], answer:0, reward:60, difficulty:'Expert' },
+  { q:"Qui est le créateur de l'application CookiMiner ?", choices:["Ethan Cuomo","BaristaDev","CookieMaker","GrindMaster"], answer:0, reward:60, difficulty:'Expert' },
+  { q:"Quelle est la température idéale d'extraction d'un espresso ?", choices:["60-70 °C","75-85 °C","90-96 °C","100-105 °C"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quel pays produit le célèbre café « Geisha » réputé pour ses arômes floraux ?", choices:["Éthiopie","Kenya","Panama","Costa Rica"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Au-delà de quel pourcentage de variation en 5 min le circuit breaker du marché $CKM se déclenche-t-il ?", choices:["5 %","10 %","15 %","25 %"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Combien d'actions $CKM existent en tout dans CookiMiner après la refonte du marché ?", choices:["1 000","5 000","10 000","100 000"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Au bout de combien de temps de hold le bonus PnL atteint son maximum sur le marché ?", choices:["1 h","24 h","3 jours","7 jours"], answer:3, reward:60, difficulty:'Expert' },
+  { q:"Quelle est la limite d'actions $CKM détenues par compte ?", choices:["100","250","500","1 000"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"À combien de bars de pression une machine espresso doit-elle extraire idéalement ?", choices:["3 bars","6 bars","9 bars","15 bars"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quel pays est le 2e plus grand producteur mondial de café ?", choices:["Colombie","Vietnam","Indonésie","Honduras"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quelle invention italienne de 1933 a démocratisé le café à domicile ?", choices:["Cafetière Moka (Bialetti)","Cafetière à piston","Machine espresso","Cafetière à filtre"], answer:0, reward:60, difficulty:'Expert' },
+  { q:"Quel est le café le plus cher au monde, issu de fèves digérées par une civette ?", choices:["Black Ivory","Geisha Panama","Kopi Luwak","Jamaica Blue Mountain"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"De quelle région éthiopienne provient le célèbre café Yirgacheffe ?", choices:["Sidamo","Yirgacheffe (Gedeo)","Harar","Limu"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Combien d'actions $CKM maximum peut-on échanger en UNE seule transaction ?", choices:["10","20","50","Pas de limite"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel bonus permanent gagne chaque niveau de Prestige dans CookiMiner ?", choices:["+5 % sur tous les gains","+10 % sur tous les gains","+25 % XP","+1 ☕ / jour"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Combien d'XP faut-il pour atteindre le niveau 16 « Ascendant Caféiné » ?", choices:["10 000","15 000","20 000","30 000"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quelle ville italienne, port franc historique, est surnommée la capitale du café ?", choices:["Naples","Trieste","Milan","Turin"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quelle altitude minimum définit un café « Strictly High Grown » ?", choices:["500 m","1 000 m","1 500 m","2 500 m"], answer:2, reward:60, difficulty:'Expert' },
 ];
 
 /* Quiz : 1 disponible toutes les 5h */

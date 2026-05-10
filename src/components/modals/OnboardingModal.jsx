@@ -13,7 +13,7 @@ import { isNameTaken } from "../../lib/supabaseSync.js";
    - Le code dev "cookithan" (dans CookiMiner > setShowOnboarding) accorde un bonus
 ═══════════════════════════════════════════════════════ */
 
-export function OnboardingModal({ onComplete, onRestore, C }) {
+export function OnboardingModal({ onComplete, onRestore, install, C }) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(null);
@@ -94,6 +94,53 @@ export function OnboardingModal({ onComplete, onRestore, C }) {
             <button onClick={goToAvatar} disabled={!trimmed || checkingName} style={goldBtn(!trimmed || checkingName)}>
               {checkingName ? 'Vérification…' : 'Suivant →'}
             </button>
+
+            {/* Carte d'installation PWA — Android/Desktop = bouton natif,
+                iOS = instruction Safari, déjà installé = rien. Ne s'affiche
+                qu'au moment du pseudo (étape la plus longue, l'user lit) :
+                volontairement absent étape avatar/tips pour ne pas dupliquer. */}
+            {install && !install.isStandalone && (install.canInstall || install.isIos) && (
+              <div className="su" style={{
+                marginTop:14, padding:'12px 14px', borderRadius:14,
+                background:'linear-gradient(135deg, rgba(212,160,23,.10), rgba(193,127,60,.14))',
+                border:'1px solid rgba(212,160,23,.4)',
+                textAlign:'left',
+              }}>
+                {install.canInstall ? (
+                  <>
+                    <div style={{ fontSize:12.5, fontWeight:800, color:C.text, marginBottom:3 }}>
+                      📲 Installer CookiMiner
+                    </div>
+                    <div style={{ fontSize:11, color:C.muted, lineHeight:1.45, marginBottom:10 }}>
+                      Ajoute l'app à ton écran d'accueil — plein écran, pas d'onglet.
+                    </div>
+                    <button
+                      onClick={() => install.install()}
+                      style={{
+                        width:'100%', padding:'10px 14px', borderRadius:11,
+                        background:GOLD, color:'#fff', border:'none',
+                        fontSize:13, fontWeight:800, letterSpacing:.3,
+                        boxShadow:'0 4px 12px rgba(212,160,23,.35)',
+                        cursor:'pointer',
+                      }}
+                    >
+                      Installer maintenant
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize:12.5, fontWeight:800, color:C.text, marginBottom:3 }}>
+                      📲 Installer sur iOS
+                    </div>
+                    <div style={{ fontSize:11, color:C.muted, lineHeight:1.5 }}>
+                      Sur Safari : appuie sur <strong style={{ color:'#D4A017' }}>Partager ⬆</strong>{' '}
+                      en bas de l'écran, puis <strong style={{ color:'#D4A017' }}>« Sur l'écran d'accueil »</strong>.
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             {onRestore && (
               <button
                 onClick={onRestore}

@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════
    promoCodes.js — codes promo distribuables manuellement
    ────────────────────────────────────────────────────
-   Cookithan distribue ces codes à ses joueurs (réseaux sociaux,
+   Ethan Cuomo distribue ces codes à ses joueurs (réseaux sociaux,
    Discord, événements). L'utilisateur les rentre depuis Settings →
    Code promo et reçoit la récompense (cookies / cafés).
 
@@ -52,7 +52,7 @@ export const PROMO_CODES = {
      revealedPromoCodes au moment du drop, cf. App.jsx). Empêche
      qu'un joueur récupère le code via Discord et l'utilise sans
      l'avoir mérité. */
-  'BARISTA05': { coins: 0,    cafes: 0, unlock: 'theme_cookies', secret: true, label: 'Thème Pâte de Cookie débloqué' },
+  'BARISTA05': { coins: 0,    cafes: 0, unlock: 'theme_grains', secret: true, label: 'Thème Cookie & Espresso débloqué' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */

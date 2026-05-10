@@ -133,14 +133,6 @@ export const GLOBAL_CSS = `
      Le translate(-50%,-50%) dans CHAQUE keyframe centre le cookie sur sa
      position (left/top = centre du cookie). Sans ça, top/left = coin haut-gauche
      et les cookies positionnés près des bords sortent de l'écran au scale max. */
-  @keyframes cookieSpin{
-    0%   {transform:translate(-50%,-50%) scale(.15) rotate(0deg);opacity:0}
-    15%  {transform:translate(-50%,-50%) scale(.55) rotate(54deg);opacity:.4}
-    50%  {transform:translate(-50%,-50%) scale(1.1) rotate(180deg);opacity:.55}
-    85%  {transform:translate(-50%,-50%) scale(.55) rotate(306deg);opacity:.3}
-    100% {transform:translate(-50%,-50%) scale(.15) rotate(360deg);opacity:0}
-  }
-  .cookie-floater{position:fixed;pointer-events:none;z-index:0;will-change:transform,opacity;font-size:42px;line-height:1;animation:cookieSpin 9s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgba(74,44,23,.3))}
 
   /* ── SPLASH SCREEN ───────────────────────────────── */
   .splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,#4A2C17 0%,#3D2010 50%,#2C1810 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;z-index:9999;transition:opacity .5s ease;overflow:hidden}
@@ -157,6 +149,12 @@ export const GLOBAL_CSS = `
   .splash-dots{display:flex;gap:8px;margin-top:12px;opacity:0;animation:splashDotsIn .4s ease 1.9s forwards;z-index:2}
   .splash-screen.fast .splash-dots{animation:splashDotsIn .3s ease .9s forwards}
   @keyframes splashDotsIn{from{opacity:0}to{opacity:1}}
+  /* Crédit auteur — fade-in plus tardif et discret, positionné en pied
+     de splash. Mode fast (refresh F5) : delay raccourci. */
+  .splash-credit{position:absolute;bottom:32px;left:0;right:0;text-align:center;font-size:11px;font-weight:600;letter-spacing:1px;color:#A0784E;opacity:0;animation:splashCreditIn .5s ease 2.1s forwards;z-index:2}
+  .splash-screen.fast .splash-credit{animation:splashCreditIn .35s ease 1.0s forwards}
+  .splash-credit strong{color:#C17F3C;font-weight:800;letter-spacing:.5px}
+  @keyframes splashCreditIn{from{opacity:0;transform:translateY(8px)}to{opacity:.75;transform:translateY(0)}}
   .splash-dot{width:7px;height:7px;border-radius:50%;background:#D4A017;animation:splashDotPulse 1.2s ease-in-out infinite}
   .splash-dot:nth-child(2){animation-delay:.15s}
   .splash-dot:nth-child(3){animation-delay:.3s}

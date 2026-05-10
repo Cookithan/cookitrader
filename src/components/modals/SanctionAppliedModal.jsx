@@ -8,13 +8,16 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
    ce qui s'est passé et ce qui a été retiré.
 
    Props :
-   - amount : nombre de cookies retirés du totalEarned
-   - reason : courte description ("Manipulation du marché…")
-   - onClose : ferme la modale
-   - C : palette
+   - amount      : cookies retirés du totalEarned (0 = pas affiché)
+   - sharesDebit : actions $CKM retirées du portefeuille (0 = pas affiché)
+   - reason      : courte description ("Manipulation du marché…")
+   - onClose     : ferme la modale
+   - C           : palette
 ═══════════════════════════════════════════════════════ */
 
-export function SanctionAppliedModal({ amount, reason, onClose, C }){
+export function SanctionAppliedModal({ amount, sharesDebit = 0, reason, onClose, C }){
+  const hasCookies = (amount || 0) > 0;
+  const hasShares  = (sharesDebit || 0) > 0;
   return (
     <div
       onClick={onClose}
@@ -56,27 +59,49 @@ export function SanctionAppliedModal({ amount, reason, onClose, C }){
 
         <div style={{ padding:'18px 22px 4px' }}>
           <p style={{ fontSize:13, color:C.text, lineHeight:1.6, margin:0, marginBottom:14 }}>
-            Suite à <strong>{reason}</strong>, ton compteur de progression a été
-            ajusté pour compenser les gains issus de l'incident.
+            Suite à <strong>{reason}</strong>, ton compte a été ajusté
+            pour compenser les gains issus de l'incident.
           </p>
 
-          {/* Détail du débit */}
-          <div style={{
-            background:'linear-gradient(135deg, #5C3317, #7D4818)',
-            borderRadius:14, padding:'14px 16px',
-            marginBottom:14, textAlign:'center',
-            border:'1.5px solid #C17F3C',
-          }}>
-            <div style={{ fontSize:10, fontWeight:900, color:'#FFB060', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>
-              Total earned ajusté
+          {/* Détail du débit shares (si présent) */}
+          {hasShares && (
+            <div style={{
+              background:'linear-gradient(135deg, #4A2C17, #5C3317)',
+              borderRadius:14, padding:'14px 16px',
+              marginBottom: hasCookies ? 10 : 14, textAlign:'center',
+              border:'1.5px solid #C17F3C',
+            }}>
+              <div style={{ fontSize:10, fontWeight:900, color:'#FFB060', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>
+                Actions $CKM retirées
+              </div>
+              <div style={{ fontSize:30, fontWeight:900, color:'#FFE066', lineHeight:1 }}>
+                -{(sharesDebit || 0).toLocaleString('fr-FR')} 📈
+              </div>
+              <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,232,154,.7)', marginTop:4, fontStyle:'italic' }}>
+                (actions générées via un bug désormais corrigé)
+              </div>
             </div>
-            <div style={{ fontSize:30, fontWeight:900, color:'#FFE066', lineHeight:1 }}>
-              -{(amount || 0).toLocaleString('fr-FR')} 🍪
+          )}
+
+          {/* Détail du débit totalEarned (si présent) */}
+          {hasCookies && (
+            <div style={{
+              background:'linear-gradient(135deg, #5C3317, #7D4818)',
+              borderRadius:14, padding:'14px 16px',
+              marginBottom:14, textAlign:'center',
+              border:'1.5px solid #C17F3C',
+            }}>
+              <div style={{ fontSize:10, fontWeight:900, color:'#FFB060', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>
+                Total earned ajusté
+              </div>
+              <div style={{ fontSize:30, fontWeight:900, color:'#FFE066', lineHeight:1 }}>
+                -{(amount || 0).toLocaleString('fr-FR')} 🍪
+              </div>
+              <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,232,154,.7)', marginTop:4, fontStyle:'italic' }}>
+                (ton solde de cookies n'est pas touché)
+              </div>
             </div>
-            <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,232,154,.7)', marginTop:4, fontStyle:'italic' }}>
-              (ton solde de cookies n'est pas touché)
-            </div>
-          </div>
+          )}
 
           <div style={{
             background:C.card2, borderRadius:12, padding:'10px 14px',

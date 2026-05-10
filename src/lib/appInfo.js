@@ -15,7 +15,7 @@ export const APP_INFO = {
   releaseDate: '2026-05-10',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
-  author: 'Cookithan',
+  author: 'Ethan Cuomo',
 };
 
 export const CHANGELOG = [

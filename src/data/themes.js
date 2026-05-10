@@ -78,11 +78,14 @@ export const THEMES = {
   theme_noir:            { dark:true, bg:'#000000', card:'#080808', card2:'#101010', text:'#FFFFFF', muted:'#D8D8D8', border:'#1A1A1A' },
 
   /* Édition limitée — Code promo BARISTA05 (drop 0.5% via barista
-     légendaire dans Devine la commande). Palette pâte-de-cookie : crème
-     beurrée → caramel doré → croûte cuite. 4 stops pour le côté "biscuit
-     qui sort du four". Distinct de theme_creme (rose pâle) et
-     theme_caramel (orange saturé). */
-  theme_cookies:         { dark:false, bg:'linear-gradient(160deg,#FAEAD0 0%,#F0CC85 35%,#D49050 70%,#8B5A2B 100%)', card:'#FFF5E0', card2:'#F5DDB0', text:'#3D2010', muted:'#8B5A2B', border:'#D49050' },
+     légendaire dans Devine la commande). COOKIE & ESPRESSO : gradient
+     vertical 180° — pâte de biscuit beurré crème en haut → caramel
+     doré → torréfaction brun → espresso noir profond en bas. C'est le
+     thème "biscuit qui trempe dans le café". 5 stops pour la transition
+     douce. dark:true (les cards/text se calent sur la moitié basse, plus
+     dense). Distinct de theme_creme (crème uniforme rosé) et de
+     theme_espresso (noir pur sans transition). */
+  theme_grains:          { dark:true, bg:'linear-gradient(180deg,#FAEAD0 0%,#E8B57A 22%,#A05820 45%,#3D1808 70%,#0A0402 100%)', card:'#2A1408', card2:'#3D1E0E', text:'#F5D8A8', muted:'#B8906A', border:'#7D4818' },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';

@@ -204,9 +204,9 @@ export const CUSTOMERS = [
 
 /* Barista Légendaire — drop ULTRA RARE (1 % par partie, one-shot par
    compte cf. legendaryBaristaSeen). Sa bulle contient le code promo
-   BARISTA05 → débloque theme_cookies. 5 variantes visuelles, toutes
-   dorées avec halo + sparkles. GuessGame en pioche une au hasard
-   pour le drop. Pas dans CUSTOMERS — injecté manuellement. */
+   BARISTA05 → débloque theme_grains (Grains Torréfiés). 5 variantes
+   visuelles, toutes dorées avec halo + sparkles. GuessGame en pioche
+   une au hasard pour le drop. Pas dans CUSTOMERS — injecté manuellement. */
 export const LEGENDARY_BARISTAS = [
   /* 1 — Barista Légendaire (original) : toque + couronne + tablier or */
   {

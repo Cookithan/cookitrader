@@ -37,7 +37,7 @@ import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.j
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
-import { creditFreeShares } from "./lib/market.js";
+import { creditFreeShares, adminDebitShares } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
@@ -51,7 +51,6 @@ import { InboxModal } from "./components/modals/InboxModal.jsx";
 import { getUnreadInboxCount } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
 import { BoostGainToast } from "./components/BoostGainToast.jsx";
-import { CookieFloater } from "./components/CookieFloater.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
@@ -1337,6 +1336,56 @@ export default function CookiMiner() {
     setSanctionApplied({ amount: s.totalEarnedDebit, reason: s.reason });
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
 
+  /* Sanctions abus packs $CKM en cookies (audit 10/05/2026) — joueurs
+     ayant racheté pack_shares_5/10 en boucle avant le fix one-shot. On
+     retire les actions illégitimement créées (portfolio + circulation).
+     aaronXbox a cumulé un cashout massif via revente → débit additionnel
+     totalEarned/weeklyEarned. Les 3 autres ne sont pas allés au cashout
+     (ils détenaient encore le stock), donc shares debit suffit.
+     Lookup par userCode (stable), flag LS one-shot par device, set AVANT
+     les opérations (anti F5). */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    const reasonExploit = "l'abus des packs actions $CKM en cookies (achats répétés)";
+    const PACK_EXPLOIT_SANCTIONS = {
+      'X6G-4ZL': { sharesDebit: 23,  totalEarnedDebit: 10000, weeklyEarnedDebit: 10000, reason: reasonExploit + " et le cashout massif" },
+      '7Z4-977': { sharesDebit: 259, totalEarnedDebit: 0,     weeklyEarnedDebit: 0,     reason: reasonExploit },
+      'AUY-KJ9': { sharesDebit: 135, totalEarnedDebit: 0,     weeklyEarnedDebit: 0,     reason: reasonExploit },
+      '83F-LV2': { sharesDebit: 11,  totalEarnedDebit: 0,     weeklyEarnedDebit: 0,     reason: reasonExploit },
+    };
+    const s = PACK_EXPLOIT_SANCTIONS[codeUpper];
+    if(!s) return;
+    const FLAG_KEY = 'cookiminer:sanction_2026_05_10_packs_exploit';
+    try{
+      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+      window.localStorage.setItem(FLAG_KEY, '1');
+    }catch{ return; }
+    /* Débits locaux immédiats (totalEarned + weekly) — sync auto via
+       upsertProfile au prochain tick 5s. */
+    if(s.totalEarnedDebit) setTotalEarned(t => Math.max(0, (t || 0) - s.totalEarnedDebit));
+    if(s.weeklyEarnedDebit) setWeeklyEarned(w => Math.max(0, (w || 0) - s.weeklyEarnedDebit));
+    /* Débit shares server-side (Supabase). Async — pas bloquant.
+       adminDebitShares cappe naturellement au stock disponible. */
+    if(s.sharesDebit > 0){
+      (async () => {
+        const res = await adminDebitShares(userCode, s.sharesDebit);
+        if(!res?.success){
+          // eslint-disable-next-line no-console
+          console.warn('[sanction packs] adminDebitShares failed:', res?.error);
+        }
+      })();
+    }
+    /* Modale d'avertissement pour TOUS les sanctionnés (shares et/ou
+       totalEarned). SanctionAppliedModal affiche les 2 blocs selon ce
+       qui est > 0. */
+    setSanctionApplied({
+      amount: s.totalEarnedDebit || 0,
+      sharesDebit: s.sharesDebit || 0,
+      reason: s.reason,
+    });
+  }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
+
   /* Refund marché — compensation pour les ex-investisseurs après le
      reset du marché (delete from market_portfolio). On crédite chaque
      user de son total_invested perdu. 7Z4-977 EXCLU (pump-and-dumper
@@ -1841,16 +1890,37 @@ export default function CookiMiner() {
      plusieurs fois pouvaient avoir "consommé" leur drop sans jamais avoir
      vu le légendaire (close avant d'atteindre le slot, etc.). On reset
      une fois pour redonner sa chance à tout le monde. Si le joueur a déjà
-     unlocked theme_cookies, on ne reset pas (il a réellement vu le drop). */
+     unlocked le thème du barista (legacy theme_cookies OU nouveau
+     theme_grains), on ne reset pas — il a réellement vu le drop. */
   useEffect(() => {
     try {
       if (window.localStorage.getItem('cookiminer:legendaryV2Cleaned') === '1') return;
-      const already = (unlockedRef.current || []).includes('theme_cookies');
+      const already = (unlockedRef.current || []).some(
+        id => id === 'theme_cookies' || id === 'theme_grains'
+      );
       if (!already) setLegendaryBaristaSeen(false);
       window.localStorage.setItem('cookiminer:legendaryV2Cleaned', '1');
     } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* Migration : theme_cookies (Pâte de Cookie) → theme_grains (Grains
+     Torréfiés) — mai 2026, refonte du thème lié au drop barista. Les
+     joueurs qui avaient unlocked theme_cookies récupèrent automatiquement
+     le nouvel ID. Idem pour activeTheme s'il était sur theme_cookies
+     (le composant CookieFloater n'existe plus). Pas de flag LS : le swap
+     est idempotent (après remplacement, theme_cookies n'existe plus, donc
+     setters renvoient la même ref → pas de boucle). Re-roule si pullProfile
+     ré-injecte theme_cookies depuis le serveur. */
+  useEffect(() => {
+    setUnlocked(arr => {
+      if (!Array.isArray(arr) || !arr.includes('theme_cookies')) return arr;
+      const next = arr.filter(id => id !== 'theme_cookies');
+      if (!next.includes('theme_grains')) next.push('theme_grains');
+      return next;
+    });
+    setActiveTheme(t => (t === 'theme_cookies' ? 'theme_grains' : t));
+  }, [unlocked, activeTheme]);
 
   /* Migration one-shot : reset des cafés à 0 pour tous les utilisateurs
      (mai 2026, refonte économie premium → café devient rare). Ancien
@@ -2033,16 +2103,15 @@ export default function CookiMiner() {
       return;
     }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
-       3 modes selon currency + flag consumable :
-         · cookies (pack_shares_5/10) → CONSOMMABLE rachetable à volonté
-         · cafés  one-shot (pack_share_premium) → ajouté à `unlocked`,
-           rejeté si déjà acheté
-         · cafés  consommable (pack_shares_25 avec consumable:true) →
-           rachetable à volonté, pas d'ajout à unlocked
-       Mode admin bloqué dans les 2 cas pour pas polluer la circulation. */
+       One-shot par défaut (ajouté à `unlocked` après achat). Seuls les
+       items explicitement marqués `consumable:true` restent rachetables
+       à volonté. Avant ce fix (mai 2026), pack_shares_5 et pack_shares_10
+       étaient consommables par défaut → bug exploit (un joueur pouvait
+       grinder cookies + racheter le pack en boucle jusqu'au cap 500 actions).
+       Mode admin bloqué pour pas polluer la circulation. */
     if(r.applyAs === 'pack_shares'){
       const isCafe = r.currency === 'cafe';
-      const isOneShot = isCafe && !r.consumable;
+      const isOneShot = !r.consumable;
       if(isOneShot && unlocked.includes(id)) return;
       if(isCafe ? cafes < r.cost : coins < r.cost) return;
       if(isAdminName(userName)){
@@ -2195,7 +2264,6 @@ export default function CookiMiner() {
       {/* Décor du Thème Pâte de Cookie — cookies décoratifs qui tournent
           en boucle (scale petit→gros + rotation 360°). z-index 0 + fixed
           pour rester en arrière-plan sans bloquer les interactions. */}
-      {activeTheme === 'theme_cookies' && <CookieFloater />}
       {themeSparkles && (
         <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:0 }}>
           {[
@@ -2240,7 +2308,15 @@ export default function CookiMiner() {
           )}
           <div style={{ minWidth:0, flex:1 }}>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text, fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap' }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
+            <div style={{
+              fontSize:22, fontWeight:900,
+              /* theme_grains : haut du gradient = crème pâle, donc C.text
+                 (calé sur les cards sombres) devient illisible. On force
+                 un brun espresso foncé qui passe sur le crème ET reste
+                 lisible quand on scroll vers le bas. */
+              color: activeTheme === 'theme_grains' ? '#3D1808' : C.text,
+              fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap',
+            }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
@@ -2916,6 +2992,7 @@ export default function CookiMiner() {
       {sanctionApplied && (
         <SanctionAppliedModal
           amount={sanctionApplied.amount}
+          sharesDebit={sanctionApplied.sharesDebit || 0}
           reason={sanctionApplied.reason}
           onClose={()=>setSanctionApplied(null)}
           C={C}
@@ -3109,6 +3186,7 @@ export default function CookiMiner() {
       {showOnboarding && (
         <OnboardingModal
           C={C}
+          install={installPrompt}
           onRestore={() => setRestoreMode('fresh')}
           onComplete={(name, avatarIndex)=>{
             setUserName(name);
