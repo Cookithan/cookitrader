@@ -264,11 +264,17 @@ export function ProfileOverlay({
               display:'flex', flexDirection:'column', alignItems:'center',
             }}>
               <AvatarFigure value={userAvatar} size={92} />
-              <div style={{
-                fontSize:24, fontWeight:900, color:'#3D2010',
-                marginTop:12, marginBottom:6, letterSpacing:.2, textAlign:'center',
-                ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
-              }}>
+              {/* Key liée à activeTitle force React à remount le node DOM
+                  à chaque changement de titre — sans ça, background-clip:text
+                  + animation CSS gardent l'ancien rendu (carré de couleur). */}
+              <div
+                key={`pseudo-${activeTitle || 'none'}`}
+                style={{
+                  fontSize:24, fontWeight:900, color:'#3D2010',
+                  marginTop:12, marginBottom:6, letterSpacing:.2, textAlign:'center',
+                  ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
+                }}
+              >
                 {userName || 'Joueur'}
               </div>
               <div style={{ padding:'4px 12px', borderRadius:12, background:'rgba(212,160,23,.22)', border:'1px solid rgba(193,127,60,.55)', marginBottom:8 }}>
@@ -461,8 +467,13 @@ export function ProfileOverlay({
                           >
                             {/* Span dédié pour le shimmer — appliquer previewStyle
                                 directement sur le button cassait background-clip:text
-                                (rendu d'un carré opaque sur le titre Or notamment). */}
-                            <span style={{ ...previewStyle, display:'inline-block' }}>
+                                (rendu d'un carré opaque sur le titre Or notamment).
+                                Key liée à sel pour remount à chaque changement
+                                de sélection (sinon le keyframe garde son état). */}
+                            <span
+                              key={`title-${t.id || 'none'}-${sel ? 'sel' : 'idle'}`}
+                              style={{ ...previewStyle, display:'inline-block', lineHeight:1.2 }}
+                            >
                               {(TITLE_STYLES[t.id]?.name) || t.name?.replace(/^Titre\s+/, '') || 'Aucun'}
                             </span>
                           </button>
