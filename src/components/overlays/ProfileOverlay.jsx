@@ -5,6 +5,7 @@ import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../d
 import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
 import { APP_INFO } from "../../lib/appInfo.js";
 import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
+import { getSanction } from "../../data/sanctions.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
@@ -255,6 +256,43 @@ export function ProfileOverlay({
           </>
         ) : (
           <>
+            {/* Bandeau de sanction privé — visible UNIQUEMENT par le user
+                concerné (pas dans le classement public ni les profils amis).
+                Pas de blocage gameplay, juste un message pédagogique. */}
+            {(() => {
+              const sanction = getSanction(userCode);
+              if(!sanction) return null;
+              return (
+                <section style={{
+                  background:'linear-gradient(135deg, #5C3317 0%, #7D4818 100%)',
+                  border:'1.5px solid #C17F3C',
+                  borderRadius:14,
+                  padding:'14px 16px',
+                  marginBottom:14,
+                  color:'#FFE066',
+                  boxShadow:'0 4px 14px rgba(92,51,23,.4)',
+                }}>
+                  <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
+                    <div style={{ fontSize:24, lineHeight:1, flexShrink:0 }}>⚠️</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:11, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase', color:'#FFB060', marginBottom:4 }}>
+                        Compte sanctionné
+                      </div>
+                      <div style={{ fontSize:13, fontWeight:800, color:'#FFE066', marginBottom:6 }}>
+                        {sanction.reason}
+                      </div>
+                      <div style={{ fontSize:11, color:'rgba(255,232,154,.8)', lineHeight:1.5, fontStyle:'italic' }}>
+                        {sanction.detail}
+                      </div>
+                      <div style={{ fontSize:10, color:'rgba(255,232,154,.6)', marginTop:6 }}>
+                        Date : {sanction.date} · Étiquette visible uniquement par toi.
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              );
+            })()}
+
             {/* 1. Carte profil principale (beige) — avatar + identité + XP */}
             <section style={{
               background:'linear-gradient(140deg,#F5E5C8,#E5CDA8)',
