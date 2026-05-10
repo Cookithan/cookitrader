@@ -24,6 +24,11 @@ export const MARKET_CONFIG = {
   PRICE_MIN: 10,
   PRICE_MAX: 1000,
   PRICE_INITIAL: 100,
+  /* ⚠️ MAINTENANCE — quand true, le marché est fermé en permanence
+     (au-delà des horaires habituels). Affiche "Marché en maintenance"
+     côté UI + bloque buyShares/sellShares avec message d'erreur clair.
+     Repasser à false dès que les déséquilibres sont corrigés. */
+  MAINTENANCE_MODE: true,
   TOTAL_SHARES: 1000,             // calibré pour une petite base de joueurs (passer à 10000+ quand l'app décolle)
   IMPACT_PER_SHARE: 0.0005,       // +0.05 % par action (réduit depuis 0.001 pour limiter les chocs violents — un user à 140 actions pouvait faire chuter le prix de 14 % d'un coup)
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
@@ -42,9 +47,13 @@ export const MARKET_CONFIG = {
 };
 
 /* Statut du marché (ouvert / fermé) basé sur l'heure LOCALE du client.
-   Retourne { open, nextChange } où nextChange est la prochaine bascule
-   (date de fermeture si ouvert, date de réouverture si fermé). */
+   Retourne { open, nextChange, maintenance } où nextChange est la prochaine
+   bascule (date de fermeture si ouvert, date de réouverture si fermé).
+   Si MAINTENANCE_MODE true : forçage fermé + flag maintenance. */
 export function getMarketStatus(now = new Date()) {
+  if (MARKET_CONFIG.MAINTENANCE_MODE) {
+    return { open: false, nextChange: null, maintenance: true };
+  }
   const { openHour, closeHour } = MARKET_CONFIG.HOURS;
   const hour = now.getHours();
   const open = hour >= openHour && hour < closeHour;
@@ -259,6 +268,9 @@ export async function buyShares(userCode, shares) {
 
   const status = getMarketStatus();
   if (!status.open) {
+    if (status.maintenance) {
+      return { error: '🛠️ Marché en maintenance — réouverture bientôt' };
+    }
     return { error: `Marché fermé. Réouverture à ${formatHour(status.nextChange)}` };
   }
 
@@ -399,6 +411,9 @@ export async function sellShares(userCode, shares) {
 
   const status = getMarketStatus();
   if (!status.open) {
+    if (status.maintenance) {
+      return { error: '🛠️ Marché en maintenance — réouverture bientôt' };
+    }
     return { error: `Marché fermé. Réouverture à ${formatHour(status.nextChange)}` };
   }
 
