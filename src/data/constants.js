@@ -179,7 +179,7 @@ export const REWARDS = [
   { id:'pack_shares_100',currency:'cafe', applyAs:'pack_shares', sharesAmount:100, consumable:true, savingsLabel:'−40 % vs achat unitaire', name:'Pack 100 actions $CKM', desc:'+100 actions instantanément', cost:60, type:'Pack', emoji:'💹', levelRequired:12 },
   /* Pack 5000 cookies — boost cash direct, RACHETABLE (consumable). */
   { id:'pack_cookies_5k',  currency:'cafe', applyAs:'pack_cookies', coinsAmount:5000,  consumable:true, savingsLabel:'5 000 🍪 d\'un coup',  name:'Pack 5 000 cookies',  desc:'+5 000 🍪 sur ton solde',  cost:15, type:'Pack', emoji:'💰', levelRequired:5 },
-  { id:'pack_cookies_10k', currency:'cafe', applyAs:'pack_cookies', coinsAmount:10000, consumable:true, savingsLabel:'10 000 🍪 (-17 % vs pack 5k)', name:'Pack 10 000 cookies', desc:'+10 000 🍪 sur ton solde', cost:25, type:'Pack', emoji:'💸', levelRequired:8 },
+  { id:'pack_cookies_10k', currency:'cafe', applyAs:'pack_cookies', coinsAmount:10000, consumable:true, savingsLabel:'10 000 🍪 d\'un coup', name:'Pack 10 000 cookies', desc:'+10 000 🍪 sur ton solde', cost:50, type:'Pack', emoji:'💸', levelRequired:8 },
   /* COUP DE GRÂCE — débloque automatiquement TOUS les items boutique
      en cookies (currency!='cafe', non `limited`). Justifie à lui seul
      le bundle 200 ☕ Stripe. Achat unique (one-shot, ajout à unlocked).
