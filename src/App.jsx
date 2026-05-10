@@ -33,6 +33,7 @@ import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
 import { MarketRefundModal } from "./components/modals/MarketRefundModal.jsx";
+import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.jsx";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
@@ -452,6 +453,8 @@ export default function CookiMiner() {
   const [marketRefundAmount, setMarketRefundAmount] = useState(null);
   /* Récompense top 3 hebdo — modale festive avec compteur cafés animé. */
   const [weeklyChampReward, setWeeklyChampReward] = useState(null);  // { rank, cafes, weekNum }
+  /* Sanction appliquée — popup d'avertissement post-débit. */
+  const [sanctionApplied, setSanctionApplied] = useState(null);  // { amount, reason }
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
   const [paymentReceived, setPaymentReceived] = useState(null);
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
@@ -1282,6 +1285,33 @@ export default function CookiMiner() {
     showToastRef.current?.(`📊 Recalibrage : -${ckDebit} 🍪`);
     try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
   }, [userName, pullDone, setCoins]);
+
+  /* Sanctions administratives — débit forcé du totalEarned (pas du
+     solde) avec popup d'avertissement. Lookup par userCode (stable).
+     Flag LS one-shot, set AVANT le débit (anti F5 race).
+     On débite aussi weekly_earned du même montant pour cohérence
+     classement weekly. */
+  useEffect(() => {
+    if(!userCode || !pullDone) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    const SANCTIONS = {
+      '7Z4-977': {
+        totalEarnedDebit: 10000,
+        weeklyEarnedDebit: 10000,
+        reason: 'la manipulation du marché $CKM (pump-and-dump)',
+      },
+    };
+    const s = SANCTIONS[codeUpper];
+    if(!s) return;
+    const FLAG_KEY = 'cookiminer:sanction_2026_05_10_pump';
+    try{
+      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+      window.localStorage.setItem(FLAG_KEY, '1');
+    }catch{ return; }
+    if(s.totalEarnedDebit) setTotalEarned(t => Math.max(0, (t || 0) - s.totalEarnedDebit));
+    if(s.weeklyEarnedDebit) setWeeklyEarned(w => Math.max(0, (w || 0) - s.weeklyEarnedDebit));
+    setSanctionApplied({ amount: s.totalEarnedDebit, reason: s.reason });
+  }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
 
   /* Refund marché — compensation pour les ex-investisseurs après le
      reset du marché (delete from market_portfolio). On crédite chaque
@@ -2854,6 +2884,16 @@ export default function CookiMiner() {
           cafes={weeklyChampReward.cafes}
           weekNum={weeklyChampReward.weekNum}
           onClose={()=>setWeeklyChampReward(null)}
+          C={C}
+        />
+      )}
+
+      {/* SANCTION APPLIED MODAL — avertissement post-débit administratif */}
+      {sanctionApplied && (
+        <SanctionAppliedModal
+          amount={sanctionApplied.amount}
+          reason={sanctionApplied.reason}
+          onClose={()=>setSanctionApplied(null)}
           C={C}
         />
       )}
