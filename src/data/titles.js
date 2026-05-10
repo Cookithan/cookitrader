@@ -78,14 +78,16 @@ export const TITLE_STYLES = {
   },
   /* Niv 10 — Or : OR PUR MASSIF. Anim titlePulse (halo qui pulse,
      pas le gradient qui défile) — effet "trésor qui scintille".
-     Halo doré très intense. */
+     Halo doré très intense. bgSize 200% pour cohérence avec les autres
+     titres animés (100% causait des artefacts de rendu sur certains
+     browsers avec background-clip:text). */
   title_or: {
     name: 'Or',
     bg:   'linear-gradient(135deg, #FFE5A0 0%, #D4A017 50%, #FFE5A0 100%)',
     color:'#D4A017',
     shadow:'rgba(212,160,23,.85)',
     animation: 'titlePulse',
-    bgSize: '100% 100%',
+    bgSize: '200% 200%',
     duration: 2,
   },
   /* Niv 12 — Élixir : ambre miel doré liquide en fusion. Gradient

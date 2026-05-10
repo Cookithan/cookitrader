@@ -456,10 +456,15 @@ export function ProfileOverlay({
                               cursor:'pointer',
                               boxShadow: sel ? '0 0 12px rgba(212,160,23,.35)' : 'none',
                               transition:'all .2s',
-                              fontSize:14, ...previewStyle,
+                              fontSize:14,
                             }}
                           >
-                            {(TITLE_STYLES[t.id]?.name) || t.name?.replace(/^Titre\s+/, '') || 'Aucun'}
+                            {/* Span dédié pour le shimmer — appliquer previewStyle
+                                directement sur le button cassait background-clip:text
+                                (rendu d'un carré opaque sur le titre Or notamment). */}
+                            <span style={{ ...previewStyle, display:'inline-block' }}>
+                              {(TITLE_STYLES[t.id]?.name) || t.name?.replace(/^Titre\s+/, '') || 'Aucun'}
+                            </span>
                           </button>
                         );
                       })}
