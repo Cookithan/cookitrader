@@ -1233,33 +1233,19 @@ export default function CookiMiner() {
   useEffect(() => {
     if(!userName || !pullDone) return;
     const lname = userName.trim().toLowerCase();
-    const TOTAL_EARNED_DEBITS = {
-      'cookithan': 5000,
-    };
-    const CAFES_DEBITS = {
-      'cookithan': 8,
-    };
     const COINS_DEBITS = {
       'cookithan': 4000,
     };
-    const teDebit = TOTAL_EARNED_DEBITS[lname] || 0;
-    const cfDebit = CAFES_DEBITS[lname] || 0;
     const ckDebit = COINS_DEBITS[lname] || 0;
-    if(!teDebit && !cfDebit && !ckDebit) return;
-    const FLAG_KEY = 'cookiminer:manualDebit2026_05_10_cookithan_v2';
+    if(!ckDebit) return;
+    const FLAG_KEY = 'cookiminer:manualDebit2026_05_10_cookithan_coins';
     try{
       if(window.localStorage.getItem(FLAG_KEY) === '1') return;
     }catch{ return; }
-    if(teDebit) setTotalEarned(t => Math.max(0, (t || 0) - teDebit));
-    if(cfDebit) setCafes(c => Math.max(0, (c || 0) - cfDebit));
-    if(ckDebit) setCoins(c => Math.max(0, (c || 0) - ckDebit));
-    const parts = [];
-    if(teDebit) parts.push(`-${teDebit} totalEarned`);
-    if(cfDebit) parts.push(`-${cfDebit} ☕`);
-    if(ckDebit) parts.push(`-${ckDebit} 🍪`);
-    showToastRef.current?.(`📊 Recalibrage : ${parts.join(' · ')}`);
+    setCoins(c => Math.max(0, (c || 0) - ckDebit));
+    showToastRef.current?.(`📊 Recalibrage : -${ckDebit} 🍪`);
     try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
-  }, [userName, pullDone, setTotalEarned, setCafes, setCoins]);
+  }, [userName, pullDone, setCoins]);
 
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
