@@ -1242,6 +1242,33 @@ export default function CookiMiner() {
     try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
   }, [userName, pullDone, setCoins]);
 
+  /* Refund marché — compensation pour les ex-investisseurs après le
+     reset du marché (delete from market_portfolio). On crédite chaque
+     user de son total_invested perdu. 7Z4-977 EXCLU (pump-and-dumper
+     qui avait déjà engrangé +32 637 🍪 de profit avant le crash).
+     Lookup par userCode (stable) plutôt que userName (peut changer).
+     Flag LS one-shot pour ne créditer qu'une fois par device. */
+  useEffect(() => {
+    if(!userCode || !pullDone) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    const MARKET_REFUND = {
+      'AUY-KJ9': 15816,
+      '83F-LV2': 11116,
+      'X6G-4ZL':  2585,
+      'W5U-5QV':   783,
+      'XN2-Z7M':   111,
+    };
+    const refund = MARKET_REFUND[codeUpper] || 0;
+    if(!refund) return;
+    const FLAG_KEY = 'cookiminer:marketRefund2026_05_10';
+    try{
+      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+    }catch{ return; }
+    setCoins(c => (c || 0) + refund);
+    showToastRef.current?.(`💰 Compensation marché : +${refund.toLocaleString('fr-FR')} 🍪`);
+    try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
+  }, [userCode, pullDone, setCoins]);
+
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
