@@ -29,12 +29,12 @@ export const MARKET_CONFIG = {
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.
      Repasser à false dès que les déséquilibres sont corrigés. */
   MAINTENANCE_MODE: true,
-  TOTAL_SHARES: 1000,             // calibré pour une petite base de joueurs (passer à 10000+ quand l'app décolle)
-  IMPACT_PER_SHARE: 0.0007,       // +0.07 % par action — calibré pour que 1000 actions achetées (= toutes) fassent monter le prix à ~200, et toutes vendues à ~49. Range stable et lisible : 50-200.
+  TOTAL_SHARES: 3000,             // 3× plus d'actions pour que le marché ait plus de profondeur. Le cap PCT 0.10 donne 300 actions max/user.
+  IMPACT_PER_SHARE: 0.0003,       // +0.03 % par action — calibré pour que 3000 actions achetées portent le prix à ~245, toutes vendues à ~40. Range élargi 40-245, pumps visibles.
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
   MEAN_REVERSION_TARGET: 100,     // Prix cible vers lequel le marché revient
-  MEAN_REVERSION_RATE: 0.20,      // Reversion vers TARGET active TOUT LE TEMPS. Rate 0.20 = 50 % de l'écart corrigé en ~3.5 h, 95 % en ~12 h. Stabilisation rapide après les chocs.
+  MEAN_REVERSION_RATE: 0.10,      // Reversion modérée — laisse les pumps légitimes durer (50 % corrigé en ~7 h au lieu de 3.5 h). Compromis stabilité vs dynamique trading.
   MEAN_REVERSION_LOW: 30,         // Plancher dur : sous ce prix, accélération de la reversion
   MEAN_REVERSION_HIGH: 700,       // Plafond dur : au-dessus, accélération inverse
   /* Circuit breaker auto : si le prix bouge de plus de
@@ -44,9 +44,9 @@ export const MARKET_CONFIG = {
   CIRCUIT_BREAKER_THRESHOLD:    0.15,           // 15 % de variation
   CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
   CIRCUIT_BREAKER_PAUSE_MS:     60 * 60 * 1000, // pause 1 h
-  MAX_SHARES_PER_USER_PCT: 0.10,  // 10 % du total = 100 actions max par user (rebaissé depuis 0.30 après l'incident du whale à 140 actions qui a fait chuter le prix de 30 %)
-  MAX_SHARES_PER_TX:       30,    // Max 30 actions par transaction unique (force à splitter les gros trades). Couplé au cooldown 60 s, dumper 100 actions prend 4 min min.
-  MAX_DAILY_VOLUME:        200,   // Volume cumulé (achats + ventes) sur 24 h. Bloque le day trading agressif tout en permettant un trading régulier.
+  MAX_SHARES_PER_USER_PCT: 0.10,  // 10 % du total = 300 actions max par user (cap proportionnel au TOTAL_SHARES)
+  MAX_SHARES_PER_TX:       50,    // Max 50 actions par transaction unique (relevé depuis 30 vu le marché plus profond)
+  MAX_DAILY_VOLUME:        500,   // Volume cumulé (achats + ventes) sur 24 h, relevé de 200 à 500 pour suivre la croissance du marché
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
