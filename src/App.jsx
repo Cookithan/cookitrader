@@ -1594,8 +1594,9 @@ export default function CookiMiner() {
         if(window.localStorage.getItem(FLAG_KEY) === '1') return;
         window.localStorage.setItem(FLAG_KEY, '1');
       }catch{ return; }
-      /* Récompenses : Top1=5☕, Top2=3☕, Top3=1☕ + badge dynamique */
-      const cafesReward = myRank === 1 ? 5 : myRank === 2 ? 3 : 1;
+      /* Récompenses : Top1=3☕, Top2=2☕, Top3=1☕ + badge dynamique
+         (rééquilibrage 11/05/2026 — avant 5/3/1, jugé trop généreux). */
+      const cafesReward = myRank === 1 ? 3 : myRank === 2 ? 2 : 1;
       const weekNum = getWeekNumberDisplay(prevWeekId);
       const badgeId = `champ_W${weekNum}`;
       setCafes(c => (c || 0) + cafesReward);

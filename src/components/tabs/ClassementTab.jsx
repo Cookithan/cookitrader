@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ESPRESSO } from "../../data/themes.js";
+import { ESPRESSO, GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
 import { getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount, ONLINE_WINDOW_MS } from "../../lib/supabaseSync.js";
@@ -196,6 +196,9 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
     return () => clearInterval(id);
   }, []);
 
+  /* Modale "détails récompenses hebdo" — ouverte au clic sur le bandeau */
+  const [showWeeklyRewards, setShowWeeklyRewards] = useState(false);
+
   return (
     <>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
@@ -227,24 +230,38 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         </div>
       </div>
 
-      {/* Bandeau countdown vers le prochain reset (vendredi 18 h UTC) */}
-      <div style={{
-        background:'linear-gradient(135deg, rgba(212,160,23,.12), rgba(193,127,60,.18))',
-        border:'1.5px solid rgba(212,160,23,.45)',
-        borderRadius:12,
-        padding:'10px 14px',
-        marginBottom:14,
-        display:'flex', alignItems:'center', justifyContent:'space-between',
-        gap:10,
-      }}>
+      {/* Bandeau countdown — cliquable, ouvre WeeklyRewardsModal */}
+      <button
+        onClick={() => setShowWeeklyRewards(true)}
+        style={{
+          width:'100%',
+          background:'linear-gradient(135deg, rgba(212,160,23,.12), rgba(193,127,60,.18))',
+          border:'1.5px solid rgba(212,160,23,.45)',
+          borderRadius:12,
+          padding:'10px 14px',
+          marginBottom:14,
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          gap:10,
+          color:'inherit', textAlign:'left',
+          cursor:'pointer',
+        }}
+      >
         <div style={{ fontSize:11, color:C.text, lineHeight:1.4 }}>
           <strong style={{ color:'#D4A017' }}>Reset dans {countdown}</strong>
           <div style={{ fontSize:9.5, color:C.muted, marginTop:1 }}>
-            Top 3 → cafés ☕ + badge Champion
+            Top 3 → cafés ☕ + badge Champion · <span style={{ textDecoration:'underline' }}>Voir détails</span>
           </div>
         </div>
         <div style={{ fontSize:22, lineHeight:1 }}>🏆</div>
-      </div>
+      </button>
+
+      {showWeeklyRewards && (
+        <WeeklyRewardsModal
+          countdown={countdown}
+          onClose={() => setShowWeeklyRewards(false)}
+          C={C}
+        />
+      )}
 
       {/* Carte sticky : mon rang Cookies */}
       <button
@@ -737,6 +754,115 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
           👁️
         </span>
       )}
+    </div>
+  );
+}
+
+
+/* ════════════════════════════════════════════════════
+   WeeklyRewardsModal — détails des récompenses du classement
+   ────────────────────────────────────────────────────
+   Slide-up depuis le bas. Ouvert au clic sur le bandeau countdown du
+   classement Cookies. Réutilise les keyframes inbox-* (présents dans
+   globalStyles.js).
+═══════════════════════════════════════════════════════ */
+function WeeklyRewardsModal({ countdown, onClose, C }){
+  const [closing, setClosing] = useState(false);
+  const handleClose = () => {
+    if(closing) return;
+    setClosing(true);
+    setTimeout(onClose, 280);
+  };
+  const PODIUM = [
+    { rank:1, cafes:3, color:"#FFD24D", label:"🥇 1er", note:"Champion de la semaine" },
+    { rank:2, cafes:2, color:"#C0C0C0", label:"🥈 2e",  note:"Vice-champion"          },
+    { rank:3, cafes:1, color:"#C17F3C", label:"🥉 3e",  note:"Sur le podium"          },
+  ];
+  return (
+    <div
+      onClick={handleClose}
+      role="dialog"
+      className={closing ? "inbox-overlay-out" : "inbox-overlay-in"}
+      style={{ position:"fixed", inset:0, zIndex:96, display:"flex", alignItems:"flex-end", justifyContent:"center" }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className={closing ? "inbox-slide-down" : "inbox-slide-up"}
+        style={{
+          width:"100%", maxWidth:430,
+          background:C.bg,
+          borderTopLeftRadius:24, borderTopRightRadius:24,
+          maxHeight:"85vh", display:"flex", flexDirection:"column",
+          boxShadow:"0 -8px 32px rgba(15,8,4,.45)",
+          position:"relative",
+        }}
+      >
+        <div style={{ width:40, height:4, background:C.border, borderRadius:2, margin:"10px auto 0", flexShrink:0 }} />
+
+        <div style={{ background:ESPRESSO, padding:"18px 22px 16px", textAlign:"center", color:"#fff" }}>
+          <div style={{ fontSize:38, lineHeight:1, marginBottom:6 }}>🏆</div>
+          <div style={{ fontSize:10, fontWeight:900, letterSpacing:3, textTransform:"uppercase", opacity:.75, marginBottom:3 }}>
+            Récompenses hebdo
+          </div>
+          <div style={{ fontSize:18, fontWeight:900, color:"#F0C050" }}>
+            Reset dans {countdown}
+          </div>
+          <div style={{ fontSize:11, color:"rgba(255,255,255,.7)", marginTop:6, lineHeight:1.4 }}>
+            Vendredi 18 h UTC, le top 3 du classement reçoit ses cafés.
+          </div>
+        </div>
+
+        <div style={{ padding:"18px 22px 4px", flex:1, overflowY:"auto" }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:14 }}>
+            {PODIUM.map(p => (
+              <div key={p.rank} style={{
+                background:C.card, border:`1.5px solid ${C.border}`,
+                borderRadius:14, padding:"14px 16px",
+                display:"flex", alignItems:"center", gap:14,
+              }}>
+                <div style={{ fontSize:24, fontWeight:900, color:p.color, minWidth:54, textAlign:"center" }}>
+                  {p.label}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:14, fontWeight:900, color:C.text }}>
+                    +{p.cafes} ☕
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>
+                    {p.note}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            background:"linear-gradient(135deg, rgba(212,160,23,.10), rgba(193,127,60,.14))",
+            border:"1px solid rgba(212,160,23,.4)",
+            borderRadius:12, padding:"11px 14px",
+            fontSize:11.5, color:C.text, lineHeight:1.5, marginBottom:6,
+          }}>
+            🏅 <strong>Badge Champion</strong> unique pour le top 3 (apparaît dans ton profil après le reset).
+          </div>
+          <div style={{ fontSize:10.5, color:C.muted, fontStyle:"italic", textAlign:"center", marginTop:12, padding:"0 10px", lineHeight:1.5 }}>
+            Le classement compte les cookies gagnés depuis le dernier reset (vendredi 18 h UTC).
+          </div>
+        </div>
+
+        <div style={{ padding:"14px 22px 20px", flexShrink:0 }}>
+          <button
+            onClick={handleClose}
+            style={{
+              width:"100%", padding:"12px 0", borderRadius:14,
+              background:GOLD, color:"#fff", border:"none",
+              fontSize:14, fontWeight:900, letterSpacing:.4,
+              boxShadow:"0 4px 14px rgba(212,160,23,.35)",
+              cursor:"pointer",
+            }}
+          >
+            Compris
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
