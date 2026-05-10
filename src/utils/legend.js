@@ -84,20 +84,23 @@ export const CREATOR_NAME_STYLE = {
 };
 
 /* Helper combiné : retourne le style à appliquer.
-   Priorité : Créateur (Cookithan) > Légende Vivante > Titre choisi.
+   Priorité : Titre choisi (si explicite) > Créateur > Légende Vivante > rien.
    - `name`           : pseudo
    - `achievements`   : succès gagnés (array ou CSV)
    - `activeTitleId`  : id du titre couleur sélectionné (titles.js), optionnel
    Les titres couleur sont chargés en lazy-import statique pour éviter une
-   dépendance circulaire (titles.js n'importe pas legend.js). */
+   dépendance circulaire (titles.js n'importe pas legend.js).
+   Note : le titre choisi gagne sur les styles auto (Créateur, Légende) pour
+   permettre au créateur ET aux Légendes de tester les titres color shimmer.
+   Si aucun titre n'est choisi, le style auto signature reprend la main. */
 import { getTitleStyle } from '../data/titles.js';
 
 export function getNameStyle(name, achievements, activeTitleId){
-  if(isCreator(name)) return CREATOR_NAME_STYLE;
-  if(hasLegendTitle(achievements)) return LEGEND_NAME_STYLE;
   if(activeTitleId){
     const s = getTitleStyle(activeTitleId);
     if(s) return s;
   }
+  if(isCreator(name)) return CREATOR_NAME_STYLE;
+  if(hasLegendTitle(achievements)) return LEGEND_NAME_STYLE;
   return null;
 }
