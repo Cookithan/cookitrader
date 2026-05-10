@@ -1874,14 +1874,14 @@ export default function CookiMiner() {
       return;
     }
     /* Pack cookies — boost direct du solde 🍪. Toujours consommable
-       (rachetable à volonté). Pas d'XP gagnée (utilise setCoins direct
-       et bump totalEarned manuellement pour rester cohérent stat). */
+       (rachetable à volonté). N'affecte ni l'XP ni le totalEarned
+       (= classement) — éviter pay-to-level ET pay-to-rank. Le pack
+       sert purement à acheter des items boutique 🍪 sans grinder. */
     if(r.applyAs === 'pack_cookies'){
       if(cafes < r.cost) return;
       const n = r.coinsAmount || 0;
       setCafes(c => Math.max(0, c - r.cost));
       setCoins(c => c + n);
-      setTotalEarned(t => t + n);
       playSound('success');
       showToast(`💰 +${n.toLocaleString('fr-FR')} 🍪 crédités !`);
       return;
