@@ -19,6 +19,7 @@ import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
 import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters } from "./lib/supabaseSync.js";
+import { getCurrentWeekId } from "./lib/weeklyCycle.js";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -135,6 +136,14 @@ export default function CookiMiner() {
   const [coins,       setCoins]       = useLocalStorage('coins',       0);
   const [cafes,       setCafes]       = useLocalStorage('cafes',       0);
   const [totalEarned, setTotalEarned] = useLocalStorage('totalEarned', 0);
+  /* Compteur hebdomadaire — incrémenté en parallèle de totalEarned.
+     Auto-reset à 0 quand le week_id change (passage du vendredi 18 h UTC).
+     Sert au classement weekly + récompenses top 3 par semaine. */
+  const [weeklyEarned,  setWeeklyEarned]  = useLocalStorage('weeklyEarned',  0);
+  const [weeklyWeekId,  setWeeklyWeekId]  = useLocalStorage('weeklyWeekId',  '');
+  /* Ref synchronisée pour lire la dernière valeur dans addCoins (closure). */
+  const weeklyWeekIdRef = useRef(weeklyWeekId);
+  weeklyWeekIdRef.current = weeklyWeekId;
   const [level,       setLevel]       = useLocalStorage('level',       1);
   const [xp,          setXp]          = useLocalStorage('xp',          0);
   const [streak,      setStreak]      = useLocalStorage('streak',      0);
@@ -353,6 +362,16 @@ export default function CookiMiner() {
             setSlotGamesDate(today);
           }
         }
+        /* Classement hebdomadaire : prendre les valeurs serveur si on
+           est sur la même semaine (sinon le local sera reset à la
+           prochaine addCoins via auto-detection). Cross-device safe. */
+        const currentWeekId = getCurrentWeekId();
+        if(server.weeklyWeekId === currentWeekId){
+          if(Number(server.weeklyEarned) > Number(weeklyEarned || 0)){
+            setWeeklyEarned(Number(server.weeklyEarned));
+            setWeeklyWeekId(currentWeekId);
+          }
+        }
       }
       setPullDone(true);
     })();
@@ -401,11 +420,14 @@ export default function CookiMiner() {
         spinsDate: spinsDate || null,
         slotGamesToday: Number(slotGamesToday) || 0,
         slotGamesDate: slotGamesDate || null,
+        /* Classement hebdomadaire — vendredi 18h UTC reset. */
+        weeklyEarned: Number(weeklyEarned) || 0,
+        weeklyWeekId: weeklyWeekId || '',
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate]);
+  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate, weeklyEarned, weeklyWeekId]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
@@ -1006,6 +1028,18 @@ export default function CookiMiner() {
     }
 
     setTotalEarned(t=>t+xpDelta);
+
+    /* Compteur hebdomadaire — auto-reset à 0 si on est passé sur une
+       nouvelle semaine (vendredi 18 h UTC). Lecture via ref pour ne
+       pas être affecté par le closure stale de useCallback. */
+    const currentWeekId = getCurrentWeekId();
+    if(weeklyWeekIdRef.current !== currentWeekId){
+      setWeeklyEarned(xpDelta);
+      setWeeklyWeekId(currentWeekId);
+      weeklyWeekIdRef.current = currentWeekId;
+    } else {
+      setWeeklyEarned(w => (w || 0) + xpDelta);
+    }
 
     const lv  = lvRef.current;
     const cur = xpRef.current;

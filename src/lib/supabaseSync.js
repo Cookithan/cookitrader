@@ -952,7 +952,7 @@ export async function pullProfile(userCode){
   try{
     const { data, error } = await supabase
       .from('users')
-      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date')
+      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date, weekly_earned, weekly_week_id')
       .eq('user_code', userCode)
       .maybeSingle();
     if(error || !data) return null;
@@ -983,6 +983,9 @@ export async function pullProfile(userCode){
       spinsDate:           data.spins_date || null,
       slotGamesToday:      Number(data.slot_games_today) || 0,
       slotGamesDate:       data.slot_games_date || null,
+      /* Compteur hebdomadaire pour le classement weekly. */
+      weeklyEarned:        Number(data.weekly_earned) || 0,
+      weeklyWeekId:        data.weekly_week_id || '',
     };
   }catch{
     return null;
@@ -1040,6 +1043,13 @@ export async function upsertProfile(p){
         spins_date:           p.spinsDate ?? null,
         slot_games_today:     Number(p.slotGamesToday) || 0,
         slot_games_date:      p.slotGamesDate ?? null,
+        /* Compteur hebdomadaire — incrémenté à chaque addCoins, reset
+           via auto-detection au passage de semaine (vendredi 18 h UTC).
+           Nécessite SQL : alter table users add column if not exists
+           weekly_earned bigint default 0;
+           alter table users add column if not exists weekly_week_id text default ''; */
+        weekly_earned:        Number(p.weeklyEarned) || 0,
+        weekly_week_id:       p.weeklyWeekId ?? '',
         last_active:  new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()
