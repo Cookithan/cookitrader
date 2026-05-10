@@ -31,8 +31,7 @@ export const MARKET_CONFIG = {
   MEAN_REVERSION_HIGH: 700,
   MEAN_REVERSION_RATE: 0.0008,
   MAX_SHARES_PER_USER_PCT: 0.30,  // 30 % du total = 300 actions max par user (relevé depuis 0.10 pour permettre les packs 100 achetables 3 fois)
-  TRANSACTION_FEE_PCT: 0.03,      // 3 % de frais retenus à chaque buy ET sell (anti pump-and-dump : cycle court = -6 % minimum + slippage)
-  SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif)
+  SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
   /* Horaires d'ouverture (heure locale du joueur). Ouvert quand
@@ -281,17 +280,12 @@ export async function buyShares(userCode, shares) {
   /* Slippage symétrique anti-exploit : on calcule d'abord le prix POST-impact
      (le prix qui sera affiché APRÈS l'achat) et on facture l'utilisateur à
      CE prix-là. Sinon un aller-retour instantané ferait gagner gratuitement
-     l'impact (acheté à 100, prix monte à 105, revendu à 105 = +5% gratuit).
-     Frais 3 % en plus du prix : retenu pour empêcher le pump-and-dump
-     rentable. Cycle court = -3 % buy + -3 % sell + slippage = jamais
-     profitable même avec autres traders qui font monter le prix. */
+     l'impact (acheté à 100, prix monte à 105, revendu à 105 = +5% gratuit). */
   const priceImpact = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
   let newPrice = currentPrice * (1 + priceImpact);
   newPrice = Math.min(MARKET_CONFIG.PRICE_MAX, newPrice);
 
-  const grossCost = newPrice * shares;
-  const fee       = grossCost * MARKET_CONFIG.TRANSACTION_FEE_PCT;
-  const totalCost = Math.ceil(grossCost + fee);
+  const totalCost = Math.ceil(newPrice * shares);
 
   const { error: updateErr } = await supabase
     .from('market_state')
@@ -428,17 +422,12 @@ export async function sellShares(userCode, shares) {
   /* Slippage symétrique anti-exploit (cf. buyShares) : on vend au prix
      POST-impact (plus bas), pas au prix avant impact. Sinon revendre
      immédiatement après avoir acheté capturerait l'impact de son propre
-     achat.
-     Frais 3 % retenus aussi à la vente : l'user reçoit moins que la
-     valeur brute. Cumulé avec les frais d'achat = cycle court non
-     profitable. */
+     achat. */
   const priceImpact = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
   let newPrice = currentPrice * (1 - priceImpact);
   newPrice = Math.max(MARKET_CONFIG.PRICE_MIN, newPrice);
 
-  const grossGain   = newPrice * shares;
-  const fee         = grossGain * MARKET_CONFIG.TRANSACTION_FEE_PCT;
-  const totalGained = Math.floor(grossGain - fee);
+  const totalGained = Math.floor(newPrice * shares);
 
   /* Coût de base proportionnel libéré : sert au calcul du profit */
   const ratio = shares / portfolio.shares;
