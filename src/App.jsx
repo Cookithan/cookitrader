@@ -1314,6 +1314,15 @@ export default function CookiMiner() {
        user n'en a qu'un seul à retenir. Il est requis pour restaurer
        sur encore un autre appareil plus tard. */
     set('restorePin',      data.restorePin || '');
+    /* Compteurs quotidiens — anti-cheat cross-device. Sans ces 6 set,
+       le LS du nouveau device restait vierge → check-in/quiz/roue/slot
+       à dispo (alors que déjà consommés sur l'autre device). */
+    set('lastCheckin',     data.lastCheckin || null);
+    set('lastQuiz',        Number(data.lastQuiz) || 0);
+    set('spinsToday',      Number(data.spinsToday) || 0);
+    set('spinsDate',       data.spinsDate || null);
+    set('slotGamesToday',  Number(data.slotGamesToday) || 0);
+    set('slotGamesDate',   data.slotGamesDate || null);
     /* Marché (best-effort) */
     if(data.portfolio?.invested != null){
       set('totalInvested', data.portfolio.invested);

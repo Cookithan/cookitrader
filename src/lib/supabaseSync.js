@@ -865,6 +865,15 @@ export async function restoreProfile(userCode, pin = ''){
         joinDate:           user.join_date || null,
         friendCodes,
         portfolio,
+        /* Compteurs quotidiens — anti-cheat cross-device. Si on les
+           omettait, le LS du nouveau device restait vierge et le user
+           pouvait re-check-in / re-quiz / refaire spins/slots. */
+        lastCheckin:        user.last_checkin || null,
+        lastQuiz:           Number(user.last_quiz) || 0,
+        spinsToday:         Number(user.spins_today) || 0,
+        spinsDate:          user.spins_date || null,
+        slotGamesToday:     Number(user.slot_games_today) || 0,
+        slotGamesDate:      user.slot_games_date || null,
       },
     };
   }catch(e){
