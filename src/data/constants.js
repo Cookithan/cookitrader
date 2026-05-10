@@ -213,7 +213,7 @@ export const REWARDS = [
      Cf. unlockReward dans App.jsx pour les effets. */
   { id:'quiz_skip',          currency:'cafe', applyAs:'quiz_skip',          name:'Skip Quiz',           desc:'Réinitialise instantanément le cooldown du quiz', cost:2, type:'Premium', emoji:'⏭️',  levelRequired:1 },
   { id:'next_game_doubler',  currency:'cafe', applyAs:'next_game_doubler',  name:'Double prochain gain',desc:'Le prochain gain 🍪 d\'un mini-jeu est doublé',    cost:1, type:'Premium', emoji:'🎯',  levelRequired:1 },
-  { id:'boost_x2_1h',        currency:'cafe', applyAs:'boost_x2_1h',        name:'Boost ×2 (1 h)',      desc:'Tous tes gains 🍪 doublés pendant 1 heure',        cost:3, type:'Premium', emoji:'⚡',  levelRequired:3 },
+  { id:'boost_x2_1h',        currency:'cafe', applyAs:'boost_x2_1h',        name:'Boost ×2 (1 h)',      desc:'Tous tes gains 🍪 doublés pendant 1 heure',        cost:5, type:'Premium', emoji:'⚡',  levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */
