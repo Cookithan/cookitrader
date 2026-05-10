@@ -19,18 +19,20 @@ import { TutorialBubble } from "./TutorialBubble.jsx";
 ═══════════════════════════════════════════════════════ */
 
 /* Tuto SIMPLE — spotlight rond sur la cible + bulle centrée à l'écran.
-   Textes courts (1 phrase). Couvre toutes les sections principales. */
+   Textes courts (1 phrase). Couvre toutes les sections principales.
+   `goToTab` (optionnel) navigue automatiquement vers le tab — l'user
+   voit ainsi le contenu réel de la page pendant qu'il lit la bulle. */
 export const TUTORIAL_STEPS = [
-  { target:'card-niveau',    text:'Ton niveau et ta progression. Joue pour monter ! 🚀',         actionRequired:false },
-  { target:'cookie-counter', text:'Les cookies 🍪 — ta monnaie principale.',                     actionRequired:false },
-  { target:'card-checkin',   text:'Ton bonus quotidien à récupérer chaque jour. ☕',             actionRequired:false },
-  { target:'nav-jeux',       text:"Les mini-jeux pour gagner des cookies. 🎮",                   actionRequired:false },
-  { target:'nav-classement', text:'Le classement face aux autres joueurs. 🏆',                   actionRequired:false },
-  { target:'nav-marche',     text:'Le marché $CKM — achète/revends pour faire fructifier (niv 3+). 📈', actionRequired:false },
-  { target:'nav-boutique',   text:'La boutique pour débloquer thèmes, badges, items premium ☕.', actionRequired:false },
+  { target:'card-niveau',    goToTab:'accueil',    text:'Ton niveau et ta progression. Joue pour monter ! 🚀',         actionRequired:false },
+  { target:'cookie-counter', goToTab:'accueil',    text:'Les cookies 🍪 — ta monnaie principale.',                     actionRequired:false },
+  { target:'card-checkin',   goToTab:'accueil',    text:'Ton bonus quotidien à récupérer chaque jour. ☕',             actionRequired:false },
+  { target:'nav-jeux',       goToTab:'jeux',       text:"Les mini-jeux pour gagner des cookies. 🎮",                   actionRequired:false },
+  { target:'nav-classement', goToTab:'classement', text:'Le classement face aux autres joueurs. 🏆',                   actionRequired:false },
+  { target:'nav-marche',     goToTab:'marche',     text:'Le marché $CKM — achète/revends pour faire fructifier (niv 3+). 📈', actionRequired:false },
+  { target:'nav-boutique',   goToTab:'boutique',   text:'La boutique pour débloquer thèmes, badges, items premium ☕.', actionRequired:false },
 ];
 
-export function TutorialOverlay({ step, onNext, onSkip }){
+export function TutorialOverlay({ step, onNext, onSkip, onNavigate }){
   const config = TUTORIAL_STEPS[step - 1];
 
   /* Auto-avance pour les étapes flaguées avec autoNext */
@@ -39,6 +41,12 @@ export function TutorialOverlay({ step, onNext, onSkip }){
     const t = setTimeout(()=>onNext(), config.autoNext);
     return ()=>clearTimeout(t);
   }, [step, config, onNext]);
+
+  /* Navigation auto vers le tab demandé par l'étape */
+  useEffect(()=>{
+    if(config?.goToTab) onNavigate?.(config.goToTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   if(step === 0 || !config) return null;
 

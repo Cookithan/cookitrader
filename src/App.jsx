@@ -737,14 +737,15 @@ export default function CookiMiner() {
     setSeenHints(s => s.includes(id) ? s : [...s, id]);
   }, [tab, tutorialStep, seenHints, setSeenHints]);
 
-  /* Avance d'une étape du tuto (ou termine si dernière). Le tuto reste
-     SUR L'ACCUEIL — les targets sont card-niveau, cookie-counter,
-     card-checkin (sur l'accueil) et nav-* (toujours visibles en bas). */
+  /* Avance d'une étape du tuto (ou termine si dernière). Chaque étape
+     navigue auto vers son tab (cf. TUTORIAL_STEPS.goToTab). En fin de
+     tuto on rentre à l'accueil pour démarrer propre. */
   const tutorialNext = () => {
     setTutorialStep(s => {
       const next = s + 1;
       if(next > TUTORIAL_STEPS.length){
         try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
+        setTab('accueil');
         return 0;
       }
       return next;
@@ -754,6 +755,7 @@ export default function CookiMiner() {
   const tutorialConfirmSkip = () => {
     setShowSkipConfirm(false);
     setTutorialStep(0);
+    setTab('accueil');
     try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
   };
 
@@ -2783,12 +2785,15 @@ export default function CookiMiner() {
       )}
 
       {/* TUTORIEL GUIDÉ — déclenché au 1er lancement après onboarding.
-          Spotlight rond sur l'élément ciblé + bulle centrée à l'écran. */}
+          Spotlight rond sur l'élément ciblé + bulle centrée à l'écran.
+          Navigation auto vers le tab de l'étape pour que l'user voie
+          le contenu réel pendant qu'il lit. */}
       {tutorialStep > 0 && (
         <TutorialOverlay
           step={tutorialStep}
           onNext={tutorialNext}
           onSkip={()=>setShowSkipConfirm(true)}
+          onNavigate={(t)=>{ setShowProfile(false); setShowSettings(false); setTab(t); }}
         />
       )}
       {showSkipConfirm && (
