@@ -17,7 +17,13 @@
       "Bash(grep *)",
       "Bash(npm install *)",
       "Bash(git rm *)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "Bash(curl -s https://cookitrader.vercel.app/)",
+      "Bash(curl -sL https://cookitrader.vercel.app/ -o /tmp/index.html)",
+      "Read(//tmp/**)",
+      "Bash(curl -sL https://cookitrader.vercel.app/)",
+      "Bash(curl -sL https://cookiminer.vercel.app/)",
+      "Bash(curl -sL \"https://cookiminer.vercel.app/assets/index-osq7eT1J.js\" -o /tmp/prod.js)"
     ]
   }
 }
