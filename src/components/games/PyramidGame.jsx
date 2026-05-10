@@ -4,30 +4,77 @@ import { playSound } from "../../lib/audio.js";
 import { SingleCup } from "./SingleCup.jsx";
 
 /* ════════════════════════════════════════════════════
-   PyramidGame — "Pile de Tasses" (BRIEF refonte 09/05/2026)
+   PyramidGame — "Pile de Tasses" (refonte diversification mai 2026)
    ────────────────────────────────────────────────────
    Mini-jeu Stack-like : empile des tasses qui glissent horizontalement,
    tap pour les poser. Si pas alignée, la tasse rétrécit. Si trop petite
    (< 25 % de la largeur initiale) → game over.
 
-   Économie :
-   - COÛT = 10 🍪 par partie · niveau requis 10
-   - +3 🍪 par tasse posée · cap 100 🍪
-   - Bonus combo +10 🍪 si > 30 tasses
+   Diversification :
+   - 3 MODES sélectionnables avant chaque partie :
+     · Normal    — vitesse + reward standard
+     · Rapide    — vitesse ×2, reward ×2 (cap inchangé → cap atteint + vite)
+     · Précision — bonus +2 🍪 si parfait, malus -1 si raté
+   - 3 SKINS visuels (classic / caramel / espresso) tirés au hasard par tasse
+   - 3 TASSES SPÉCIALES (apparition aléatoire à partir du score 5) :
+     · Golden  (5 %) — +10 🍪 si bien centrée (overlap > 80 %)
+     · Fragile (4 %) — game over si overlap < 50 %, mais +5 🍪 si bien posée
+     · Large   (3 %) — la prochaine tasse mobile reset à pleine largeur
 
-   Le composant est intégré dans GameOverlay qui fournit le header
-   (titre + back + cookies pill) — d'où pas de fullscreen ici.
+   Économie inchangée (pas de nerf demandé) :
+   - COÛT = 10 🍪 par partie · niveau requis 10
+   - +3 🍪 par tasse posée · cap 100 🍪 (mode normal)
+   - Bonus combo +10 🍪 si > 30 tasses
 ═══════════════════════════════════════════════════════ */
 
 const GAME_AREA_WIDTH    = 320;
-const INITIAL_CUP_WIDTH  = 160;        // 130 → 160 (tasses encore + grosses)
-const MIN_CUP_WIDTH      = 38;         // 30 → 38 (cohérent avec ratio ~25%)
+const INITIAL_CUP_WIDTH  = 160;
+const MIN_CUP_WIDTH      = 38;
 const INITIAL_SPEED      = 120;        // px/seconde
 const REWARD_PER_CUP     = 3;
-const REWARD_CAP         = 100;
+/* Le cap de récompense est défini par mode (MODES[mode].rewardCap)
+   pour équilibrer risque/récompense — voir bloc MODES ci-dessous. */
 const COMBO_THRESHOLD    = 30;
-const COMBO_BONUS_AMOUNT = 10;         // 50 → 10 (bonus combo)
+const COMBO_BONUS_AMOUNT = 10;
 const COST_TO_PLAY       = 10;
+
+/* Modes de jeu (sélection avant partie). Les multiplicateurs s'appliquent
+   au temps réel (vitesse) et au reward by-the-cup. Le `rewardCap` par
+   mode équilibre le risque/récompense : Rapide donne ×2 par tasse mais
+   cap plus bas (70 vs 80) — plus rapide à plafonner, donc partie plus
+   courte effective. */
+const MODES = {
+  normal:    { label:'Normal',    emoji:'☕', desc:'Vitesse + reward standard · cap 80 🍪',         speedMul:1.0, rewardMul:1.0, perfectBonus:0, missPenalty:0, rewardCap:80 },
+  rapide:    { label:'Rapide',    emoji:'⚡', desc:'×2 vitesse, ×2 cookies · cap 70 🍪',            speedMul:2.0, rewardMul:2.0, perfectBonus:0, missPenalty:0, rewardCap:70 },
+  precision: { label:'Précision', emoji:'🎯', desc:'+2 🍪 parfait, -1 raté · cap 80 🍪',           speedMul:1.0, rewardMul:1.0, perfectBonus:2, missPenalty:1, rewardCap:80 },
+};
+
+/* Skins visuels (esthétique pure, pas d'impact gameplay) — tirés au
+   hasard pour chaque tasse mobile. */
+const SKINS = ['classic', 'caramel', 'espresso'];
+
+/* Tasses spéciales — chance et seuil de score minimum pour apparition.
+   On laisse le joueur warm-up (score >= 5) avant d'introduire la
+   variabilité, sinon la 1re tasse spéciale peut clore une partie sans
+   reward (frustration). */
+const SPECIAL_MIN_SCORE = 5;
+const SPECIAL_SPAWN = [
+  { type:'golden',  chance:0.05, bonus:10, alignThreshold:0.80, label:'Tasse dorée — +10 🍪 si bien centrée' },
+  { type:'fragile', chance:0.04, bonus:5,  alignThreshold:0.50, label:'Tasse fragile — casse si <50 %, +5 🍪 sinon' },
+  { type:'large',   chance:0.03, bonus:0,  alignThreshold:0,    label:'Tasse large — la prochaine reset à pleine taille' },
+];
+
+function pickSpecial(score){
+  if(score < SPECIAL_MIN_SCORE) return null;
+  const r = Math.random();
+  let acc = 0;
+  for(const s of SPECIAL_SPAWN){
+    acc += s.chance;
+    if(r < acc) return s.type;
+  }
+  return null;
+}
+function pickSkin(){ return SKINS[Math.floor(Math.random() * SKINS.length)]; }
 
 /* La tasse SVG totale fait width × 1.3 (anse à droite). Le centre visuel
    de la tasse est donc à -15 % de la largeur depuis le centre du div.
@@ -49,15 +96,20 @@ function getMovingCupBottomPosition(stackedCups){
   return STACK_BOTTOM + SAUCER_HEIGHT + h + 60;
 }
 
-export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
+export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 50, consumePyramidGame, pyramidRechargeCost = 2, cafes = 0, onRechargePyramid, C }){
   const [phase,           setPhase]           = useState('intro');     // intro | playing | gameover
+  const [mode,            setMode]            = useState('normal');    // sélectionné dans l'intro, lock pendant playing
   const [stackedCups,     setStackedCups]     = useState([]);
   const [movingCup,       setMovingCup]       = useState(null);
   const [score,           setScore]           = useState(0);
   const [reward,          setReward]          = useState(0);
   const [comboBonus,      setComboBonus]      = useState(false);
-  const [showRewardPopup, setShowRewardPopup] = useState(false);
+  const [showRewardPopup, setShowRewardPopup] = useState(0);    // amount last popup (signed)
   const [showPerfectGlow, setShowPerfectGlow] = useState(false);
+  const [showSpecialFx,   setShowSpecialFx]   = useState(null); // 'golden'|'fragile'|'large' burst
+  /* Flag injecté par la pose d'une tasse `large` : la prochaine tasse
+     mobile spawn à pleine largeur INITIAL_CUP_WIDTH au lieu de overlap. */
+  const [pendingResetWidth, setPendingResetWidth] = useState(false);
   /* Particules grains de café qui jaillissent au tap d'une tasse posée
      (5 grains éphémères avec angle/distance aléatoires). Cleanup auto
      après 700 ms. */
@@ -69,11 +121,15 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   const movingRef  = useRef(null);
   const stackedRef = useRef([]);
   const scoreRef   = useRef(0);
+  const modeRef    = useRef('normal');
+  const pendingResetWidthRef = useRef(false);
 
   useEffect(()=>{ phaseRef.current  = phase;       }, [phase]);
   useEffect(()=>{ movingRef.current = movingCup;   }, [movingCup]);
   useEffect(()=>{ stackedRef.current = stackedCups;}, [stackedCups]);
   useEffect(()=>{ scoreRef.current  = score;       }, [score]);
+  useEffect(()=>{ modeRef.current   = mode;        }, [mode]);
+  useEffect(()=>{ pendingResetWidthRef.current = pendingResetWidth; }, [pendingResetWidth]);
 
   /* Cleanup au unmount — annule l'animation si en cours */
   useEffect(() => () => {
@@ -92,8 +148,9 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
 
       setMovingCup(prev => {
         if(!prev) return prev;
-        /* Vitesse exponentielle douce — accélère après 10-15 tasses */
-        const speed = INITIAL_SPEED * (1 + Math.pow(scoreRef.current / 15, 1.3) * 0.4);
+        /* Vitesse exponentielle douce + multiplicateur du mode actif. */
+        const speedMul = MODES[modeRef.current]?.speedMul ?? 1;
+        const speed = INITIAL_SPEED * (1 + Math.pow(scoreRef.current / 15, 1.3) * 0.4) * speedMul;
         const maxX  = GAME_AREA_WIDTH / 2 - prev.width / 2 - 8;
         const minX  = -maxX;
         let nx = prev.x + prev.direction * speed * delta;
@@ -116,22 +173,27 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
   /* ── Démarrer une partie ───────────────────────── */
   const handleStart = () => {
     if(coins < COST_TO_PLAY) return;
+    if(pyramidPlaysLeft <= 0) return;   /* quota épuisé → bouton recharge à la place */
     playSound('modal');
     onSpend(COST_TO_PLAY);
+    consumePyramidGame?.();
 
     /* Base de départ : une tasse posée au centre comme repère visuel.
-       Elle ne compte PAS dans le score (qui représente les tasses
-       posées par le joueur). */
-    const baseCup = { x: 0, width: INITIAL_CUP_WIDTH };
+       Skin par défaut, pas de spécial pour la base. Elle ne compte
+       PAS dans le score (qui représente les tasses posées par le joueur). */
+    const baseCup = { x: 0, width: INITIAL_CUP_WIDTH, skin: 'classic', special: null };
     setStackedCups([baseCup]);
     stackedRef.current = [baseCup];
     setScore(0); scoreRef.current = 0;
     setReward(0);
     setComboBonus(false);
+    setPendingResetWidth(false); pendingResetWidthRef.current = false;
     setMovingCup({
       x: -GAME_AREA_WIDTH / 2 + INITIAL_CUP_WIDTH / 2 + 8,
       width: INITIAL_CUP_WIDTH,
       direction: 1,
+      skin: pickSkin(),
+      special: null,
     });
     setPhase('playing');
     phaseRef.current = 'playing';
@@ -146,7 +208,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
 
     const lastCup = stackedRef.current.length > 0
       ? stackedRef.current[stackedRef.current.length - 1]
-      : { x: 0, width: INITIAL_CUP_WIDTH };
+      : { x: 0, width: INITIAL_CUP_WIDTH, skin:'classic', special:null };
 
     const movingLeft  = moving.x  - moving.width  / 2;
     const movingRight = moving.x  + moving.width  / 2;
@@ -163,10 +225,21 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
       return;
     }
 
-    const newX = (overlapLeft + overlapRight) / 2;
-    const isPerfect = Math.abs(moving.x - lastCup.x) < 3;
+    /* Ratio d'alignement (1.0 = parfait centrage, 0 = bord à bord). */
+    const alignRatio = overlapWidth / moving.width;
+    const isPerfect  = Math.abs(moving.x - lastCup.x) < 3;
 
-    const newCup = { x: newX, width: overlapWidth };
+    /* Tasse fragile : seuil 50 % obligatoire sinon game over. Si OK,
+       bonus +5 🍪 (avant multiplicateur de mode). */
+    if(moving.special === 'fragile' && alignRatio < 0.50){
+      setShowSpecialFx('fragile-broken');
+      setTimeout(() => setShowSpecialFx(null), 500);
+      handleGameOver();
+      return;
+    }
+
+    const newX = (overlapLeft + overlapRight) / 2;
+    const newCup = { x: newX, width: overlapWidth, skin: moving.skin, special: moving.special };
     const newStack = [...stackedRef.current, newCup];
     stackedRef.current = newStack;
     setStackedCups(newStack);
@@ -175,15 +248,42 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
     scoreRef.current = newScore;
     setScore(newScore);
 
-    const newReward = Math.min(reward + REWARD_PER_CUP, REWARD_CAP);
+    /* Reward de base + multiplicateur de mode. */
+    const modeCfg = MODES[modeRef.current] || MODES.normal;
+    let delta = REWARD_PER_CUP * modeCfg.rewardMul;
+
+    /* Mode Précision : bonus parfait, malus rate. */
+    if(modeCfg.perfectBonus && isPerfect) delta += modeCfg.perfectBonus;
+    if(modeCfg.missPenalty && !isPerfect)  delta -= modeCfg.missPenalty;
+
+    /* Bonus spéciaux. Tasse dorée : si alignment > 80 %, gros bonus. */
+    if(moving.special === 'golden' && alignRatio >= 0.80){
+      delta += 10;
+      setShowSpecialFx('golden-bonus');
+      setTimeout(() => setShowSpecialFx(null), 700);
+    }
+    /* Tasse fragile bien posée (alignment >= 0.50) → petit bonus. */
+    if(moving.special === 'fragile'){
+      delta += 5;
+      setShowSpecialFx('fragile-saved');
+      setTimeout(() => setShowSpecialFx(null), 600);
+    }
+    /* Tasse large posée → flag pour reset la prochaine width. */
+    if(moving.special === 'large'){
+      setPendingResetWidth(true); pendingResetWidthRef.current = true;
+      setShowSpecialFx('large-applied');
+      setTimeout(() => setShowSpecialFx(null), 600);
+    }
+
+    const newReward = Math.max(0, Math.min(reward + delta, modeCfg.rewardCap));
     setReward(newReward);
+    setShowRewardPopup(delta);
+    setTimeout(() => setShowRewardPopup(0), 1000);
 
     if(isPerfect){
       setShowPerfectGlow(true);
       setTimeout(() => setShowPerfectGlow(false), 800);
     }
-    setShowRewardPopup(true);
-    setTimeout(() => setShowRewardPopup(false), 1000);
 
     /* Spawn de 5 grains de café éphémères au point de pose. Angle
        réparti en cercle, distance et rotation aléatoires pour un effet
@@ -195,7 +295,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
       return {
         id: `${burstId}-${i}`,
         tx: Math.cos(angle) * dist,
-        ty: Math.sin(angle) * dist - 10,  // biais vers le haut
+        ty: Math.sin(angle) * dist - 10,
         rot: (Math.random() - 0.5) * 540,
       };
     });
@@ -208,13 +308,25 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
       setComboBonus(true);
     }
 
-    /* Prépare la tasse suivante : largeur = overlap, position aléatoire d'un côté */
+    /* Prépare la tasse suivante. Width = overlap (normal) OU
+       INITIAL_CUP_WIDTH si une `large` vient d'être posée (effet reset
+       full). On consomme le flag immédiatement après. */
+    const useReset = pendingResetWidthRef.current;
+    if(useReset){
+      setPendingResetWidth(false); pendingResetWidthRef.current = false;
+    }
+    const nextWidth = useReset ? INITIAL_CUP_WIDTH : overlapWidth;
+    /* Roll special pour la prochaine mobile (gated à score >= 5). */
+    const nextSpecial = pickSpecial(newScore);
+    const nextSkin    = pickSkin();
     const sideToStart = Math.random() > 0.5 ? -1 : 1;
-    const startX = sideToStart * (GAME_AREA_WIDTH / 2 - overlapWidth / 2 - 8);
+    const startX = sideToStart * (GAME_AREA_WIDTH / 2 - nextWidth / 2 - 8);
     const next = {
       x: startX,
-      width: overlapWidth,
+      width: nextWidth,
       direction: sideToStart === -1 ? 1 : -1,
+      skin: nextSkin,
+      special: nextSpecial,
     };
     movingRef.current = next;
     setMovingCup(next);
@@ -244,7 +356,10 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
 
   /* ════════ INTRO ════════ */
   if(phase === 'intro'){
-    const canPlay = coins >= COST_TO_PLAY;
+    const outOfPlays = pyramidPlaysLeft <= 0;
+    const canAfford  = coins >= COST_TO_PLAY;
+    const canRecharge = cafes >= pyramidRechargeCost;
+    const canPlay = canAfford && !outOfPlays;
     return (
       <div style={{
         display:'flex', flexDirection:'column', alignItems:'center',
@@ -281,26 +396,126 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
             borderRadius:12, padding:'8px 14px',
             fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.2,
           }}>
-            +{REWARD_PER_CUP} 🍪 par tasse · max {REWARD_CAP} 🍪 · combo +{COMBO_BONUS_AMOUNT} 🍪 si {'>'}{COMBO_THRESHOLD} tasses
+            +{REWARD_PER_CUP} 🍪 par tasse · max {MODES[mode].rewardCap} 🍪 · combo +{COMBO_BONUS_AMOUNT} 🍪 si {'>'}{COMBO_THRESHOLD} tasses
           </div>
 
-          <button
-            onClick={handleStart}
-            disabled={!canPlay}
-            className={canPlay ? 'glow-anim' : ''}
-            style={{
-              background: canPlay ? GOLD : 'rgba(212, 160, 23, 0.3)',
-              color: canPlay ? '#fff' : 'rgba(245, 239, 230, 0.5)',
-              border:'none', borderRadius:14,
-              padding:'14px 32px',
-              fontSize:15, fontWeight:800, letterSpacing:.3,
-              cursor: canPlay ? 'pointer' : 'not-allowed',
-              boxShadow: canPlay ? '0 6px 20px rgba(212,160,23,.4)' : 'none',
-              touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
-            }}
-          >
-            {canPlay ? `Commencer (${COST_TO_PLAY} 🍪)` : `Pas assez (${COST_TO_PLAY} 🍪)`}
-          </button>
+          {/* Compteur essais quotidiens — pastille discrète */}
+          <div style={{
+            display:'inline-flex', alignItems:'center', gap:6,
+            padding:'5px 12px', borderRadius:10,
+            background: outOfPlays ? 'rgba(125,72,24,.35)' : 'rgba(245,239,230,.07)',
+            border: outOfPlays ? '1px solid rgba(193,127,60,.7)' : '1px solid rgba(212,160,23,.18)',
+            fontSize:11, fontWeight:700,
+            color: outOfPlays ? '#FFB060' : 'rgba(245,239,230,.7)',
+          }}>
+            🎮 {pyramidPlaysLeft} / {pyramidGamesCap} essai{pyramidPlaysLeft > 1 ? 's' : ''} restant{pyramidPlaysLeft > 1 ? 's' : ''}
+          </div>
+
+          {/* Mode selector — 3 segments (Normal / Rapide / Précision) */}
+          <div style={{ width:'100%', maxWidth:280 }}>
+            <div style={{
+              fontSize:10, fontWeight:700, color:'rgba(245,239,230,.55)',
+              textTransform:'uppercase', letterSpacing:1.5,
+              textAlign:'left', marginBottom:6,
+            }}>
+              Mode
+            </div>
+            <div style={{
+              display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6,
+              padding:4, borderRadius:12,
+              background:'rgba(0,0,0,.25)',
+              border:'1px solid rgba(212,160,23,.18)',
+            }}>
+              {Object.entries(MODES).map(([key, cfg]) => {
+                const active = mode === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => { setMode(key); playSound('toggle'); }}
+                    style={{
+                      padding:'8px 4px', borderRadius:9, border:'none',
+                      background: active ? GOLD : 'transparent',
+                      color: active ? '#fff' : 'rgba(245,239,230,.7)',
+                      fontSize:11, fontWeight:800, letterSpacing:.3,
+                      cursor:'pointer', transition:'background .15s, color .15s',
+                      touchAction:'manipulation', userSelect:'none',
+                    }}
+                  >
+                    {cfg.emoji} {cfg.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{
+              fontSize:10.5, color:'rgba(245,239,230,.55)',
+              marginTop:6, textAlign:'center', fontStyle:'italic', lineHeight:1.4,
+            }}>
+              {MODES[mode].desc}
+            </div>
+          </div>
+
+          {/* Aperçu tasses spéciales — pédagogie */}
+          <div style={{
+            width:'100%', maxWidth:280,
+            fontSize:10, color:'rgba(245,239,230,.55)',
+            lineHeight:1.5, textAlign:'left',
+          }}>
+            <div style={{
+              fontWeight:700, color:'rgba(245,239,230,.65)',
+              textTransform:'uppercase', letterSpacing:1.5, marginBottom:4,
+            }}>
+              Tasses spéciales (dès 5 tasses)
+            </div>
+            <div>✨ <strong style={{ color:'#FFE066' }}>Dorée</strong> : +10 🍪 si bien centrée</div>
+            <div>💎 <strong style={{ color:'#D8E8F0' }}>Fragile</strong> : casse si {'<'} 50 %, sinon +5 🍪</div>
+            <div>➕ <strong style={{ color:'#88B8E8' }}>Large</strong> : reset la prochaine à pleine taille</div>
+          </div>
+
+          {/* Bouton principal : Commencer OU Recharger (selon quota) */}
+          {outOfPlays ? (
+            <>
+              <button
+                onClick={() => { onRechargePyramid?.(); }}
+                disabled={!canRecharge}
+                style={{
+                  background: canRecharge ? 'linear-gradient(135deg,#FFD24D,#C99607)' : 'rgba(212, 160, 23, 0.25)',
+                  color: canRecharge ? '#3D2010' : 'rgba(245, 239, 230, 0.5)',
+                  border:'none', borderRadius:14,
+                  padding:'14px 32px',
+                  fontSize:15, fontWeight:900, letterSpacing:.4,
+                  cursor: canRecharge ? 'pointer' : 'not-allowed',
+                  boxShadow: canRecharge ? '0 6px 20px rgba(212,160,23,.45)' : 'none',
+                  touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
+                  width:'100%', maxWidth:280,
+                }}
+              >
+                {canRecharge
+                  ? `🔄 Recharger ${pyramidGamesCap} essais (${pyramidRechargeCost} ☕)`
+                  : `Pas assez (${pyramidRechargeCost} ☕)`}
+              </button>
+              <div style={{ fontSize:10.5, color:'rgba(245,239,230,.55)', textAlign:'center', fontStyle:'italic', marginTop:-4 }}>
+                Quota épuisé pour aujourd'hui · reset à minuit
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={handleStart}
+              disabled={!canPlay}
+              className={canPlay ? 'glow-anim' : ''}
+              style={{
+                background: canPlay ? GOLD : 'rgba(212, 160, 23, 0.3)',
+                color: canPlay ? '#fff' : 'rgba(245, 239, 230, 0.5)',
+                border:'none', borderRadius:14,
+                padding:'14px 32px',
+                fontSize:15, fontWeight:800, letterSpacing:.3,
+                cursor: canPlay ? 'pointer' : 'not-allowed',
+                boxShadow: canPlay ? '0 6px 20px rgba(212,160,23,.4)' : 'none',
+                touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
+              }}
+            >
+              {canAfford ? `Commencer (${COST_TO_PLAY} 🍪)` : `Pas assez (${COST_TO_PLAY} 🍪)`}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -380,18 +595,21 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
               Quitter
             </button>
             <button
-              onClick={handleStart}
+              onClick={() => {
+                if(pyramidPlaysLeft <= 0){ setPhase('intro'); return; }   /* retour intro pour recharger */
+                handleStart();
+              }}
               disabled={coins < COST_TO_PLAY}
               style={{
                 flex:1, padding:'12px',
-                background: coins >= COST_TO_PLAY ? GOLD : 'rgba(212, 160, 23, 0.3)',
+                background: (coins >= COST_TO_PLAY && pyramidPlaysLeft > 0) ? GOLD : 'rgba(212, 160, 23, 0.3)',
                 color:'#fff', border:'none', borderRadius:12,
                 fontSize:13, fontWeight:800,
                 cursor: coins >= COST_TO_PLAY ? 'pointer' : 'not-allowed',
-                boxShadow: coins >= COST_TO_PLAY ? '0 4px 14px rgba(212,160,23,.4)' : 'none',
+                boxShadow: (coins >= COST_TO_PLAY && pyramidPlaysLeft > 0) ? '0 4px 14px rgba(212,160,23,.4)' : 'none',
               }}
             >
-              Rejouer ({COST_TO_PLAY} 🍪)
+              {pyramidPlaysLeft > 0 ? `Rejouer (${COST_TO_PLAY} 🍪)` : `Recharger (${pyramidRechargeCost} ☕)`}
             </button>
           </div>
         </div>
@@ -420,7 +638,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
       {/* 2 cartes stats */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:340 }}>
         <StatCard value={score}  label="Tasses posées" />
-        <StatCard value={reward} label="🍪 Gagnés" highlight={reward >= REWARD_CAP} />
+        <StatCard value={reward} label="🍪 Gagnés" highlight={reward >= (MODES[mode]?.rewardCap || 80)} />
       </div>
 
       {/* Game area */}
@@ -506,7 +724,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
             }}/>
           )}
 
-          {/* Tasse en mouvement */}
+          {/* Tasse en mouvement — skin + spécial propagés */}
           {movingCup && (
             <div style={{
               position:'absolute',
@@ -515,8 +733,11 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
               transition:'none',
               zIndex:4,
               pointerEvents:'none',
+              filter: movingCup.special === 'golden' ? 'drop-shadow(0 0 10px rgba(212,160,23,.7))'
+                    : movingCup.special === 'large'  ? 'drop-shadow(0 0 8px rgba(136,184,232,.6))'
+                    : 'none',
             }}>
-              <SingleCup width={movingCup.width} showCoffeeInside={true} withSteam={true} />
+              <SingleCup width={movingCup.width} showCoffeeInside={true} withSteam={true} skin={movingCup.skin} special={movingCup.special} />
             </div>
           )}
 
@@ -536,7 +757,13 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
                 transform:`translateX(${cup.x + cup.width * HANDLE_OFFSET_RATIO}px)`,
                 marginTop: STACK_OVERLAP === 0 ? 0 : -STACK_OVERLAP,
               }}>
-                <SingleCup width={cup.width} showCoffeeInside={i === stackedCups.length - 1} withSteam={false} />
+                <SingleCup
+                  width={cup.width}
+                  showCoffeeInside={i === stackedCups.length - 1}
+                  withSteam={false}
+                  skin={cup.skin || 'classic'}
+                  special={cup.special}
+                />
               </div>
             ))}
           </div>
@@ -572,19 +799,46 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, C }){
           </div>
         )}
 
-        {/* Pop-up +{REWARD_PER_CUP} 🍪 */}
-        {showRewardPopup && (
+        {/* Pop-up reward (montant variable selon mode + spéciales) */}
+        {showRewardPopup !== 0 && (
           <div style={{
             position:'absolute',
             top:'50%', left:'50%',
             transform:'translate(-50%, -50%)',
-            background: GOLD, color:'#fff',
+            background: showRewardPopup > 0 ? GOLD : 'linear-gradient(135deg,#5C3317,#3D2010)',
+            color:'#fff',
             padding:'6px 14px', borderRadius:100,
             fontWeight:800, fontSize:14, letterSpacing:.3,
             animation:'cupGameRewardFloat 1s ease-out',
             zIndex:6, pointerEvents:'none',
-            boxShadow:'0 4px 12px rgba(212,160,23,.35)',
-          }}>+{REWARD_PER_CUP} 🍪</div>
+            boxShadow: showRewardPopup > 0 ? '0 4px 12px rgba(212,160,23,.35)' : '0 4px 12px rgba(74,44,23,.4)',
+          }}>{showRewardPopup > 0 ? '+' : ''}{showRewardPopup} 🍪</div>
+        )}
+
+        {/* Pop-up effet spécial — feedback visuel grand sur évènement
+            (golden bonus, fragile saved/broken, large applied). */}
+        {showSpecialFx && (
+          <div style={{
+            position:'absolute',
+            top:'42%', left:'50%',
+            transform:'translate(-50%, -50%)',
+            padding:'10px 18px', borderRadius:14,
+            fontWeight:900, fontSize:15, letterSpacing:.4,
+            animation:'cupGameRewardFloat .9s ease-out',
+            zIndex:8, pointerEvents:'none',
+            color:'#fff',
+            background:
+              showSpecialFx === 'golden-bonus'   ? 'linear-gradient(135deg,#FFD24D,#C99607)' :
+              showSpecialFx === 'fragile-saved'  ? 'linear-gradient(135deg,#88B8E8,#3E72B0)' :
+              showSpecialFx === 'fragile-broken' ? 'linear-gradient(135deg,#7D4818,#3D2010)' :
+              showSpecialFx === 'large-applied'  ? 'linear-gradient(135deg,#88B8E8,#1F4880)' : GOLD,
+            boxShadow:'0 6px 20px rgba(0,0,0,.4)',
+          }}>
+            {showSpecialFx === 'golden-bonus'   && '✨ Dorée +10 🍪'}
+            {showSpecialFx === 'fragile-saved'  && '💎 Fragile +5 🍪'}
+            {showSpecialFx === 'fragile-broken' && '💥 Tasse brisée !'}
+            {showSpecialFx === 'large-applied'  && '➕ Reset pleine taille'}
+          </div>
         )}
 
         {/* Tap zone */}

@@ -32,7 +32,7 @@ import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
    consumeSlotGame). Permet à la boutique de gater l'achat du Jeton VIP
    slot tant qu'il reste des parties dispos. */
 
-export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, slotPlaysLeft, slotGamesCap = 50, consumeSlotGame, C }){
+export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, slotPlaysLeft, slotGamesCap = 50, consumeSlotGame, slotRechargeCost = 2, cafes = 0, onRechargeSlot, C }){
   /* État des 3 rouleaux */
   const [reelStates, setReelStates] = useState([
     { spinning:false, stopping:false, symbol:'?', isWinner:false, isJackpot:false },
@@ -316,6 +316,32 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
       }}>
         {gamesToday} / {slotGamesCap} partie{gamesToday > 1 ? 's' : ''} aujourd'hui
       </div>
+
+      {/* Bouton recharge in-game si quota épuisé — remplace l'ancien
+          slot_pass_50 vendu dans la boutique premium. */}
+      {(slotPlaysLeft ?? 1) <= 0 && onRechargeSlot && (() => {
+        const canRecharge = cafes >= slotRechargeCost;
+        return (
+          <button
+            onClick={() => { if(canRecharge) onRechargeSlot(); }}
+            disabled={!canRecharge}
+            style={{
+              padding:'12px 28px', borderRadius:18, fontSize:13.5, fontWeight:900, letterSpacing:.3,
+              background: canRecharge ? 'linear-gradient(135deg,#FFD24D,#C99607)' : C.card,
+              color: canRecharge ? '#3D2010' : C.muted,
+              border:`1.5px solid ${canRecharge ? 'transparent' : C.border}`,
+              boxShadow: canRecharge ? '0 6px 18px rgba(212,160,23,.4)' : 'none',
+              cursor: canRecharge ? 'pointer' : 'not-allowed',
+              touchAction:'manipulation', userSelect:'none',
+              marginTop:6,
+            }}
+          >
+            {canRecharge
+              ? `🔄 Recharger ${slotGamesCap} parties (${slotRechargeCost} ☕)`
+              : `Pas assez (${slotRechargeCost} ☕)`}
+          </button>
+        );
+      })()}
 
       {/* Modal jackpot */}
       {showJackpotModal && (

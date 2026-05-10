@@ -187,6 +187,12 @@ export default function CookiMiner() {
      down (récupération) via addSlotPass à l'achat. */
   const [slotGamesToday, setSlotGamesToday] = useLocalStorage('slotGamesToday', 0);
   const [slotGamesDate,  setSlotGamesDate]  = useLocalStorage('slotGamesDate', null);
+  /* Compteur quotidien Pile de Tasses (cap 50, reset à minuit). Recharge
+     possible via bouton in-game pour 2 ☕ → reset à 0. LS-only pour
+     l'instant (pas de sync Supabase) — peut être upgradé plus tard si
+     anti-cheat cross-device devient nécessaire. */
+  const [pyramidGamesToday, setPyramidGamesToday] = useLocalStorage('pyramidGamesToday', 0);
+  const [pyramidGamesDate,  setPyramidGamesDate]  = useLocalStorage('pyramidGamesDate', null);
   const [dark,        setDark]        = useLocalStorage('dark',        false);
   /* MARCHÉ ONLINE (BRIEF_MARCHE_ONLINE) — l'état du marché (prix, stock,
      historique 24h, portfolio) vit côté Supabase et est lu par MarketTab.
@@ -1032,6 +1038,63 @@ export default function CookiMiner() {
       setSlotGamesToday(n => Math.max(0, Math.min(n || 0, slotGamesCap) - amount));
     }
   }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday, slotGamesCap]);
+
+  /* Pile de Tasses — cap 50/jour, reset minuit, recharge in-game 2 ☕. */
+  const pyramidGamesCap   = 50;
+  const pyramidRechargeCost = 2;     // ☕ pour reset à 0 (= +50 essais)
+  const isFreshPyramidDay = pyramidGamesDate !== todayStr;
+  const pyramidEffUsed    = isFreshPyramidDay ? 0 : (pyramidGamesToday || 0);
+  const pyramidPlaysLeft  = Math.max(0, pyramidGamesCap - pyramidEffUsed);
+  const consumePyramidGame = useCallback(() => {
+    const t = new Date().toDateString();
+    if(pyramidGamesDate !== t){
+      setPyramidGamesDate(t);
+      setPyramidGamesToday(1);
+    } else {
+      setPyramidGamesToday(n => (n || 0) + 1);
+    }
+  }, [pyramidGamesDate, setPyramidGamesDate, setPyramidGamesToday]);
+  /* Recharge in-game : 2 ☕ → reset compteur à 0 = full 50 essais.
+     Retourne true si OK, false si pas assez de cafés ou pas besoin
+     (encore des essais dispo). */
+  const rechargePyramid = useCallback(() => {
+    if(pyramidPlaysLeft > 0) return false;        /* pas besoin */
+    if(cafes < pyramidRechargeCost) return false; /* pas assez */
+    setCafes(c => c - pyramidRechargeCost);
+    const t = new Date().toDateString();
+    setPyramidGamesDate(t);
+    setPyramidGamesToday(0);
+    playSound('success');
+    return true;
+  }, [pyramidPlaysLeft, cafes, pyramidRechargeCost, setCafes, setPyramidGamesDate, setPyramidGamesToday]);
+
+  /* Recharge in-game pour la Roue (spin) — 2 ☕ → reset compteur à 0.
+     Remplace les anciens spin_pass_50/20 vendus dans la boutique premium. */
+  const spinRechargeCost = 2;
+  const rechargeSpin = useCallback(() => {
+    if(spinsLeft > 0) return false;
+    if(cafes < spinRechargeCost) return false;
+    setCafes(c => c - spinRechargeCost);
+    const t = new Date().toDateString();
+    setSpinsDate(t);
+    setSpinsToday(0);
+    playSound('success');
+    return true;
+  }, [spinsLeft, cafes, spinRechargeCost, setCafes, setSpinsDate, setSpinsToday]);
+
+  /* Recharge in-game pour la Machine à Sous (jackpot) — 2 ☕ → reset à 0.
+     Remplace l'ancien slot_pass_50 vendu dans la boutique premium. */
+  const slotRechargeCost = 2;
+  const rechargeSlot = useCallback(() => {
+    if(slotPlaysLeft > 0) return false;
+    if(cafes < slotRechargeCost) return false;
+    setCafes(c => c - slotRechargeCost);
+    const t = new Date().toDateString();
+    setSlotGamesDate(t);
+    setSlotGamesToday(0);
+    playSound('success');
+    return true;
+  }, [slotPlaysLeft, cafes, slotRechargeCost, setCafes, setSlotGamesDate, setSlotGamesToday]);
 
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
@@ -2947,7 +3010,13 @@ export default function CookiMiner() {
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
           onEventChallenge={checkEventChallenge}
           spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin}
+          spinRechargeCost={spinRechargeCost} onRechargeSpin={rechargeSpin}
           slotPlaysLeft={slotPlaysLeft} slotGamesCap={slotGamesCap} consumeSlotGame={consumeSlotGame}
+          slotRechargeCost={slotRechargeCost} onRechargeSlot={rechargeSlot}
+          pyramidPlaysLeft={pyramidPlaysLeft} pyramidGamesCap={pyramidGamesCap}
+          consumePyramidGame={consumePyramidGame}
+          pyramidRechargeCost={pyramidRechargeCost} cafes={cafes}
+          onRechargePyramid={rechargePyramid}
           activeSkin={activeSkin}
           legendarySeen={legendaryBaristaSeen}
           onLegendarySeen={()=>{

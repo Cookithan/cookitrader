@@ -14,7 +14,7 @@ import { playSound } from "../../lib/audio.js";
    - onJackpot() est appelé si le résultat = +200 (déclenche succès 'jackpot')
 ═══════════════════════════════════════════════════════ */
 
-export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, spinsLeft = Infinity, spinsCap = Infinity, consumeSpin, C }) {
+export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, spinsLeft = Infinity, spinsCap = Infinity, consumeSpin, spinRechargeCost = 2, cafes = 0, onRechargeSpin, C }) {
   const canvasRef  = useRef(null);
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);
@@ -173,9 +173,34 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
         }}>
           {spinsLeft > 0
             ? <>🎡 <strong style={{ color:'#D4A017' }}>{spinsLeft}</strong>/{spinsCap} tours restants aujourd'hui</>
-            : <>⏳ Limite atteinte — reviens demain pour {spinsCap} nouveaux tours</>}
+            : <>⏳ Limite atteinte — recharge ou reviens demain</>}
         </div>
       )}
+
+      {/* Bouton recharge in-game si quota épuisé — remplace les anciens
+          passes premium spin_pass_50/20. Sinon caché. */}
+      {Number.isFinite(spinsCap) && spinsLeft <= 0 && onRechargeSpin && (() => {
+        const canRecharge = cafes >= spinRechargeCost;
+        return (
+          <button
+            onClick={() => { if(canRecharge) onRechargeSpin(); }}
+            disabled={!canRecharge}
+            style={{
+              padding:'12px 28px', borderRadius:18, fontSize:13.5, fontWeight:900, letterSpacing:.3,
+              background: canRecharge ? 'linear-gradient(135deg,#FFD24D,#C99607)' : C.card,
+              color: canRecharge ? '#3D2010' : C.muted,
+              border:`1.5px solid ${canRecharge ? 'transparent' : C.border}`,
+              boxShadow: canRecharge ? '0 6px 18px rgba(212,160,23,.4)' : 'none',
+              cursor: canRecharge ? 'pointer' : 'not-allowed',
+              touchAction:'manipulation', userSelect:'none',
+            }}
+          >
+            {canRecharge
+              ? `🔄 Recharger ${spinsCap} tours (${spinRechargeCost} ☕)`
+              : `Pas assez (${spinRechargeCost} ☕)`}
+          </button>
+        );
+      })()}
 
       {result && spinsLeft > 0 && <div style={{ fontSize:13, color:C.muted }}>Relancez pour tenter à nouveau !</div>}
     </div>

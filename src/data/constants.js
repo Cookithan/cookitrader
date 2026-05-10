@@ -182,17 +182,10 @@ export const REWARDS = [
      - unlock_all_shop              : LE pay-to-win extrême (200 ☕) */
 
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
-  /* Jetons VIP — items premium CONSOMMABLES (pas d'ajout à unlocked).
-     À l'achat, ajoute des tours bonus à la roue pour la journée en
-     cours. Le bonus reset à minuit en même temps que le compteur normal.
-     Filtres par niveau dans BoutiqueTab : 50 visible niv 1-10 (cap 50),
-     20 visible niv 10-15 (cap 20). */
-  { id:'spin_pass_50',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:50, name:'Jeton VIP +50 tours', desc:'+50 tours de roue aujourd\'hui', cost:2, type:'Premium', emoji:'🎫', levelRequired:1,  levelMax:9 },
-  { id:'spin_pass_20',   currency:'cafe', applyAs:'spin_pass', spinPassAmount:20, name:'Jeton VIP +20 tours', desc:'+20 tours de roue aujourd\'hui', cost:3, type:'Premium', emoji:'🎟️', levelRequired:10 },
-  /* Jeton VIP slot — niv 10+ (déblocage Machine à Sous). Achat débloqué
-     uniquement quand le quota quotidien (50) est épuisé, géré côté
-     BoutiqueTab via slotPlaysLeft. */
-  { id:'slot_pass_50',   currency:'cafe', applyAs:'slot_pass', slotPassAmount:50, name:'Jeton VIP +50 parties', desc:'+50 parties Machine à Sous aujourd\'hui', cost:3, type:'Premium', emoji:'🎰', levelRequired:10 },
+  /* Jetons VIP roue/slot supprimés (mai 2026) — remplacés par un bouton
+     "Recharger 2 ☕" directement dans le jeu quand le quota est épuisé.
+     Plus besoin de transiter par la boutique premium. Les IDs
+     spin_pass_50/20 et slot_pass_50 ne sont plus référencés. */
 
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },

@@ -11,14 +11,28 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.13.0',
-  releaseDate: '2026-05-10',
+  version: '1.14.0',
+  releaseDate: '2026-05-11',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Ethan Cuomo',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.14.0',
+    date: '2026-05-11',
+    title: '🎮 Pile de Tasses & Cookie Click — diversifiés + recharge in-game',
+    changes: [
+      "🥞 Pile de Tasses : 3 modes au choix (Normal / Rapide / Précision) avec caps adaptés",
+      "✨ Pile de Tasses : tasses spéciales aléatoires (dorée bonus, fragile, large) dès 5 tasses posées",
+      "🍪 Cookie Click : 3 modes (Normal 5 s / Rapide 3 s / Frénétique 8 s avec cookie qui bouge)",
+      "🔥 Cookie Click : les combos x2/x3/x4 boostent vraiment le reward (avant : juste visuels)",
+      "🎰 Roue & Machine à Sous : recharge directe pour 2 ☕ quand le quota est atteint",
+      "🛒 Plus besoin d'aller dans la boutique premium pour racheter des tours / parties",
+      "⏳ Pile de Tasses : 50 essais quotidiens, recharge 2 ☕ pour repartir à 50",
+    ],
+  },
   {
     version: '1.13.0',
     date: '2026-05-10',
@@ -29,7 +43,7 @@ export const CHANGELOG = [
       "☕ Nouveau thème édition limitée « Cookie & Espresso » — gradient vertical crème → espresso, drop barista légendaire",
       "📲 Carte d'installation PWA directement dans l'onboarding (Android/Desktop) + instruction Safari pour iOS",
       "🧠 Pool de quiz enrichi : 65 questions au lieu de 33 (+22 culture café + 10 nouvelles Expert : pression espresso 9 bars, Geisha Panama, Yirgacheffe…)",
-      "🎟️ Nouveaux codes promo : LATTE (+1 ☕), COOKIMINER (+123 🍪), CMK1 (+1 action $CKM)",
+      "🎟️ De nouveaux codes promo à dénicher (cookies, café, action $CKM)",
       "🛡️ Fix anti-exploit : les packs actions $CKM en cookies deviennent achetables une seule fois (avant : achat répété possible)",
       "📛 Pseudo « Ethan Cuomo » dans les crédits, le splash et les mentions de l'auteur",
       "✨ Petit polish UI : nom long du leader plus jamais coupé dans le classement, titre lisible sur le nouveau thème",

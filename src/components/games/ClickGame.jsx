@@ -6,58 +6,89 @@ import { ClickTracker } from "../../lib/antiCheat.js";
 import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
-   ClickGame — défi de clics 5s
-   - COST = 5 cookies pour démarrer
-   - Reward = floor(clicks / 2) cookies
-   - Phases : idle → countdown (3,2,1,GO) → playing (5s) → done
-   - Combos visuels : 5 taps rapides = x2, 12 = x3, 20 = x4 (pas d'effet sur reward)
-   - Si clicks > bestScore : confettis + onUpdateRecord
-   - Si activeSkin est défini et présent dans COOKIE_SKINS : on utilise SkinnedCookie
-     sinon on retombe sur PremiumCookie (par défaut)
+   ClickGame — défi de clics (refonte diversification mai 2026)
+   ────────────────────────────────────────────────────
+   - COST = 5 🍪 par partie · cap 100 essais/jour (recharge 2 ☕)
+   - RÈGLE NON-NÉGOCIABLE : 2 clics = 1 🍪 (rewardPerClick = 0.5 partout)
+   - 3 MODES sélectionnables avant chaque partie :
+     · Normal       — 5 s · cap 75 🍪 (équilibré)
+     · Rapide       — 3 s · cap 45 🍪 (session courte, pour battre des CPS)
+     · Frénétique   — 8 s · cap 80 🍪 (le cookie se déplace toutes les 2 s)
+   - COMBOS RÉELS : 5 taps rapides → x2 sur les prochains clics,
+     12 → x3, 20 → x4. Reset si gap > 250 ms. Impact direct sur reward.
 
    Anti auto-clicker (BRIEF_ANTICHEAT) — tout est délégué au ClickTracker
    instancié au début de chaque partie :
    - Cap dur 15 CPS (fenêtre glissante 1 s)
    - Score max 150 clics par partie
    - Détection de pattern bot (variance des intervalles < 5 ms sur 10 clics)
-   Les clics rejetés ne sont pas comptés ni animés. Si un cheat est
-   détecté, un warning visuel "moka" est affiché 1.5 s. Le score final
-   versé à onEarn / onUpdateRecord vient toujours de getValidScore(),
-   jamais du compteur visuel — fiabilité 100 %.
+   Les clics rejetés ne sont pas comptés ni animés.
 ═══════════════════════════════════════════════════════ */
 
-export const CLICK_DURATION = 5;
 export const CLICK_COST = 5;
+/* Conservé pour rétro-compat des imports existants (le mode actif
+   définit la vraie durée à l'exécution). */
+export const CLICK_DURATION = 5;
+
+const MODES = {
+  normal:     { label:'Normal',     emoji:'☕', desc:'5 s · 2 clics = 1 🍪 · cap 75 🍪',            duration:5, rewardPerClick:0.5, rewardCap:75, moves:false },
+  rapide:     { label:'Rapide',     emoji:'⚡', desc:'3 s · 2 clics = 1 🍪 · cap 45 🍪 (court intense)', duration:3, rewardPerClick:0.5, rewardCap:45, moves:false },
+  frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 2 clics = 1 🍪 · cap 80 🍪 · cookie bouge', duration:8, rewardPerClick:0.5, rewardCap:80, moves:true },
+};
+
+/* Combos réels — palier → multiplicateur appliqué au reward de chaque
+   clic suivant (jusqu'à la prochaine cassure de combo). */
+const COMBO_TIERS = [
+  { threshold:5,  mul:2, label:'x2 🔥' },
+  { threshold:12, mul:3, label:'x3 ⚡' },
+  { threshold:20, mul:4, label:'x4 💥' },
+];
 
 export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
 
+  const [mode,          setMode]          = useState('normal');
+  const modeCfg = MODES[mode] || MODES.normal;
+
   const [phase,         setPhase]         = useState('idle');     // idle | countdown | playing | done
   const [clicks,        setClicks]        = useState(0);
-  const [timeLeft,      setTimeLeft]      = useState(CLICK_DURATION);
-  const [countdownVal,  setCountdownVal]  = useState(null);       // 3, 2, 1, 'GO', null
+  const [rewardScore,   setRewardScore]   = useState(0);          // float, capé à modeCfg.rewardCap (combo réel)
+  const [timeLeft,      setTimeLeft]      = useState(modeCfg.duration);
+  const [countdownVal,  setCountdownVal]  = useState(null);
   const [particles,     setParticles]     = useState([]);
   const [rings,         setRings]         = useState([]);
   const [combo,         setCombo]         = useState(null);       // { text, key }
+  const [comboMul,      setComboMul]      = useState(1);          // multiplicateur effectif sur le reward
   const [pressed,       setPressed]       = useState(false);
   const [showConfetti,  setShowConfetti]  = useState(false);
   const [recordHit,     setRecordHit]     = useState(false);
   const [warningMessage,setWarningMessage]= useState(null);
+  /* Position relative du cookie principal (en %). Fixe au centre sauf
+     mode frénétique où il se déplace toutes les 2 s. */
+  const [cookiePos,     setCookiePos]     = useState({ x:50, y:50 });
 
   const lastTapRef     = useRef(0);
   const comboCountRef  = useRef(0);
+  const comboMulRef    = useRef(1);
   const timerRef       = useRef(null);
   const countdownRef   = useRef(null);
   const clickRef       = useRef(0);
+  const rewardRef      = useRef(0);
   const trackerRef     = useRef(null);
   const warningTRef    = useRef(null);
+  const cookieMoveRef  = useRef(null);
+  const modeRef        = useRef('normal');
+  const phaseRef       = useRef('idle');
+  useEffect(()=>{ modeRef.current = mode; }, [mode]);
+  useEffect(()=>{ phaseRef.current = phase; }, [phase]);
 
-  /* Cleanup */
+  /* Cleanup global au unmount */
   useEffect(()=>()=>{
     if(timerRef.current) clearInterval(timerRef.current);
     if(countdownRef.current) clearInterval(countdownRef.current);
     if(warningTRef.current) clearTimeout(warningTRef.current);
+    if(cookieMoveRef.current) clearInterval(cookieMoveRef.current);
   },[]);
 
   /* Combo reset visuel */
@@ -76,11 +107,14 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
   const endGame = () => {
     setPhase('done');
-    /* Score fiable : on ignore le compteur visuel (clickRef) et on
-       prend la valeur validée par le ClickTracker (max 150, capée
-       même en cas d'exploit qui aurait contourné registerClick). */
+    /* Stop tous les timers liés au playing */
+    if(cookieMoveRef.current){ clearInterval(cookieMoveRef.current); cookieMoveRef.current = null; }
+
+    /* Score fiable : `clicks` validés via tracker (max 150). */
     const finalClicks = trackerRef.current ? trackerRef.current.getValidScore() : clickRef.current;
-    const earned = Math.floor(finalClicks / 2);
+    /* Reward final = rewardRef accumulé via les clics + bonus spéciaux,
+       capé au cap du mode actif. */
+    const earned = Math.max(0, Math.min(Math.floor(rewardRef.current), MODES[modeRef.current].rewardCap));
     if(earned > 0) onEarn(earned);
     if(finalClicks > bestScore){
       onUpdateRecord(finalClicks);
@@ -105,9 +139,13 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     onSpend(CLICK_COST);
     setPhase('countdown');
     setClicks(0); clickRef.current = 0;
-    setTimeLeft(CLICK_DURATION);
+    setRewardScore(0); rewardRef.current = 0;
+    setTimeLeft(modeCfg.duration);
     comboCountRef.current = 0;
+    comboMulRef.current = 1;
+    setComboMul(1);
     lastTapRef.current = 0;
+    setCookiePos({ x:50, y:50 });
     /* Nouveau tracker à chaque partie — pas de fuite d'état entre runs */
     trackerRef.current = new ClickTracker();
     setWarningMessage(null);
@@ -125,6 +163,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
         clearInterval(countdownRef.current);
         setCountdownVal(null);
         setPhase('playing');
+        /* Timer principal (1s tick, durée selon mode) */
         timerRef.current = setInterval(()=>{
           setTimeLeft(t=>{
             if(t <= 1){
@@ -135,6 +174,16 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
             return t - 1;
           });
         }, 1000);
+        /* Mode frénétique : déplace le cookie toutes les 2s */
+        if(MODES[modeRef.current].moves){
+          cookieMoveRef.current = setInterval(() => {
+            if(phaseRef.current !== 'playing') return;
+            setCookiePos({
+              x: 30 + Math.random() * 40,
+              y: 30 + Math.random() * 40,
+            });
+          }, 2000);
+        }
       }
     }, 800);
   };
@@ -143,9 +192,12 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     playSound('modal');
     setPhase('idle');
     setClicks(0); clickRef.current = 0;
-    setTimeLeft(CLICK_DURATION);
-    setCombo(null); setRings([]); setParticles([]);
+    setRewardScore(0); rewardRef.current = 0;
+    setTimeLeft(modeCfg.duration);
+    setCombo(null); setComboMul(1); comboMulRef.current = 1;
+    setRings([]); setParticles([]);
     setRecordHit(false);
+    setCookiePos({ x:50, y:50 });
   };
 
   const handleTap = (e) => {
@@ -170,36 +222,53 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     }
 
     const now = Date.now();
-    /* Son pop à chaque clic validé. Le throttle anti-cheat (15 CPS max)
-       limite déjà naturellement la fréquence à un niveau acoustiquement
-       supportable — pas de throttle audio supplémentaire. */
     playSound('tap');
     clickRef.current += 1;
     setClicks(c => c + 1);
     setPressed(true);
     setTimeout(()=>setPressed(false), 80);
 
-    /* Particle */
-    const id = now + Math.random();
-    const tx = (Math.random() - 0.5) * 80;
-    setParticles(p => [...p, { id, tx }]);
-    setTimeout(()=>setParticles(p => p.filter(x => x.id !== id)), 800);
-
-    /* Ring */
-    setRings(r => [...r, id]);
-    setTimeout(()=>setRings(r => r.filter(x => x !== id)), 550);
-
-    /* Combo */
+    /* Combo : gap < 250 ms → incrémente, sinon reset à 1. Au passage des
+       paliers (5/12/20), bump du multiplicateur appliqué aux clics suivants. */
+    let curMul = comboMulRef.current;
     if(now - lastTapRef.current < 250){
       comboCountRef.current++;
-      if(comboCountRef.current === 5)  setCombo({ text:'x2 🔥', key: now });
-      if(comboCountRef.current === 12) setCombo({ text:'x3 ⚡', key: now });
-      if(comboCountRef.current === 20) setCombo({ text:'x4 💥', key: now });
+      for(const tier of COMBO_TIERS){
+        if(comboCountRef.current === tier.threshold){
+          setCombo({ text: tier.label, key: now });
+          curMul = tier.mul;
+          comboMulRef.current = tier.mul;
+          setComboMul(tier.mul);
+        }
+      }
     } else {
       comboCountRef.current = 1;
+      /* Combo break — reset multiplier */
+      if(curMul !== 1){
+        comboMulRef.current = 1;
+        curMul = 1;
+        setComboMul(1);
+      }
     }
     lastTapRef.current = now;
+
+    /* Reward effectif : +rewardPerClick × mul, capé au rewardCap du mode. */
+    const delta = modeCfg.rewardPerClick * curMul;
+    rewardRef.current = Math.min(rewardRef.current + delta, modeCfg.rewardCap);
+    setRewardScore(rewardRef.current);
+
+    /* Particle (montant variable selon mul) */
+    const id = now + Math.random();
+    const tx = (Math.random() - 0.5) * 80;
+    const popLabel = curMul > 1 ? `+${delta.toFixed(1)} 🍪` : `+${modeCfg.rewardPerClick % 1 === 0 ? modeCfg.rewardPerClick : modeCfg.rewardPerClick.toFixed(1)} 🍪`;
+    setParticles(p => [...p, { id, tx, label: popLabel, mul: curMul }]);
+    setTimeout(()=>setParticles(p => p.filter(x => x.id !== id)), 800);
+
+    /* Ring (doré si combo actif) */
+    setRings(r => [...r, { id, hot: curMul > 1 }]);
+    setTimeout(()=>setRings(r => r.filter(x => x.id !== id)), 550);
   };
+
 
   const urgentTime = phase === 'playing' && timeLeft <= 3;
   const timeColor  = urgentTime ? '#6B3D20' : C.text;
@@ -212,10 +281,9 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   : phase === 'playing'   ? '🍪 Tape !'
   :                         `Rejouer (${CLICK_COST} 🍪)`;
 
-  /* Bannière de fin — clicks reflète déjà uniquement les clics validés
-     par le tracker (max 150 par construction). */
-  const earnedFinal = Math.floor(clicks / 2);
-  const cps = (clicks / CLICK_DURATION).toFixed(1);
+  /* Bannière de fin */
+  const earnedFinal = Math.max(0, Math.min(Math.floor(rewardRef.current), modeCfg.rewardCap));
+  const cps = (clicks / modeCfg.duration).toFixed(1);
   const banner = phase === 'done'
     ? (recordHit
         ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:'🏆 Nouveau record !' }
@@ -227,6 +295,51 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14, paddingTop:6, position:'relative' }}>
+
+      {/* Sélecteur de mode + compteur quota — visible uniquement en idle */}
+      {phase === 'idle' && (
+        <div style={{ width:'100%', maxWidth:360, display:'flex', flexDirection:'column', gap:8 }}>
+          <div style={{
+            fontSize:10, fontWeight:700, color:C.muted,
+            textTransform:'uppercase', letterSpacing:1.5,
+            textAlign:'left',
+          }}>
+            Mode
+          </div>
+          <div style={{
+            display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6,
+            padding:4, borderRadius:12,
+            background:C.card, border:`1px solid ${C.border}`,
+          }}>
+            {Object.entries(MODES).map(([key, cfg]) => {
+              const active = mode === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => { setMode(key); setTimeLeft(cfg.duration); playSound('toggle'); }}
+                  style={{
+                    padding:'8px 4px', borderRadius:9, border:'none',
+                    background: active ? GOLD : 'transparent',
+                    color: active ? '#fff' : C.muted,
+                    fontSize:11, fontWeight:800, letterSpacing:.3,
+                    cursor:'pointer', transition:'background .15s, color .15s',
+                    touchAction:'manipulation', userSelect:'none',
+                  }}
+                >
+                  {cfg.emoji} {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ fontSize:10.5, color:C.muted, textAlign:'center', fontStyle:'italic', lineHeight:1.4 }}>
+            {modeCfg.desc}
+          </div>
+          {/* Légende combos */}
+          <div style={{ fontSize:10, color:C.muted, lineHeight:1.5, textAlign:'center', padding:'0 8px' }}>
+            🔥 Enchaîne sans pause → combo ×2 (5 taps), ×3 (12), ×4 (20)
+          </div>
+        </div>
+      )}
 
       {/* Avertissement anti-cheat (BRIEF_ANTICHEAT) — moka, pas rouge */}
       {warningMessage && (
@@ -246,12 +359,25 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
         </div>
       )}
 
-      {/* 3 cartes stats */}
+      {/* Indicateur combo actif (au-dessus des cartes) */}
+      {phase === 'playing' && comboMul > 1 && (
+        <div style={{
+          padding:'4px 12px', borderRadius:10,
+          background:'linear-gradient(135deg,#FFE066,#D4A017)',
+          color:'#3D2010', fontWeight:900, fontSize:12, letterSpacing:.5,
+          boxShadow:'0 4px 14px rgba(212,160,23,.45)',
+          animation:'pulseRing 1.2s ease-in-out infinite',
+        }}>
+          🔥 Combo ×{comboMul} actif
+        </div>
+      )}
+
+      {/* 3 cartes stats — Clics + Reward gagnés / Temps / Record */}
       <div style={{ display:'flex', gap:8, width:'100%', maxWidth:360 }}>
         <div style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${phase==='playing'?'#D4A017':C.border}`, textAlign:'center', boxShadow:'0 2px 8px rgba(0,0,0,.04)', transition:'border-color .25s' }}>
           <div style={{ fontSize:11 }}>🍪</div>
-          <div style={{ fontSize:22, fontWeight:900, color: phase==='playing'?'#D4A017':C.text, letterSpacing:'-.5px', lineHeight:1.1 }}>{clicks}</div>
-          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Clics</div>
+          <div style={{ fontSize:22, fontWeight:900, color: phase==='playing'?'#D4A017':C.text, letterSpacing:'-.5px', lineHeight:1.1 }}>{Math.floor(rewardScore)}</div>
+          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Gagnés · {clicks} clic{clicks>1?'s':''}</div>
         </div>
         <div
           style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${urgentTime?'#6B3D20':C.border}`, textAlign:'center', boxShadow:'0 2px 8px rgba(0,0,0,.04)', transition:'border-color .25s', animation: urgentTime ? 'shake .25s ease-in-out infinite' : 'none' }}
@@ -273,7 +399,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
       <div style={{ width:'100%', maxWidth:360, height:6, borderRadius:3, background:C.card2, overflow:'hidden', border:`1px solid ${C.border}` }}>
         <div style={{
           height:'100%', borderRadius:3,
-          width: `${(timeLeft / CLICK_DURATION) * 100}%`,
+          width: `${(timeLeft / modeCfg.duration) * 100}%`,
           background: urgentTime
             ? 'linear-gradient(90deg, #4A2C17, #6B3D20)'
             : 'linear-gradient(90deg, #C17F3C, #D4A017)',
@@ -301,31 +427,40 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
           pointerEvents:'none', zIndex:0
         }} />
 
-        {/* Anneaux dorés au tap */}
-        {rings.map(id => (
+        {/* Anneaux au tap (couleur = doré normal, ambre intense si combo actif) */}
+        {rings.map(r => (
           <div
-            key={id}
+            key={r.id}
             style={{
               position:'absolute', inset:'15%', borderRadius:'50%',
-              border:'3px solid rgba(212,160,23,.85)',
+              border: r.hot ? '3px solid rgba(255,224,102,1)' : '3px solid rgba(212,160,23,.85)',
               animation:'ringExpand .55s ease-out forwards',
               pointerEvents:'none', zIndex:3
             }}
           />
         ))}
 
-        {/* Cookie cliquable */}
+        {/* Cookie cliquable — position dynamique en mode frénétique */}
         <div
           onPointerDown={handleTap}
           className={(phase==='idle' || phase==='done') ? 'cookie-anim-idle' : ''}
           style={{
-            width:'88%', height:'88%', position:'relative', zIndex:2,
+            position: phase === 'playing' && modeCfg.moves ? 'absolute' : 'relative',
+            top:  phase === 'playing' && modeCfg.moves ? `${cookiePos.y}%` : undefined,
+            left: phase === 'playing' && modeCfg.moves ? `${cookiePos.x}%` : undefined,
+            transform: phase === 'playing' && modeCfg.moves
+              ? `translate(-50%, -50%) ${pressed ? 'scale(.88) rotate(-3deg)' : 'scale(1)'}`
+              : (pressed ? 'scale(.88) rotate(-3deg)' : 'scale(1)'),
+            width: modeCfg.moves ? '55%' : '88%',
+            height: modeCfg.moves ? '55%' : '88%',
+            zIndex:2,
             cursor: phase==='playing' ? 'pointer' : 'default',
             touchAction:'manipulation',
-            transform: pressed ? 'scale(.88) rotate(-3deg)' : 'scale(1)',
-            transition: pressed ? 'transform .05s ease' : 'transform .15s cubic-bezier(.36,.07,.19,.97)',
+            transition: pressed
+              ? 'transform .05s ease, top .4s ease, left .4s ease'
+              : 'transform .15s cubic-bezier(.36,.07,.19,.97), top .4s ease, left .4s ease',
             filter: phase === 'done' ? 'grayscale(.4) brightness(.85)' : 'none',
-            willChange:'transform',
+            willChange:'transform, top, left',
             animation: (phase==='idle' || phase==='done') ? 'idle 3s ease-in-out infinite' : 'none'
           }}
         >
@@ -334,19 +469,21 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
             : <PremiumCookie />}
         </div>
 
-        {/* Particules +1 🍪 */}
+        {/* Particules reward (montant variable selon mode + combo) */}
         {particles.map(p => (
           <div
             key={p.id}
             style={{
               position:'absolute', top:'50%', left:'50%',
-              fontSize:18, fontWeight:900, color:'#D4A017',
+              fontSize: (p.mul && p.mul > 1 ? 20 : 16),
+              fontWeight:900,
+              color: (p.mul && p.mul > 1 ? '#FFD24D' : '#D4A017'),
               pointerEvents:'none', zIndex:5,
               animation:'floatUpClick .8s ease-out forwards',
-              textShadow:'0 1px 3px rgba(0,0,0,.25)',
+              textShadow:'0 1px 3px rgba(0,0,0,.3)',
               ['--tx']: `${p.tx}px`
             }}
-          >+1 🍪</div>
+          >{p.label || '+1 🍪'}</div>
         ))}
 
         {/* Overlay countdown */}
@@ -469,7 +606,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
       {/* Tip card */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 <strong style={{ color:'#D4A017' }}>1 🍪 = 2 clics</strong> · Plus tu tapes vite, plus tu déclenches des combos
+        💡 Tape sans pause pour enchaîner les combos · <strong style={{ color:'#D4A017' }}>×2/×3/×4</strong> multiplient le reward
       </div>
     </div>
   );
