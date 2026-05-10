@@ -1897,15 +1897,17 @@ export default function CookiMiner() {
       })();
       return;
     }
-    /* Pack cookies — boost direct du solde 🍪. Toujours consommable
-       (rachetable à volonté). N'affecte ni l'XP ni le totalEarned
-       (= classement) — éviter pay-to-level ET pay-to-rank. Le pack
-       sert purement à acheter des items boutique 🍪 sans grinder. */
+    /* Pack cookies — ONE-SHOT (achat unique). Boost direct du solde 🍪
+       sans toucher à l'XP ni au totalEarned (= classement) pour éviter
+       pay-to-level / pay-to-rank. Ajouté à `unlocked` après achat pour
+       disparaître de la boutique. */
     if(r.applyAs === 'pack_cookies'){
+      if(unlocked.includes(id)) return;
       if(cafes < r.cost) return;
       const n = r.coinsAmount || 0;
       setCafes(c => Math.max(0, c - r.cost));
       setCoins(c => c + n);
+      setUnlocked(u => [...u, id]);
       playSound('success');
       showToast(`💰 +${n.toLocaleString('fr-FR')} 🍪 crédités !`);
       return;
