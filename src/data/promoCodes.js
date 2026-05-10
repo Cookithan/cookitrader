@@ -36,9 +36,13 @@
 export const PROMO_CODES = {
   'BIENVENUE': { coins: 100,  cafes: 0, label: 'Bienvenue !' },
   'TOP1':      { coins: 50,   cafes: 0, label: 'Top 1 du classement' },
-  /* Code distribuable post-refonte marché v1.12 — offre 10 actions $CKM
-     pour aider les nouveaux à découvrir le marché. */
-  'CKM10':     { coins: 0,    cafes: 0, shares: 10, label: '10 actions $CKM offertes' },
+  /* Codes distribuables post-refonte marché v1.12 — offrent des actions
+     $CKM pour aider les joueurs à démarrer / récompenser la fidélité.
+     Convention historique : préfixe `CMK` (et non `CKM`) — cohérent avec
+     les anciens CMK1/CMK5 même si le ticker affiché est $CKM. */
+  'CMK10':     { coins: 0,    cafes: 0, shares: 10, label: '10 actions $CKM offertes' },
+  'CMK20':     { coins: 0,    cafes: 0, shares: 20, label: '20 actions $CKM offertes' },
+  'CMK30':     { coins: 0,    cafes: 0, shares: 30, label: '30 actions $CKM offertes' },
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
