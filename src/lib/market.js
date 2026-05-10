@@ -22,7 +22,7 @@ import { isAdminName, notAdmin } from '../utils/admin.js';
 
 export const MARKET_CONFIG = {
   PRICE_MIN: 10,
-  PRICE_MAX: 1000,
+  PRICE_MAX: 300,                 // Plafond du prix — le marché ne peut pas monter au-dessus, même si tous achètent (le calcul théorique donne ~270 si tous achètent, donc 300 est un peu au-dessus pour laisser une marge).
   PRICE_INITIAL: 100,
   /* ⚠️ MAINTENANCE — quand true, le marché est fermé en permanence
      (au-delà des horaires habituels). Affiche "Marché en maintenance"
