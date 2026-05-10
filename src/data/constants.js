@@ -169,7 +169,7 @@ export const REWARDS = [
   { id:'avatar_cosmonaute', currency:'cafe', applyAs:'avatar', name:'Avatar Cosmonaute Caféiné', desc:'Casque doré, visière mocha, halo cosmique', cost:25, type:'Avatar', emoji:'🧑‍🚀', levelRequired:5 },
   /* Skin Cookie Galactique — collectionneur whale (15 ☕). Skin avec
      particules cosmiques (palette violet/or). One-shot. */
-  { id:'skin_galactique', currency:'cafe', applyAs:'skin', name:'Skin Cookie Galactique', desc:'Halo violet stellaire + chips dorées', cost:15, type:'Skin', emoji:'🌌', levelRequired:5 },
+  { id:'skin_galactique', currency:'cafe', applyAs:'skin', name:'Skin Cookie Galactique', desc:'Halo violet stellaire + chips dorées', cost:15, type:'Skin', emoji:'🔮', levelRequired:5 },
   /* Pack 25 actions $CKM — version cafés du pack actions (vs pack_shares_*
      qui sont en cookies). RACHETABLE (consumable) — sinon le bundle 200 ☕
      n'aurait qu'un seul achat possible ici. Géré par applyAs:'pack_shares'
