@@ -29,8 +29,8 @@ export const MARKET_CONFIG = {
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.
      Repasser à false dès que les déséquilibres sont corrigés. */
   MAINTENANCE_MODE: true,
-  TOTAL_SHARES: 3000,             // 3× plus d'actions pour que le marché ait plus de profondeur. Le cap PCT 0.10 donne 300 actions max/user.
-  IMPACT_PER_SHARE: 0.0003,       // +0.03 % par action — calibré pour que 3000 actions achetées portent le prix à ~245, toutes vendues à ~40. Range élargi 40-245, pumps visibles.
+  TOTAL_SHARES: 10000,            // 10× plus d'actions pour un marché vraiment profond. Cap PCT 0.05 = 500 actions max/user.
+  IMPACT_PER_SHARE: 0.0001,       // +0.01 % par action — calibré pour 10000 actions. Range théorique 36-270 (toutes achetées / toutes vendues). 100 actions/tx = 1 % impact (visible).
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
   MEAN_REVERSION_TARGET: 100,     // Prix cible vers lequel le marché revient
@@ -44,9 +44,9 @@ export const MARKET_CONFIG = {
   CIRCUIT_BREAKER_THRESHOLD:    0.15,           // 15 % de variation
   CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
   CIRCUIT_BREAKER_PAUSE_MS:     60 * 60 * 1000, // pause 1 h
-  MAX_SHARES_PER_USER_PCT: 0.10,  // 10 % du total = 300 actions max par user (cap proportionnel au TOTAL_SHARES)
-  MAX_SHARES_PER_TX:       50,    // Max 50 actions par transaction unique (relevé depuis 30 vu le marché plus profond)
-  MAX_DAILY_VOLUME:        500,   // Volume cumulé (achats + ventes) sur 24 h, relevé de 200 à 500 pour suivre la croissance du marché
+  MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du total = 500 actions max par user (un whale n'influence le prix que de ~5 %)
+  MAX_SHARES_PER_TX:       100,   // Max 100 actions par tx (= 1 % impact prix, bien visible mais pas catastrophique)
+  MAX_DAILY_VOLUME:        1000,  // Volume cumulé (achats + ventes) sur 24 h, ajusté à la nouvelle profondeur
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
