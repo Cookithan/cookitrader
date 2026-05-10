@@ -410,13 +410,59 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, active
   );
 }
 
-/* Une ligne du classement Cookies. Tous les rangs en #N (pas d'emojis
-   médaille). Seul le 1er a une bannière distincte : gradient or doux +
-   bordure dorée + petit pictogramme 🏆. Mon profil garde une bordure
-   dorée et un ✦ après le nom. Top 1 (s'il n'est pas moi) → cliquable. */
+/* Style du bandeau podium (top 1-3) — palette espresso dégradée du
+   plus foncé (1er) au plus clair (3e) avec bord doré → cuivre → caramel.
+   Texte crème/or sur fond espresso pour lisibilité maximale.
+   Retourne null si rang > 3 → ligne standard. */
+function getRankBannerStyle(rank){
+  if(rank === 1) return {
+    bg:           'linear-gradient(135deg, #2C1810 0%, #4A2C17 50%, #2C1810 100%)',
+    border:       '2px solid #D4A017',
+    boxShadow:    '0 6px 22px rgba(45,28,16,.55), 0 0 18px rgba(212,160,23,.4)',
+    nameColor:    '#FFE066',
+    metaColor:    'rgba(255,232,154,.75)',
+    valueColor:   '#FFE5A0',
+    rankColor:    '#FFE066',
+    badgeBg:      '#3D2010',
+    badgeColor:   '#FFE066',
+    badgeBorder:  'rgba(212,160,23,.7)',
+  };
+  if(rank === 2) return {
+    bg:           'linear-gradient(135deg, #4A2C17 0%, #5C3317 50%, #4A2C17 100%)',
+    border:       '2px solid #C17F3C',
+    boxShadow:    '0 4px 16px rgba(74,44,23,.42)',
+    nameColor:    '#F5DC8A',
+    metaColor:    'rgba(245,220,138,.7)',
+    valueColor:   '#F0C050',
+    rankColor:    '#E5B040',
+    badgeBg:      '#3D2010',
+    badgeColor:   '#E5B040',
+    badgeBorder:  'rgba(193,127,60,.7)',
+  };
+  if(rank === 3) return {
+    bg:           'linear-gradient(135deg, #5C3317 0%, #7D4818 50%, #5C3317 100%)',
+    border:       '2px solid #A0784E',
+    boxShadow:    '0 4px 14px rgba(92,51,23,.38)',
+    nameColor:    '#F0C050',
+    metaColor:    'rgba(240,192,80,.7)',
+    valueColor:   '#E5B040',
+    rankColor:    '#D4A017',
+    badgeBg:      '#3D2010',
+    badgeColor:   '#D4A017',
+    badgeBorder:  'rgba(160,120,78,.65)',
+  };
+  return null;
+}
+
+/* Une ligne du classement Cookies. Top 1-3 ont chacun leur bannière
+   espresso distincte (cf getRankBannerStyle). Mon profil garde une
+   bordure dorée et un ✦ après le nom. Top 1 (s'il n'est pas moi)
+   → cliquable. */
 function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
   const isFirst = rank === 1;
+  const banner  = getRankBannerStyle(rank);   // null si rank > 3
   const clickable = isFirst && !isMe && !!onOpenUserProfile;
+  const badgeLabel = rank === 1 ? '🏆 Champion' : rank === 2 ? '🥈 Vice-champion' : rank === 3 ? '🥉 Podium' : null;
 
   return (
     <div
@@ -424,27 +470,27 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
       style={{
         display:'flex', alignItems:'center', gap:12,
         padding:'12px 14px', borderRadius:14,
-        background: isFirst ? 'linear-gradient(135deg,#FBEFD4,#F0C050)' : C.card,
-        border: (isFirst || isMe) ? '2px solid #D4A017' : `1px solid ${C.border}`,
-        boxShadow: isFirst ? '0 6px 18px rgba(212,160,23,.28)' : 'none',
+        background: banner ? banner.bg : C.card,
+        border: banner ? banner.border : (isMe ? '2px solid #D4A017' : `1px solid ${C.border}`),
+        boxShadow: banner ? banner.boxShadow : 'none',
         position:'relative',
         cursor: clickable ? 'pointer' : 'default',
       }}>
-      {isFirst && (
+      {banner && badgeLabel && (
         <span style={{
           position:'absolute', top:-9, right:12,
           padding:'2px 9px', borderRadius:8,
-          background:'#3D2010', color:'#F0C050',
+          background: banner.badgeBg, color: banner.badgeColor,
           fontSize:9, fontWeight:900, letterSpacing:1, textTransform:'uppercase',
-          border:'1px solid rgba(212,160,23,.5)',
+          border:`1px solid ${banner.badgeBorder}`,
         }}>
-          🏆 Champion
+          {badgeLabel}
         </span>
       )}
       <div style={{
         flexShrink:0, width:32, textAlign:'center',
         fontSize:13, fontWeight:900,
-        color: isFirst ? '#5D3A1F' : C.muted,
+        color: banner ? banner.rankColor : C.muted,
         lineHeight:1,
       }}>
         #{rank}
@@ -454,35 +500,35 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
             fontSize:13, fontWeight:800,
-            color: isFirst ? '#3D2010' : C.text,
+            color: banner ? banner.nameColor : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, null) || {}) : {}),
+            ...(!banner ? (getNameStyle(p.user_name, p.earned_achievements, null) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
           {(p.prestige_level || 0) > 0 && (
-            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:isFirst ? '#5C3614' : '#D4A017', letterSpacing:.3 }}>
+            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3 }}>
               {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
             </span>
           )}
-          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
+          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: banner ? banner.metaColor : C.muted }}>
             Niv.{p.level}
           </span>
         </div>
         {p.streak > 0 && (
-          <div style={{ fontSize:10, fontWeight:600, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
+          <div style={{ fontSize:10, fontWeight:600, color: banner ? banner.metaColor : C.muted }}>
             🔥 {p.streak}j de série
           </div>
         )}
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
-        <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: isFirst ? '#5D3A1F' : '#D4A017' }}>
+        <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
           {(p.total_earned ?? 0).toLocaleString('fr-FR')}
         </div>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: isFirst ? 'rgba(61,32,16,.65)' : C.muted }}>🍪 cumulés</div>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>🍪 cumulés</div>
       </div>
       {clickable && (
-        <span aria-hidden style={{ fontSize:14, color:'#5D3A1F', opacity:.8, lineHeight:1, marginLeft:2 }}>
+        <span aria-hidden style={{ fontSize:14, color: banner?.valueColor || '#D4A017', opacity:.8, lineHeight:1, marginLeft:2 }}>
           👁️
         </span>
       )}
@@ -495,8 +541,10 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
    nombre d'actions + valeur estimée au prix courant en sous-titre. */
 function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
   const isFirst = rank === 1;
+  const banner  = getRankBannerStyle(rank);
   const clickable = isFirst && !isMe && !!onOpenUserProfile;
   const value = Math.floor(p.shares * price);
+  const badgeLabel = rank === 1 ? '📈 Top trader' : rank === 2 ? '📊 2e trader' : rank === 3 ? '📉 3e trader' : null;
 
   return (
     <div
@@ -504,27 +552,27 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
       style={{
         display:'flex', alignItems:'center', gap:12,
         padding:'12px 14px', borderRadius:14,
-        background: isFirst ? 'linear-gradient(135deg,#FBEFD4,#F0C050)' : C.card,
-        border: (isFirst || isMe) ? '2px solid #D4A017' : `1px solid ${C.border}`,
-        boxShadow: isFirst ? '0 6px 18px rgba(212,160,23,.28)' : 'none',
+        background: banner ? banner.bg : C.card,
+        border: banner ? banner.border : (isMe ? '2px solid #D4A017' : `1px solid ${C.border}`),
+        boxShadow: banner ? banner.boxShadow : 'none',
         position:'relative',
         cursor: clickable ? 'pointer' : 'default',
       }}>
-      {isFirst && (
+      {banner && badgeLabel && (
         <span style={{
           position:'absolute', top:-9, right:12,
           padding:'2px 9px', borderRadius:8,
-          background:'#3D2010', color:'#F0C050',
+          background: banner.badgeBg, color: banner.badgeColor,
           fontSize:9, fontWeight:900, letterSpacing:1, textTransform:'uppercase',
-          border:'1px solid rgba(212,160,23,.5)',
+          border:`1px solid ${banner.badgeBorder}`,
         }}>
-          📈 Top trader
+          {badgeLabel}
         </span>
       )}
       <div style={{
         flexShrink:0, width:32, textAlign:'center',
         fontSize:13, fontWeight:900,
-        color: isFirst ? '#5D3A1F' : C.muted,
+        color: banner ? banner.rankColor : C.muted,
         lineHeight:1,
       }}>
         #{rank}
@@ -534,35 +582,35 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
             fontSize:13, fontWeight:800,
-            color: isFirst ? '#3D2010' : C.text,
+            color: banner ? banner.nameColor : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, null) || {}) : {}),
+            ...(!banner ? (getNameStyle(p.user_name, p.earned_achievements, null) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
           {(p.prestige_level || 0) > 0 && (
-            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:isFirst ? '#5C3614' : '#D4A017', letterSpacing:.3 }}>
+            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3 }}>
               {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
             </span>
           )}
-          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
+          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: banner ? banner.metaColor : C.muted }}>
             Niv.{p.level}
           </span>
         </div>
-        <div style={{ fontSize:10, fontWeight:600, color: isFirst ? 'rgba(61,32,16,.7)' : C.muted }}>
+        <div style={{ fontSize:10, fontWeight:600, color: banner ? banner.metaColor : C.muted }}>
           ≈ {value.toLocaleString('fr-FR')} 🍪
         </div>
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
-        <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: isFirst ? '#5D3A1F' : '#D4A017' }}>
+        <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
           {p.shares.toLocaleString('fr-FR')}
         </div>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: isFirst ? 'rgba(61,32,16,.65)' : C.muted }}>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>
           📈 action{p.shares>1?'s':''}
         </div>
       </div>
       {clickable && (
-        <span aria-hidden style={{ fontSize:14, color:'#5D3A1F', opacity:.8, lineHeight:1, marginLeft:2 }}>
+        <span aria-hidden style={{ fontSize:14, color: banner?.valueColor || '#D4A017', opacity:.8, lineHeight:1, marginLeft:2 }}>
           👁️
         </span>
       )}
