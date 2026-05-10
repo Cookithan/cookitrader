@@ -126,6 +126,31 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         <div style={{ fontSize:11, color:C.muted }}>Partagé entre tous les joueurs</div>
       </div>
 
+      {/* Bandeau Maintenance — affiché en grand quand MAINTENANCE_MODE=true
+          (cf. market.js MARKET_CONFIG). Tout achat/vente est bloqué côté
+          backend, ce bandeau l'explique côté UI. */}
+      {marketStatus?.maintenance && (
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(193,127,60,.18), rgba(212,160,23,.18))',
+          border: '1.5px solid rgba(193,127,60,.6)',
+          borderRadius: 14,
+          padding: '14px 16px',
+          marginBottom: 14,
+          color: '#FFB060',
+          fontSize: 13,
+          fontWeight: 700,
+          textAlign: 'center',
+          lineHeight: 1.5,
+          boxShadow: '0 4px 14px rgba(193,127,60,.25)',
+        }}>
+          <div style={{ fontSize: 22, marginBottom: 4 }}>🛠️</div>
+          <div style={{ marginBottom: 4 }}>Marché en maintenance</div>
+          <div style={{ fontSize: 11, fontWeight: 600, opacity: .85 }}>
+            Trading suspendu temporairement — réouverture bientôt.
+          </div>
+        </div>
+      )}
+
       <MarketStateCard state={state} dayChange={dayChange} marketStatus={marketStatus} />
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
       <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />

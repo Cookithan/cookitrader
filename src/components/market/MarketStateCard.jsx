@@ -54,28 +54,39 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
         </div>
         {(() => {
           const open = marketStatus?.open ?? true;
+          const maintenance = marketStatus?.maintenance;
           const next = marketStatus?.nextChange;
+          /* 3 états visuels distincts : OUVERT (or pulsant), MAINTENANCE
+             (orange + clé) ou FERMÉ (gris + horaire). */
+          const bg     = open ? 'rgba(212, 160, 23, 0.2)' : maintenance ? 'rgba(193, 127, 60, 0.28)' : 'rgba(120, 90, 60, 0.25)';
+          const border = open ? 'rgba(212, 160, 23, 0.5)' : maintenance ? 'rgba(193, 127, 60, 0.65)' : 'rgba(160, 130, 100, 0.5)';
+          const fg     = open ? '#D4A017' : maintenance ? '#FFB060' : '#D8C8B0';
+          const label  = open ? 'OUVERT' : maintenance ? '🛠️ MAINTENANCE' : 'FERMÉ';
           return (
             <div style={{
-              background: open ? 'rgba(212, 160, 23, 0.2)' : 'rgba(120, 90, 60, 0.25)',
-              border: `1.5px solid ${open ? 'rgba(212, 160, 23, 0.5)' : 'rgba(160, 130, 100, 0.5)'}`,
+              background: bg,
+              border: `1.5px solid ${border}`,
               borderRadius: 12,
               padding: '6px 12px',
               fontSize: 11,
               fontWeight: 700,
-              color: open ? '#D4A017' : '#D8C8B0',
+              color: fg,
               display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2,
               minWidth: 92,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {open && <span className="live-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#D4A017', display: 'inline-block' }} />}
-                {open ? 'OUVERT' : 'FERMÉ'}
+                {label}
               </div>
-              {next && (
+              {maintenance ? (
+                <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, letterSpacing: 0.3 }}>
+                  trading bloqué
+                </div>
+              ) : next ? (
                 <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, letterSpacing: 0.3 }}>
                   {open ? 'ferme' : 'ouvre'} {fmtHM(next)}
                 </div>
-              )}
+              ) : null}
             </div>
           );
         })()}
