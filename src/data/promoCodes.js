@@ -36,10 +36,6 @@
 export const PROMO_CODES = {
   'BIENVENUE': { coins: 100,  cafes: 0, label: 'Bienvenue !' },
   'TOP1':      { coins: 50,   cafes: 0, label: 'Top 1 du classement' },
-  'COOKITHAN': { coins: 0,    cafes: 2, label: 'Merci du créateur' },
-  'MERCI':     { coins: 50,   cafes: 1, label: 'Petit merci' },
-  'CMK1':      { coins: 0,    cafes: 0, shares: 1, label: '1 action $CKM offerte' },
-  'CMK5':      { coins: 0,    cafes: 0, shares: 5, label: '5 actions $CKM offertes' },
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
@@ -50,9 +46,6 @@ export const PROMO_CODES = {
      qu'un joueur récupère le code via Discord et l'utilise sans
      l'avoir mérité. */
   'BARISTA05': { coins: 0,    cafes: 0, unlock: 'theme_cookies', secret: true, label: 'Thème Pâte de Cookie débloqué' },
-  /* Code YUZURU — 5 actions $CKM offertes, distribuable. Anti-double-use
-     natif (1 fois par compte). À retirer du catalogue après campagne. */
-  'YUZURU':    { coins: 0,    cafes: 0, shares: 5, label: '5 actions $CKM offertes' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */
