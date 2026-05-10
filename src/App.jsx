@@ -30,6 +30,8 @@ import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
+import { UnlockAllShopConfirmModal } from "./components/modals/UnlockAllShopConfirmModal.jsx";
+import { UnlockAllShopSuccessModal } from "./components/modals/UnlockAllShopSuccessModal.jsx";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
@@ -46,6 +48,7 @@ import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
 import { InboxModal } from "./components/modals/InboxModal.jsx";
 import { getUnreadInboxCount } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
+import { BoostGainToast } from "./components/BoostGainToast.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
@@ -148,6 +151,11 @@ export default function CookiMiner() {
        x2 sur tous les gains 🍪. Acheté via `boost_x2_1h` (+1 h cumulables). */
   const [nextGameDoubler, setNextGameDoubler] = useLocalStorage('nextGameDoubler', false);
   const [boostUntil,      setBoostUntil]      = useLocalStorage('boostUntil', 0);
+  /* Cap quotidien Bonus VIP : 1 achat / jour / item. Stocke
+     `{ [itemId]: 'Mon May 10 2026' }`. Le check de date se fait à la
+     lecture (wasBoughtVipToday) — pas de reset planifié, l'entrée
+     périme automatiquement quand toDateString change. */
+  const [vipPurchasesToday, setVipPurchasesToday] = useLocalStorage('vipPurchasesToday', {});
   /* Drop one-shot du barista légendaire dans Devine la commande. Une fois
      true, plus jamais de roll. Pas synchro Supabase — c'est du loot local
      (cf. theme_cookies qui est synchronisé via `unlocked`). Reset par
@@ -367,6 +375,12 @@ export default function CookiMiner() {
   const [showLevels,   setShowLevels]   = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [showPrestigeModal, setShowPrestigeModal] = useState(false);
+  /* Coup de Grâce — confirmation anti-misclick + festivité post-achat.
+     showUnlockAllConfirm : ouverte par le clic boutique (intercepte avant
+     l'unlock réel). unlockAllSuccess : ouverte après débit successful,
+     contient `{ count, emojis }` pour la cascade animée. */
+  const [showUnlockAllConfirm, setShowUnlockAllConfirm] = useState(false);
+  const [unlockAllSuccess, setUnlockAllSuccess] = useState(null);
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
   const [paymentReceived, setPaymentReceived] = useState(null);
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
@@ -375,6 +389,21 @@ export default function CookiMiner() {
   const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium'
   const [cafeToast,    setCafeToast]    = useState(null);   // { amount, key } | null
   const cafeToastTimerRef = useRef(null);
+  /* Popup festif "gain boosté" — déclenché par addCoins quand boost ×2
+     ou doubler ont amplifié un gain mini-jeu. Auto-close 1.8 s, merge
+     des pops successifs (fenêtre courte) pour éviter le spam. */
+  const [boostGainPopup, setBoostGainPopup] = useState(null);
+  const boostGainTimerRef = useRef(null);
+  const pushBoostGain = useCallback((bonus, sources) => {
+    if(!bonus || bonus <= 0) return;
+    if(boostGainTimerRef.current) clearTimeout(boostGainTimerRef.current);
+    setBoostGainPopup(prev => prev
+      ? { bonus: prev.bonus + bonus, boost: prev.boost || sources.boost, doubler: prev.doubler || sources.doubler }
+      : { bonus, boost: !!sources.boost, doubler: !!sources.doubler }
+    );
+    boostGainTimerRef.current = setTimeout(() => setBoostGainPopup(null), 1800);
+  }, []);
+  const pushBoostGainRef = useRef(pushBoostGain); pushBoostGainRef.current = pushBoostGain;
 
   /* Inbox (BRIEF_INBOX) — modale + compteur de non-lus.
      Compteur rafraîchi toutes les 30s tant qu'on a un userCode + Supabase actif. */
@@ -878,6 +907,7 @@ export default function CookiMiner() {
        - Doubler      : ×2 sur le prochain gain (one-shot, auto-clear)
        Pertes (amount<=0) inchangées. */
     if(amount > 0){
+      const baseAmount   = amount;
       const prestigeMult = 1 + (prestigeLevel || 0) * 0.1;
       const boostActive  = boostUntil && Date.now() < boostUntil;
       const boostMult    = boostActive ? 2 : 1;
@@ -886,6 +916,15 @@ export default function CookiMiner() {
       if(totalMult !== 1){
         amount     = Math.round(amount * totalMult);
         gainAmount = Math.round(gainAmount * totalMult);
+      }
+      /* Popup "gain boosté" : delta dû à boost+doubler (hors prestige
+         qui est always-on, sinon ça popperait sur tous les gains). */
+      if(boostMult > 1 || doublerMult > 1){
+        const withoutBoost = Math.round(baseAmount * prestigeMult);
+        const bonusFromBoost = amount - withoutBoost;
+        if(bonusFromBoost > 0){
+          pushBoostGainRef.current(bonusFromBoost, { boost: boostMult > 1, doubler: doublerMult > 1 });
+        }
       }
       if(nextGameDoubler) setNextGameDoubler(false);
     }
@@ -1581,7 +1620,7 @@ export default function CookiMiner() {
 
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
     setStreak(0); setClickRecord(0); setUnlocked([]); setLegendaryBaristaSeen(false); setPrestigeLevel(0);
-    setNextGameDoubler(false); setBoostUntil(0);
+    setNextGameDoubler(false); setBoostUntil(0); setVipPurchasesToday({});
     setLastCheckin(null); setLastQuiz(null); setDark(false);
     setMarketRealized(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
@@ -1636,9 +1675,21 @@ export default function CookiMiner() {
   };
 
   const doCheckin    = ()=>{ playSound('coin'); addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
+
+  /* Cap quotidien Bonus VIP — 1 achat / jour / item. La liste des
+     items concernés vit ici (source unique partagée avec BoutiqueTab
+     via prop vipPurchasesToday + helper côté UI). */
+  const VIP_DAILY_CAP_IDS = ['spin_pass_50', 'spin_pass_20', 'slot_pass_50', 'quiz_skip', 'next_game_doubler', 'boost_x2_1h'];
+  const wasBoughtVipToday = (id) => vipPurchasesToday?.[id] === new Date().toDateString();
+  const markVipBoughtToday = (id) => {
+    setVipPurchasesToday(prev => ({ ...(prev || {}), [id]: new Date().toDateString() }));
+  };
+
   const unlockReward = (id)=>{
     const r=REWARDS.find(x=>x.id===id);
     if(!r) return;
+    /* Cap quotidien VIP — bloque tout rachat le même jour. */
+    if(VIP_DAILY_CAP_IDS.includes(id) && wasBoughtVipToday(id)) return;
     /* Items premium CONSOMMABLES (Jetons VIP) — pas d'ajout à `unlocked`,
        l'utilisateur peut les racheter à volonté tant qu'il a les cafés.
        L'effet (bonus de tours roue) est appliqué directement. */
@@ -1649,6 +1700,7 @@ export default function CookiMiner() {
       if(spinsLeft > 0) return;
       setCafes(c => Math.max(0, c - r.cost));
       addSpinPass(r.spinPassAmount || 0);
+      markVipBoughtToday(id);
       playSound('success');
       showToast(`🎟️ +${r.spinPassAmount} tours de roue ajoutés !`);
       return;
@@ -1659,6 +1711,7 @@ export default function CookiMiner() {
       if(slotPlaysLeft > 0) return;
       setCafes(c => Math.max(0, c - r.cost));
       addSlotPass(r.slotPassAmount || 0);
+      markVipBoughtToday(id);
       playSound('success');
       showToast(`🎰 +${r.slotPassAmount} parties Machine à Sous !`);
       return;
@@ -1669,6 +1722,7 @@ export default function CookiMiner() {
       if(canQuiz) return;
       setCafes(c => Math.max(0, c - r.cost));
       setLastQuiz(0);   /* timestamp 0 → cooldown écoulé → canQuiz = true */
+      markVipBoughtToday(id);
       playSound('success');
       showToast('⏭️ Quiz à nouveau disponible !');
       return;
@@ -1680,11 +1734,13 @@ export default function CookiMiner() {
       if(nextGameDoubler) return;
       setCafes(c => Math.max(0, c - r.cost));
       setNextGameDoubler(true);
+      markVipBoughtToday(id);
       playSound('success');
       showToast('🎯 Prochain gain 🍪 doublé !');
       return;
     }
-    /* Boost ×2 cookies pendant 1h — cumulable (extend si déjà actif). */
+    /* Boost ×2 cookies pendant 1h — capé à 1 achat / jour (plus de
+       cumul possible, le cap quotidien rend l'extend obsolète). */
     if(r.applyAs === 'boost_x2_1h'){
       if(cafes < r.cost) return;
       setCafes(c => Math.max(0, c - r.cost));
@@ -1692,20 +1748,23 @@ export default function CookiMiner() {
       const now = Date.now();
       const baseFrom = (boostUntil && boostUntil > now) ? boostUntil : now;
       setBoostUntil(baseFrom + ONE_HOUR);
+      markVipBoughtToday(id);
       playSound('success');
       showToast('⚡ Boost ×2 activé pendant 1 heure !');
       return;
     }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
-       2 modes selon currency :
-         · cookies (pack_shares_5/10) → CONSOMMABLE rachetable à volonté,
-           jamais ajouté à `unlocked`
-         · cafés  (pack_share_premium) → ONE-SHOT : ajouté à `unlocked`
-           après achat, rejeté si déjà acheté
+       3 modes selon currency + flag consumable :
+         · cookies (pack_shares_5/10) → CONSOMMABLE rachetable à volonté
+         · cafés  one-shot (pack_share_premium) → ajouté à `unlocked`,
+           rejeté si déjà acheté
+         · cafés  consommable (pack_shares_25 avec consumable:true) →
+           rachetable à volonté, pas d'ajout à unlocked
        Mode admin bloqué dans les 2 cas pour pas polluer la circulation. */
     if(r.applyAs === 'pack_shares'){
       const isCafe = r.currency === 'cafe';
-      if(isCafe && unlocked.includes(id)) return;
+      const isOneShot = isCafe && !r.consumable;
+      if(isOneShot && unlocked.includes(id)) return;
       if(isCafe ? cafes < r.cost : coins < r.cost) return;
       if(isAdminName(userName)){
         showToast('🛠️ Mode admin — packs $CKM désactivés');
@@ -1723,28 +1782,34 @@ export default function CookiMiner() {
           showToast(`⚠️ ${res?.error || 'Pack non crédité'}`);
           return;
         }
-        /* Pack premium : marqué comme acheté pour disparaître de la
-           boutique (one-shot). Crédité une fois, plus jamais offert. */
-        if(isCafe) setUnlocked(u => [...u, id]);
+        /* One-shot premium : marqué comme acheté pour disparaître de la
+           boutique. Consommables : pas d'ajout, rachetables à volonté. */
+        if(isOneShot) setUnlocked(u => [...u, id]);
         playSound('success');
         showToast(`📈 +${n} action${n > 1 ? 's' : ''} $CKM créditée${n > 1 ? 's' : ''} !`);
       })();
       return;
     }
-    /* Reveal code promo rare — débite cafés, ajoute le code à
-       revealedPromoCodes ET marque l'item comme unlocked (achat unique).
-       Le code devient utilisable depuis Settings → Code promo. */
-    if(r.applyAs === 'reveal_promo'){
+    /* Pack cookies — boost direct du solde 🍪. Toujours consommable
+       (rachetable à volonté). Pas d'XP gagnée (utilise setCoins direct
+       et bump totalEarned manuellement pour rester cohérent stat). */
+    if(r.applyAs === 'pack_cookies'){
+      if(cafes < r.cost) return;
+      const n = r.coinsAmount || 0;
+      setCafes(c => Math.max(0, c - r.cost));
+      setCoins(c => c + n);
+      setTotalEarned(t => t + n);
+      playSound('success');
+      showToast(`💰 +${n.toLocaleString('fr-FR')} 🍪 crédités !`);
+      return;
+    }
+    /* COUP DE GRÂCE — intercepte le clic et ouvre la modale de confirmation
+       (anti-misclick à 200 ☕). Le déblocage réel se fait dans
+       confirmUnlockAllShop quand le user a tapé "DEBLOQUE". */
+    if(r.applyAs === 'unlock_all_shop'){
       if(unlocked.includes(id)) return;
       if(cafes < r.cost) return;
-      setCafes(c => Math.max(0, c - r.cost));
-      setUnlocked(u => [...u, id]);
-      const code = r.revealCode;
-      if(code){
-        setRevealedPromoCodes(prev => Array.isArray(prev) && prev.includes(code) ? prev : [...(prev||[]), code]);
-      }
-      playSound('success');
-      showToast(`🎟️ Code promo révélé : ${code} — saisis-le dans Paramètres !`);
+      setShowUnlockAllConfirm(true);
       return;
     }
     /* Items normaux : un seul achat, ajout à unlocked */
@@ -1761,6 +1826,34 @@ export default function CookiMiner() {
     playSound('purchase');
   };
 
+  /* Confirmation Coup de Grâce — déclenchée depuis UnlockAllShopConfirmModal
+     après que le user ait tapé "DEBLOQUE". Effectue le débit + l'unlock
+     atomique de tous les items boutique 🍪 (hors premium / limited / packs)
+     puis ouvre la modale festive avec les emojis pour la cascade. */
+  const confirmUnlockAllShop = () => {
+    const r = REWARDS.find(x => x.id === 'unlock_all_shop');
+    if(!r) return;
+    if(unlocked.includes('unlock_all_shop')) { setShowUnlockAllConfirm(false); return; }
+    if(cafes < r.cost) { setShowUnlockAllConfirm(false); return; }
+    setCafes(c => Math.max(0, c - r.cost));
+    const shopItems = REWARDS.filter(rw =>
+      rw.currency !== 'cafe' && !rw.limited && rw.applyAs !== 'pack_shares'
+    );
+    const newlyUnlockedItems = shopItems.filter(rw => !unlocked.includes(rw.id));
+    setUnlocked(u => {
+      const next = new Set(u);
+      shopItems.forEach(rw => next.add(rw.id));
+      next.add('unlock_all_shop');
+      return Array.from(next);
+    });
+    playSound('purchase');
+    setShowUnlockAllConfirm(false);
+    setUnlockAllSuccess({
+      count: newlyUnlockedItems.length,
+      emojis: newlyUnlockedItems.slice(0, 18).map(rw => rw.emoji).filter(Boolean),
+    });
+  };
+
   /* Achievements detection */
   const earnedRef = useRef(earnedAchievements); earnedRef.current = earnedAchievements;
   const triggerAchievement = useCallback((id)=>{
@@ -1772,26 +1865,18 @@ export default function CookiMiner() {
     setPendingAchievement(prev => prev || a);
   },[]);
 
-  const masterRevealed = unlocked.includes('reveal_master');
-
   useEffect(()=>{
     if(showOnboarding) return;
     /* Mode admin → aucun succès attribué (compte de test). */
     if(isAdminName(userName)) return;
-    /* "master_succes" : se déclenche dès que reveal_master est acheté
-       (item premium 7 ☕ niveau 3). Avant on exigeait aussi "tous les
-       autres succès gagnés", mais c'était confus côté UX — l'utilisateur
-       payait sans rien obtenir tant qu'il n'avait pas tout fini. */
 
     /* "end_game" — apex absolu. Conditions très exigeantes pour vraiment
        le mériter :
-       1. Niveau 15 (max)
+       1. Niveau 16 (max après refonte Prestige)
        2. Tous les autres succès visibles gagnés
-       3. Le Succès Café (master_succes) — implique d'acheter "Révéler le
-          Succès Café" en boutique premium (7 ☕, niveau 3+).
-       4. Boutique 100 % complétée (tous items en 🍪, hors limited)
-       5. Les 3 badges secrets débloqués
-       6. Les 10 récompenses événements débloquées (3 thèmes + 7 badges
+       3. Boutique 100 % complétée (tous items en 🍪, hors limited)
+       4. Les 3 badges secrets débloqués
+       5. Les 10 récompenses événements débloquées (3 thèmes + 7 badges
           édition limitée) */
     const endGamePrereqIds = ACHIEVEMENTS
       .filter(a => a.id !== 'end_game')
@@ -1824,13 +1909,12 @@ export default function CookiMiner() {
       ['level_10',       level >= 10],
       ['level_15',       level >= 15],
       ['trader',         totalInvested >= 500],
-      ['master_succes',  masterRevealed],
       ['end_game',       endGameReady],
     ];
     for(const [id,ok] of checks){
       if(ok && !earnedAchievements.includes(id)){ triggerAchievement(id); break; }
     }
-  },[totalEarned, streak, clickRecord, unlocked, level, coins, totalInvested, showOnboarding, earnedAchievements, triggerAchievement, masterRevealed, userName]);
+  },[totalEarned, streak, clickRecord, unlocked, level, coins, totalInvested, showOnboarding, earnedAchievements, triggerAchievement, userName]);
 
   const collectAchievement = ()=>{
     const a = pendingAchievement;
@@ -2144,9 +2228,9 @@ export default function CookiMiner() {
               ))}
             </div>
 
-            {/* Achievements (filtre les hidden non révélés) */}
+            {/* Achievements */}
             {(() => {
-              const visibleAchievements = ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed);
+              const visibleAchievements = ACHIEVEMENTS;
               const half = Math.ceil(visibleAchievements.length/2);
               /* end_game est en dernière position dans ACHIEVEMENTS donc
                  invisible tant que l'utilisateur ne déroule pas — surprise
@@ -2162,20 +2246,14 @@ export default function CookiMiner() {
                     {list.map(a=>{
                       const got = earnedAchievements.includes(a.id);
                       const isEndGame = a.id === 'end_game';
-                      const isApex = a.id === 'master_succes' || isEndGame;
+                      const isApex = isEndGame;
                       /* Pour end_game (apex final), on calcule la progression
                          de chaque condition pour que le user sache exactement
                          ce qu'il lui manque. */
                       let endGamePrereqs = null;
                       if(isEndGame && !got){
-                        /* Compteur "autres succès" hors master_succes —
-                           ce dernier a sa propre ligne dans la checklist
-                           car il dépend d'un achat premium spécifique. */
-                        const succesList = ACHIEVEMENTS.filter(x =>
-                          x.id !== 'end_game' && x.id !== 'master_succes'
-                        );
+                        const succesList = ACHIEVEMENTS.filter(x => x.id !== 'end_game');
                         const succesDone = succesList.filter(p => earnedAchievements.includes(p.id)).length;
-                        const masterDone = earnedAchievements.includes('master_succes');
                         const shopList = REWARDS.filter(r => r.currency !== 'cafe' && !r.limited);
                         const shopDone = shopList.filter(r => unlocked.includes(r.id)).length;
                         const secretList = Object.values(SECRET_BADGES);
@@ -2183,10 +2261,9 @@ export default function CookiMiner() {
                         const eventList = REWARDS.filter(r => r.limited);
                         const eventDone = eventList.filter(r => unlocked.includes(r.id)).length;
                         endGamePrereqs = {
-                          levelOk:    level >= 15,
+                          levelOk:    level >= 16,
                           succesDone, succesTotal: succesList.length,
                           succesOk:   succesDone === succesList.length,
-                          masterOk:   masterDone,
                           shopDone,   shopTotal:   shopList.length,
                           shopOk:     shopDone === shopList.length,
                           secretDone, secretTotal: secretList.length,
@@ -2280,13 +2357,10 @@ export default function CookiMiner() {
                                 fontSize:10, lineHeight:1.65, fontWeight:700,
                               }}>
                                 <div style={{ color: endGamePrereqs.levelOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/15
+                                  {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/16
                                 </div>
                                 <div style={{ color: endGamePrereqs.succesOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès
-                                </div>
-                                <div style={{ color: endGamePrereqs.masterOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.masterOk ? '✓' : '○'} Succès Café (premium ☕)
                                 </div>
                                 <div style={{ color: endGamePrereqs.shopOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.shopOk ? '✓' : '○'} {endGamePrereqs.shopDone}/{endGamePrereqs.shopTotal} items boutique 🍪
@@ -2447,6 +2521,7 @@ export default function CookiMiner() {
             userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
             spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
             userCode={userCode}
+            vipPurchasesToday={vipPurchasesToday}
             C={C}
           />
         )}
@@ -2580,6 +2655,33 @@ export default function CookiMiner() {
         />
       )}
 
+      {/* COUP DE GRÂCE — confirmation puis modale festive post-achat */}
+      {showUnlockAllConfirm && (() => {
+        const r = REWARDS.find(x => x.id === 'unlock_all_shop');
+        const itemCount = REWARDS.filter(rw =>
+          rw.currency !== 'cafe' && !rw.limited && rw.applyAs !== 'pack_shares'
+            && !unlocked.includes(rw.id)
+        ).length;
+        return (
+          <UnlockAllShopConfirmModal
+            cafes={cafes}
+            itemCount={itemCount}
+            cost={r?.cost || 200}
+            onConfirm={confirmUnlockAllShop}
+            onCancel={()=>setShowUnlockAllConfirm(false)}
+            C={C}
+          />
+        );
+      })()}
+      {unlockAllSuccess && (
+        <UnlockAllShopSuccessModal
+          count={unlockAllSuccess.count}
+          emojis={unlockAllSuccess.emojis}
+          onClose={()=>setUnlockAllSuccess(null)}
+          C={C}
+        />
+      )}
+
       {/* PAYMENT SUCCESS MODAL — popup festif post-achat Stripe */}
       {paymentReceived && (
         <PaymentSuccessModal
@@ -2635,7 +2737,7 @@ export default function CookiMiner() {
           userBio={userBio} setUserBio={setUserBio}
           level={level} xp={xp} xpReq={xpReq}
           totalEarned={totalEarned} streak={streak} unlocked={unlocked}
-          earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.filter(a => !a.hidden || masterRevealed).length}
+          earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.length}
           marketRealized={marketRealized}
           activeTheme={activeTheme}
           activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
@@ -2722,6 +2824,16 @@ export default function CookiMiner() {
       {/* ACHIEVEMENT MODAL */}
       {pendingAchievement && !pendingLvUp && (
         <AchievementModal achievement={pendingAchievement} onCollect={collectAchievement} />
+      )}
+
+      {/* BOOST GAIN POPUP — déclenché par addCoins quand boost ×2 ou
+          doubler ont amplifié un mini-jeu. Ne pop pas pour prestige. */}
+      {boostGainPopup && (
+        <BoostGainToast
+          bonus={boostGainPopup.bonus}
+          boost={boostGainPopup.boost}
+          doubler={boostGainPopup.doubler}
+        />
       )}
 
       {/* CAFÉ TOAST — popup gain de CF */}

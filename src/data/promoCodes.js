@@ -40,9 +40,6 @@ export const PROMO_CODES = {
   'MERCI':     { coins: 50,   cafes: 1, label: 'Petit merci' },
   'CMK1':      { coins: 0,    cafes: 0, shares: 1, label: '1 action $CKM offerte' },
   'CMK5':      { coins: 0,    cafes: 0, shares: 5, label: '5 actions $CKM offertes' },
-  /* Code rare — révélé uniquement via l'item premium "Révéler Code
-     Promo Rare" (5 ☕, niveau 13). Récompense exclusive. */
-  'LEGENDE13': { coins: 500,  cafes: 3, label: 'Code Rare — Légende du 13', secret: true },
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },

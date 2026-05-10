@@ -18,7 +18,7 @@ import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
                 Avatar : pas de désactivation, juste switch.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {}, C }) {
   const [filter, setFilter] = useState('Tous');
   /* Sous-vue du premium : 'main' (catégories + items normaux) ou 'jetons'
      (spin_pass + slot_pass uniquement). On ne pollue pas la grid premium
@@ -203,7 +203,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           <div style={{ flex:1 }}>
             <div style={{ fontSize:13, fontWeight:900, color:'#F0C050', marginBottom:2, letterSpacing:.3 }}>Acheter des cafés</div>
             <div style={{ fontSize:11.5, color:'rgba(255,255,255,.75)', lineHeight:1.4 }}>
-              10 / 50 / 200 ☕ — paiement sécurisé Stripe
+              15 / 50 / 200 ☕ — paiement sécurisé Stripe
             </div>
           </div>
           <ChevronRight size={18} color="#F0C050" />
@@ -312,8 +312,12 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           /* Jetons VIP : achat uniquement si quota quotidien épuisé. */
           const isSpinPass = r.applyAs === 'spin_pass';
           const isSlotPass = r.applyAs === 'slot_pass';
+          /* Cap quotidien Bonus VIP — 1 achat / jour / item. Synchro avec
+             la liste VIP_DAILY_CAP_IDS côté App.jsx (source unique = back). */
+          const vipBoughtToday = !!vipPurchasesToday && vipPurchasesToday[r.id] === new Date().toDateString();
           const passLockedReason =
-              (isSpinPass && spinsLeft > 0)     ? `Reste ${spinsLeft} tour${spinsLeft>1?'s':''}`
+              vipBoughtToday                     ? 'Revient demain'
+            : (isSpinPass && spinsLeft > 0)     ? `Reste ${spinsLeft} tour${spinsLeft>1?'s':''}`
             : (isSlotPass && slotPlaysLeft > 0) ? `Reste ${slotPlaysLeft} partie${slotPlaysLeft>1?'s':''}`
             : null;
           const passLocked = !!passLockedReason;
@@ -323,6 +327,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               : r.applyAs==='avatar'? 'Avatar'
               : r.applyAs==='banner'? 'Bannière'
               : r.applyAs==='music' ? 'Musique'
+              : r.applyAs==='skin'  ? 'Skin'
               : null)
             : r.type;
           const activatable = ACTIVATABLE[activeKey];
@@ -349,7 +354,31 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               {isUnlocked && !r.limited && <span className="sparkle-anim" style={{ position:'absolute', top:8, right:10, fontSize:14, animationDelay:`${i*0.3}s` }}>✨</span>}
               <div className={isUnlocked ? 'float-anim' : ''} style={{ fontSize:30, marginBottom:8, display:'inline-block', filter:lvLocked?'grayscale(.7)':'none' }}>{lvLocked ? '🔒' : r.emoji}</div>
               <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:3 }}>{r.name}</div>
-              <div style={{ fontSize:11, color:C.muted, marginBottom:12 }}>{r.desc}</div>
+              <div style={{ fontSize:11, color:C.muted, marginBottom: (r.savingsLabel || r.applyAs === 'unlock_all_shop') ? 6 : 12 }}>{r.desc}</div>
+              {/* Badge "économies" — sur les packs/items ULTRA pour justifier le prix.
+                  unlock_all_shop : calcul dynamique de la valeur 🍪 totale débloquée. */}
+              {(() => {
+                let label = r.savingsLabel;
+                if(!label && r.applyAs === 'unlock_all_shop'){
+                  const totalCookies = REWARDS
+                    .filter(rw => rw.currency !== 'cafe' && !rw.limited && rw.applyAs !== 'pack_shares')
+                    .reduce((sum, rw) => sum + (rw.cost || 0), 0);
+                  label = `Économise ~${totalCookies.toLocaleString('fr-FR')} 🍪`;
+                }
+                if(!label || isUnlocked) return null;
+                return (
+                  <div style={{
+                    display:'inline-block',
+                    fontSize:9.5, fontWeight:800, color:'#3D2010',
+                    background:'linear-gradient(135deg,#F5DC8A,#D4A017)',
+                    padding:'2px 7px', borderRadius:8,
+                    marginBottom:10, letterSpacing:.3,
+                    boxShadow:'0 2px 6px rgba(212,160,23,.3)',
+                  }}>
+                    ✨ {label}
+                  </div>
+                );
+              })()}
 
               {isUnlocked ? (
                 activatable ? (

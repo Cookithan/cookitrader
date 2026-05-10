@@ -5,7 +5,7 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 /* ════════════════════════════════════════════════════
    BuyCafesModal — sélection d'un bundle de cafés ☕
    ────────────────────────────────────────────────────
-   3 bundles (10/50/200 ☕). Tap un bundle → POST /api/create-checkout-session
+   3 bundles (15/50/200 ☕). Tap un bundle → POST /api/create-checkout-session
    → redirect vers Stripe Checkout. Au retour, App.jsx détecte
    ?cf_purchase=success dans l'URL et affiche un toast.
 
@@ -20,7 +20,7 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 const BUNDLES = [
-  { id:'cf10',  cafes:10,  price:'0,99 €',  pricePerCafe:'~0,10 €/☕', tagline:'Pour goûter' },
+  { id:'cf10',  cafes:15,  price:'0,99 €',  pricePerCafe:'~0,07 €/☕', tagline:'Pour goûter' },
   { id:'cf50',  cafes:50,  price:'3,99 €',  pricePerCafe:'~0,08 €/☕', tagline:'Le populaire' },
   { id:'cf200', cafes:200, price:'9,99 €',  pricePerCafe:'~0,05 €/☕', tagline:'Meilleur rapport ☕/€' },
 ];

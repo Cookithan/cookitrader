@@ -55,6 +55,9 @@ export const AVATAR_PREMIUM_LIST = [
   { id:'avatar_legende', art:'avLegende', name:'Légende',         bg:'linear-gradient(140deg,#4A2C17,#D4A017)', glow:true },
   { id:'avatar_sage',    art:'avSage',    name:'Sage du Café',    bg:'linear-gradient(140deg,#3D2010,#8B5A2B)' },
   { id:'avatar_eternel', art:'avEternel', name:'Éternel',         bg:'linear-gradient(140deg,#5A4014,#FFE89A)', glow:true },
+  /* Cosmonaute Caféiné — sink premium ULTRA (25 ☕). Cible whales /
+     collectionneurs. Ajouté avec la vague de sinks chers (mai 2026). */
+  { id:'avatar_cosmonaute', art:'avCosmonaute', name:'Cosmonaute Caféiné', bg:'radial-gradient(circle at 50% 35%, #1F0E04 0%, #070100 70%, #000000 100%)', glow:true },
 ];
 
 export const AVATAR_PREMIUM = AVATAR_PREMIUM_LIST.reduce((acc, a) => { acc[a.id] = a; return acc; }, {});

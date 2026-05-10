@@ -184,4 +184,14 @@ export const COOKIE_SKINS = {
     glowColor:'rgba(180,120,255,.6)',
     pattern:'stars'
   },
+  /* Galactique — sink premium ULTRA (15 ☕, mai 2026). Variante du cosmos :
+     bleu-nuit profond → violet → halo doré, étoiles partout. Plus froid
+     que skin_originel (qui glisse vers le doré chaud), plus saturé en violet. */
+  skin_galactique: {
+    body:[{o:'0%',c:'#E8D5FF'},{o:'30%',c:'#7848B8'},{o:'70%',c:'#2A1450'},{o:'100%',c:'#050118'}],
+    chip:[{o:'0%',c:'#FFE89A'},{o:'100%',c:'#A07014'}],
+    ring:'#5C2480', cracks:'#3D1A6B', icing:false, shine:'rgba(232,213,255,.7)',
+    glowColor:'rgba(120,72,184,.7)',
+    pattern:'stars'
+  },
 };

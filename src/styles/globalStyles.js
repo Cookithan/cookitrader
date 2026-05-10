@@ -118,6 +118,14 @@ export const GLOBAL_CSS = `
   .toast-in{animation:toastIn .25s cubic-bezier(.36,.07,.19,.97) both}
   .toast-out{animation:toastOut .25s ease-in both}
 
+  /* ── BoostGainToast — pop bounce festif quand boost x2/doubler amplifie un gain ── */
+  @keyframes boostPop{0%{opacity:0;transform:translateX(-50%) translateY(20px) scale(.7)}60%{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1.06)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+  .boost-pop{animation:boostPop .45s cubic-bezier(.5,1.6,.55,1) both}
+
+  /* ── Coup de Grâce — cascade des emojis débloqués (apparition décalée) ── */
+  @keyframes itemPop{0%{opacity:0;transform:scale(.3) rotate(-15deg)}60%{opacity:1;transform:scale(1.15) rotate(8deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+  .item-pop{animation:itemPop .5s cubic-bezier(.5,1.6,.55,1) both}
+
   /* ── SPLASH SCREEN ───────────────────────────────── */
   .splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,#4A2C17 0%,#3D2010 50%,#2C1810 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;z-index:9999;transition:opacity .5s ease;overflow:hidden}
   .splash-screen.fade-out{opacity:0;pointer-events:none}

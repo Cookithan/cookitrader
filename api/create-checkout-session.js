@@ -27,7 +27,7 @@ import Stripe from 'stripe';
 /* Source de vérité côté serveur — le client envoie un id, on lit le
    prix/cafes ici. Empêche un client malicieux d'envoyer { cafes: 1e9 }. */
 const BUNDLES = {
-  cf10:  { cafes: 10,  amountCents: 99,   name: '10 cafés ☕' },
+  cf10:  { cafes: 15,  amountCents: 99,   name: '15 cafés ☕' },
   cf50:  { cafes: 50,  amountCents: 399,  name: '50 cafés ☕' },
   cf200: { cafes: 200, amountCents: 999,  name: '200 cafés ☕' },
 };

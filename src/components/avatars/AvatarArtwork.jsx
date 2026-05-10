@@ -1022,6 +1022,53 @@ const AvEternel = () => (
   </svg>
 );
 
+/* Cosmonaute Caféiné — premium ULTRA (25 ☕). Casque doré bombé,
+   visière mocha brillante, antenne or, étoiles cosmiques crème.
+   Reste palette café-only (or / mocha / crème, pas de bleu). */
+const AvCosmonaute = () => (
+  <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <radialGradient id="g_cosmo_helmet" cx="40%" cy="35%" r="75%">
+        <stop offset="0%" stopColor={CREME} />
+        <stop offset="55%" stopColor={OR_LT} />
+        <stop offset="100%" stopColor={OR_DK} />
+      </radialGradient>
+      <linearGradient id="g_cosmo_visor" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#3D2010" />
+        <stop offset="55%" stopColor="#1F0E04" />
+        <stop offset="100%" stopColor="#0A0402" />
+      </linearGradient>
+    </defs>
+    {/* étoiles cosmiques */}
+    <circle cx="18" cy="22" r="1.4" fill={OR_LTR} />
+    <circle cx="82" cy="20" r="1.6" fill={CREME} />
+    <circle cx="14" cy="60" r="1" fill={OR_LTR} />
+    <circle cx="86" cy="58" r="1.2" fill={CREME} />
+    <circle cx="22" cy="86" r="1.3" fill={OR_LT} />
+    <circle cx="78" cy="86" r="1.4" fill={OR_LT} />
+    <path d="M 50 8 L 51.5 12 L 55 13 L 51.5 14 L 50 18 L 48.5 14 L 45 13 L 48.5 12 Z" fill={OR_LTR} opacity=".9" />
+    {/* antenne */}
+    <line x1="50" y1="16" x2="50" y2="24" stroke={OR_DK} strokeWidth="2" strokeLinecap="round" />
+    <circle cx="50" cy="14" r="2.4" fill={OR_LTR} stroke={OR_DK} strokeWidth="1.4" />
+    {/* casque sphérique */}
+    <circle cx="50" cy="55" r="32" fill="url(#g_cosmo_helmet)" {...STROKE_HEAVY} stroke={OR_DK} strokeWidth="3" />
+    {/* visière sombre brillante */}
+    <ellipse cx="50" cy="56" rx="22" ry="17" fill="url(#g_cosmo_visor)" stroke={OR_DK} strokeWidth="2.2" />
+    {/* reflets visière */}
+    <ellipse cx="42" cy="50" rx="6" ry="4" fill={OR_LTR} opacity=".55" transform="rotate(-25 42 50)" />
+    <ellipse cx="40" cy="49" rx="2.5" ry="1.8" fill={CREME} opacity=".75" transform="rotate(-25 40 49)" />
+    <ellipse cx="60" cy="63" rx="3" ry="1.5" fill={OR_LT} opacity=".4" transform="rotate(-25 60 63)" />
+    {/* yeux dans la visière (crème, façon brillance) */}
+    <circle cx="44" cy="58" r="1.6" fill={OR_LTR} opacity=".85" />
+    <circle cx="56" cy="58" r="1.6" fill={OR_LTR} opacity=".85" />
+    {/* col / scaphandre */}
+    <path d="M 28 78 Q 50 90 72 78 L 74 92 L 26 92 Z" fill={MOKA} stroke={ESPRESSO} strokeWidth="2.2" strokeLinejoin="round" />
+    <circle cx="38" cy="86" r="1.4" fill={OR_LT} />
+    <circle cx="50" cy="88" r="1.4" fill={OR_LT} />
+    <circle cx="62" cy="86" r="1.4" fill={OR_LT} />
+  </svg>
+);
+
 /* Legacy — Cosmos (avatar_aurore) gardé pour profils existants */
 const Cosmos = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
@@ -1069,6 +1116,7 @@ export function AvatarArtwork({ art }){
     case 'avLegende': return <AvLegende />;
     case 'avSage':    return <AvSage />;
     case 'avEternel': return <AvEternel />;
+    case 'avCosmonaute': return <AvCosmonaute />;
     /* legacy */
     case 'cosmos':    return <Cosmos />;
     default:          return <Cookie />;

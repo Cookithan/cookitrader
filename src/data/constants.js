@@ -7,7 +7,7 @@
    - SEGMENTS    : 11 segments de la roue (valeur, label, weight, color)
    - DAILY_REWARDS : check-in J1..J7 (J7 = jackpot hebdo)
    - REWARDS     : tous les items boutique (Badge / Titre / Thème / Avatar / Skin / Roue / Premium)
-   - ACHIEVEMENTS: succès (avec un caché : master_succes)
+   - ACHIEVEMENTS: succès
    - QUESTIONS   : pool quiz, chacune a difficulty + reward + 4 choices
    - QUIZ_COOLDOWN_MS : 5h entre deux quiz
    - NAME_CHANGE_PRICES : tarif progressif du changement de prénom
@@ -163,6 +163,28 @@ export const REWARDS = [
   { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:450, type:'Pack', emoji:'📈', levelRequired:7 },
   { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:850, type:'Pack', emoji:'📊', levelRequired:12 },
 
+  // SINKS PREMIUM ULTRA — items chers pour justifier le bundle 200 ☕ Stripe (mai 2026)
+  /* Avatar Cosmonaute Caféiné — collectionneur whale (25 ☕). One-shot,
+     ajouté à unlocked. Géré par la branche items normaux (currency=cafe). */
+  { id:'avatar_cosmonaute', currency:'cafe', applyAs:'avatar', name:'Avatar Cosmonaute Caféiné', desc:'Casque doré, visière mocha, halo cosmique', cost:25, type:'Avatar', emoji:'🧑‍🚀', levelRequired:5 },
+  /* Skin Cookie Galactique — collectionneur whale (15 ☕). Skin avec
+     particules cosmiques (palette violet/or). One-shot. */
+  { id:'skin_galactique', currency:'cafe', applyAs:'skin', name:'Skin Cookie Galactique', desc:'Halo violet stellaire + chips dorées', cost:15, type:'Skin', emoji:'🌌', levelRequired:5 },
+  /* Pack 25 actions $CKM — version cafés du pack actions (vs pack_shares_*
+     qui sont en cookies). RACHETABLE (consumable) — sinon le bundle 200 ☕
+     n'aurait qu'un seul achat possible ici. Géré par applyAs:'pack_shares'
+     avec flag `consumable:true` qui bypass le check one-shot. */
+  { id:'pack_shares_25', currency:'cafe', applyAs:'pack_shares', sharesAmount:25, consumable:true, savingsLabel:'−20 % vs achat unitaire', name:'Pack 25 actions $CKM', desc:'+25 actions instantanément', cost:20, type:'Pack', emoji:'📈', levelRequired:7 },
+  /* Pack 5000 cookies — boost cash direct, RACHETABLE (consumable). */
+  { id:'pack_cookies_5k', currency:'cafe', applyAs:'pack_cookies', coinsAmount:5000, consumable:true, savingsLabel:'5 000 🍪 d\'un coup', name:'Pack 5 000 cookies', desc:'+5 000 🍪 sur ton solde', cost:20, type:'Pack', emoji:'💰', levelRequired:5 },
+  /* COUP DE GRÂCE — débloque automatiquement TOUS les items boutique
+     en cookies (currency!='cafe', non `limited`). Justifie à lui seul
+     le bundle 200 ☕ Stripe. Achat unique (one-shot, ajout à unlocked).
+     Niveau 10 mini pour éviter qu'un débutant ne shortcut tout le jeu.
+     savingsLabel calculé dynamiquement côté BoutiqueTab (somme des coûts
+     en 🍪 de tous les items concernés — varie selon le catalogue). */
+  { id:'unlock_all_shop', currency:'cafe', applyAs:'unlock_all_shop', name:'Coup de Grâce — Tout débloqué', desc:'Débloque tous les items boutique 🍪 d\'un coup', cost:200, type:'Premium', emoji:'👑', levelRequired:10 },
+
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
   /* Jetons VIP — items premium CONSOMMABLES (pas d'ajout à unlocked).
      À l'achat, ajoute des tours bonus à la roue pour la journée en
@@ -177,11 +199,6 @@ export const REWARDS = [
   { id:'slot_pass_50',   currency:'cafe', applyAs:'slot_pass', slotPassAmount:50, name:'Jeton VIP +50 parties', desc:'+50 parties Machine à Sous aujourd\'hui', cost:3, type:'Premium', emoji:'🎰', levelRequired:10 },
 
   { id:'theme_cosmos',   currency:'cafe', applyAs:'theme',       name:'Thème Cosmos',          desc:'Fond galactique exclusif',     cost:5,  type:'Premium', emoji:'🌌', levelRequired:1 },
-  { id:'reveal_master',  currency:'cafe', applyAs:'achievement', name:'Révéler le Succès Café',  desc:'Débloque le succès secret immédiatement',      cost:7,  type:'Premium', emoji:'🔮', levelRequired:3 },
-  /* Niv 13 — Code rare. Une fois acheté, le code LEGENDE13 est activé
-     sur ce compte (state LS revealedPromoCodes) et utilisable depuis
-     Settings → Code promo. Récompense : +500 🍪 + 3 ☕. Achat unique. */
-  { id:'reveal_promo_rare', currency:'cafe', applyAs:'reveal_promo', revealCode:'LEGENDE13', name:'Révéler Code Promo Rare', desc:'Dévoile un code promo unique exclusif', cost:5, type:'Premium', emoji:'🎟️', levelRequired:13 },
   { id:'banner_cookies', currency:'cafe', applyAs:'banner',      name:'Bannière Cookies',      desc:'Décor 🍪 sur ta carte niveau', cost:3,  type:'Premium', emoji:'🍪', levelRequired:1 },
   { id:'music_lofi',     currency:'cafe', applyAs:'music',       name:'Musique Lofi Hip-Hop', desc:'Ambiance étudiant chill',      cost:3,  type:'Premium', emoji:'🎵', levelRequired:1 },
   /* Pack 1 action premium — consommable, rachetable à volonté. Le pack
@@ -209,10 +226,7 @@ export const ACHIEVEMENTS = [
   { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau 10 — Éternel',     emoji:'♾️', bonus:200, cafesBonus:2 },
   { id:'level_15',       name:'Cookie Originel !',  desc:'Tu as atteint le niveau maximum',          emoji:'🌌', bonus:500, cafesBonus:3 },
   { id:'trader',         name:'Trader !',           desc:'Tu as investi 500 cookies en $CKM',        emoji:'💹', bonus:40  },
-  /* Caché : ne s'affiche que si l'utilisateur a acheté "Révéler le Succès Café" en boutique premium */
-  { id:'master_succes',  name:'Succès Café',        desc:'Tu as tout débloqué',                       emoji:'🎖️', bonus:200, cafesBonus:6, hidden:true },
-  /* Apex final : niveau 15 atteint + tous les autres succès visibles débloqués.
-     Si l'utilisateur a acheté reveal_master, il doit aussi avoir master_succes. */
+  /* Apex final : niveau 15 atteint + tous les autres succès visibles débloqués. */
   { id:'end_game',       name:'Légende Vivante !',  desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:12 },
 ];
 
