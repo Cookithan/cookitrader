@@ -129,31 +129,63 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         <div style={{ fontSize:11, color:C.muted }}>Partagé entre tous les joueurs</div>
       </div>
 
-      {/* Bandeau Maintenance / Circuit Breaker — 2 cas distincts. */}
+      {/* Bandeau Maintenance / Circuit Breaker — fond espresso sombre +
+          bord doré épais + halo doré pulsant pour attirer l'attention.
+          Palette café-only respectée (or + crème + espresso). */}
       {marketStatus?.maintenance && (
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(193,127,60,.18), rgba(212,160,23,.18))',
-          border: '1.5px solid rgba(193,127,60,.6)',
-          borderRadius: 14,
-          padding: '14px 16px',
-          marginBottom: 14,
-          color: '#FFB060',
-          fontSize: 13,
-          fontWeight: 700,
+        <div className="glow-anim" style={{
+          background: 'linear-gradient(135deg, #3D2010 0%, #5C3317 50%, #3D2010 100%)',
+          border: '2px solid #D4A017',
+          borderRadius: 18,
+          padding: '20px 22px',
+          marginBottom: 16,
           textAlign: 'center',
-          lineHeight: 1.5,
-          boxShadow: '0 4px 14px rgba(193,127,60,.25)',
+          position: 'relative',
+          overflow: 'hidden',
         }}>
-          <div style={{ fontSize: 22, marginBottom: 4 }}>
+          {/* Bandeau décoratif diagonal "PAUSE" en arrière-plan */}
+          <div aria-hidden style={{
+            position: 'absolute',
+            top: -8, right: -40,
+            transform: 'rotate(20deg)',
+            background: 'rgba(212,160,23,.18)',
+            color: 'rgba(255,232,154,.35)',
+            padding: '4px 50px',
+            fontSize: 9,
+            fontWeight: 900,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+            pointerEvents: 'none',
+          }}>
+            Pause · Pause · Pause
+          </div>
+
+          <div style={{
+            fontSize: 44, lineHeight: 1, marginBottom: 8,
+            filter: 'drop-shadow(0 0 10px rgba(212,160,23,.7)) drop-shadow(0 2px 4px rgba(0,0,0,.4))',
+          }}>
             {marketStatus.circuitBreaker ? '⚡' : '🛠️'}
           </div>
-          <div style={{ marginBottom: 4 }}>
-            {marketStatus.circuitBreaker ? 'Circuit breaker activé' : 'Marché en maintenance'}
+          <div style={{
+            fontSize: 11, fontWeight: 800, color: 'rgba(255,232,154,.7)',
+            letterSpacing: 3, textTransform: 'uppercase', marginBottom: 6,
+          }}>
+            {marketStatus.circuitBreaker ? 'Circuit breaker' : 'Maintenance'}
           </div>
-          <div style={{ fontSize: 11, fontWeight: 600, opacity: .85 }}>
+          <div style={{
+            fontSize: 17, fontWeight: 900, color: '#FFE066',
+            letterSpacing: .3, marginBottom: 8,
+            textShadow: '0 0 12px rgba(212,160,23,.6)',
+          }}>
+            {marketStatus.circuitBreaker ? 'Marché en pause auto' : 'Marché temporairement fermé'}
+          </div>
+          <div style={{
+            fontSize: 12, fontWeight: 600, color: 'rgba(255,232,154,.78)',
+            lineHeight: 1.5, maxWidth: 320, margin: '0 auto',
+          }}>
             {marketStatus.circuitBreaker
-              ? 'Variation trop forte détectée — pause automatique 1 h.'
-              : 'Trading suspendu temporairement — réouverture bientôt.'}
+              ? '⚠ Variation de prix trop forte détectée. Réouverture automatique dans 1 h.'
+              : 'Le trading est suspendu le temps d\'un rééquilibrage. Réouverture bientôt — merci de ta patience ☕'}
           </div>
         </div>
       )}
