@@ -36,15 +36,17 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack'];
   /* Filtres premium — basés sur applyAs pour la robustesse. Ordre :
      Tous → cosmétiques (Avatar, Skin, Thème, Musique) → Packs → Spécial. */
-  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack','Spécial'];
+  /* Filtres premium — basés sur applyAs pour la robustesse. Catégorie
+     'Spécial' supprimée (unlock_all_shop retiré pour la dé-pay-to-win
+     Play Store, banner remappée dans Thème par convention UX). */
+  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack'];
   const matchPremiumFilter = (r, f) => {
     if(f === 'Tous')     return true;
     if(f === 'Avatar')   return r.applyAs === 'avatar';
     if(f === 'Skin')     return r.applyAs === 'skin';
-    if(f === 'Thème')    return r.applyAs === 'theme';
+    if(f === 'Thème')    return r.applyAs === 'theme' || r.applyAs === 'banner';
     if(f === 'Musique')  return r.applyAs === 'music';
-    if(f === 'Pack')     return r.applyAs === 'pack_shares' || r.applyAs === 'pack_cookies';
-    if(f === 'Spécial')  return r.applyAs === 'unlock_all_shop' || r.applyAs === 'banner';
+    if(f === 'Pack')     return r.applyAs === 'pack_shares';
     return true;
   };
 
@@ -149,7 +151,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   /* Tri : déjà unlocked en haut, puis ordre logique par famille (premium
      uniquement → Avatar/Skin/Thème/Musique/Pack/Spécial), puis level requis
      croissant, puis coût croissant. */
-  const PREMIUM_FAMILY_ORDER = ['avatar', 'skin', 'theme', 'music', 'banner', 'pack_shares', 'pack_cookies', 'unlock_all_shop'];
+  const PREMIUM_FAMILY_ORDER = ['avatar', 'skin', 'theme', 'music', 'banner', 'pack_shares'];
   const familyRank = (r) => {
     const i = PREMIUM_FAMILY_ORDER.indexOf(r.applyAs);
     return i === -1 ? 99 : i;
@@ -417,16 +419,10 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               <div className={isUnlocked ? 'float-anim' : ''} style={{ fontSize:30, marginBottom:8, display:'inline-block', filter:lvLocked?'grayscale(.7)':'none' }}>{lvLocked ? '🔒' : r.emoji}</div>
               <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:3 }}>{r.name}</div>
               <div style={{ fontSize:11, color:C.muted, marginBottom: (r.savingsLabel || r.applyAs === 'unlock_all_shop') ? 6 : 12 }}>{r.desc}</div>
-              {/* Badge "économies" — sur les packs/items ULTRA pour justifier le prix.
-                  unlock_all_shop : calcul dynamique de la valeur 🍪 totale débloquée. */}
+              {/* Badge "économies" — sur les packs pour justifier le prix.
+                  (Calcul dynamique unlock_all_shop retiré, item supprimé.) */}
               {(() => {
-                let label = r.savingsLabel;
-                if(!label && r.applyAs === 'unlock_all_shop'){
-                  const totalCookies = REWARDS
-                    .filter(rw => rw.currency !== 'cafe' && !rw.limited && rw.applyAs !== 'pack_shares')
-                    .reduce((sum, rw) => sum + (rw.cost || 0), 0);
-                  label = `Économise ~${totalCookies.toLocaleString('fr-FR')} 🍪`;
-                }
+                const label = r.savingsLabel;
                 if(!label || isUnlocked) return null;
                 return (
                   <div style={{

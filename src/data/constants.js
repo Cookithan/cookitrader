@@ -170,23 +170,14 @@ export const REWARDS = [
   /* Skin Cookie Galactique — collectionneur whale (15 ☕). Skin avec
      particules cosmiques (palette violet/or). One-shot. */
   { id:'skin_galactique', currency:'cafe', applyAs:'skin', name:'Skin Cookie Galactique', desc:'Halo violet stellaire + chips dorées', cost:7, type:'Skin', emoji:'🔮', levelRequired:5 },
-  /* Packs $CKM en cafés — ONE-SHOT (achat unique, ajouté à `unlocked`).
-     Cohérent avec les packs cookies one-shot ci-dessous.
-     IDs gardés `_25/_50` pour ne pas casser les `unlocked` existants —
-     seul le contenu (sharesAmount + name) a changé. */
-  { id:'pack_shares_25', currency:'cafe', applyAs:'pack_shares', sharesAmount:21,  name:'Pack 21 actions $CKM',  desc:'+21 actions instantanément',  cost:20, type:'Pack', emoji:'📈', levelRequired:7 },
-  { id:'pack_shares_50', currency:'cafe', applyAs:'pack_shares', sharesAmount:36,  name:'Pack 36 actions $CKM',  desc:'+36 actions instantanément',  cost:35, type:'Pack', emoji:'📊', levelRequired:10 },
-  { id:'pack_shares_100',currency:'cafe', applyAs:'pack_shares', sharesAmount:100, savingsLabel:'−40 % vs achat unitaire', name:'Pack 100 actions $CKM', desc:'+100 actions instantanément', cost:60, type:'Pack', emoji:'💹', levelRequired:12 },
-  /* Pack cookies — ONE-SHOT (boost cash direct unique). */
-  { id:'pack_cookies_5k',  currency:'cafe', applyAs:'pack_cookies', coinsAmount:5000,  savingsLabel:'5 000 🍪 d\'un coup',  name:'Pack 5 000 cookies',  desc:'+5 000 🍪 sur ton solde',  cost:15, type:'Pack', emoji:'💰', levelRequired:5 },
-  { id:'pack_cookies_10k', currency:'cafe', applyAs:'pack_cookies', coinsAmount:10000, savingsLabel:'10 000 🍪 d\'un coup', name:'Pack 10 000 cookies', desc:'+10 000 🍪 sur ton solde', cost:50, type:'Pack', emoji:'💸', levelRequired:8 },
-  /* COUP DE GRÂCE — débloque automatiquement TOUS les items boutique
-     en cookies (currency!='cafe', non `limited`). Justifie à lui seul
-     le bundle 200 ☕ Stripe. Achat unique (one-shot, ajout à unlocked).
-     Niveau 10 mini pour éviter qu'un débutant ne shortcut tout le jeu.
-     savingsLabel calculé dynamiquement côté BoutiqueTab (somme des coûts
-     en 🍪 de tous les items concernés — varie selon le catalogue). */
-  { id:'unlock_all_shop', currency:'cafe', applyAs:'unlock_all_shop', name:'Coup de Grâce — Tout débloqué', desc:'Débloque tous les items boutique 🍪 d\'un coup', cost:200, type:'Premium', emoji:'👑', levelRequired:10 },
+  /* Packs $CKM cafés / packs cookies / Coup de Grâce supprimés (mai 2026)
+     pour rendre le jeu moins pay-to-win en vue de la validation Play Store.
+     Ils sont retirés du catalogue mais les ID restent référencés dans le
+     code pour compatibilité avec les comptes qui les auraient déjà achetés
+     (apparaissent dans Profil/Settings comme items débloqués historiques).
+     - pack_shares_25 / _50 / _100  : packs actions volumes (pay-to-market)
+     - pack_cookies_5k / _10k       : bypass de grind cookies
+     - unlock_all_shop              : LE pay-to-win extrême (200 ☕) */
 
   // PREMIUM — Collection Cosmos (payés en cafés ☕)
   /* Jetons VIP — items premium CONSOMMABLES (pas d'ajout à unlocked).
@@ -214,7 +205,7 @@ export const REWARDS = [
      Cf. unlockReward dans App.jsx pour les effets. */
   { id:'quiz_skip',          currency:'cafe', applyAs:'quiz_skip',          name:'Skip Quiz',           desc:'Réinitialise instantanément le cooldown du quiz', cost:2, type:'Premium', emoji:'⏭️',  levelRequired:1 },
   { id:'next_game_doubler',  currency:'cafe', applyAs:'next_game_doubler',  name:'Double prochain gain',desc:'Le prochain gain 🍪 d\'un mini-jeu est doublé',    cost:1, type:'Premium', emoji:'🎯',  levelRequired:1 },
-  { id:'boost_x2_1h',        currency:'cafe', applyAs:'boost_x2_1h',        name:'Boost ×2 (1 h)',      desc:'Tous tes gains 🍪 doublés pendant 1 heure',        cost:5, type:'Premium', emoji:'⚡',  levelRequired:3 },
+  { id:'boost_x2_1h',        currency:'cafe', applyAs:'boost_x2_1h',        name:'Boost +30 % (1 h)',   desc:'Gains 🍪 augmentés de 30 % pendant 1 heure',         cost:5, type:'Premium', emoji:'⚡',  levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */

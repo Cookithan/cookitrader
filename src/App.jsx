@@ -30,8 +30,6 @@ import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
-import { UnlockAllShopConfirmModal } from "./components/modals/UnlockAllShopConfirmModal.jsx";
-import { UnlockAllShopSuccessModal } from "./components/modals/UnlockAllShopSuccessModal.jsx";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
@@ -425,12 +423,6 @@ export default function CookiMiner() {
   const [showLevels,   setShowLevels]   = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [showPrestigeModal, setShowPrestigeModal] = useState(false);
-  /* Coup de Grâce — confirmation anti-misclick + festivité post-achat.
-     showUnlockAllConfirm : ouverte par le clic boutique (intercepte avant
-     l'unlock réel). unlockAllSuccess : ouverte après débit successful,
-     contient `{ count, emojis }` pour la cascade animée. */
-  const [showUnlockAllConfirm, setShowUnlockAllConfirm] = useState(false);
-  const [unlockAllSuccess, setUnlockAllSuccess] = useState(null);
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
   const [paymentReceived, setPaymentReceived] = useState(null);
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
@@ -972,7 +964,10 @@ export default function CookiMiner() {
       const baseAmount   = amount;
       const prestigeMult = 1 + (prestigeLevel || 0) * 0.1;
       const boostActive  = boostUntil && Date.now() < boostUntil;
-      const boostMult    = boostActive ? 2 : 1;
+      /* Boost passé de ×2 à ×1.3 (mai 2026) pour rendre le jeu moins
+         pay-to-win en vue de la validation Play Store. Effet beaucoup
+         plus modéré, plus fair pour les joueurs free. */
+      const boostMult    = boostActive ? 1.3 : 1;
       const doublerMult  = nextGameDoubler ? 2 : 1;
       const totalMult    = prestigeMult * boostMult * doublerMult;
       if(totalMult !== 1){
@@ -1846,8 +1841,8 @@ export default function CookiMiner() {
       showToast('🎯 Prochain gain 🍪 doublé !');
       return;
     }
-    /* Boost ×2 cookies pendant 1h — capé à 1 achat / jour (plus de
-       cumul possible, le cap quotidien rend l'extend obsolète). */
+    /* Boost +30 % cookies pendant 1 h (anciennement ×2 — réduit pour la
+       validation Play Store). Capé à 1 achat / jour. */
     if(r.applyAs === 'boost_x2_1h'){
       if(cafes < r.cost) return;
       setCafes(c => Math.max(0, c - r.cost));
@@ -1857,7 +1852,7 @@ export default function CookiMiner() {
       setBoostUntil(baseFrom + ONE_HOUR);
       markVipBoughtToday(id);
       playSound('success');
-      showToast('⚡ Boost ×2 activé pendant 1 heure !');
+      showToast('⚡ Boost +30 % activé pendant 1 heure !');
       return;
     }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
@@ -1897,30 +1892,10 @@ export default function CookiMiner() {
       })();
       return;
     }
-    /* Pack cookies — ONE-SHOT (achat unique). Boost direct du solde 🍪
-       sans toucher à l'XP ni au totalEarned (= classement) pour éviter
-       pay-to-level / pay-to-rank. Ajouté à `unlocked` après achat pour
-       disparaître de la boutique. */
-    if(r.applyAs === 'pack_cookies'){
-      if(unlocked.includes(id)) return;
-      if(cafes < r.cost) return;
-      const n = r.coinsAmount || 0;
-      setCafes(c => Math.max(0, c - r.cost));
-      setCoins(c => c + n);
-      setUnlocked(u => [...u, id]);
-      playSound('success');
-      showToast(`💰 +${n.toLocaleString('fr-FR')} 🍪 crédités !`);
-      return;
-    }
-    /* COUP DE GRÂCE — intercepte le clic et ouvre la modale de confirmation
-       (anti-misclick à 200 ☕). Le déblocage réel se fait dans
-       confirmUnlockAllShop quand le user a tapé "DEBLOQUE". */
-    if(r.applyAs === 'unlock_all_shop'){
-      if(unlocked.includes(id)) return;
-      if(cafes < r.cost) return;
-      setShowUnlockAllConfirm(true);
-      return;
-    }
+    /* Branches `pack_cookies` et `unlock_all_shop` retirées (mai 2026) —
+       items pay-to-win supprimés du catalogue pour la validation Play
+       Store. Si un legacy item devait surgir avec ces applyAs, il
+       tombera dans la branche par défaut (rejeté). */
     /* Items normaux : un seul achat, ajout à unlocked */
     if(unlocked.includes(id)) return;
     if(r.currency==='cafe'){
@@ -1933,34 +1908,6 @@ export default function CookiMiner() {
     setUnlocked(u=>[...u,id]);
     /* Son d'achat dédié (caisse enregistreuse) */
     playSound('purchase');
-  };
-
-  /* Confirmation Coup de Grâce — déclenchée depuis UnlockAllShopConfirmModal
-     après que le user ait tapé "DEBLOQUE". Effectue le débit + l'unlock
-     atomique de tous les items boutique 🍪 (hors premium / limited / packs)
-     puis ouvre la modale festive avec les emojis pour la cascade. */
-  const confirmUnlockAllShop = () => {
-    const r = REWARDS.find(x => x.id === 'unlock_all_shop');
-    if(!r) return;
-    if(unlocked.includes('unlock_all_shop')) { setShowUnlockAllConfirm(false); return; }
-    if(cafes < r.cost) { setShowUnlockAllConfirm(false); return; }
-    setCafes(c => Math.max(0, c - r.cost));
-    const shopItems = REWARDS.filter(rw =>
-      rw.currency !== 'cafe' && !rw.limited && rw.applyAs !== 'pack_shares'
-    );
-    const newlyUnlockedItems = shopItems.filter(rw => !unlocked.includes(rw.id));
-    setUnlocked(u => {
-      const next = new Set(u);
-      shopItems.forEach(rw => next.add(rw.id));
-      next.add('unlock_all_shop');
-      return Array.from(next);
-    });
-    playSound('purchase');
-    setShowUnlockAllConfirm(false);
-    setUnlockAllSuccess({
-      count: newlyUnlockedItems.length,
-      emojis: newlyUnlockedItems.slice(0, 18).map(rw => rw.emoji).filter(Boolean),
-    });
   };
 
   /* Achievements detection */
@@ -2768,32 +2715,6 @@ export default function CookiMiner() {
         />
       )}
 
-      {/* COUP DE GRÂCE — confirmation puis modale festive post-achat */}
-      {showUnlockAllConfirm && (() => {
-        const r = REWARDS.find(x => x.id === 'unlock_all_shop');
-        const itemCount = REWARDS.filter(rw =>
-          rw.currency !== 'cafe' && !rw.limited && rw.applyAs !== 'pack_shares'
-            && !unlocked.includes(rw.id)
-        ).length;
-        return (
-          <UnlockAllShopConfirmModal
-            cafes={cafes}
-            itemCount={itemCount}
-            cost={r?.cost || 200}
-            onConfirm={confirmUnlockAllShop}
-            onCancel={()=>setShowUnlockAllConfirm(false)}
-            C={C}
-          />
-        );
-      })()}
-      {unlockAllSuccess && (
-        <UnlockAllShopSuccessModal
-          count={unlockAllSuccess.count}
-          emojis={unlockAllSuccess.emojis}
-          onClose={()=>setUnlockAllSuccess(null)}
-          C={C}
-        />
-      )}
 
       {/* PAYMENT SUCCESS MODAL — popup festif post-achat Stripe */}
       {paymentReceived && (

@@ -26,8 +26,8 @@ export function BoostGainToast({ bonus, boost, doubler }){
              : boost            ? '⚡'
              : doubler          ? '🎯'
              : '✨';
-  const label = boost && doubler ? 'Boost ×2 + Doubler'
-              : boost            ? 'Boost ×2 actif'
+  const label = boost && doubler ? 'Boost +30 % + Doubler'
+              : boost            ? 'Boost +30 % actif'
               : doubler          ? 'Gain doublé'
               : 'Bonus';
   return (

@@ -11,7 +11,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.10.0',
+  version: '1.11.0',
   releaseDate: '2026-05-10',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -20,16 +20,26 @@ export const APP_INFO = {
 
 export const CHANGELOG = [
   {
+    version: '1.11.0',
+    date: '2026-05-10',
+    title: '⚖️ Rééquilibrage économique — fair-play renforcé',
+    changes: [
+      "🛡️ Suppression des items qui donnaient un avantage compétitif (Coup de Grâce, packs cookies, packs gros volumes d'actions)",
+      "⚡ Boost café réajusté : +30 % au lieu de ×2 (impact plus modéré sur la progression)",
+      "💎 La boutique premium garde uniquement avatars / skins / thèmes / musiques / 1 action $CKM (cosmétiques + utilitaires fair)",
+      "🎯 Doubler le prochain gain et Skip Quiz toujours dispo — utilitaires limités",
+      "🎫 Jetons VIP roue & slot inchangés — juste +tours, pas d'avantage",
+      "🏆 Le marché et le classement deviennent purement compétitifs, sans raccourci payant",
+    ],
+  },
+  {
     version: '1.10.0',
     date: '2026-05-10',
-    title: '👑 Boutique premium augmentée + raretés ☕',
+    title: '🎨 Cosmétiques premium + raretés ☕',
     changes: [
-      "👑 'Coup de Grâce' (200 ☕) — débloque toute la boutique 🍪 d'un coup, festivité post-achat",
-      "🧑‍🚀 Avatar Cosmonaute Caféiné (25 ☕) + Skin Cookie Galactique (15 ☕) ultra-premium",
-      "📈 Nouveaux packs $CKM en cafés : 25 / 50 / 100 actions (jusqu'à -40 % vs unitaire)",
-      "💰 Pack 5 000 🍪 (15 ☕) — boost cash direct rachetable",
+      "🧑‍🚀 Avatar Cosmonaute Caféiné (25 ☕) + Skin Cookie Galactique (7 ☕)",
       "⏰ Bonus VIP cappés à 1 achat / jour — fini le cumul de boosts",
-      "⚡ Popup festif quand un boost ×2 ou Doubler amplifie un gain mini-jeu",
+      "⚡ Popup festif quand un boost amplifie un gain mini-jeu",
       "💳 Bundle Stripe 0,99 € : 10 ☕ → 15 ☕ (meilleur ratio entry-level)",
       "🌑 Fix : nav du bas ne disparaît plus en thème Noir & Blanc",
       "🍪 Décor festif : cookies tournants en arrière-plan pour le thème Pâte de Cookie",
