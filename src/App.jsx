@@ -1227,10 +1227,9 @@ export default function CookiMiner() {
      jumelé avec TOTAL_EARNED_CAPS — soustrait une valeur fixe au lieu
      de capper. Gate sur `pullDone` pour appliquer APRÈS la sync serveur
      (sinon le pull ramènerait l'ancienne valeur). Le débit est ensuite
-     pushé via le upsert auto (5 s) + on bénéficie du nouveau syncDailyCounters
-     pour les compteurs daily si jamais on étend ce pattern.
-     Flag LS unique daté pour ne re-débiter qu'une seule fois (étendre la
-     clé si on veut faire un nouveau débit plus tard). */
+     pushé via le upsert auto (5 s).
+     Flag LS unique daté pour ne re-débiter qu'une seule fois (créer une
+     nouvelle clé `_vN` pour faire un nouveau débit plus tard). */
   useEffect(() => {
     if(!userName || !pullDone) return;
     const lname = userName.trim().toLowerCase();
@@ -1240,21 +1239,27 @@ export default function CookiMiner() {
     const CAFES_DEBITS = {
       'cookithan': 8,
     };
+    const COINS_DEBITS = {
+      'cookithan': 4000,
+    };
     const teDebit = TOTAL_EARNED_DEBITS[lname] || 0;
     const cfDebit = CAFES_DEBITS[lname] || 0;
-    if(!teDebit && !cfDebit) return;
-    const FLAG_KEY = 'cookiminer:manualDebit2026_05_10_cookithan';
+    const ckDebit = COINS_DEBITS[lname] || 0;
+    if(!teDebit && !cfDebit && !ckDebit) return;
+    const FLAG_KEY = 'cookiminer:manualDebit2026_05_10_cookithan_v2';
     try{
       if(window.localStorage.getItem(FLAG_KEY) === '1') return;
     }catch{ return; }
     if(teDebit) setTotalEarned(t => Math.max(0, (t || 0) - teDebit));
     if(cfDebit) setCafes(c => Math.max(0, (c || 0) - cfDebit));
+    if(ckDebit) setCoins(c => Math.max(0, (c || 0) - ckDebit));
     const parts = [];
-    if(teDebit) parts.push(`-${teDebit} 🍪`);
+    if(teDebit) parts.push(`-${teDebit} totalEarned`);
     if(cfDebit) parts.push(`-${cfDebit} ☕`);
+    if(ckDebit) parts.push(`-${ckDebit} 🍪`);
     showToastRef.current?.(`📊 Recalibrage : ${parts.join(' · ')}`);
     try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
-  }, [userName, pullDone, setTotalEarned, setCafes]);
+  }, [userName, pullDone, setTotalEarned, setCafes, setCoins]);
 
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
