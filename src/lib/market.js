@@ -37,7 +37,14 @@ export const MARKET_CONFIG = {
   MEAN_REVERSION_RATE: 0.04,      // Reversion vers TARGET active TOUT LE TEMPS (rate × 50 vs avant). Récupère ~50 % de l'écart en 12 h. Empêche les prix bloqués à 87 ou 200.
   MEAN_REVERSION_LOW: 30,         // Plancher dur : sous ce prix, accélération de la reversion
   MEAN_REVERSION_HIGH: 700,       // Plafond dur : au-dessus, accélération inverse
-  MAX_SHARES_PER_USER_PCT: 0.30,  // 30 % du total = 300 actions max par user (relevé depuis 0.10 pour permettre les packs 100 achetables 3 fois)
+  /* Circuit breaker auto : si le prix bouge de plus de
+     CIRCUIT_BREAKER_THRESHOLD en CIRCUIT_BREAKER_WINDOW_MS, le marché
+     se ferme automatiquement pendant CIRCUIT_BREAKER_PAUSE_MS.
+     Stocké via market_state.circuit_breaker_until (timestamptz, SQL). */
+  CIRCUIT_BREAKER_THRESHOLD:    0.15,           // 15 % de variation
+  CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
+  CIRCUIT_BREAKER_PAUSE_MS:     60 * 60 * 1000, // pause 1 h
+  MAX_SHARES_PER_USER_PCT: 0.10,  // 10 % du total = 100 actions max par user (rebaissé depuis 0.30 après l'incident du whale à 140 actions qui a fait chuter le prix de 30 %)
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
@@ -47,12 +54,27 @@ export const MARKET_CONFIG = {
 };
 
 /* Statut du marché (ouvert / fermé) basé sur l'heure LOCALE du client.
-   Retourne { open, nextChange, maintenance } où nextChange est la prochaine
-   bascule (date de fermeture si ouvert, date de réouverture si fermé).
-   Si MAINTENANCE_MODE true : forçage fermé + flag maintenance. */
-export function getMarketStatus(now = new Date()) {
+   Retourne { open, nextChange, maintenance, circuitBreaker } où
+   nextChange est la prochaine bascule. Le flag `maintenance` couvre
+   les 2 cas : MAINTENANCE_MODE manuel ET circuit breaker auto.
+   `circuitBreakerUntil` (optionnel) : timestamp de réouverture si CB actif. */
+export function getMarketStatus(now = new Date(), serverState = null) {
   if (MARKET_CONFIG.MAINTENANCE_MODE) {
     return { open: false, nextChange: null, maintenance: true };
+  }
+  /* Circuit breaker auto : si market_state.circuit_breaker_until > now,
+     le marché est fermé jusqu'à expiration. Le serveur (maintenanceTick)
+     met à jour ce champ quand il détecte un mouvement >15 % en 5 min. */
+  if (serverState?.circuit_breaker_until) {
+    const cbUntil = new Date(serverState.circuit_breaker_until).getTime();
+    if (cbUntil > now.getTime()) {
+      return {
+        open: false,
+        nextChange: new Date(cbUntil),
+        maintenance: true,
+        circuitBreaker: true,
+      };
+    }
   }
   const { openHour, closeHour } = MARKET_CONFIG.HOURS;
   const hour = now.getHours();
@@ -266,16 +288,19 @@ export async function buyShares(userCode, shares) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
 
-  const status = getMarketStatus();
+  const state = await getMarketState();
+  if (!state) return { error: 'Marché indisponible' };
+
+  const status = getMarketStatus(new Date(), state);
   if (!status.open) {
+    if (status.circuitBreaker) {
+      return { error: `⚡ Circuit breaker — variation trop forte. Réouverture à ${formatHour(status.nextChange)}` };
+    }
     if (status.maintenance) {
       return { error: '🛠️ Marché en maintenance — réouverture bientôt' };
     }
     return { error: `Marché fermé. Réouverture à ${formatHour(status.nextChange)}` };
   }
-
-  const state = await getMarketState();
-  if (!state) return { error: 'Marché indisponible' };
 
   if (shares > state.available_shares) {
     return { error: `Seulement ${state.available_shares} action(s) disponible(s)` };
@@ -409,8 +434,14 @@ export async function sellShares(userCode, shares) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
 
-  const status = getMarketStatus();
+  const stateForStatus = await getMarketState();
+  if (!stateForStatus) return { error: 'Marché indisponible' };
+
+  const status = getMarketStatus(new Date(), stateForStatus);
   if (!status.open) {
+    if (status.circuitBreaker) {
+      return { error: `⚡ Circuit breaker — variation trop forte. Réouverture à ${formatHour(status.nextChange)}` };
+    }
     if (status.maintenance) {
       return { error: '🛠️ Marché en maintenance — réouverture bientôt' };
     }
@@ -423,19 +454,29 @@ export async function sellShares(userCode, shares) {
   }
 
   /* Anti pump-and-dump : cooldown 60 s entre un achat et la prochaine
-     vente. Bloque le day trading agressif (achat/vente en boucle rapide).
-     Si la colonne `last_buy_at` est absente (pas encore migrée Supabase)
-     ou null (pas d'achat récent), on laisse passer. */
+     vente, ET cooldown 60 s entre 2 ventes consécutives. Bloque le
+     day trading agressif (achat/vente en boucle rapide) ET le dump en
+     chaîne (même sans achat récent). Si les colonnes sont absentes
+     (pas encore migrées Supabase) ou null, on laisse passer. */
+  const now = Date.now();
   if (portfolio.last_buy_at) {
-    const elapsed = Date.now() - new Date(portfolio.last_buy_at).getTime();
+    const elapsed = now - new Date(portfolio.last_buy_at).getTime();
     if (elapsed < MARKET_CONFIG.SELL_COOLDOWN_MS) {
       const wait = Math.ceil((MARKET_CONFIG.SELL_COOLDOWN_MS - elapsed) / 1000);
       return { error: `Cooldown anti spéculation — patiente ${wait} s avant de vendre` };
     }
   }
+  if (portfolio.last_sell_at) {
+    const elapsed = now - new Date(portfolio.last_sell_at).getTime();
+    if (elapsed < MARKET_CONFIG.SELL_COOLDOWN_MS) {
+      const wait = Math.ceil((MARKET_CONFIG.SELL_COOLDOWN_MS - elapsed) / 1000);
+      return { error: `Cooldown vente — patiente ${wait} s entre 2 ventes` };
+    }
+  }
 
-  const state = await getMarketState();
-  if (!state) return { error: 'Marché indisponible' };
+  /* Réutiliser stateForStatus déjà récupéré au début pour éviter un
+     2e round-trip Supabase. */
+  const state = stateForStatus;
 
   const currentPrice = state.current_price;
 
@@ -480,6 +521,9 @@ export async function sellShares(userCode, shares) {
     shares: newShares,
     total_invested: newShares === 0 ? 0 : portfolio.total_invested - investedReleased,
     updated_at: new Date().toISOString(),
+    /* Tracking dernière vente pour le cooldown sell→sell. Nécessite SQL :
+       alter table market_portfolio add column if not exists last_sell_at timestamptz; */
+    last_sell_at: new Date().toISOString(),
   }, { onConflict: 'user_code' });
 
   return {
@@ -525,9 +569,50 @@ export async function maintenanceTick() {
     bootstrapChecked = true;
   }
 
+  /* Circuit breaker auto : on regarde le prix d'il y a 5 min dans l'historique.
+     Si la variation a dépassé CIRCUIT_BREAKER_THRESHOLD, on déclenche une
+     pause de CIRCUIT_BREAKER_PAUSE_MS en mettant à jour market_state.
+     Cette détection tourne MÊME quand le marché est en maintenance manuelle
+     (sans effet en plus, mais ne plante pas). */
+  try {
+    const cbWindowMin = MARKET_CONFIG.CIRCUIT_BREAKER_WINDOW_MS / 60_000;
+    const since = new Date(Date.now() - MARKET_CONFIG.CIRCUIT_BREAKER_WINDOW_MS).toISOString();
+    const { data: oldSnap } = await supabase
+      .from('market_history')
+      .select('price')
+      .gte('recorded_at', since)
+      .order('recorded_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (oldSnap?.price) {
+      const oldPrice = parseFloat(oldSnap.price);
+      const variation = Math.abs(state.current_price - oldPrice) / oldPrice;
+      if (variation > MARKET_CONFIG.CIRCUIT_BREAKER_THRESHOLD) {
+        const cbUntil = new Date(Date.now() + MARKET_CONFIG.CIRCUIT_BREAKER_PAUSE_MS).toISOString();
+        const alreadyTriggered = state.circuit_breaker_until && new Date(state.circuit_breaker_until).getTime() > Date.now();
+        if (!alreadyTriggered) {
+          await supabase
+            .from('market_state')
+            .update({ circuit_breaker_until: cbUntil })
+            .eq('id', 1);
+          // eslint-disable-next-line no-console
+          console.log(`[market] Circuit breaker triggered: ${(variation*100).toFixed(1)} % in ${cbWindowMin} min → pause until ${cbUntil}`);
+        }
+      }
+    }
+  } catch (e) {
+    /* Si la colonne circuit_breaker_until n'existe pas encore (SQL pas
+       passé), on log et on continue — le circuit breaker reste désactivé
+       en silence jusqu'à la migration. */
+    // eslint-disable-next-line no-console
+    if (!e?.message?.includes('circuit_breaker_until')) {
+      console.warn('[market] CB check error:', e?.message);
+    }
+  }
+
   /* Marché fermé → on ne pousse plus de snapshot. Le prix reste figé sur
      la dernière valeur jusqu'à la réouverture. */
-  if (!getMarketStatus().open) return;
+  if (!getMarketStatus(new Date(), state).open) return;
 
   const now = Date.now();
   const lastInflation = new Date(state.last_inflation_at).getTime();

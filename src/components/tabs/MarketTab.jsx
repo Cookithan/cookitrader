@@ -51,7 +51,10 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
     setState(s);
     setHistory(hRange);
     setPortfolio(p);
-    setMarketStatus(getMarketStatus());
+    /* Passer s au getMarketStatus pour qu'il détecte le circuit breaker
+       (lit serverState.circuit_breaker_until). Sinon UI manquerait le
+       statut CB. */
+    setMarketStatus(getMarketStatus(new Date(), s));
 
     if (s && h24.length > 0) {
       const oldPrice = h24[0].price;
@@ -126,9 +129,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         <div style={{ fontSize:11, color:C.muted }}>Partagé entre tous les joueurs</div>
       </div>
 
-      {/* Bandeau Maintenance — affiché en grand quand MAINTENANCE_MODE=true
-          (cf. market.js MARKET_CONFIG). Tout achat/vente est bloqué côté
-          backend, ce bandeau l'explique côté UI. */}
+      {/* Bandeau Maintenance / Circuit Breaker — 2 cas distincts. */}
       {marketStatus?.maintenance && (
         <div style={{
           background: 'linear-gradient(135deg, rgba(193,127,60,.18), rgba(212,160,23,.18))',
@@ -143,10 +144,16 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
           lineHeight: 1.5,
           boxShadow: '0 4px 14px rgba(193,127,60,.25)',
         }}>
-          <div style={{ fontSize: 22, marginBottom: 4 }}>🛠️</div>
-          <div style={{ marginBottom: 4 }}>Marché en maintenance</div>
+          <div style={{ fontSize: 22, marginBottom: 4 }}>
+            {marketStatus.circuitBreaker ? '⚡' : '🛠️'}
+          </div>
+          <div style={{ marginBottom: 4 }}>
+            {marketStatus.circuitBreaker ? 'Circuit breaker activé' : 'Marché en maintenance'}
+          </div>
           <div style={{ fontSize: 11, fontWeight: 600, opacity: .85 }}>
-            Trading suspendu temporairement — réouverture bientôt.
+            {marketStatus.circuitBreaker
+              ? 'Variation trop forte détectée — pause automatique 1 h.'
+              : 'Trading suspendu temporairement — réouverture bientôt.'}
           </div>
         </div>
       )}
