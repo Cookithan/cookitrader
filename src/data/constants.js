@@ -171,9 +171,11 @@ export const REWARDS = [
      particules cosmiques (palette violet/or). One-shot. */
   { id:'skin_galactique', currency:'cafe', applyAs:'skin', name:'Skin Cookie Galactique', desc:'Halo violet stellaire + chips dorées', cost:7, type:'Skin', emoji:'🔮', levelRequired:5 },
   /* Packs $CKM en cafés — ONE-SHOT (achat unique, ajouté à `unlocked`).
-     Cohérent avec les packs cookies one-shot ci-dessous. */
-  { id:'pack_shares_25', currency:'cafe', applyAs:'pack_shares', sharesAmount:25,  savingsLabel:'−20 % vs achat unitaire', name:'Pack 25 actions $CKM',  desc:'+25 actions instantanément',  cost:20, type:'Pack', emoji:'📈', levelRequired:7 },
-  { id:'pack_shares_50', currency:'cafe', applyAs:'pack_shares', sharesAmount:50,  savingsLabel:'−30 % vs achat unitaire', name:'Pack 50 actions $CKM',  desc:'+50 actions instantanément',  cost:35, type:'Pack', emoji:'📊', levelRequired:10 },
+     Cohérent avec les packs cookies one-shot ci-dessous.
+     IDs gardés `_25/_50` pour ne pas casser les `unlocked` existants —
+     seul le contenu (sharesAmount + name) a changé. */
+  { id:'pack_shares_25', currency:'cafe', applyAs:'pack_shares', sharesAmount:21,  name:'Pack 21 actions $CKM',  desc:'+21 actions instantanément',  cost:20, type:'Pack', emoji:'📈', levelRequired:7 },
+  { id:'pack_shares_50', currency:'cafe', applyAs:'pack_shares', sharesAmount:36,  name:'Pack 36 actions $CKM',  desc:'+36 actions instantanément',  cost:35, type:'Pack', emoji:'📊', levelRequired:10 },
   { id:'pack_shares_100',currency:'cafe', applyAs:'pack_shares', sharesAmount:100, savingsLabel:'−40 % vs achat unitaire', name:'Pack 100 actions $CKM', desc:'+100 actions instantanément', cost:60, type:'Pack', emoji:'💹', levelRequired:12 },
   /* Pack cookies — ONE-SHOT (boost cash direct unique). */
   { id:'pack_cookies_5k',  currency:'cafe', applyAs:'pack_cookies', coinsAmount:5000,  savingsLabel:'5 000 🍪 d\'un coup',  name:'Pack 5 000 cookies',  desc:'+5 000 🍪 sur ton solde',  cost:15, type:'Pack', emoji:'💰', levelRequired:5 },
