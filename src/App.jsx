@@ -1164,7 +1164,7 @@ export default function CookiMiner() {
     if(topOne.user_code !== userCode) return;    // je ne suis pas le top 1 → rien
     const t2 = Number(topTwo.total_earned) || 0;
     if(t2 <= 0) return;
-    const GAP_PCT = 1.30;
+    const GAP_PCT = 1.20;  // Top 1 max +20 % vs Top 2 (resserré depuis 1.30)
     const cap = Math.floor(t2 * GAP_PCT);
     if(totalEarned > cap){
       /* Recalibrage silencieux du total_earned (le sync push à Supabase

@@ -101,7 +101,7 @@ export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
             <span style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700, letterSpacing:.5 }}>Avance gardée</span>
             <span style={{ fontSize:18, fontWeight:900, color:'#F0C050', fontVariantNumeric:'tabular-nums' }}>
-              +30%
+              +20%
             </span>
           </div>
         </div>
