@@ -41,6 +41,8 @@ import { creditFreeShares, adminDebitShares } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
+import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
+import { APP_INFO } from "./lib/appInfo.js";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { BoutiqueTab } from "./components/tabs/BoutiqueTab.jsx";
@@ -506,6 +508,13 @@ export default function CookiMiner() {
      Compteur rafraîchi toutes les 30s tant qu'on a un userCode + Supabase actif. */
   const [showInbox,        setShowInbox]        = useState(false);
   const [showAbout,        setShowAbout]        = useState(false);
+  /* Notification "nouvelle version" : on garde en LS la dernière version
+     vue par l'user. Au mount, si APP_INFO.version diffère → popup.
+     Pour un fresh install, lastSeenVersion vaut '' → on calibre direct
+     à la version courante SANS pop (le nouveau joueur n'a pas à voir
+     un changelog d'ancien). Voir useEffect plus bas. */
+  const [lastSeenVersion,  setLastSeenVersion]  = useLocalStorage('lastSeenVersion', '');
+  const [showNewVersion,   setShowNewVersion]   = useState(false);
   /* Restauration : null = fermé, 'fresh' = depuis onboarding (pas de
      warning), 'replace' = depuis settings (warning de remplacement). */
   const [restoreMode,      setRestoreMode]      = useState(null);
@@ -682,6 +691,28 @@ export default function CookiMiner() {
   /* Hook PWA : exposé aux paramètres pour le bouton "Installer" */
   const installPrompt = useInstallPrompt();
 
+  /* Notification "nouvelle version" : si lastSeenVersion ≠ APP_INFO.version
+     → on déclenche la modale. Cas particuliers :
+       - Fresh install (lastSeenVersion === '') : pas de pop, on calibre
+         direct à la version courante (le nouveau joueur n'a rien à voir).
+       - Pas pendant l'onboarding (un nouveau joueur ne doit pas être
+         interrompu) — on attend que showOnboarding soit false ET que
+         userName soit défini.
+     Une fois affichée, la modale set lastSeenVersion à la fermeture
+     (que ce soit "Voir tout" ou "Plus tard"). */
+  useEffect(() => {
+    if(showOnboarding || !userName) return;
+    if(!lastSeenVersion){
+      /* Fresh install : on calibre sans pop. */
+      setLastSeenVersion(APP_INFO.version);
+      return;
+    }
+    if(lastSeenVersion !== APP_INFO.version){
+      setShowNewVersion(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showOnboarding, userName]);
+
   /* Bouton retour Android : ferme l'overlay courant au lieu de quitter
      l'app. Pas appliqué à : showOnboarding, tutorialStep, pendingLvUp,
      pendingAchievement (l'utilisateur DOIT les voir / interagir). */
@@ -694,6 +725,7 @@ export default function CookiMiner() {
   useBackToClose(!!eventReward,     () => setEventReward(null));
   useBackToClose(showInbox,         () => setShowInbox(false));
   useBackToClose(showAbout,         () => setShowAbout(false));
+  useBackToClose(showNewVersion,    () => { setShowNewVersion(false); setLastSeenVersion(APP_INFO.version); });
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
   useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
   useBackToClose(!!secretBadgeReward, () => setSecretBadgeQueue(q => q.slice(1)));
@@ -809,7 +841,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -3063,6 +3095,19 @@ export default function CookiMiner() {
       {showAbout && (
         <AboutModal
           onClose={()=>setShowAbout(false)}
+          C={C}
+        />
+      )}
+
+      {/* NEW VERSION POPUP — pop si lastSeenVersion ≠ APP_INFO.version
+          (sauf fresh install). Au close, marque la version comme vue. */}
+      {showNewVersion && (
+        <NewVersionModal
+          onClose={() => {
+            setShowNewVersion(false);
+            setLastSeenVersion(APP_INFO.version);
+          }}
+          onOpenAbout={() => setShowAbout(true)}
           C={C}
         />
       )}

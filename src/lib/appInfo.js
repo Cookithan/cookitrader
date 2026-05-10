@@ -11,7 +11,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.12.0',
+  version: '1.13.0',
   releaseDate: '2026-05-10',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -19,6 +19,22 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.13.0',
+    date: '2026-05-10',
+    title: '🌐 Présence en ligne + nouveau thème + +32 questions de quiz',
+    changes: [
+      "🟡 Indicateur « X joueurs en ligne » dans le classement, le profil ami et À propos (heartbeat 60 s)",
+      "🏆 Classement Cookies revient sur le total lifetime (le cycle hebdomadaire continue en interne pour les récompenses top 3)",
+      "☕ Nouveau thème édition limitée « Cookie & Espresso » — gradient vertical crème → espresso, drop barista légendaire",
+      "📲 Carte d'installation PWA directement dans l'onboarding (Android/Desktop) + instruction Safari pour iOS",
+      "🧠 Pool de quiz enrichi : 65 questions au lieu de 33 (+22 culture café + 10 nouvelles Expert : pression espresso 9 bars, Geisha Panama, Yirgacheffe…)",
+      "🎟️ Nouveaux codes promo : LATTE (+1 ☕), COOKIMINER (+123 🍪), CMK1 (+1 action $CKM)",
+      "🛡️ Fix anti-exploit : les packs actions $CKM en cookies deviennent achetables une seule fois (avant : achat répété possible)",
+      "📛 Pseudo « Ethan Cuomo » dans les crédits, le splash et les mentions de l'auteur",
+      "✨ Petit polish UI : nom long du leader plus jamais coupé dans le classement, titre lisible sur le nouveau thème",
+    ],
+  },
   {
     version: '1.12.0',
     date: '2026-05-10',
