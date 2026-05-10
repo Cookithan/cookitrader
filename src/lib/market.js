@@ -30,7 +30,7 @@ export const MARKET_CONFIG = {
   MEAN_REVERSION_LOW: 30,
   MEAN_REVERSION_HIGH: 700,
   MEAN_REVERSION_RATE: 0.0008,
-  MAX_SHARES_PER_USER_PCT: 0.10,  // 10% du total = 1000 actions max par user
+  MAX_SHARES_PER_USER_PCT: 0.30,  // 30 % du total = 300 actions max par user (relevé depuis 0.10 pour permettre les packs 100 achetables 3 fois)
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
   /* Horaires d'ouverture (heure locale du joueur). Ouvert quand
