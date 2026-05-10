@@ -1058,3 +1058,26 @@ export async function upsertProfile(p){
     return { ok:false, reason:'exception', error:e };
   }
 }
+
+/* ════════════════════════════════════════════════════
+   syncDailyCounters — push immédiat anti-cheat cross-device
+   ────────────────────────────────────────────────────
+   L'upsertProfile a un debounce de 5 s côté App.jsx — si l'user
+   fait check-in/quiz/spin/slot puis switch de device avant les 5 s,
+   le serveur n'a pas encore vu l'update et le 2e device peut
+   refaire l'action. Ce helper fait un .update() ciblé immédiat
+   sur les colonnes concernées.
+
+   `fields` est un objet { last_checkin, last_quiz, spins_today,
+   spins_date, slot_games_today, slot_games_date, streak } — n'importe
+   quel sous-ensemble des compteurs critiques.
+
+   Best-effort : silencieux si Supabase off / erreur réseau (le
+   debounce 5 s prendra le relais).
+═══════════════════════════════════════════════════════ */
+export async function syncDailyCounters(userCode, fields){
+  if(!isSupabaseEnabled() || !userCode || !fields) return;
+  try{
+    await supabase.from('users').update(fields).eq('user_code', userCode);
+  }catch{ /* silent — debounce upsert fera le rattrapage */ }
+}

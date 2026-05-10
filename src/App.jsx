@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters } from "./lib/supabaseSync.js";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -897,10 +897,15 @@ export default function CookiMiner() {
     if(spinsDate !== t){
       setSpinsDate(t);
       setSpinsToday(1);
+      syncDailyCounters(userCode, { spins_today: 1, spins_date: t });
     } else {
-      setSpinsToday(n => n + 1);
+      setSpinsToday(n => {
+        const next = (n || 0) + 1;
+        syncDailyCounters(userCode, { spins_today: next, spins_date: t });
+        return next;
+      });
     }
-  }, [spinsDate, setSpinsDate, setSpinsToday]);
+  }, [spinsDate, setSpinsDate, setSpinsToday, userCode]);
   const addSpinPass = useCallback((amount) => {
     /* Cap absolu : on déduit du compteur utilisé sans aller en dessous
        de 0, donc l'user ne dépasse jamais spinsCap (et perd l'excédent
@@ -924,13 +929,20 @@ export default function CookiMiner() {
   const slotPlaysLeft  = Math.max(0, slotGamesCap - slotEffUsed);
   const consumeSlotGame = useCallback(() => {
     const t = new Date().toDateString();
+    /* Push immédiat cross-device (anti-cheat — sinon le 5s debounce
+       laisse une fenêtre où l'autre device pourrait re-jouer). */
     if(slotGamesDate !== t){
       setSlotGamesDate(t);
       setSlotGamesToday(1);
+      syncDailyCounters(userCode, { slot_games_today: 1, slot_games_date: t });
     } else {
-      setSlotGamesToday(n => (n || 0) + 1);
+      setSlotGamesToday(n => {
+        const next = (n || 0) + 1;
+        syncDailyCounters(userCode, { slot_games_today: next, slot_games_date: t });
+        return next;
+      });
     }
-  }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday]);
+  }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday, userCode]);
   const addSlotPass = useCallback((amount) => {
     const t = new Date().toDateString();
     if(slotGamesDate !== t){
@@ -1733,7 +1745,19 @@ export default function CookiMiner() {
     showToast(`🌟 Renaissance ! Multiplicateur x${(1 + ((prestigeLevel || 0) + 1) * 0.1).toFixed(1)} sur tous les gains 🍪`);
   };
 
-  const doCheckin    = ()=>{ playSound('coin'); addCoins(checkinReward); setStreak(s=>s+1); setLastCheckin(new Date().toDateString()); };
+  const doCheckin    = ()=>{
+    playSound('coin');
+    addCoins(checkinReward);
+    const today = new Date().toDateString();
+    setStreak(s => {
+      const next = (s || 0) + 1;
+      /* Push immédiat anti-cheat cross-device — sinon le 5s debounce
+         laisse une fenêtre où l'autre device peut re-check-in. */
+      syncDailyCounters(userCode, { streak: next, last_checkin: today });
+      return next;
+    });
+    setLastCheckin(today);
+  };
 
   /* Cap quotidien Bonus VIP — 1 achat / jour / item. La liste des
      items concernés vit ici (source unique partagée avec BoutiqueTab
@@ -2617,7 +2641,7 @@ export default function CookiMiner() {
           gameView={gameView} onClose={()=>setGameView(null)}
           coins={coins} level={level} streak={streak} canCheckin={canCheckin} canQuiz={canQuiz} clickRecord={clickRecord}
           onCheckin={doCheckin} checkinReward={checkinReward}
-          onQuizEarn={addCoins} onQuizDone={()=>setLastQuiz(Date.now())} quizMsLeft={quizMsLeft}
+          onQuizEarn={addCoins} onQuizDone={()=>{ const ts = Date.now(); setLastQuiz(ts); syncDailyCounters(userCode, { last_quiz: ts }); }} quizMsLeft={quizMsLeft}
           onSpinEarn={addCoins} onSpend={spendCoins}
           onClickEarn={addCoins} onUpdateRecord={s=>setClickRecord(r=>Math.max(r,s))}
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
