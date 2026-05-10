@@ -93,10 +93,10 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   if(mode === 'premium'){
     visible = REWARDS.filter(r => {
       if(r.currency !== 'cafe') return false;
-      /* Filtres par niveau (utilisés par les Jetons VIP) :
-         - levelRequired : niveau minimum pour voir l'item
-         - levelMax      : niveau maximum (au-dessus, l'item est caché) */
-      if(r.levelRequired && level < r.levelRequired) return false;
+      /* `levelMax` masque les variantes obsolètes (Jeton VIP +50 niv 1-9
+         remplacé par +20 dès niv 10). On ne filtre PAS sur levelRequired :
+         les items au-dessus du niveau du joueur s'affichent verrouillés
+         (cadenas + 'Niveau X requis') pour donner envie de monter. */
       if(r.levelMax && level > r.levelMax) return false;
       /* Sous-vue jetons : uniquement les jetons consommables. */
       if(premiumView === 'jetons') return isJeton(r);
