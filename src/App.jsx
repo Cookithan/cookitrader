@@ -30,6 +30,7 @@ import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal
 import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
 import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
 import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
+import { MarketRefundModal } from "./components/modals/MarketRefundModal.jsx";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
@@ -423,6 +424,9 @@ export default function CookiMiner() {
   const [showLevels,   setShowLevels]   = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [showPrestigeModal, setShowPrestigeModal] = useState(false);
+  /* Refund marché — modale d'excuses + compensation pour les ex-investisseurs.
+     Set au moment du crédit (one-shot, gated par flag LS dans l'effect). */
+  const [marketRefundAmount, setMarketRefundAmount] = useState(null);
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
   const [paymentReceived, setPaymentReceived] = useState(null);
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
@@ -1265,7 +1269,9 @@ export default function CookiMiner() {
       if(window.localStorage.getItem(FLAG_KEY) === '1') return;
     }catch{ return; }
     setCoins(c => (c || 0) + refund);
-    showToastRef.current?.(`💰 Compensation marché : +${refund.toLocaleString('fr-FR')} 🍪`);
+    /* Modale d'excuses + résumé du fix (au lieu d'un simple toast).
+       Ferme manuellement par l'user, set le flag LS au close. */
+    setMarketRefundAmount(refund);
     try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
   }, [userCode, pullDone, setCoins]);
 
@@ -2738,6 +2744,15 @@ export default function CookiMiner() {
           prestigeLevel={prestigeLevel}
           onConfirm={doPrestige}
           onCancel={()=>setShowPrestigeModal(false)}
+          C={C}
+        />
+      )}
+
+      {/* MARKET REFUND MODAL — excuses + compensation pour ex-investisseurs */}
+      {marketRefundAmount && (
+        <MarketRefundModal
+          amount={marketRefundAmount}
+          onClose={()=>setMarketRefundAmount(null)}
           C={C}
         />
       )}
