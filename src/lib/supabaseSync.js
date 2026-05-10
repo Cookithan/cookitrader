@@ -943,7 +943,7 @@ export async function pullProfile(userCode){
   try{
     const { data, error } = await supabase
       .from('users')
-      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active')
+      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date')
       .eq('user_code', userCode)
       .maybeSingle();
     if(error || !data) return null;
@@ -965,6 +965,15 @@ export async function pullProfile(userCode){
       nameChangeCount:     Number(data.name_change_count) || 0,
       prestigeLevel:       Number(data.prestige_level) || 0,
       lastActive:          data.last_active || null,
+      /* Compteurs quotidiens — anti-cheat cross-device. Sans ces champs,
+         se connecter sur un autre appareil réinitialisait check-in/quiz/
+         spins/slots (LS vide → tous à dispo). */
+      lastCheckin:         data.last_checkin || null,
+      lastQuiz:            Number(data.last_quiz) || 0,
+      spinsToday:          Number(data.spins_today) || 0,
+      spinsDate:           data.spins_date || null,
+      slotGamesToday:      Number(data.slot_games_today) || 0,
+      slotGamesDate:       data.slot_games_date || null,
     };
   }catch{
     return null;
@@ -1009,6 +1018,19 @@ export async function upsertProfile(p){
            Visible sur le classement / profils amis. Nécessite la colonne :
            alter table users add column if not exists prestige_level integer default 0; */
         prestige_level:       p.prestigeLevel ?? 0,
+        /* Compteurs quotidiens — anti-cheat cross-device. Nécessite :
+           alter table users add column if not exists last_checkin text default null;
+           alter table users add column if not exists last_quiz bigint default 0;
+           alter table users add column if not exists spins_today int default 0;
+           alter table users add column if not exists spins_date text default null;
+           alter table users add column if not exists slot_games_today int default 0;
+           alter table users add column if not exists slot_games_date text default null; */
+        last_checkin:         p.lastCheckin ?? null,
+        last_quiz:            Number(p.lastQuiz) || 0,
+        spins_today:          Number(p.spinsToday) || 0,
+        spins_date:           p.spinsDate ?? null,
+        slot_games_today:     Number(p.slotGamesToday) || 0,
+        slot_games_date:      p.slotGamesDate ?? null,
         last_active:  new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()

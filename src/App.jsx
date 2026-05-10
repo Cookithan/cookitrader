@@ -315,6 +315,46 @@ export default function CookiMiner() {
         setPrestigeLevel(server.prestigeLevel || 0);
         showToastRef.current?.('☁️ Données synchronisées');
       }
+      /* Anti-cheat cross-device : on merge TOUJOURS les compteurs
+         quotidiens, indépendamment de serverAhead. Sinon, se reconnecter
+         depuis un autre appareil avec le LS vide laisserait le check-in,
+         le quiz, les spins et les slots à dispo (alors que c'est déjà
+         consommé sur l'autre device). On prend la valeur LA PLUS
+         RESTRICTIVE entre local et serveur. */
+      if(server){
+        const today = new Date().toDateString();
+        /* Check-in : si le serveur a un lastCheckin différent du local,
+           prendre celui du serveur (souvent c'est aujourd'hui — bloque
+           le re-check-in sur le 2e device). */
+        if(server.lastCheckin && server.lastCheckin !== lastCheckin){
+          setLastCheckin(server.lastCheckin);
+        }
+        /* Quiz : timestamp, on prend le max (le plus récent = cooldown
+           le plus restrictif). */
+        if(Number(server.lastQuiz) > Number(lastQuiz || 0)){
+          setLastQuiz(Number(server.lastQuiz));
+        }
+        /* Spins : si server.spinsDate === aujourd'hui, prendre max(local,
+           server). Si server.spinsDate est plus récent que local (= un
+           autre jour ou plus avancé), prendre server intégralement. */
+        if(server.spinsDate === today){
+          if(Number(server.spinsToday) > Number(spinsToday || 0)){
+            setSpinsToday(Number(server.spinsToday));
+            setSpinsDate(today);
+          }
+        } else if(server.spinsDate && server.spinsDate !== spinsDate){
+          /* Edge case : serveur a un spinsDate différent et qui n'est
+             pas aujourd'hui (= sync depuis un autre device hier soir).
+             On laisse le code de tick gérer le reset au changement de jour. */
+        }
+        /* Idem slots */
+        if(server.slotGamesDate === today){
+          if(Number(server.slotGamesToday) > Number(slotGamesToday || 0)){
+            setSlotGamesToday(Number(server.slotGamesToday));
+            setSlotGamesDate(today);
+          }
+        }
+      }
       setPullDone(true);
     })();
     return ()=>{ alive = false; };
@@ -353,11 +393,20 @@ export default function CookiMiner() {
         activeTitle: activeTitle || '',
         restorePin: restorePin || '',
         prestigeLevel: prestigeLevel || 0,
+        /* Compteurs quotidiens (anti-cheat cross-device). Sans ces 6
+           champs, se reconnecter sur un autre appareil donnait accès
+           à un re-check-in / re-quiz / spins reset / slots reset. */
+        lastCheckin: lastCheckin || null,
+        lastQuiz: Number(lastQuiz) || 0,
+        spinsToday: Number(spinsToday) || 0,
+        spinsDate: spinsDate || null,
+        slotGamesToday: Number(slotGamesToday) || 0,
+        slotGamesDate: slotGamesDate || null,
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel]);
+  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate]);
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
