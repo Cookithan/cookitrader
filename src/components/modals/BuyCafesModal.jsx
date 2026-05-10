@@ -166,8 +166,7 @@ export function BuyCafesModal({ userCode, onClose, C }){
             background:'rgba(125,78,31,.12)',
             border:'1px dashed rgba(125,78,31,.4)',
           }}>
-            ⚠ Mode test — aucun débit réel ne sera effectué.<br/>
-            Utilise une carte de test Stripe (4242 4242 4242 4242) si tu veux essayer le flow.
+            ⚠ Mode test — aucun débit réel ne sera effectué.
           </div>
           <div style={{ fontSize:10.5, color:C.muted, lineHeight:1.5, marginBottom:10, textAlign:'center' }}>
             Paiement sécurisé via Stripe. Tes cafés sont crédités automatiquement

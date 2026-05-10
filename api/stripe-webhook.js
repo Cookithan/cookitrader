@@ -94,6 +94,22 @@ export default async function handler(req, res){
     return res.status(200).end('Bad metadata, skipping');
   }
 
+  /* Anti-exploit mode TEST : si event.livemode === false (= clé sk_test
+     côté serveur), on ne crédite QUE les userCodes whitelistés via env
+     var Vercel STRIPE_TEST_ALLOWED_USERCODES (CSV format "ABC-DEF,XYZ-123").
+     Sinon n'importe qui pourrait utiliser une carte test (4242…) pour
+     déclencher des crédits gratuits. À retirer (ou env var vide) quand
+     on bascule en LIVE — event.livemode sera true et la branche skipped. */
+  if(!event.livemode){
+    const allowedRaw = process.env.STRIPE_TEST_ALLOWED_USERCODES || '';
+    const allowed = allowedRaw.split(',').map(s => s.trim()).filter(Boolean);
+    if(!allowed.includes(userCode)){
+      // eslint-disable-next-line no-console
+      console.log('[stripe-webhook] test mode: userCode not whitelisted, skipping credit', userCode);
+      return res.status(200).end('Test mode: userCode not whitelisted, no credit');
+    }
+  }
+
   const supabase = createClient(supabaseUrl, supabaseSrv, {
     auth: { persistSession: false },
   });
