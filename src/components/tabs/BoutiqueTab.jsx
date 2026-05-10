@@ -20,6 +20,10 @@ import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
 
 export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {}, C }) {
   const [filter, setFilter] = useState('Tous');
+  /* Filtre dédié au mode premium 'main' — sépare visuellement Avatars/Skins/
+     Thèmes/Musiques/Packs/Spécial (Coup de Grâce + bannière). Mappé par
+     applyAs (plus fiable que `type` qui est inconsistant en premium). */
+  const [premiumFilter, setPremiumFilter] = useState('Tous');
   /* Sous-vue du premium : 'main' (catégories + items normaux) ou 'jetons'
      (spin_pass + slot_pass uniquement). On ne pollue pas la grid premium
      principale avec les jetons consommables — ils ont leur dédiée. */
@@ -30,6 +34,19 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      pendant cette session restent visibles jusqu'au prochain mount. */
   const [initialUnlocked] = useState(unlocked);
   const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack'];
+  /* Filtres premium — basés sur applyAs pour la robustesse. Ordre :
+     Tous → cosmétiques (Avatar, Skin, Thème, Musique) → Packs → Spécial. */
+  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack','Spécial'];
+  const matchPremiumFilter = (r, f) => {
+    if(f === 'Tous')     return true;
+    if(f === 'Avatar')   return r.applyAs === 'avatar';
+    if(f === 'Skin')     return r.applyAs === 'skin';
+    if(f === 'Thème')    return r.applyAs === 'theme';
+    if(f === 'Musique')  return r.applyAs === 'music';
+    if(f === 'Pack')     return r.applyAs === 'pack_shares' || r.applyAs === 'pack_cookies';
+    if(f === 'Spécial')  return r.applyAs === 'unlock_all_shop' || r.applyAs === 'banner';
+    return true;
+  };
 
   /* Musique active — état local synchronisé avec le système audio (LS).
      Convention : côté REWARDS l'id est `music_<key>` (ex 'music_matin') ;
@@ -119,10 +136,31 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
       return !initialUnlocked.includes(r.id) && r.levelRequired <= revealedLevel;
     });
   }
-  const filtered = mode === 'premium' || filter==='Tous' ? visible : visible.filter(r=>r.type===filter);
+  /* Filtre final : shop utilise FILTERS (par r.type), premium 'main' utilise
+     PREMIUM_FILTERS (par applyAs). Vue 'jetons' n'a pas de filtre interne. */
+  let filtered;
+  if(mode === 'premium' && premiumView === 'main'){
+    filtered = visible.filter(r => matchPremiumFilter(r, premiumFilter));
+  } else if(mode === 'premium'){
+    filtered = visible;
+  } else {
+    filtered = filter === 'Tous' ? visible : visible.filter(r => r.type === filter);
+  }
+  /* Tri : déjà unlocked en haut, puis ordre logique par famille (premium
+     uniquement → Avatar/Skin/Thème/Musique/Pack/Spécial), puis level requis
+     croissant, puis coût croissant. */
+  const PREMIUM_FAMILY_ORDER = ['avatar', 'skin', 'theme', 'music', 'banner', 'pack_shares', 'pack_cookies', 'unlock_all_shop'];
+  const familyRank = (r) => {
+    const i = PREMIUM_FAMILY_ORDER.indexOf(r.applyAs);
+    return i === -1 ? 99 : i;
+  };
   const shown = [...filtered].sort((a,b)=>{
     const ua = unlocked.includes(a.id), ub = unlocked.includes(b.id);
     if(ua !== ub) return ua ? -1 : 1;
+    if(mode === 'premium'){
+      const fa = familyRank(a), fb = familyRank(b);
+      if(fa !== fb) return fa - fb;
+    }
     if(a.levelRequired !== b.levelRequired) return a.levelRequired - b.levelRequired;
     return a.cost - b.cost;
   });
@@ -300,6 +338,28 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         <div style={{ display:'flex', gap:8, marginBottom:16, overflowX:'auto', paddingBottom:2 }}>
           {FILTERS.map(f=>(
             <button key={f} onClick={()=>{ if(filter!==f){ playSound('tab'); setFilter(f); } }} style={{ padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:700, whiteSpace:'nowrap', background:filter===f?GOLD:C.card, color:filter===f?'#fff':C.muted, border:`1px solid ${filter===f?'transparent':C.border}`, transition:'all .2s' }}>{f}</button>
+          ))}
+        </div>
+      )}
+      {/* Pills mode premium 'main' — filtre par catégorie pour aider l'user
+          à trouver vite ce qu'il cherche (Avatar / Skin / Pack / Spécial...). */}
+      {mode === 'premium' && premiumView === 'main' && (
+        <div style={{ display:'flex', gap:8, marginBottom:16, overflowX:'auto', paddingBottom:2 }}>
+          {PREMIUM_FILTERS.map(f => (
+            <button
+              key={f}
+              onClick={()=>{ if(premiumFilter !== f){ playSound('tab'); setPremiumFilter(f); } }}
+              style={{
+                padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:700,
+                whiteSpace:'nowrap',
+                background: premiumFilter === f ? ESPRESSO : C.card,
+                color: premiumFilter === f ? '#F0C050' : C.muted,
+                border: `1px solid ${premiumFilter === f ? 'rgba(212,160,23,.6)' : C.border}`,
+                transition:'all .2s',
+              }}
+            >
+              {f}
+            </button>
           ))}
         </div>
       )}
