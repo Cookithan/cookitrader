@@ -36,9 +36,9 @@ export function CookieFloater(){
         id: i,
         left: `${Math.max(15, Math.min(85, baseLeft + jitterX))}%`,
         top:  `${Math.max(15, Math.min(85, baseTop  + jitterY))}%`,
-        delay: `${(Math.random() * 8).toFixed(2)}s`,        // décalage 0-8s
-        duration: `${(7 + Math.random() * 5).toFixed(2)}s`, // 7-12s
-        size: `${24 + Math.round(Math.random() * 24)}px`,   // 24-48px (réduit pour rester dans la zone)
+        delay: `${(Math.random() * 12).toFixed(2)}s`,        // décalage 0-12s
+        duration: `${(14 + Math.random() * 8).toFixed(2)}s`, // 14-22s (rotation lente, hypnotique)
+        size: `${40 + Math.round(Math.random() * 32)}px`,    // 40-72px (plus gros, restent dans la zone safe au scale 1.2)
       };
     });
   }, []);
