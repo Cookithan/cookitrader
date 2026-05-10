@@ -443,11 +443,11 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </div>
       )}
 
-      <div style={{ textAlign:'center', marginTop:24, fontSize:12, color:C.muted, fontStyle:'italic', paddingBottom:8 }}>
-        {mode === 'premium'
-          ? 'Plus de cafés bientôt — moyens de paiement à venir 💳'
-          : 'Monte de niveau pour débloquer plus de récompenses ! ☕'}
-      </div>
+      {mode === 'shop' && (
+        <div style={{ textAlign:'center', marginTop:24, fontSize:12, color:C.muted, fontStyle:'italic', paddingBottom:8 }}>
+          Monte de niveau pour débloquer plus de récompenses ! ☕
+        </div>
+      )}
     </div>
   );
 }
