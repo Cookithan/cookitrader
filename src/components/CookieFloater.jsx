@@ -21,21 +21,24 @@ const COOKIE_COUNT = 14;
 export function CookieFloater(){
   const cookies = useMemo(() => {
     return Array.from({ length: COOKIE_COUNT }).map((_, i) => {
-      /* Répartition pseudo-uniforme : grille 4×4 avec jitter pour
-         éviter les chevauchements trop évidents. */
+      /* Répartition pseudo-uniforme : grille 4×4 resserrée vers le centre
+         (20-80% horizontal, 18-82% vertical) avec jitter modéré pour éviter
+         les chevauchements évidents. Le keyframe cookieSpin centre les
+         cookies sur leur position via translate(-50%,-50%) — donc 20% / 80%
+         laissent ~20% de marge de chaque côté pour le scale max (1.2). */
       const col = i % 4;
       const row = Math.floor(i / 4);
-      const baseLeft = (col + 0.5) * 25;          // 12.5%, 37.5%, 62.5%, 87.5%
-      const baseTop  = (row + 0.5) * 22 + 8;      // ~19, 41, 63, 85 %
-      const jitterX = (Math.random() - 0.5) * 16;
-      const jitterY = (Math.random() - 0.5) * 14;
+      const baseLeft = 20 + col * 20;             // 20, 40, 60, 80 %
+      const baseTop  = 18 + row * 22;             // 18, 40, 62, 84 %
+      const jitterX = (Math.random() - 0.5) * 10;
+      const jitterY = (Math.random() - 0.5) * 10;
       return {
         id: i,
-        left: `${Math.max(2, Math.min(98, baseLeft + jitterX))}%`,
-        top:  `${Math.max(4, Math.min(94, baseTop  + jitterY))}%`,
+        left: `${Math.max(15, Math.min(85, baseLeft + jitterX))}%`,
+        top:  `${Math.max(15, Math.min(85, baseTop  + jitterY))}%`,
         delay: `${(Math.random() * 8).toFixed(2)}s`,        // décalage 0-8s
         duration: `${(7 + Math.random() * 5).toFixed(2)}s`, // 7-12s
-        size: `${28 + Math.round(Math.random() * 28)}px`,   // 28-56px
+        size: `${24 + Math.round(Math.random() * 24)}px`,   // 24-48px (réduit pour rester dans la zone)
       };
     });
   }, []);

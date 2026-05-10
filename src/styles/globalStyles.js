@@ -126,13 +126,16 @@ export const GLOBAL_CSS = `
   @keyframes itemPop{0%{opacity:0;transform:scale(.3) rotate(-15deg)}60%{opacity:1;transform:scale(1.15) rotate(8deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
   .item-pop{animation:itemPop .5s cubic-bezier(.5,1.6,.55,1) both}
 
-  /* ── Theme Pâte de Cookie — cookies décoratifs qui tournent et grandissent ── */
+  /* ── Theme Pâte de Cookie — cookies décoratifs qui tournent et grandissent ──
+     Le translate(-50%,-50%) dans CHAQUE keyframe centre le cookie sur sa
+     position (left/top = centre du cookie). Sans ça, top/left = coin haut-gauche
+     et les cookies positionnés près des bords sortent de l'écran au scale max. */
   @keyframes cookieSpin{
-    0%   {transform:scale(.25) rotate(0deg);opacity:0}
+    0%   {transform:translate(-50%,-50%) scale(.25) rotate(0deg);opacity:0}
     20%  {opacity:.55}
-    50%  {transform:scale(1.4) rotate(180deg);opacity:.85}
+    50%  {transform:translate(-50%,-50%) scale(1.2) rotate(180deg);opacity:.85}
     80%  {opacity:.45}
-    100% {transform:scale(.25) rotate(360deg);opacity:0}
+    100% {transform:translate(-50%,-50%) scale(.25) rotate(360deg);opacity:0}
   }
   .cookie-floater{position:fixed;pointer-events:none;z-index:0;will-change:transform,opacity;font-size:42px;line-height:1;animation:cookieSpin 9s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgba(74,44,23,.3))}
 
