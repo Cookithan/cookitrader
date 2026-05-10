@@ -1223,6 +1223,39 @@ export default function CookiMiner() {
     try{ window.localStorage.setItem('cookiminer:totalEarnedCapped', '1'); }catch{}
   }, [userName, totalEarned, setTotalEarned]);
 
+  /* Débits manuels one-shot (rééquilibrage demandé par l'user). Pattern
+     jumelé avec TOTAL_EARNED_CAPS — soustrait une valeur fixe au lieu
+     de capper. Gate sur `pullDone` pour appliquer APRÈS la sync serveur
+     (sinon le pull ramènerait l'ancienne valeur). Le débit est ensuite
+     pushé via le upsert auto (5 s) + on bénéficie du nouveau syncDailyCounters
+     pour les compteurs daily si jamais on étend ce pattern.
+     Flag LS unique daté pour ne re-débiter qu'une seule fois (étendre la
+     clé si on veut faire un nouveau débit plus tard). */
+  useEffect(() => {
+    if(!userName || !pullDone) return;
+    const lname = userName.trim().toLowerCase();
+    const TOTAL_EARNED_DEBITS = {
+      'cookithan': 5000,
+    };
+    const CAFES_DEBITS = {
+      'cookithan': 8,
+    };
+    const teDebit = TOTAL_EARNED_DEBITS[lname] || 0;
+    const cfDebit = CAFES_DEBITS[lname] || 0;
+    if(!teDebit && !cfDebit) return;
+    const FLAG_KEY = 'cookiminer:manualDebit2026_05_10_cookithan';
+    try{
+      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+    }catch{ return; }
+    if(teDebit) setTotalEarned(t => Math.max(0, (t || 0) - teDebit));
+    if(cfDebit) setCafes(c => Math.max(0, (c || 0) - cfDebit));
+    const parts = [];
+    if(teDebit) parts.push(`-${teDebit} 🍪`);
+    if(cfDebit) parts.push(`-${cfDebit} ☕`);
+    showToastRef.current?.(`📊 Recalibrage : ${parts.join(' · ')}`);
+    try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
+  }, [userName, pullDone, setTotalEarned, setCafes]);
+
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
      fois (gift / tournament_reward / referral_reward). InboxModal garantit
