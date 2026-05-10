@@ -205,7 +205,10 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
+            /* null en 3e arg : on cache les titres color shimmer dans le
+               classement (gardés réservés au profil). Seuls Créateur et
+               Légende Vivante restent visibles ici (badges signature). */
+            ...(getNameStyle(userName, earnedAchievements, null) || {}),
           }}>
             {userName || 'Joueur'}
           </div>
@@ -338,7 +341,10 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, active
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
+            /* null en 3e arg : on cache les titres color shimmer dans le
+               classement (gardés réservés au profil). Seuls Créateur et
+               Légende Vivante restent visibles ici (badges signature). */
+            ...(getNameStyle(userName, earnedAchievements, null) || {}),
           }}>
             {userName || 'Joueur'}
           </div>
@@ -450,7 +456,7 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, p.active_title) || {}) : {}),
+            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, null) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
@@ -530,7 +536,7 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
             fontSize:13, fontWeight:800,
             color: isFirst ? '#3D2010' : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
-            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, p.active_title) || {}) : {}),
+            ...(!isFirst ? (getNameStyle(p.user_name, p.earned_achievements, null) || {}) : {}),
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
