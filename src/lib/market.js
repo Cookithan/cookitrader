@@ -25,11 +25,13 @@ export const MARKET_CONFIG = {
   PRICE_MAX: 1000,
   PRICE_INITIAL: 100,
   TOTAL_SHARES: 1000,             // calibré pour une petite base de joueurs (passer à 10000+ quand l'app décolle)
-  IMPACT_PER_SHARE: 0.001,        // +0.1% par action — calibré pour un faible nombre de traders
+  IMPACT_PER_SHARE: 0.0005,       // +0.05 % par action (réduit depuis 0.001 pour limiter les chocs violents — un user à 140 actions pouvait faire chuter le prix de 14 % d'un coup)
+  MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
-  MEAN_REVERSION_LOW: 30,
-  MEAN_REVERSION_HIGH: 700,
-  MEAN_REVERSION_RATE: 0.0008,
+  MEAN_REVERSION_TARGET: 100,     // Prix cible vers lequel le marché revient
+  MEAN_REVERSION_RATE: 0.04,      // Reversion vers TARGET active TOUT LE TEMPS (rate × 50 vs avant). Récupère ~50 % de l'écart en 12 h. Empêche les prix bloqués à 87 ou 200.
+  MEAN_REVERSION_LOW: 30,         // Plancher dur : sous ce prix, accélération de la reversion
+  MEAN_REVERSION_HIGH: 700,       // Plafond dur : au-dessus, accélération inverse
   MAX_SHARES_PER_USER_PCT: 0.30,  // 30 % du total = 300 actions max par user (relevé depuis 0.10 pour permettre les packs 100 achetables 3 fois)
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
@@ -280,9 +282,12 @@ export async function buyShares(userCode, shares) {
   /* Slippage symétrique anti-exploit : on calcule d'abord le prix POST-impact
      (le prix qui sera affiché APRÈS l'achat) et on facture l'utilisateur à
      CE prix-là. Sinon un aller-retour instantané ferait gagner gratuitement
-     l'impact (acheté à 100, prix monte à 105, revendu à 105 = +5% gratuit). */
-  const priceImpact = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
-  let newPrice = currentPrice * (1 + priceImpact);
+     l'impact (acheté à 100, prix monte à 105, revendu à 105 = +5% gratuit).
+     Cap MAX_PRICE_IMPACT_PCT (10 %) pour éviter les pumps violents
+     quand un whale achète d'un coup. */
+  const rawImpact     = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
+  const cappedImpact  = Math.min(rawImpact, MARKET_CONFIG.MAX_PRICE_IMPACT_PCT);
+  let newPrice = currentPrice * (1 + cappedImpact);
   newPrice = Math.min(MARKET_CONFIG.PRICE_MAX, newPrice);
 
   const totalCost = Math.ceil(newPrice * shares);
@@ -422,9 +427,13 @@ export async function sellShares(userCode, shares) {
   /* Slippage symétrique anti-exploit (cf. buyShares) : on vend au prix
      POST-impact (plus bas), pas au prix avant impact. Sinon revendre
      immédiatement après avoir acheté capturerait l'impact de son propre
-     achat. */
-  const priceImpact = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
-  let newPrice = currentPrice * (1 - priceImpact);
+     achat.
+     Cap MAX_PRICE_IMPACT_PCT (10 %) pour éviter les chutes violentes
+     quand un whale liquide tout d'un coup (cas signalé : prix tombé
+     de 129 à 87 en quelques minutes). */
+  const rawImpact     = MARKET_CONFIG.IMPACT_PER_SHARE * shares;
+  const cappedImpact  = Math.min(rawImpact, MARKET_CONFIG.MAX_PRICE_IMPACT_PCT);
+  let newPrice = currentPrice * (1 - cappedImpact);
   newPrice = Math.max(MARKET_CONFIG.PRICE_MIN, newPrice);
 
   const totalGained = Math.floor(newPrice * shares);
@@ -518,14 +527,13 @@ export async function maintenanceTick() {
   const daysSince = hoursSince / 24;
   newPrice = newPrice * (1 + MARKET_CONFIG.DAILY_INFLATION * daysSince);
 
-  /* 2. Régression vers la moyenne (si trop bas ou trop haut) */
-  if (newPrice < MARKET_CONFIG.MEAN_REVERSION_LOW) {
-    const distance = MARKET_CONFIG.MEAN_REVERSION_LOW - newPrice;
-    newPrice += distance * MARKET_CONFIG.MEAN_REVERSION_RATE * hoursSince;
-  } else if (newPrice > MARKET_CONFIG.MEAN_REVERSION_HIGH) {
-    const distance = newPrice - MARKET_CONFIG.MEAN_REVERSION_HIGH;
-    newPrice -= distance * MARKET_CONFIG.MEAN_REVERSION_RATE * hoursSince;
-  }
+  /* 2. Mean reversion vers TARGET (100) — active TOUT LE TEMPS pour
+     empêcher les prix bloqués loin de la moyenne. Rate calibré pour
+     ~50 % de l'écart corrigé en 12 h (assez doux pour permettre du
+     trading mais bloque les anomalies persistantes). */
+  const target   = MARKET_CONFIG.MEAN_REVERSION_TARGET;
+  const distance = target - newPrice;  // signé : positif si en-dessous, négatif si au-dessus
+  newPrice += distance * MARKET_CONFIG.MEAN_REVERSION_RATE * hoursSince;
 
   newPrice = Math.max(MARKET_CONFIG.PRICE_MIN, Math.min(MARKET_CONFIG.PRICE_MAX, newPrice));
 
