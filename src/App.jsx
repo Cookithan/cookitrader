@@ -18,8 +18,9 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters } from "./lib/supabaseSync.js";
-import { getCurrentWeekId } from "./lib/weeklyCycle.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners } from "./lib/supabaseSync.js";
+import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
+import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
@@ -449,6 +450,8 @@ export default function CookiMiner() {
   /* Refund marché — modale d'excuses + compensation pour les ex-investisseurs.
      Set au moment du crédit (one-shot, gated par flag LS dans l'effect). */
   const [marketRefundAmount, setMarketRefundAmount] = useState(null);
+  /* Récompense top 3 hebdo — modale festive avec compteur cafés animé. */
+  const [weeklyChampReward, setWeeklyChampReward] = useState(null);  // { rank, cafes, weekNum }
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
   const [paymentReceived, setPaymentReceived] = useState(null);
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
@@ -1313,6 +1316,54 @@ export default function CookiMiner() {
        Le flag est déjà set, donc fermer ou refresh ne re-déclenche pas. */
     setMarketRefundAmount(refund);
   }, [userCode, pullDone, setCoins]);
+
+  /* ── CLASSEMENT HEBDOMADAIRE — clôture & récompenses top 3 ──
+     Au mount (après pullDone), on calcule la semaine PRÉCÉDENTE et :
+     1. On vérifie si elle a une row dans weekly_winners (déjà clôturée).
+        Si non, on tente de la clôturer (closeWeek est atomique via PK).
+     2. Si je suis dans le top 3 → check flag LS pour pas redistribuer →
+        crédit cafés (5/3/1) + ajout badge `champ_W<num>` à unlocked +
+        popup festif WeeklyChampModal.
+     Re-déclenche à chaque changement de week_id (toutes les semaines). */
+  useEffect(() => {
+    if(!userCode || !pullDone || isAdminName(userName)) return;
+    let alive = true;
+    (async () => {
+      const currentWeekId = getCurrentWeekId();
+      /* Calcule le week_id de la semaine PRÉCÉDENTE = currentWeekId - 7 jours. */
+      const prevDate = new Date(currentWeekId);
+      prevDate.setUTCDate(prevDate.getUTCDate() - 7);
+      const prevWeekId = prevDate.toISOString().slice(0, 10);
+      /* Clôture si pas encore faite (atomique côté Supabase) */
+      let winners = await getWeeklyWinners(prevWeekId);
+      if(!winners){
+        winners = await closeWeek(prevWeekId);
+      }
+      if(!alive || !winners) return;
+      /* Suis-je dans le top 3 ? */
+      const codeUpper = userCode.toUpperCase();
+      let myRank = 0;
+      if(winners.top1_code?.toUpperCase() === codeUpper) myRank = 1;
+      else if(winners.top2_code?.toUpperCase() === codeUpper) myRank = 2;
+      else if(winners.top3_code?.toUpperCase() === codeUpper) myRank = 3;
+      if(myRank === 0) return;
+      /* Flag LS one-shot par semaine — pas de double crédit même si on
+         re-mount plusieurs fois ou changement de device. */
+      const FLAG_KEY = `cookiminer:weeklyChampReward_${prevWeekId}`;
+      try{
+        if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+        window.localStorage.setItem(FLAG_KEY, '1');
+      }catch{ return; }
+      /* Récompenses : Top1=5☕, Top2=3☕, Top3=1☕ + badge dynamique */
+      const cafesReward = myRank === 1 ? 5 : myRank === 2 ? 3 : 1;
+      const weekNum = getWeekNumberDisplay(prevWeekId);
+      const badgeId = `champ_W${weekNum}`;
+      setCafes(c => (c || 0) + cafesReward);
+      setUnlocked(u => (u || []).includes(badgeId) ? u : [...(u || []), badgeId]);
+      setWeeklyChampReward({ rank: myRank, cafes: cafesReward, weekNum });
+    })();
+    return () => { alive = false; };
+  }, [userCode, pullDone, userName, setCafes, setUnlocked]);
 
 
   /* Inbox — applique une récompense quand on ouvre un message pour la 1re
@@ -2792,6 +2843,17 @@ export default function CookiMiner() {
         <MarketRefundModal
           amount={marketRefundAmount}
           onClose={()=>setMarketRefundAmount(null)}
+          C={C}
+        />
+      )}
+
+      {/* WEEKLY CHAMP MODAL — récompense top 3 du classement hebdo */}
+      {weeklyChampReward && (
+        <WeeklyChampModal
+          rank={weeklyChampReward.rank}
+          cafes={weeklyChampReward.cafes}
+          weekNum={weeklyChampReward.weekNum}
+          onClose={()=>setWeeklyChampReward(null)}
           C={C}
         />
       )}

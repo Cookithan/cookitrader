@@ -100,6 +100,96 @@ export async function getLeaderboard(limit = 50, currentWeekId = null){
   }catch{ notifySupabaseError(); return []; }
 }
 
+/* ════════════════════════════════════════════════════
+   Classement hebdomadaire — clôture & distribution
+   ────────────────────────────────────────────────────
+   À chaque mount, le client vérifie si la semaine précédente a une
+   row dans `weekly_winners`. Si non, il tente de l'insérer (les top 3
+   du classement weekly de cette semaine). PK = week_id → INSERT
+   atomique : un seul client réussit, les autres skippent silencieusement.
+   Idempotent.
+
+   SQL nécessaire :
+   create table if not exists weekly_winners (
+     week_id text primary key,
+     top1_code text, top1_earned bigint, top1_name text,
+     top2_code text, top2_earned bigint, top2_name text,
+     top3_code text, top3_earned bigint, top3_name text,
+     closed_at timestamptz default now()
+   );
+   alter table weekly_winners enable row level security;
+   create policy "anyone can read winners" on weekly_winners for select using (true);
+   create policy "anyone can insert winners" on weekly_winners for insert with check (true);
+═══════════════════════════════════════════════════════ */
+
+/* Lit la row weekly_winners pour le week_id donné. Retourne null
+   si la semaine n'a pas encore été clôturée. */
+export async function getWeeklyWinners(weekId){
+  if(!isSupabaseEnabled() || !weekId) return null;
+  try{
+    const { data } = await supabase
+      .from('weekly_winners')
+      .select('*')
+      .eq('week_id', weekId)
+      .maybeSingle();
+    return data || null;
+  }catch{ return null; }
+}
+
+/* Tente de clôturer la semaine `weekId` en insérant les top 3 actuels.
+   Best-effort : si une row existe déjà (PK conflict 23505), skip
+   silencieusement. Retourne la row insérée OU lue (si déjà existante).
+   On lit le top 3 directement depuis users.weekly_earned filtré par
+   weekly_week_id = weekId. Admin/NON_RANKED exclus. */
+export async function closeWeek(weekId){
+  if(!isSupabaseEnabled() || !weekId) return null;
+  try{
+    /* Pull top 3 de la semaine clôturée */
+    const { data: top } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('user_code, user_name, weekly_earned')
+    )
+      .eq('weekly_week_id', weekId)
+      .order('weekly_earned', { ascending:false })
+      .limit(3);
+    const list = (top || []).filter(p => Number(p.weekly_earned) > 0);
+    if(list.length === 0) return null;  /* personne n'a rien gagné */
+
+    const row = {
+      week_id: weekId,
+      top1_code:   list[0]?.user_code || null,
+      top1_name:   list[0]?.user_name || null,
+      top1_earned: Number(list[0]?.weekly_earned) || 0,
+      top2_code:   list[1]?.user_code || null,
+      top2_name:   list[1]?.user_name || null,
+      top2_earned: Number(list[1]?.weekly_earned) || 0,
+      top3_code:   list[2]?.user_code || null,
+      top3_name:   list[2]?.user_name || null,
+      top3_earned: Number(list[2]?.weekly_earned) || 0,
+    };
+    const { data: inserted, error } = await supabase
+      .from('weekly_winners')
+      .insert(row)
+      .select()
+      .single();
+    if(error){
+      if(error.code === '23505'){
+        /* Déjà clôturée par un autre client → on lit la row existante */
+        return await getWeeklyWinners(weekId);
+      }
+      // eslint-disable-next-line no-console
+      console.warn('[supabase] closeWeek error:', error.message);
+      return null;
+    }
+    return inserted;
+  }catch(e){
+    // eslint-disable-next-line no-console
+    console.warn('[supabase] closeWeek threw:', e?.message);
+    return null;
+  }
+}
+
 /* Mon rang (1-based) parmi les joueurs publics : compte les profils
    ayant un weekly_earned strictement supérieur, +1. Filtré par
    weekly_week_id = currentWeekId pour rester cohérent avec le
