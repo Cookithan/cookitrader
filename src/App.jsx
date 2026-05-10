@@ -1386,6 +1386,48 @@ export default function CookiMiner() {
     });
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
 
+  /* Sanction double-refund (Mustang AUY-KJ9, mai 2026).
+     Le refund marché utilise un flag LS one-shot par device. Mustang
+     a réouvert l'app sur un device frais (LS wipé) → la modale refund
+     a re-crédité 15 816 🍪 une 2e fois (le flag absent passe le check).
+     Cookies réinvestis sur le marché → top 1 artificiel.
+
+     Débit totalEarned + weekly seul (le solde a déjà été dépensé en
+     shares, et les shares pack-exploit sont traitées dans
+     PACK_EXPLOIT_SANCTIONS ci-dessus). Flag LS séparé pour ne pas
+     re-déclencher la sanction packs.
+
+     ⚠️ Si le useEffect pack_exploit fire dans le même mount, les 2
+     setSanctionApplied se chevauchent et seule la dernière modale
+     reste visible. Les 2 débits s'appliquent correctement, juste
+     l'explication visuelle peut sauter pour l'un. Le reason ci-dessous
+     mentionne les 2 incidents pour couvrir ce cas. */
+  useEffect(() => {
+    if(!userCode || !pullDone) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    const REFUND_BUG_SANCTIONS = {
+      'AUY-KJ9': {
+        totalEarnedDebit: 15816,
+        weeklyEarnedDebit: 15816,
+        reason: "le double crédit du refund marché (LS wipé au changement de device) — en plus de l'abus des packs $CKM cookies",
+      },
+    };
+    const s = REFUND_BUG_SANCTIONS[codeUpper];
+    if(!s) return;
+    const FLAG_KEY = 'cookiminer:sanction_2026_05_10_refund_bug';
+    try{
+      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+      window.localStorage.setItem(FLAG_KEY, '1');
+    }catch{ return; }
+    if(s.totalEarnedDebit) setTotalEarned(t => Math.max(0, (t || 0) - s.totalEarnedDebit));
+    if(s.weeklyEarnedDebit) setWeeklyEarned(w => Math.max(0, (w || 0) - s.weeklyEarnedDebit));
+    setSanctionApplied({
+      amount: s.totalEarnedDebit || 0,
+      sharesDebit: 0,
+      reason: s.reason,
+    });
+  }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
+
   /* Refund marché — compensation pour les ex-investisseurs après le
      reset du marché (delete from market_portfolio). On crédite chaque
      user de son total_invested perdu. 7Z4-977 EXCLU (pump-and-dumper

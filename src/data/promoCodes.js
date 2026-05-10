@@ -36,13 +36,18 @@
 export const PROMO_CODES = {
   'BIENVENUE': { coins: 100,  cafes: 0, label: 'Bienvenue !' },
   'TOP1':      { coins: 50,   cafes: 0, label: 'Top 1 du classement' },
-  /* Codes distribuables post-refonte marché v1.12 — offrent des actions
-     $CKM pour aider les joueurs à démarrer / récompenser la fidélité.
-     Convention historique : préfixe `CMK` (et non `CKM`) — cohérent avec
-     les anciens CMK1/CMK5 même si le ticker affiché est $CKM. */
-  'CMK10':     { coins: 0,    cafes: 0, shares: 10, label: '10 actions $CKM offertes' },
-  'CMK20':     { coins: 0,    cafes: 0, shares: 20, label: '20 actions $CKM offertes' },
-  'CMK30':     { coins: 0,    cafes: 0, shares: 30, label: '30 actions $CKM offertes' },
+  /* Cookies bonus — code récurrent distribuable. */
+  'COOKIMINER': { coins: 123, cafes: 0, label: '123 🍪 offerts' },
+  /* Café bonus — code récurrent distribuable. */
+  'LATTE':      { coins: 0,   cafes: 1, label: '1 ☕ offert' },
+  /* Code action $CKM minimal — récompense fidélité.
+     CMK10/20/30 supprimés mai 2026 après exploit des packs cookies :
+     volume trop élevé combiné aux packs avait gonflé artificiellement
+     la circulation des actions. CMK1 reste pour des distributions
+     ciblées sans risque d'inflation.
+     Convention : préfixe `CMK` (et non `CKM`) — cohérent historique
+     même si le ticker affiché est $CKM. */
+  'CMK1':      { coins: 0,    cafes: 0, shares: 1,  label: '1 action $CKM offerte' },
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
