@@ -4,6 +4,7 @@ import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
 import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSync.js";
 import { getCurrentWeekId, getNextResetAt, formatTimeUntil } from "../../lib/weeklyCycle.js";
+import { isSanctionPublic } from "../../data/sanctions.js";
 import {
   getMarketLeaderboard, getMyMarketRank, getMarketTraderCount, getMarketState,
 } from "../../lib/market.js";
@@ -540,6 +541,19 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
+          {isSanctionPublic(p.user_code) && (
+            <span
+              title="Compte sanctionné — manipulation de marché"
+              style={{
+                fontSize:11, fontWeight:800, letterSpacing:.5,
+                color:'#FFB060', padding:'2px 6px', borderRadius:6,
+                background:'rgba(125,72,24,.5)',
+                border:'1px solid rgba(193,127,60,.7)',
+              }}
+            >
+              ⚠️
+            </span>
+          )}
           {(p.prestige_level || 0) > 0 && (
             <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3 }}>
               {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
@@ -622,6 +636,19 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
           }}>
             {p.user_name}{isMe && ' ✦'}
           </span>
+          {isSanctionPublic(p.user_code) && (
+            <span
+              title="Compte sanctionné — manipulation de marché"
+              style={{
+                fontSize:11, fontWeight:800, letterSpacing:.5,
+                color:'#FFB060', padding:'2px 6px', borderRadius:6,
+                background:'rgba(125,72,24,.5)',
+                border:'1px solid rgba(193,127,60,.7)',
+              }}
+            >
+              ⚠️
+            </span>
+          )}
           {(p.prestige_level || 0) > 0 && (
             <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3 }}>
               {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
