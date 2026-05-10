@@ -49,6 +49,7 @@ import { InboxModal } from "./components/modals/InboxModal.jsx";
 import { getUnreadInboxCount } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
 import { BoostGainToast } from "./components/BoostGainToast.jsx";
+import { CookieFloater } from "./components/CookieFloater.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
@@ -1959,6 +1960,10 @@ export default function CookiMiner() {
       transition:'background .4s, color .4s',
       position:'relative', overflow:'hidden'
     }}>
+      {/* Décor du Thème Pâte de Cookie — cookies décoratifs qui tournent
+          en boucle (scale petit→gros + rotation 360°). z-index 0 + fixed
+          pour rester en arrière-plan sans bloquer les interactions. */}
+      {activeTheme === 'theme_cookies' && <CookieFloater />}
       {themeSparkles && (
         <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:0 }}>
           {[

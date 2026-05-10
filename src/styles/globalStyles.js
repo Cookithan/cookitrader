@@ -126,6 +126,16 @@ export const GLOBAL_CSS = `
   @keyframes itemPop{0%{opacity:0;transform:scale(.3) rotate(-15deg)}60%{opacity:1;transform:scale(1.15) rotate(8deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
   .item-pop{animation:itemPop .5s cubic-bezier(.5,1.6,.55,1) both}
 
+  /* ── Theme Pâte de Cookie — cookies décoratifs qui tournent et grandissent ── */
+  @keyframes cookieSpin{
+    0%   {transform:scale(.25) rotate(0deg);opacity:0}
+    20%  {opacity:.55}
+    50%  {transform:scale(1.4) rotate(180deg);opacity:.85}
+    80%  {opacity:.45}
+    100% {transform:scale(.25) rotate(360deg);opacity:0}
+  }
+  .cookie-floater{position:fixed;pointer-events:none;z-index:0;will-change:transform,opacity;font-size:42px;line-height:1;animation:cookieSpin 9s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgba(74,44,23,.3))}
+
   /* ── SPLASH SCREEN ───────────────────────────────── */
   .splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,#4A2C17 0%,#3D2010 50%,#2C1810 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;z-index:9999;transition:opacity .5s ease;overflow:hidden}
   .splash-screen.fade-out{opacity:0;pointer-events:none}
@@ -231,14 +241,23 @@ export const GLOBAL_CSS = `
   @keyframes rxPlusOneFloat{0%{transform:translate(-50%,0) scale(1);opacity:1}100%{transform:translate(-50%,-50px) scale(1.4);opacity:0}}
 
   /* Thème Noir & Blanc — désature TOUTE l'UI quand activé. La classe est
-     toggle sur body par App.jsx selon activeTheme. Couvre les couleurs
-     hardcodées (GOLD, ESPRESSO, gradients), les emojis et les overlays
-     fixed (qui resteraient hors d'un filter sur le wrapper React).
-     contrast() retiré car coûteux à chaque repaint (lag perceptible
-     sur switch d'onglet / animations). On garde grayscale(1) seul, et
-     la palette du thème est déjà tunée extrême noir/blanc pour
-     compenser. */
-  body.theme-noir-on{filter:grayscale(1)}
+     toggle sur body par App.jsx selon activeTheme.
+
+     Implémentation via pseudo-element body::after avec backdrop-filter
+     grayscale(1) — plutôt que filter:grayscale sur body lui-même qui
+     créait un stacking context cassant les position:fixed (nav en bas,
+     modales se retrouvaient ancrées au body au lieu du viewport).
+     L'overlay agit sur le backdrop sans toucher au layout et couvre
+     tout (z-index très haut, pointer-events:none laisse passer clics). */
+  body.theme-noir-on::after{
+    content:'';
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9999;
+    -webkit-backdrop-filter:grayscale(1);
+    backdrop-filter:grayscale(1);
+  }
 
   /* Spin pour les loaders (BuyCafesModal pendant fetch Stripe) */
   @keyframes spin360{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
