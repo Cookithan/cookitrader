@@ -3,6 +3,7 @@ import { ESPRESSO } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
 import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSync.js";
+import { getCurrentWeekId, getNextResetAt, formatTimeUntil } from "../../lib/weeklyCycle.js";
 import {
   getMarketLeaderboard, getMyMarketRank, getMarketTraderCount, getMarketState,
 } from "../../lib/market.js";
@@ -161,9 +162,10 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
     aliveRef.current = true;
 
     const fetchAll = async () => {
+      const weekId = getCurrentWeekId();
       const [leaderboard, rank, count] = await Promise.all([
-        getLeaderboard(50),
-        userCode ? getMyRank(userCode) : Promise.resolve(null),
+        getLeaderboard(50, weekId),
+        userCode ? getMyRank(userCode, weekId) : Promise.resolve(null),
         getTotalPlayers(),
       ]);
       if(!aliveRef.current) return;
@@ -179,12 +181,44 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
     return ()=>{ aliveRef.current = false; clearInterval(id); };
   }, [userCode]);
 
+  /* Countdown vers le prochain reset (vendredi 18 h UTC) — refresh /min */
+  const [countdown, setCountdown] = useState(() => formatTimeUntil(getNextResetAt()));
+  useEffect(() => {
+    const id = setInterval(() => setCountdown(formatTimeUntil(getNextResetAt())), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <>
-      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+        <div style={{
+          fontSize:10, fontWeight:800, color:C.muted, letterSpacing:1.5,
+          textTransform:'uppercase',
+        }}>
+          📅 Cycle hebdo
+        </div>
         <div style={{ fontSize:11, fontWeight:600, color:C.muted }}>
           {total !== null ? `${total} joueur${total>1?'s':''}` : '…'}
         </div>
+      </div>
+
+      {/* Bandeau countdown vers le prochain reset (vendredi 18 h UTC) */}
+      <div style={{
+        background:'linear-gradient(135deg, rgba(212,160,23,.12), rgba(193,127,60,.18))',
+        border:'1.5px solid rgba(212,160,23,.45)',
+        borderRadius:12,
+        padding:'10px 14px',
+        marginBottom:14,
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        gap:10,
+      }}>
+        <div style={{ fontSize:11, color:C.text, lineHeight:1.4 }}>
+          <strong style={{ color:'#D4A017' }}>Reset dans {countdown}</strong>
+          <div style={{ fontSize:9.5, color:C.muted, marginTop:1 }}>
+            Top 3 → cafés ☕ + badge Champion
+          </div>
+        </div>
+        <div style={{ fontSize:22, lineHeight:1 }}>🏆</div>
       </div>
 
       {/* Carte sticky : mon rang Cookies */}
@@ -523,9 +557,9 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
         <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
-          {(p.total_earned ?? 0).toLocaleString('fr-FR')}
+          {(p.weekly_earned ?? 0).toLocaleString('fr-FR')}
         </div>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>🍪 cumulés</div>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>🍪 cette semaine</div>
       </div>
       {clickable && (
         <span aria-hidden style={{ fontSize:14, color: banner?.valueColor || '#D4A017', opacity:.8, lineHeight:1, marginLeft:2 }}>

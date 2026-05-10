@@ -72,19 +72,24 @@ export async function getFriends(myUserCode){
   }catch{ notifySupabaseError(); return []; }
 }
 
-/* Top N des joueurs par total_earned décroissant.
-   Le compte technique "Admin" est exclu du classement public
-   (filtre case-insensitive via ilike). */
-export async function getLeaderboard(limit = 50){
+/* Top N des joueurs par WEEKLY_EARNED décroissant (cycle hebdomadaire
+   vendredi 18 h UTC). Filtre par weekly_week_id = currentWeekId pour
+   exclure les anciennes valeurs. Le compte technique "Admin" est exclu
+   du classement public. */
+export async function getLeaderboard(limit = 50, currentWeekId = null){
   if(!isSupabaseEnabled()) return [];
   try{
-    const { data, error } = await notInLeaderboard(
+    let q = notInLeaderboard(
       supabase
         .from('users')
-        .select('user_code, user_name, user_avatar, level, total_earned, streak, last_active, earned_achievements, active_title, prestige_level')
+        .select('user_code, user_name, user_avatar, level, total_earned, weekly_earned, weekly_week_id, streak, last_active, earned_achievements, active_title, prestige_level')
     )
-      .order('total_earned', { ascending:false })
+      .order('weekly_earned', { ascending:false })
       .limit(limit);
+    if(currentWeekId){
+      q = q.eq('weekly_week_id', currentWeekId);
+    }
+    const { data, error } = await q;
     if(error){
       // eslint-disable-next-line no-console
       console.warn('[supabase] getLeaderboard error:', error);
@@ -96,22 +101,31 @@ export async function getLeaderboard(limit = 50){
 }
 
 /* Mon rang (1-based) parmi les joueurs publics : compte les profils
-   ayant un total_earned strictement supérieur, +1. Admin exclu du
-   compte (cohérent avec getLeaderboard). */
-export async function getMyRank(myUserCode){
+   ayant un weekly_earned strictement supérieur, +1. Filtré par
+   weekly_week_id = currentWeekId pour rester cohérent avec le
+   classement weekly affiché. Admin exclu. */
+export async function getMyRank(myUserCode, currentWeekId = null){
   if(!isSupabaseEnabled()) return null;
   try{
     const { data: me } = await supabase
-      .from('users').select('total_earned, user_name').eq('user_code', myUserCode).single();
+      .from('users').select('weekly_earned, weekly_week_id, user_name').eq('user_code', myUserCode).single();
     if(!me) return null;
-    /* Si je suis Admin moi-même, je suis hors classement → null */
     if(isAdminName(me.user_name)) return null;
-    const { count, error } = await notInLeaderboard(
+    /* Si je ne suis pas sur la semaine courante, mon weekly_earned
+       compte comme 0 (auto-reset à la prochaine action). */
+    const myWeekly = me.weekly_week_id === currentWeekId
+      ? (Number(me.weekly_earned) || 0)
+      : 0;
+    let q = notInLeaderboard(
       supabase
         .from('users')
         .select('*', { count:'exact', head:true })
     )
-      .gt('total_earned', me.total_earned);
+      .gt('weekly_earned', myWeekly);
+    if(currentWeekId){
+      q = q.eq('weekly_week_id', currentWeekId);
+    }
+    const { count, error } = await q;
     if(error) return null;
     return (count ?? 0) + 1;
   }catch{ return null; }
