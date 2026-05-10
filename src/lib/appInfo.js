@@ -11,7 +11,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.11.0',
+  version: '1.12.0',
   releaseDate: '2026-05-10',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -19,6 +19,23 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.12.0',
+    date: '2026-05-10',
+    title: '📈 Refonte du marché $CKM — anti-manipulation',
+    changes: [
+      "📊 Marché élargi : 10 000 actions disponibles (au lieu de 1 000)",
+      "💎 Bonus de hold : +10 % après 1 h, +30 % après 24 h, +100 % après 7 jours sur la PnL positive — récompense les hodlers patients",
+      "⏱️ Cooldown 60 s entre 2 achats / 2 ventes / achat puis vente — fini le pump-and-dump rapide",
+      "🛒 Max 20 actions par transaction (force à étaler ses gros ordres)",
+      "🛡️ Circuit breaker auto si variation > 15 % en 5 min (pause 1 h)",
+      "🔄 Mean reversion vers 100 — le prix revient naturellement vers son centre",
+      "📉 Cap 5 % du marché par utilisateur (500 actions max — plus de whales)",
+      "🏆 Bannières podium top 1-3 redesignées en mocha-caramel chaud",
+      "⚖️ Cap écart top 1 / top 2 : +25 % (compétition plus serrée)",
+      "🤝 Compensation automatique pour les ex-investisseurs lésés par l'incident pump-and-dump",
+    ],
+  },
   {
     version: '1.11.0',
     date: '2026-05-10',

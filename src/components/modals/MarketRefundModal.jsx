@@ -100,9 +100,19 @@ export function MarketRefundModal({ amount, onClose, C }){
 
           <div style={{
             fontSize:11, color:C.muted, textAlign:'center',
-            fontStyle:'italic', marginBottom:18, lineHeight:1.5,
+            fontStyle:'italic', marginBottom:14, lineHeight:1.5,
           }}>
             Le pump-and-dump est désormais quasi impossible. Bon trading ! ☕
+          </div>
+
+          <div style={{
+            fontSize:11, color:C.text, textAlign:'center',
+            background:'rgba(212,160,23,.12)',
+            border:'1px dashed rgba(212,160,23,.4)',
+            borderRadius:10, padding:'8px 12px', marginBottom:18,
+            lineHeight:1.5,
+          }}>
+            ℹ️ Plus de détails sur les changements dans <strong>Paramètres → À propos</strong> (v1.12.0).
           </div>
         </div>
 
