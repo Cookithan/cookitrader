@@ -122,6 +122,9 @@ export const GLOBAL_CSS = `
   @keyframes boostPop{0%{opacity:0;transform:translateX(-50%) translateY(20px) scale(.7)}60%{opacity:1;transform:translateX(-50%) translateY(-4px) scale(1.06)}100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
   .boost-pop{animation:boostPop .45s cubic-bezier(.5,1.6,.55,1) both}
 
+  /* ── Pastille en ligne (présence) — pulse doux caramel/or ── */
+  @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.85)}}
+
   /* ── Coup de Grâce — cascade des emojis débloqués (apparition décalée) ── */
   @keyframes itemPop{0%{opacity:0;transform:scale(.3) rotate(-15deg)}60%{opacity:1;transform:scale(1.15) rotate(8deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
   .item-pop{animation:itemPop .5s cubic-bezier(.5,1.6,.55,1) both}

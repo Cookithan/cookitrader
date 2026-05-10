@@ -72,24 +72,22 @@ export async function getFriends(myUserCode){
   }catch{ notifySupabaseError(); return []; }
 }
 
-/* Top N des joueurs par WEEKLY_EARNED décroissant (cycle hebdomadaire
-   vendredi 18 h UTC). Filtre par weekly_week_id = currentWeekId pour
-   exclure les anciennes valeurs. Le compte technique "Admin" est exclu
-   du classement public. */
-export async function getLeaderboard(limit = 50, currentWeekId = null){
+/* Top N des joueurs par TOTAL_EARNED décroissant (lifetime cumulé).
+   Le compteur weekly_earned est conservé en interne pour la distribution
+   top 3 du vendredi (closeWeek), mais ne pilote plus l'ordre du classement
+   visible. Le compte technique "Admin" est exclu du classement public.
+   `currentWeekId` reste accepté pour compat ascendante mais n'est plus
+   utilisé. */
+export async function getLeaderboard(limit = 50, _currentWeekId = null){
   if(!isSupabaseEnabled()) return [];
   try{
-    let q = notInLeaderboard(
+    const { data, error } = await notInLeaderboard(
       supabase
         .from('users')
         .select('user_code, user_name, user_avatar, level, total_earned, weekly_earned, weekly_week_id, streak, last_active, earned_achievements, active_title, prestige_level')
     )
-      .order('weekly_earned', { ascending:false })
+      .order('total_earned', { ascending:false })
       .limit(limit);
-    if(currentWeekId){
-      q = q.eq('weekly_week_id', currentWeekId);
-    }
-    const { data, error } = await q;
     if(error){
       // eslint-disable-next-line no-console
       console.warn('[supabase] getLeaderboard error:', error);
@@ -191,31 +189,22 @@ export async function closeWeek(weekId){
 }
 
 /* Mon rang (1-based) parmi les joueurs publics : compte les profils
-   ayant un weekly_earned strictement supérieur, +1. Filtré par
-   weekly_week_id = currentWeekId pour rester cohérent avec le
-   classement weekly affiché. Admin exclu. */
-export async function getMyRank(myUserCode, currentWeekId = null){
+   ayant un total_earned strictement supérieur, +1. Cohérent avec
+   getLeaderboard (tri par total_earned). Admin exclu. `currentWeekId`
+   reste accepté pour compat ascendante mais n'est plus utilisé. */
+export async function getMyRank(myUserCode, _currentWeekId = null){
   if(!isSupabaseEnabled()) return null;
   try{
     const { data: me } = await supabase
-      .from('users').select('weekly_earned, weekly_week_id, user_name').eq('user_code', myUserCode).single();
+      .from('users').select('total_earned, user_name').eq('user_code', myUserCode).single();
     if(!me) return null;
     if(isAdminName(me.user_name)) return null;
-    /* Si je ne suis pas sur la semaine courante, mon weekly_earned
-       compte comme 0 (auto-reset à la prochaine action). */
-    const myWeekly = me.weekly_week_id === currentWeekId
-      ? (Number(me.weekly_earned) || 0)
-      : 0;
-    let q = notInLeaderboard(
+    const myTotal = Number(me.total_earned) || 0;
+    const { count, error } = await notInLeaderboard(
       supabase
         .from('users')
         .select('*', { count:'exact', head:true })
-    )
-      .gt('weekly_earned', myWeekly);
-    if(currentWeekId){
-      q = q.eq('weekly_week_id', currentWeekId);
-    }
-    const { count, error } = await q;
+    ).gt('total_earned', myTotal);
     if(error) return null;
     return (count ?? 0) + 1;
   }catch{ return null; }
@@ -278,6 +267,45 @@ export async function getTotalPlayers(){
         .from('users')
         .select('*', { count:'exact', head:true })
     );
+    if(error) return null;
+    return count ?? 0;
+  }catch{ return null; }
+}
+
+/* ════════════════════════════════════════════════════
+   PRÉSENCE EN LIGNE
+   ────────────────────────────────────────────────────
+   Définition "online" : last_active > now - ONLINE_WINDOW_MS.
+   Le client appelle pingPresence toutes les 60 s (App.jsx) tant que
+   l'onglet est visible → fenêtre 3 min couvre un battement raté ou deux
+   sans flagger online un user fermé depuis longtemps.
+═══════════════════════════════════════════════════════ */
+export const ONLINE_WINDOW_MS = 3 * 60 * 1000;
+
+/* Touche last_active sans toucher au reste — heartbeat. Best-effort,
+   silencieux. Ne déclenche pas de re-render côté client (pas de
+   .select()). */
+export async function pingPresence(userCode){
+  if(!isSupabaseEnabled() || !userCode) return;
+  try{
+    await supabase
+      .from('users')
+      .update({ last_active: new Date().toISOString() })
+      .eq('user_code', userCode);
+  }catch{ /* silent */ }
+}
+
+/* Nombre de joueurs publics actifs dans la fenêtre ONLINE_WINDOW_MS.
+   Admins / NON_RANKED exclus pour rester cohérent avec getTotalPlayers. */
+export async function getOnlineCount(){
+  if(!isSupabaseEnabled()) return null;
+  try{
+    const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+    const { count, error } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('*', { count:'exact', head:true })
+    ).gt('last_active', since);
     if(error) return null;
     return count ?? 0;
   }catch{ return null; }
@@ -731,12 +759,17 @@ export async function getPublicProfile(userCode){
       }
     }catch{ /* tables marché non créées encore — silencieux */ }
 
+    /* Présence : online si last_active dans la fenêtre ONLINE_WINDOW_MS. */
+    const lastActiveMs = user.last_active ? new Date(user.last_active).getTime() : 0;
+    const isOnline = lastActiveMs > 0 && (Date.now() - lastActiveMs) < ONLINE_WINDOW_MS;
+
     return {
       ...user,
       cookies_rank: cookiesRank,
       market_rank:  marketRank,
       market_shares: marketShares,
       market_value:  marketValue,
+      is_online:    isOnline,
     };
   }catch{
     notifySupabaseError();
@@ -1003,7 +1036,8 @@ export async function restoreProfile(userCode, pin = ''){
 export async function getGlobalCommunityStats(){
   if(!isSupabaseEnabled()) return null;
   try{
-    const [userCountR, sumR, friendsR, txR] = await Promise.all([
+    const onlineSince = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+    const [userCountR, sumR, friendsR, txR, onlineR] = await Promise.all([
       notInLeaderboard(
         supabase
           .from('users')
@@ -1022,6 +1056,11 @@ export async function getGlobalCommunityStats(){
         .from('market_transactions')
         .select('*', { count:'exact', head:true })
         .then(r => r, () => ({ count:0 })),
+      notInLeaderboard(
+        supabase
+          .from('users')
+          .select('*', { count:'exact', head:true })
+      ).gt('last_active', onlineSince),
     ]);
 
     const totalCookiesEarned = (sumR?.data ?? []).reduce(
@@ -1036,6 +1075,7 @@ export async function getGlobalCommunityStats(){
          afficher le nb réel de paires d'amis. */
       friendshipsCount:    Math.floor((friendsR?.count ?? 0) / 2),
       transactionsCount:   txR?.count ?? 0,
+      onlineCount:         onlineR?.count ?? 0,
     };
   }catch(e){
     console.warn('[stats] getGlobalCommunityStats error:', e);

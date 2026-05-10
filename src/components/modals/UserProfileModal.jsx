@@ -42,6 +42,20 @@ function formatJoinDate(raw){
   }
 }
 
+/* "Vu il y a X" lisible. Renvoie null si raw absent. */
+function formatLastSeen(raw){
+  if(!raw) return null;
+  const ms = Date.now() - new Date(raw).getTime();
+  if(!Number.isFinite(ms) || ms < 0) return null;
+  const min = Math.floor(ms / 60_000);
+  if(min < 60)    return `Vu il y a ${Math.max(min, 1)} min`;
+  const h = Math.floor(min / 60);
+  if(h < 24)      return `Vu il y a ${h} h`;
+  const d = Math.floor(h / 24);
+  if(d < 7)       return `Vu il y a ${d} j`;
+  return `Vu il y a +${Math.floor(d/7)} sem`;
+}
+
 export function UserProfileModal({ userCode, isCrown = false, currentUserCode, friendCodes = [], onClose, C }){
   /* Barre de réactions visible si l'utilisateur consulté est :
      - un ami (status='accepted'), OU
@@ -216,6 +230,33 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         <div style={{ fontSize:12, color:C.muted, marginTop:2 }}>
           Niveau {level}
         </div>
+
+        {/* Présence : pastille caramel pulse si en ligne, sinon "Vu il y a…" */}
+        {profile.is_online ? (
+          <div style={{
+            display:'inline-flex', alignItems:'center', gap:6, marginTop:8,
+            padding:'3px 10px', borderRadius:10,
+            background:'linear-gradient(135deg, rgba(212,160,23,.18), rgba(193,127,60,.18))',
+            border:'1px solid rgba(212,160,23,.5)',
+          }}>
+            <span style={{
+              width:7, height:7, borderRadius:'50%',
+              background:'#D4A017',
+              boxShadow:'0 0 6px rgba(212,160,23,.85)',
+              animation:'pulse-dot 1.6s ease-in-out infinite',
+            }} />
+            <span style={{ fontSize:11, fontWeight:800, color:'#D4A017', letterSpacing:.3 }}>
+              En ligne
+            </span>
+          </div>
+        ) : (() => {
+          const seen = formatLastSeen(profile.last_active);
+          return seen ? (
+            <div style={{ fontSize:11, color:C.muted, marginTop:6, fontStyle:'italic' }}>
+              {seen}
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {/* Bio (si non vide) */}

@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -430,6 +430,30 @@ export default function CookiMiner() {
     }, 5000);
     return ()=>clearTimeout(t);
   }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate, weeklyEarned, weeklyWeekId]);
+
+  /* Heartbeat présence — touche last_active toutes les 60 s tant que
+     l'onglet est visible. Couplé à visibilitychange : suspend si hidden,
+     ping immédiatement à la reprise. Sans ce battement, un user idle
+     (juste à regarder le classement) sortirait du compteur online dès
+     que l'upsertProfile cesserait de fire (deps inchangées). */
+  useEffect(() => {
+    if(!isSupabaseEnabled() || !userCode) return;
+    let id = null;
+    const tick = () => { if(document.visibilityState === 'visible') pingPresence(userCode); };
+    const start = () => {
+      tick();
+      id = setInterval(tick, 60_000);
+    };
+    const stop = () => { if(id){ clearInterval(id); id = null; } };
+    const onVis = () => {
+      if(document.visibilityState === 'visible'){ if(!id) start(); }
+      else { stop(); }
+    };
+    if(document.visibilityState === 'visible') start();
+    document.addEventListener('visibilitychange', onVis);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVis); };
+  }, [userCode]);
+
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
   const [pendingAchievement, setPendingAchievement] = useState(null);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');

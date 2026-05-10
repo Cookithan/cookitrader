@@ -160,12 +160,32 @@ export function AboutModal({ onClose, C }){
                 Chargement…
               </div>
             ) : (
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-                <StatBlock icon="👥" value={fmt(stats.userCount)}           label="Joueurs" />
-                <StatBlock icon="🍪" value={fmt(stats.totalCookiesEarned)}  label="Cookies gagnés" />
-                <StatBlock icon="🤝" value={fmt(stats.friendshipsCount)}    label="Amitiés" />
-                <StatBlock icon="📈" value={fmt(stats.transactionsCount)}   label="Trades $CKM" />
-              </div>
+              <>
+                {stats.onlineCount > 0 && (
+                  <div style={{
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                    padding:'8px 12px', marginBottom:10, borderRadius:11,
+                    background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(193,127,60,.12))',
+                    border:'1px solid rgba(212,160,23,.4)',
+                  }}>
+                    <span style={{
+                      width:8, height:8, borderRadius:'50%',
+                      background:'#D4A017',
+                      boxShadow:'0 0 8px rgba(212,160,23,.8)',
+                      animation:'pulse-dot 1.6s ease-in-out infinite',
+                    }} />
+                    <span style={{ fontSize:12.5, fontWeight:800, color:'#F0C050' }}>
+                      {fmt(stats.onlineCount)} en ligne {stats.onlineCount > 1 ? 'maintenant' : 'maintenant'}
+                    </span>
+                  </div>
+                )}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                  <StatBlock icon="👥" value={fmt(stats.userCount)}           label="Joueurs" />
+                  <StatBlock icon="🍪" value={fmt(stats.totalCookiesEarned)}  label="Cookies gagnés" />
+                  <StatBlock icon="🤝" value={fmt(stats.friendshipsCount)}    label="Amitiés" />
+                  <StatBlock icon="📈" value={fmt(stats.transactionsCount)}   label="Trades $CKM" />
+                </div>
+              </>
             )}
           </div>
 

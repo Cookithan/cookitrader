@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ESPRESSO } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
-import { getLeaderboard, getMyRank, getTotalPlayers } from "../../lib/supabaseSync.js";
+import { getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount } from "../../lib/supabaseSync.js";
 import { getCurrentWeekId, getNextResetAt, formatTimeUntil } from "../../lib/weeklyCycle.js";
 import { isSanctionPublic } from "../../data/sanctions.js";
 import {
@@ -37,7 +37,11 @@ import { isAdminName } from "../../utils/admin.js";
 ═══════════════════════════════════════════════════════ */
 
 const REFRESH_MS = 30_000;
-const CACHE_KEY_COOKIES = 'leaderboard:cache';
+/* Bump v2 : on est revenu sur un classement par total_earned au lieu
+   de weekly_earned. Le cache v1 contenait des `weekly_earned`/myRank
+   weekly qui ne correspondent plus à ce qui est rendu — invalidation
+   forcée en changeant la clé. */
+const CACHE_KEY_COOKIES = 'leaderboard:cache:v2';
 const CACHE_KEY_MARKET  = 'leaderboard:market:cache';
 
 function loadCache(key){
@@ -156,6 +160,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
   const [list,    setList]    = useState(cached?.list  ?? []);
   const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
   const [total,   setTotal]   = useState(cached?.total ?? null);
+  const [online,  setOnline]  = useState(cached?.online ?? null);
   const [loading, setLoading] = useState(!cached);
   const aliveRef = useRef(true);
 
@@ -164,17 +169,19 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
 
     const fetchAll = async () => {
       const weekId = getCurrentWeekId();
-      const [leaderboard, rank, count] = await Promise.all([
+      const [leaderboard, rank, count, onlineN] = await Promise.all([
         getLeaderboard(50, weekId),
         userCode ? getMyRank(userCode, weekId) : Promise.resolve(null),
         getTotalPlayers(),
+        getOnlineCount(),
       ]);
       if(!aliveRef.current) return;
       setList(leaderboard);
       setMyRank(rank);
       setTotal(count);
+      setOnline(onlineN);
       setLoading(false);
-      saveCache(CACHE_KEY_COOKIES, { list:leaderboard, myRank:rank, total:count });
+      saveCache(CACHE_KEY_COOKIES, { list:leaderboard, myRank:rank, total:count, online:onlineN });
     };
 
     fetchAll();
@@ -198,8 +205,25 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         }}>
           📅 Cycle hebdo
         </div>
-        <div style={{ fontSize:11, fontWeight:600, color:C.muted }}>
-          {total !== null ? `${total} joueur${total>1?'s':''}` : '…'}
+        <div style={{ fontSize:11, fontWeight:600, color:C.muted, display:'flex', alignItems:'center', gap:8 }}>
+          {online != null && online > 0 && (
+            <span title={`${online} joueur${online>1?'s':''} actif${online>1?'s':''} dans les 3 dernières minutes`} style={{
+              display:'inline-flex', alignItems:'center', gap:4,
+              padding:'2px 7px', borderRadius:9,
+              background:'linear-gradient(135deg, rgba(212,160,23,.18), rgba(193,127,60,.18))',
+              border:'1px solid rgba(212,160,23,.45)',
+              color:'#D4A017', fontWeight:800, letterSpacing:.2,
+            }}>
+              <span style={{
+                width:6, height:6, borderRadius:'50%',
+                background:'#D4A017',
+                boxShadow:'0 0 6px rgba(212,160,23,.7)',
+                animation:'pulse-dot 1.6s ease-in-out infinite',
+              }} />
+              {online} en ligne
+            </span>
+          )}
+          <span>{total !== null ? `${total} joueur${total>1?'s':''}` : '…'}</span>
         </div>
       </div>
 
@@ -534,6 +558,7 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
+            flex:'1 1 auto', minWidth:0,
             fontSize:13, fontWeight:800,
             color: banner ? banner.nameColor : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
@@ -544,22 +569,17 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
           {isSanctionPublic(p.user_code) && (
             <span
               title="Compte sanctionné — manipulation de marché"
-              style={{
-                fontSize:11, fontWeight:800, letterSpacing:.5,
-                color:'#FFB060', padding:'2px 6px', borderRadius:6,
-                background:'rgba(125,72,24,.5)',
-                border:'1px solid rgba(193,127,60,.7)',
-              }}
+              style={{ fontSize:12, lineHeight:1, flexShrink:0 }}
             >
               ⚠️
             </span>
           )}
           {(p.prestige_level || 0) > 0 && (
-            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3 }}>
+            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3, flexShrink:0 }}>
               {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
             </span>
           )}
-          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: banner ? banner.metaColor : C.muted }}>
+          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: banner ? banner.metaColor : C.muted, flexShrink:0 }}>
             Niv.{p.level}
           </span>
         </div>
@@ -571,9 +591,9 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
         <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
-          {(p.weekly_earned ?? 0).toLocaleString('fr-FR')}
+          {(p.total_earned ?? 0).toLocaleString('fr-FR')}
         </div>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>🍪 cette semaine</div>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>🍪 au total</div>
       </div>
       {clickable && (
         <span aria-hidden style={{ fontSize:14, color: banner?.valueColor || '#D4A017', opacity:.8, lineHeight:1, marginLeft:2 }}>
@@ -629,6 +649,7 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ display:'flex', alignItems:'baseline', gap:6 }}>
           <span style={{
+            flex:'1 1 auto', minWidth:0,
             fontSize:13, fontWeight:800,
             color: banner ? banner.nameColor : C.text,
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
@@ -639,22 +660,17 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
           {isSanctionPublic(p.user_code) && (
             <span
               title="Compte sanctionné — manipulation de marché"
-              style={{
-                fontSize:11, fontWeight:800, letterSpacing:.5,
-                color:'#FFB060', padding:'2px 6px', borderRadius:6,
-                background:'rgba(125,72,24,.5)',
-                border:'1px solid rgba(193,127,60,.7)',
-              }}
+              style={{ fontSize:12, lineHeight:1, flexShrink:0 }}
             >
               ⚠️
             </span>
           )}
           {(p.prestige_level || 0) > 0 && (
-            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3 }}>
+            <span title={`Prestige ${p.prestige_level} · multiplicateur x${(1 + p.prestige_level * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color: banner ? banner.valueColor : '#D4A017', letterSpacing:.3, flexShrink:0 }}>
               {p.prestige_level <= 5 ? '👑'.repeat(p.prestige_level) : `👑×${p.prestige_level}`}
             </span>
           )}
-          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: banner ? banner.metaColor : C.muted }}>
+          <span style={{ fontSize:10, fontWeight:700, letterSpacing:.4, color: banner ? banner.metaColor : C.muted, flexShrink:0 }}>
             Niv.{p.level}
           </span>
         </div>
