@@ -28,7 +28,7 @@ export const MARKET_CONFIG = {
      (au-delà des horaires habituels). Affiche "Marché en maintenance"
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.
      Repasser à false dès que les déséquilibres sont corrigés. */
-  MAINTENANCE_MODE: true,
+  MAINTENANCE_MODE: false,
   TOTAL_SHARES: 10000,            // 10× plus d'actions pour un marché vraiment profond. Cap PCT 0.05 = 500 actions max/user.
   IMPACT_PER_SHARE: 0.0001,       // +0.01 % par action — calibré pour 10000 actions. Range théorique 36-270 (toutes achetées / toutes vendues). 100 actions/tx = 1 % impact (visible).
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
