@@ -16,8 +16,8 @@ import { useMemo } from "react";
    activeTheme === 'theme_cookies'.
 ═══════════════════════════════════════════════════════ */
 
-const COOKIE_COUNT = 24;
-const COLS = 4;
+const COOKIE_COUNT = 12;
+const COLS = 3;
 
 export function CookieFloater(){
   const cookies = useMemo(() => {
@@ -30,10 +30,10 @@ export function CookieFloater(){
          pleine taille en même temps (sinon chevauchement gênant). */
       const col = i % COLS;
       const row = Math.floor(i / COLS);
-      const baseLeft = 20 + col * 20;             // 20, 40, 60, 80 %
-      const baseTop  = 12 + row * 14;             // 12, 26, 40, 54, 68, 82 %
+      const baseLeft = 25 + col * 25;             // 25, 50, 75 % (3 colonnes équidistantes)
+      const baseTop  = 16 + row * 22;             // 16, 38, 60, 82 % (4 lignes)
       const jitterX = (Math.random() - 0.5) * 10;
-      const jitterY = (Math.random() - 0.5) * 8;
+      const jitterY = (Math.random() - 0.5) * 10;
       return {
         id: i,
         left: `${Math.max(15, Math.min(85, baseLeft + jitterX))}%`,

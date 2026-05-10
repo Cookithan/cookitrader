@@ -132,9 +132,9 @@ export const GLOBAL_CSS = `
      et les cookies positionnés près des bords sortent de l'écran au scale max. */
   @keyframes cookieSpin{
     0%   {transform:translate(-50%,-50%) scale(.15) rotate(0deg);opacity:0}
-    15%  {transform:translate(-50%,-50%) scale(.55) rotate(54deg);opacity:.85}
-    50%  {transform:translate(-50%,-50%) scale(1.2) rotate(180deg);opacity:1}
-    85%  {transform:translate(-50%,-50%) scale(.55) rotate(306deg);opacity:.5}
+    15%  {transform:translate(-50%,-50%) scale(.55) rotate(54deg);opacity:.4}
+    50%  {transform:translate(-50%,-50%) scale(1.1) rotate(180deg);opacity:.55}
+    85%  {transform:translate(-50%,-50%) scale(.55) rotate(306deg);opacity:.3}
     100% {transform:translate(-50%,-50%) scale(.15) rotate(360deg);opacity:0}
   }
   .cookie-floater{position:fixed;pointer-events:none;z-index:0;will-change:transform,opacity;font-size:42px;line-height:1;animation:cookieSpin 9s ease-in-out infinite;filter:drop-shadow(0 4px 8px rgba(74,44,23,.3))}
