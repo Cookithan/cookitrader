@@ -16,22 +16,24 @@ import { useMemo } from "react";
    activeTheme === 'theme_cookies'.
 ═══════════════════════════════════════════════════════ */
 
-const COOKIE_COUNT = 14;
+const COOKIE_COUNT = 24;
+const COLS = 4;
 
 export function CookieFloater(){
   const cookies = useMemo(() => {
     return Array.from({ length: COOKIE_COUNT }).map((_, i) => {
-      /* Répartition pseudo-uniforme : grille 4×4 resserrée vers le centre
-         (20-80% horizontal, 18-82% vertical) avec jitter modéré pour éviter
-         les chevauchements évidents. Le keyframe cookieSpin centre les
-         cookies sur leur position via translate(-50%,-50%) — donc 20% / 80%
-         laissent ~20% de marge de chaque côté pour le scale max (1.2). */
-      const col = i % 4;
-      const row = Math.floor(i / 4);
+      /* Répartition pseudo-uniforme : grille 4×6 (4 colonnes × 6 lignes, format
+         mobile vertical) resserrée vers le centre. Le keyframe cookieSpin
+         centre les cookies sur leur position via translate(-50%,-50%) — les
+         marges 15-85% laissent ~15% de chaque côté pour le scale max (1.2).
+         Les délais/durées aléatoires évitent que tous les cookies soient à
+         pleine taille en même temps (sinon chevauchement gênant). */
+      const col = i % COLS;
+      const row = Math.floor(i / COLS);
       const baseLeft = 20 + col * 20;             // 20, 40, 60, 80 %
-      const baseTop  = 18 + row * 22;             // 18, 40, 62, 84 %
+      const baseTop  = 12 + row * 14;             // 12, 26, 40, 54, 68, 82 %
       const jitterX = (Math.random() - 0.5) * 10;
-      const jitterY = (Math.random() - 0.5) * 10;
+      const jitterY = (Math.random() - 0.5) * 8;
       return {
         id: i,
         left: `${Math.max(15, Math.min(85, baseLeft + jitterX))}%`,
