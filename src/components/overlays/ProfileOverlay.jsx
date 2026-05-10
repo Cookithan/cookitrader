@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Settings, Lock, Mail } from "lucide-react";
+import { ChevronLeft, Settings, Lock, Mail, Pencil, User, MessageSquare } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
@@ -479,16 +479,54 @@ export function ProfileOverlay({
               C={C}
             />
 
-            {/* 6. Boutons d'édition (pseudo / avatar / bio) */}
+            {/* 6. Boutons d'édition (pseudo / avatar / bio) — fond carte
+                + bord doré + icône pour ressortir sur tous les thèmes
+                (transparent + border C.border se fondait avant). */}
             <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
-              <button onClick={()=>setShowChangeName(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              <button
+                onClick={()=>setShowChangeName(true)}
+                style={{
+                  width:'100%', padding:'13px 14px', borderRadius:14,
+                  background: `linear-gradient(135deg, ${C.card}, ${C.card2})`,
+                  border:'1.5px solid rgba(212,160,23,.5)',
+                  color:C.text, fontSize:13, fontWeight:800,
+                  boxShadow:'0 2px 10px rgba(0,0,0,.08)',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  cursor:'pointer',
+                }}
+              >
+                <User size={15} color="#D4A017" />
                 <span>Modifier mon pseudo</span>
                 <span style={{ fontSize:11, fontWeight:800, color:'#D4A017' }}>· payant 🍪</span>
               </button>
-              <button onClick={()=>{ setEditAvatar(userAvatar); setEditing(true); }} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700 }}>
+              <button
+                onClick={()=>{ setEditAvatar(userAvatar); setEditing(true); }}
+                style={{
+                  width:'100%', padding:'13px 14px', borderRadius:14,
+                  background: `linear-gradient(135deg, ${C.card}, ${C.card2})`,
+                  border:'1.5px solid rgba(212,160,23,.5)',
+                  color:C.text, fontSize:13, fontWeight:800,
+                  boxShadow:'0 2px 10px rgba(0,0,0,.08)',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  cursor:'pointer',
+                }}
+              >
+                <Pencil size={15} color="#D4A017" />
                 Modifier mon avatar
               </button>
-              <button onClick={()=>setShowChangeBio(true)} style={{ width:'100%', padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.text, fontSize:13, fontWeight:700 }}>
+              <button
+                onClick={()=>setShowChangeBio(true)}
+                style={{
+                  width:'100%', padding:'13px 14px', borderRadius:14,
+                  background: `linear-gradient(135deg, ${C.card}, ${C.card2})`,
+                  border:'1.5px solid rgba(212,160,23,.5)',
+                  color:C.text, fontSize:13, fontWeight:800,
+                  boxShadow:'0 2px 10px rgba(0,0,0,.08)',
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                  cursor:'pointer',
+                }}
+              >
+                <MessageSquare size={15} color="#D4A017" />
                 {userBio ? 'Modifier ma bio' : '+ Ajouter une bio'}
               </button>
             </div>
