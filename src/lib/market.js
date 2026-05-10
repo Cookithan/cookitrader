@@ -44,6 +44,15 @@ export const MARKET_CONFIG = {
   CIRCUIT_BREAKER_THRESHOLD:    0.15,           // 15 % de variation
   CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
   CIRCUIT_BREAKER_PAUSE_MS:     60 * 60 * 1000, // pause 1 h
+  /* Bonus de hold — multiplie la PnL POSITIVE à la vente selon la durée
+     de détention (timestamp pondéré par achats successifs). Récompense
+     les hodlers patients. Pertes inchangées (pas de bonus négatif). */
+  HOLD_BONUS_TIERS: [
+    { minMs:  7 * 24 * 3600 * 1000, bonus: 1.00, label: '1 semaine+' },  // +100 % (double profit)
+    { minMs: 24 * 3600 * 1000,      bonus: 0.30, label: '24 h+'      },  // +30 %
+    { minMs:  1 * 3600 * 1000,      bonus: 0.10, label: '1 h+'       },  // +10 %
+    { minMs:  0,                    bonus: 0,    label: '< 1 h'      },  // pas de bonus
+  ],
   MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du total = 500 actions max par user (un whale n'influence le prix que de ~5 %)
   MAX_SHARES_PER_TX:       100,   // Max 100 actions par tx (= 1 % impact prix, bien visible mais pas catastrophique)
   MAX_DAILY_VOLUME:        1000,  // Volume cumulé (achats + ventes) sur 24 h, ajusté à la nouvelle profondeur
@@ -164,6 +173,18 @@ export async function getDailyVolume() {
     result.total += t.shares;
   });
   return result;
+}
+
+/* Calcule le bonus de hold à partir d'un timestamp pondéré.
+   Retourne { tier, pct, label } — pct est le multiplicateur appliqué
+   à la PnL positive (0 si perte). */
+export function getHoldBonus(weightedBuyAt) {
+  if (!weightedBuyAt) return { tier: 0, pct: 0, label: '< 1 h' };
+  const holdMs = Date.now() - new Date(weightedBuyAt).getTime();
+  for (const t of MARKET_CONFIG.HOLD_BONUS_TIERS) {
+    if (holdMs >= t.minMs) return { holdMs, pct: t.bonus, label: t.label };
+  }
+  return { holdMs, pct: 0, label: '< 1 h' };
 }
 
 /* Volume quotidien (24 h) d'UN user — pour le cap MAX_DAILY_VOLUME.
@@ -378,6 +399,20 @@ export async function buyShares(userCode, shares) {
     total_amount: totalCost,
   });
 
+  /* Timestamp pondéré pour le bonus de hold : (existing_weighted *
+     existing_shares + now * new_shares) / total_shares. Si portfolio
+     vide, weighted_buy_at = now. Récompense les hold longs sans
+     pénaliser les achats successifs (perte proportionnelle).
+     Nécessite SQL : alter table market_portfolio add column if not
+     exists weighted_buy_at timestamptz; */
+  const nowMs = Date.now();
+  const oldWeightedMs = portfolio.weighted_buy_at
+    ? new Date(portfolio.weighted_buy_at).getTime()
+    : nowMs;
+  const newWeightedMs = portfolio.shares > 0
+    ? Math.round((oldWeightedMs * portfolio.shares + nowMs * shares) / (portfolio.shares + shares))
+    : nowMs;
+
   await supabase.from('market_portfolio').upsert({
     user_code: userCode,
     shares: portfolio.shares + shares,
@@ -388,6 +423,7 @@ export async function buyShares(userCode, shares) {
        Nécessite : alter table market_portfolio add column if not exists
        last_buy_at timestamptz; */
     last_buy_at: new Date().toISOString(),
+    weighted_buy_at: new Date(newWeightedMs).toISOString(),
   }, { onConflict: 'user_code' });
 
   return {
@@ -442,12 +478,15 @@ export async function creditFreeShares(userCode, sharesToAdd) {
     }
 
     /* Upsert le portfolio (le total_invested reste inchangé puisque
-       l'utilisateur n'a rien dépensé pour ces actions). */
+       l'utilisateur n'a rien dépensé pour ces actions). On set aussi
+       weighted_buy_at = now pour que ces actions aient un point de
+       départ pour le bonus de hold. */
     await supabase.from('market_portfolio').upsert({
       user_code: userCode,
       shares: newShares,
       total_invested: Number(portfolio?.total_invested) || 0,
       updated_at: new Date().toISOString(),
+      weighted_buy_at: new Date().toISOString(),
     }, { onConflict: 'user_code' });
 
     return { success: true, sharesAdded: sharesToAdd, sharesNow: newShares };
@@ -532,11 +571,19 @@ export async function sellShares(userCode, shares) {
   let newPrice = currentPrice * (1 - cappedImpact);
   newPrice = Math.max(MARKET_CONFIG.PRICE_MIN, newPrice);
 
-  const totalGained = Math.floor(newPrice * shares);
+  const totalGainedRaw = Math.floor(newPrice * shares);
 
   /* Coût de base proportionnel libéré : sert au calcul du profit */
   const ratio = shares / portfolio.shares;
   const investedReleased = portfolio.total_invested * ratio;
+
+  /* Bonus de hold : multiplie la PnL POSITIVE par le pct du tier
+     (calculé depuis weighted_buy_at). Pas de bonus sur les pertes.
+     Récompense les hodlers patients sans pénaliser les traders actifs. */
+  const profitRaw   = totalGainedRaw - investedReleased;
+  const holdBonus   = getHoldBonus(portfolio.weighted_buy_at);
+  const bonusAmount = profitRaw > 0 ? Math.floor(profitRaw * holdBonus.pct) : 0;
+  const totalGained = totalGainedRaw + bonusAmount;
 
   await supabase
     .from('market_state')
@@ -574,6 +621,8 @@ export async function sellShares(userCode, shares) {
     newPrice,
     sharesNow: newShares,
     profit: totalGained - investedReleased,
+    /* Détails du bonus pour l'UI : afficher 'Bonus hold +30 %' au toast */
+    holdBonus: { pct: holdBonus.pct, label: holdBonus.label, amount: bonusAmount },
   };
 }
 
