@@ -77,8 +77,20 @@ export function BuyCafesModal({ userCode, onClose, C }){
         {/* Header */}
         <div style={{
           background:ESPRESSO, color:'#F0C050',
-          padding:'18px 22px', textAlign:'center',
+          padding:'18px 22px', textAlign:'center', position:'relative',
         }}>
+          {/* Badge MODE TEST — affiché tant que Stripe est en sk_test.
+              À retirer manuellement quand on bascule en LIVE (KYC validé). */}
+          <div style={{
+            position:'absolute', top:10, right:10,
+            background:'#7D4818', color:'#FFE89A',
+            fontSize:9, fontWeight:900, letterSpacing:1.5,
+            padding:'4px 8px', borderRadius:8,
+            border:'1px solid rgba(255,232,154,.4)',
+            textTransform:'uppercase',
+          }}>
+            ⚠ Mode test
+          </div>
           <div style={{ fontSize:36, lineHeight:1, marginBottom:4 }}>☕</div>
           <div style={{ fontSize:11, fontWeight:900, letterSpacing:3, textTransform:'uppercase', opacity:.85 }}>
             Achat de cafés
@@ -145,6 +157,18 @@ export function BuyCafesModal({ userCode, onClose, C }){
         )}
 
         <div style={{ padding:'12px 18px 18px', borderTop:`1px solid ${C.border}` }}>
+          {/* Avertissement explicite mode test — légalement plus safe que
+              juste le badge en haut. À retirer quand passage LIVE. */}
+          <div style={{
+            fontSize:11, color:'#A87858', lineHeight:1.5, marginBottom:10,
+            textAlign:'center', fontWeight:700,
+            padding:'8px 10px', borderRadius:10,
+            background:'rgba(125,78,31,.12)',
+            border:'1px dashed rgba(125,78,31,.4)',
+          }}>
+            ⚠ Mode test — aucun débit réel ne sera effectué.<br/>
+            Utilise une carte de test Stripe (4242 4242 4242 4242) si tu veux essayer le flow.
+          </div>
           <div style={{ fontSize:10.5, color:C.muted, lineHeight:1.5, marginBottom:10, textAlign:'center' }}>
             Paiement sécurisé via Stripe. Tes cafés sont crédités automatiquement
             après confirmation.
