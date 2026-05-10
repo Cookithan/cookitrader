@@ -1265,14 +1265,19 @@ export default function CookiMiner() {
     const refund = MARKET_REFUND[codeUpper] || 0;
     if(!refund) return;
     const FLAG_KEY = 'cookiminer:marketRefund2026_05_10';
+    /* Anti double-crédit : on SET le flag LS AVANT d'appliquer le
+       crédit. Si l'user fait F5 entre le crédit et le set du flag,
+       le flag absent ferait re-créditer au prochain mount. En settant
+       d'abord, on garantit l'idempotence. Si le setItem throw (storage
+       full / désactivé), on return sans créditer — mieux que doubler. */
     try{
       if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+      window.localStorage.setItem(FLAG_KEY, '1');
     }catch{ return; }
     setCoins(c => (c || 0) + refund);
     /* Modale d'excuses + résumé du fix (au lieu d'un simple toast).
-       Ferme manuellement par l'user, set le flag LS au close. */
+       Le flag est déjà set, donc fermer ou refresh ne re-déclenche pas. */
     setMarketRefundAmount(refund);
-    try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
   }, [userCode, pullDone, setCoins]);
 
 
