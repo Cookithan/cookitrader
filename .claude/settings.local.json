@@ -23,7 +23,9 @@
       "Read(//tmp/**)",
       "Bash(curl -sL https://cookitrader.vercel.app/)",
       "Bash(curl -sL https://cookiminer.vercel.app/)",
-      "Bash(curl -sL \"https://cookiminer.vercel.app/assets/index-osq7eT1J.js\" -o /tmp/prod.js)"
+      "Bash(curl -sL \"https://cookiminer.vercel.app/assets/index-osq7eT1J.js\" -o /tmp/prod.js)",
+      "Bash(curl -sL \"https://cookiminer.vercel.app/?nc=$\\(date +%s\\)\")",
+      "Bash(curl -sL \"https://cookiminer.vercel.app/assets/index-DFUWlWaL.js\" -o /tmp/prod2.js)"
     ]
   }
 }

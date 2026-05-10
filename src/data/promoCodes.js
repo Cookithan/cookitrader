@@ -36,6 +36,9 @@
 export const PROMO_CODES = {
   'BIENVENUE': { coins: 100,  cafes: 0, label: 'Bienvenue !' },
   'TOP1':      { coins: 50,   cafes: 0, label: 'Top 1 du classement' },
+  /* Code distribuable post-refonte marché v1.12 — offre 10 actions $CKM
+     pour aider les nouveaux à découvrir le marché. */
+  'CKM10':     { coins: 0,    cafes: 0, shares: 10, label: '10 actions $CKM offertes' },
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
