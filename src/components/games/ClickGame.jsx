@@ -6,16 +6,19 @@ import { ClickTracker } from "../../lib/antiCheat.js";
 import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
-   ClickGame — défi de clics (refonte diversification mai 2026)
+   ClickGame — défi de clics (nerf 11/05/2026)
    ────────────────────────────────────────────────────
    - COST = 5 🍪 par partie · cap 100 essais/jour (recharge 2 ☕)
-   - RÈGLE NON-NÉGOCIABLE : 2 clics = 1 🍪 (rewardPerClick = 0.5 partout)
+   - RÈGLE : 1 clic = 1 🍪 (rewardPerClick = 1 partout)
    - 3 MODES sélectionnables avant chaque partie :
-     · Normal       — 5 s · cap 75 🍪 (équilibré)
-     · Rapide       — 3 s · cap 45 🍪 (session courte, pour battre des CPS)
-     · Frénétique   — 8 s · cap 80 🍪 (le cookie se déplace toutes les 2 s)
-   - COMBOS RÉELS : 5 taps rapides → x2 sur les prochains clics,
-     12 → x3, 20 → x4. Reset si gap > 250 ms. Impact direct sur reward.
+     · Normal       — 5 s · cap 50 🍪
+     · Rapide       — 3 s · cap 25 🍪 (session courte)
+     · Frénétique   — 8 s · cap 50 🍪 (cookie qui bouge)
+   - PAS DE COMBOS — retirés le 11/05/2026 (le jeu était trop
+     rentable avec ×4 : ~7000 🍪/jour vs ~2500 pour les autres).
+   - AUTO-END : dès que le cap du mode est atteint, le jeu se
+     termine immédiatement (récompense pleine, plus de risque
+     d'over-grind).
 
    Anti auto-clicker (BRIEF_ANTICHEAT) — tout est délégué au ClickTracker
    instancié au début de chaque partie :
@@ -31,18 +34,10 @@ export const CLICK_COST = 5;
 export const CLICK_DURATION = 5;
 
 const MODES = {
-  normal:     { label:'Normal',     emoji:'☕', desc:'5 s · 2 clics = 1 🍪 · cap 75 🍪',            duration:5, rewardPerClick:0.5, rewardCap:75, moves:false },
-  rapide:     { label:'Rapide',     emoji:'⚡', desc:'3 s · 2 clics = 1 🍪 · cap 45 🍪 (court intense)', duration:3, rewardPerClick:0.5, rewardCap:45, moves:false },
-  frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 2 clics = 1 🍪 · cap 80 🍪 · cookie bouge', duration:8, rewardPerClick:0.5, rewardCap:80, moves:true },
+  normal:     { label:'Normal',     emoji:'☕', desc:'5 s · 1 clic = 1 🍪 · cap 50 🍪',            duration:5, rewardPerClick:1, rewardCap:50, moves:false },
+  rapide:     { label:'Rapide',     emoji:'⚡', desc:'3 s · 1 clic = 1 🍪 · cap 25 🍪 (court intense)', duration:3, rewardPerClick:1, rewardCap:25, moves:false },
+  frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 1 clic = 1 🍪 · cap 50 🍪 · cookie bouge', duration:8, rewardPerClick:1, rewardCap:50, moves:true },
 };
-
-/* Combos réels — palier → multiplicateur appliqué au reward de chaque
-   clic suivant (jusqu'à la prochaine cassure de combo). */
-const COMBO_TIERS = [
-  { threshold:5,  mul:2, label:'x2 🔥' },
-  { threshold:12, mul:3, label:'x3 ⚡' },
-  { threshold:20, mul:4, label:'x4 💥' },
-];
 
 export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
@@ -228,45 +223,28 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     setPressed(true);
     setTimeout(()=>setPressed(false), 80);
 
-    /* Combo : gap < 250 ms → incrémente, sinon reset à 1. Au passage des
-       paliers (5/12/20), bump du multiplicateur appliqué aux clics suivants. */
-    let curMul = comboMulRef.current;
-    if(now - lastTapRef.current < 250){
-      comboCountRef.current++;
-      for(const tier of COMBO_TIERS){
-        if(comboCountRef.current === tier.threshold){
-          setCombo({ text: tier.label, key: now });
-          curMul = tier.mul;
-          comboMulRef.current = tier.mul;
-          setComboMul(tier.mul);
-        }
-      }
-    } else {
-      comboCountRef.current = 1;
-      /* Combo break — reset multiplier */
-      if(curMul !== 1){
-        comboMulRef.current = 1;
-        curMul = 1;
-        setComboMul(1);
-      }
-    }
-    lastTapRef.current = now;
-
-    /* Reward effectif : +rewardPerClick × mul, capé au rewardCap du mode. */
-    const delta = modeCfg.rewardPerClick * curMul;
+    /* Pas de combo : reward fixe = rewardPerClick (1 par clic).
+       Capé au rewardCap du mode. */
+    const delta = modeCfg.rewardPerClick;
     rewardRef.current = Math.min(rewardRef.current + delta, modeCfg.rewardCap);
     setRewardScore(rewardRef.current);
 
-    /* Particle (montant variable selon mul) */
+    /* Particle */
     const id = now + Math.random();
     const tx = (Math.random() - 0.5) * 80;
-    const popLabel = curMul > 1 ? `+${delta.toFixed(1)} 🍪` : `+${modeCfg.rewardPerClick % 1 === 0 ? modeCfg.rewardPerClick : modeCfg.rewardPerClick.toFixed(1)} 🍪`;
-    setParticles(p => [...p, { id, tx, label: popLabel, mul: curMul }]);
+    const popLabel = `+${modeCfg.rewardPerClick % 1 === 0 ? modeCfg.rewardPerClick : modeCfg.rewardPerClick.toFixed(1)} 🍪`;
+    setParticles(p => [...p, { id, tx, label: popLabel, mul: 1 }]);
     setTimeout(()=>setParticles(p => p.filter(x => x.id !== id)), 800);
 
-    /* Ring (doré si combo actif) */
-    setRings(r => [...r, { id, hot: curMul > 1 }]);
+    /* Ring (doré normal) */
+    setRings(r => [...r, { id, hot: false }]);
     setTimeout(()=>setRings(r => r.filter(x => x.id !== id)), 550);
+
+    /* Auto-end : dès que le cap est atteint, fin immédiate du jeu. */
+    if(rewardRef.current >= modeCfg.rewardCap){
+      if(timerRef.current){ clearInterval(timerRef.current); timerRef.current = null; }
+      endGame();
+    }
   };
 
 
@@ -334,10 +312,6 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
           <div style={{ fontSize:10.5, color:C.muted, textAlign:'center', fontStyle:'italic', lineHeight:1.4 }}>
             {modeCfg.desc}
           </div>
-          {/* Légende combos */}
-          <div style={{ fontSize:10, color:C.muted, lineHeight:1.5, textAlign:'center', padding:'0 8px' }}>
-            🔥 Enchaîne sans pause → combo ×2 (5 taps), ×3 (12), ×4 (20)
-          </div>
         </div>
       )}
 
@@ -356,19 +330,6 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
           whiteSpace:'nowrap',
         }}>
           ⚠️ {warningMessage}
-        </div>
-      )}
-
-      {/* Indicateur combo actif (au-dessus des cartes) */}
-      {phase === 'playing' && comboMul > 1 && (
-        <div style={{
-          padding:'4px 12px', borderRadius:10,
-          background:'linear-gradient(135deg,#FFE066,#D4A017)',
-          color:'#3D2010', fontWeight:900, fontSize:12, letterSpacing:.5,
-          boxShadow:'0 4px 14px rgba(212,160,23,.45)',
-          animation:'pulseRing 1.2s ease-in-out infinite',
-        }}>
-          🔥 Combo ×{comboMul} actif
         </div>
       )}
 
@@ -505,22 +466,6 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
           </div>
         )}
 
-        {/* Badge combo en haut à droite */}
-        {combo && (
-          <div
-            key={combo.key}
-            style={{
-              position:'absolute', top:8, right:8,
-              padding:'6px 12px', borderRadius:14,
-              background:'linear-gradient(135deg,#FFE89A,#D4A017)',
-              color:'#5D3A1F', fontWeight:900, fontSize:14,
-              boxShadow:'0 4px 14px rgba(212,160,23,.55)',
-              zIndex:6, letterSpacing:.5,
-              animation:'popIn .45s cubic-bezier(.36,.07,.19,.97) both'
-            }}
-          >{combo.text}</div>
-        )}
-
         {/* Confettis si record */}
         {showConfetti && (
           <div style={{ position:'absolute', inset:0, pointerEvents:'none', zIndex:7 }}>
@@ -606,7 +551,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
       {/* Tip card */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 Tape sans pause pour enchaîner les combos · <strong style={{ color:'#D4A017' }}>×2/×3/×4</strong> multiplient le reward
+        💡 Tape vite pour atteindre le <strong style={{ color:'#D4A017' }}>cap {modeCfg.rewardCap} 🍪</strong> — partie termine au cap
       </div>
     </div>
   );

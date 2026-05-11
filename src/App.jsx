@@ -1403,6 +1403,42 @@ export default function CookiMiner() {
     try{ window.localStorage.setItem('cookiminer:totalEarnedCapped', '1'); }catch{}
   }, [userName, totalEarned, setTotalEarned]);
 
+  /* ── CAPS rétroactifs abuseurs Cookie Click 11/05/2026 ──────────
+     Le jeu Cookie Click était trop rentable (combos x2/x3/x4 + caps
+     trop hauts → ~7000 🍪/jour). Plusieurs joueurs en ont profité
+     pour monter le classement. Le nerf est en place côté code, mais
+     il reste à recaler les totals déjà gonflés.
+     Lookup par userCode (stable, résistant aux changements de pseudo
+     — aaronxbox a justement contourné l'ancien cap userName en passant
+     de "aaronxbox" à "aaronxbox_288 #1"). Flag LS distinct.
+  ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if(!userCode || !pullDone) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    const CLICK_ABUSE_CAPS = {
+      'X6G-4ZL': { totalCap: 15000, weeklyCap: 5000 },
+      'XN2-Z7M': { totalCap: 15000, weeklyCap: 5000 },
+      '83F-LV2': { totalCap: 8000,  weeklyCap: 5000 },
+      '5H5-ZA6': { totalCap: 7000,  weeklyCap: 5000 },
+      'D99-NN8': { totalCap: 6000,  weeklyCap: 5000 },
+      '7Z4-977': {                  weeklyCap: 5000 },
+    };
+    const caps = CLICK_ABUSE_CAPS[codeUpper];
+    if(!caps) return;
+    const FLAG_KEY = 'cookiminer:clickAbuseCaps_2026_05_11';
+    try{
+      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+      window.localStorage.setItem(FLAG_KEY, '1');
+    }catch{ return; }
+    if(caps.totalCap != null){
+      setTotalEarned(t => Math.min(t || 0, caps.totalCap));
+    }
+    if(caps.weeklyCap != null){
+      setWeeklyEarned(w => Math.min(w || 0, caps.weeklyCap));
+    }
+    showToastRef.current?.(`📊 Total recalibré (équilibrage Cookie Click)`);
+  }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
+
   /* Débits manuels one-shot (rééquilibrage demandé par l'user). Pattern
      jumelé avec TOTAL_EARNED_CAPS — soustrait une valeur fixe au lieu
      de capper. Gate sur `pullDone` pour appliquer APRÈS la sync serveur
@@ -2461,7 +2497,7 @@ export default function CookiMiner() {
     { id:'checkin', Icon:Gift,              title:'Série du jour',       desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C', levelRequired:1 },
     { id:'quiz',    Icon:Star,              title:'Quiz du jour',         desc:'Toutes les 5h', reward:'20 à 60 cookies', avail:canQuiz, color:'#D4A017', levelRequired:1 },
     { id:'spin',    Icon:CircleDot,         title:'Roue de la chance',    desc:`${spinsLeft}/${spinsCap} tours/jour`,       reward:`-100 à +200 cookies (coût ${level>=8?20:10}🍪)`, avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
-    { id:'click',   Icon:MousePointerClick, title:'Cookie Click',         desc:'Tapotez le cookie !',       reward:'1 cookie / 2 clics',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
+    { id:'click',   Icon:MousePointerClick, title:'Cookie Click',         desc:'Tapotez le cookie !',       reward:'1 cookie / clic · cap 25/50',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
     { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520', levelRequired:1 },
     { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies (coût 10🍪)', avail:coins>=10, color:'#A0784E', levelRequired:2 },
     { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc: level >= 10 ? '8 questions café' : '5 questions café', reward:'0 à 100 cookies (coût 10🍪)', avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },

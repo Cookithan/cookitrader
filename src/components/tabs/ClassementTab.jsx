@@ -762,16 +762,16 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
 /* ════════════════════════════════════════════════════
    WeeklyRewardsModal — détails des récompenses du classement
    ────────────────────────────────────────────────────
-   Slide-up depuis le bas. Ouvert au clic sur le bandeau countdown du
-   classement Cookies. Réutilise les keyframes inbox-* (présents dans
-   globalStyles.js).
+   Modale centrée (bi bounce-in). Ouverte au clic sur le bandeau
+   countdown du classement Cookies. Le slide-up depuis le bas était
+   moins lisible sur écran haut (modale collée en bas, peu visible).
 ═══════════════════════════════════════════════════════ */
 function WeeklyRewardsModal({ countdown, onClose, C }){
   const [closing, setClosing] = useState(false);
   const handleClose = () => {
     if(closing) return;
     setClosing(true);
-    setTimeout(onClose, 280);
+    setTimeout(onClose, 200);
   };
   const PODIUM = [
     { rank:1, cafes:3, color:"#FFD24D", label:"🥇 1er", note:"Champion de la semaine" },
@@ -782,23 +782,28 @@ function WeeklyRewardsModal({ countdown, onClose, C }){
     <div
       onClick={handleClose}
       role="dialog"
-      className={closing ? "inbox-overlay-out" : "inbox-overlay-in"}
-      style={{ position:"fixed", inset:0, zIndex:96, display:"flex", alignItems:"flex-end", justifyContent:"center" }}
+      style={{
+        position:"fixed", inset:0, zIndex:96,
+        background:"rgba(15,8,4,.78)",
+        backdropFilter:"blur(6px)",
+        display:"flex", alignItems:"center", justifyContent:"center",
+        padding:18,
+        opacity: closing ? 0 : 1,
+        transition: "opacity .2s ease-out",
+      }}
     >
       <div
         onClick={e => e.stopPropagation()}
-        className={closing ? "inbox-slide-down" : "inbox-slide-up"}
+        className="bi"
         style={{
-          width:"100%", maxWidth:430,
+          width:"100%", maxWidth:380,
           background:C.bg,
-          borderTopLeftRadius:24, borderTopRightRadius:24,
+          borderRadius:24,
           maxHeight:"85vh", display:"flex", flexDirection:"column",
-          boxShadow:"0 -8px 32px rgba(15,8,4,.45)",
-          position:"relative",
+          boxShadow:"0 24px 64px rgba(0,0,0,.45)",
+          overflow:"hidden",
         }}
       >
-        <div style={{ width:40, height:4, background:C.border, borderRadius:2, margin:"10px auto 0", flexShrink:0 }} />
-
         <div style={{ background:ESPRESSO, padding:"18px 22px 16px", textAlign:"center", color:"#fff" }}>
           <div style={{ fontSize:38, lineHeight:1, marginBottom:6 }}>🏆</div>
           <div style={{ fontSize:10, fontWeight:900, letterSpacing:3, textTransform:"uppercase", opacity:.75, marginBottom:3 }}>
