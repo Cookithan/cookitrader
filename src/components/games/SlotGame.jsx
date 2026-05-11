@@ -32,7 +32,7 @@ import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
    consumeSlotGame). Permet à la boutique de gater l'achat du Jeton VIP
    slot tant qu'il reste des parties dispos. */
 
-export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, slotPlaysLeft, slotGamesCap = 50, consumeSlotGame, slotRechargeCost = 2, cafes = 0, onRechargeSlot, C }){
+export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, slotPlaysLeft, slotGamesCap = 50, consumeSlotGame, slotRechargeCost = 1, cafes = 0, onRechargeSlot, C }){
   /* État des 3 rouleaux */
   const [reelStates, setReelStates] = useState([
     { spinning:false, stopping:false, symbol:'?', isWinner:false, isJackpot:false },

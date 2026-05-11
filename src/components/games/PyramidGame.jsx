@@ -96,7 +96,7 @@ function getMovingCupBottomPosition(stackedCups){
   return STACK_BOTTOM + SAUCER_HEIGHT + h + 60;
 }
 
-export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 50, consumePyramidGame, pyramidRechargeCost = 2, cafes = 0, onRechargePyramid, C }){
+export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, C }){
   const [phase,           setPhase]           = useState('intro');     // intro | playing | gameover
   const [mode,            setMode]            = useState('normal');    // sélectionné dans l'intro, lock pendant playing
   const [stackedCups,     setStackedCups]     = useState([]);

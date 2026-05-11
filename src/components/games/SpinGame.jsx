@@ -14,7 +14,7 @@ import { playSound } from "../../lib/audio.js";
    - onJackpot() est appelé si le résultat = +200 (déclenche succès 'jackpot')
 ═══════════════════════════════════════════════════════ */
 
-export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, spinsLeft = Infinity, spinsCap = Infinity, consumeSpin, spinRechargeCost = 2, cafes = 0, onRechargeSpin, C }) {
+export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, spinsLeft = Infinity, spinsCap = Infinity, consumeSpin, spinRechargeCost = 1, cafes = 0, onRechargeSpin, C }) {
   const canvasRef  = useRef(null);
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);

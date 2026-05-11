@@ -210,7 +210,7 @@ export default function CookiMiner() {
      down (récupération) via addSlotPass à l'achat. */
   const [slotGamesToday, setSlotGamesToday] = useLocalStorage('slotGamesToday', 0);
   const [slotGamesDate,  setSlotGamesDate]  = useLocalStorage('slotGamesDate', null);
-  /* Compteur quotidien Pile de Tasses (cap 50, reset à minuit). Recharge
+  /* Compteur quotidien Pile de Tasses (cap 100, reset à minuit). Recharge
      possible via bouton in-game pour 2 ☕ → reset à 0. LS-only pour
      l'instant (pas de sync Supabase) — peut être upgradé plus tard si
      anti-cheat cross-device devient nécessaire. */
@@ -1063,8 +1063,8 @@ export default function CookiMiner() {
   }, [slotGamesDate, setSlotGamesDate, setSlotGamesToday, slotGamesCap]);
 
   /* Pile de Tasses — cap 50/jour, reset minuit, recharge in-game 2 ☕. */
-  const pyramidGamesCap   = 50;
-  const pyramidRechargeCost = 2;     // ☕ pour reset à 0 (= +50 essais)
+  const pyramidGamesCap   = 100;
+  const pyramidRechargeCost = 1;     // ☕ pour reset à 0 (= +100 essais)
   const isFreshPyramidDay = pyramidGamesDate !== todayStr;
   const pyramidEffUsed    = isFreshPyramidDay ? 0 : (pyramidGamesToday || 0);
   const pyramidPlaysLeft  = Math.max(0, pyramidGamesCap - pyramidEffUsed);
@@ -1093,7 +1093,7 @@ export default function CookiMiner() {
 
   /* Recharge in-game pour la Roue (spin) — 2 ☕ → reset compteur à 0.
      Remplace les anciens spin_pass_50/20 vendus dans la boutique premium. */
-  const spinRechargeCost = 2;
+  const spinRechargeCost = 1;
   const rechargeSpin = useCallback(() => {
     if(spinsLeft > 0) return false;
     if(cafes < spinRechargeCost) return false;
@@ -1107,7 +1107,7 @@ export default function CookiMiner() {
 
   /* Recharge in-game pour la Machine à Sous (jackpot) — 2 ☕ → reset à 0.
      Remplace l'ancien slot_pass_50 vendu dans la boutique premium. */
-  const slotRechargeCost = 2;
+  const slotRechargeCost = 1;
   const rechargeSlot = useCallback(() => {
     if(slotPlaysLeft > 0) return false;
     if(cafes < slotRechargeCost) return false;
