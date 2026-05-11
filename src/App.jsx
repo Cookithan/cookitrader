@@ -1431,8 +1431,17 @@ export default function CookiMiner() {
      solde) avec popup d'avertissement. Lookup par userCode (stable).
      Flag LS one-shot, set AVANT le débit (anti F5 race).
      On débite aussi weekly_earned du même montant pour cohérence
-     classement weekly. */
+     classement weekly.
+
+     ⚠️ DÉSACTIVÉ 11/05/2026 — le flag LS étant par-device, des
+     joueurs changeant de device / réinstallant l'app ont été
+     re-sanctionnés (double débit). Sanctions déjà appliquées
+     côté serveur, on n'a plus besoin de re-fire. Si un nouveau
+     joueur doit être sanctionné, on attendra la migration du
+     flag vers Supabase. */
   useEffect(() => {
+    return; // Sanctions code-driven neutralisées — anti double-débit
+    /* eslint-disable no-unreachable */
     if(!userCode || !pullDone) return;
     const codeUpper = (userCode || '').toUpperCase();
     const SANCTIONS = {
@@ -1461,8 +1470,15 @@ export default function CookiMiner() {
      totalEarned/weeklyEarned. Les 3 autres ne sont pas allés au cashout
      (ils détenaient encore le stock), donc shares debit suffit.
      Lookup par userCode (stable), flag LS one-shot par device, set AVANT
-     les opérations (anti F5). */
+     les opérations (anti F5).
+
+     ⚠️ DÉSACTIVÉ 11/05/2026 — flag LS par-device → re-fire au
+     changement de device. Plusieurs joueurs ont reperdu shares
+     et -10000 totalEarned une 2e fois. Sanctions déjà appliquées,
+     on ne re-fire plus. */
   useEffect(() => {
+    return; // Sanctions code-driven neutralisées — anti double-débit
+    /* eslint-disable no-unreachable */
     if(!userCode || !pullDone || !isSupabaseEnabled()) return;
     const codeUpper = (userCode || '').toUpperCase();
     const reasonExploit = "l'abus des packs actions $CKM en cookies (achats répétés)";
@@ -1519,8 +1535,13 @@ export default function CookiMiner() {
      setSanctionApplied se chevauchent et seule la dernière modale
      reste visible. Les 2 débits s'appliquent correctement, juste
      l'explication visuelle peut sauter pour l'un. Le reason ci-dessous
-     mentionne les 2 incidents pour couvrir ce cas. */
+     mentionne les 2 incidents pour couvrir ce cas.
+
+     ⚠️ DÉSACTIVÉ 11/05/2026 — même raison (flag LS par-device).
+     Sanction déjà appliquée, on ne re-fire plus. */
   useEffect(() => {
+    return; // Sanctions code-driven neutralisées — anti double-débit
+    /* eslint-disable no-unreachable */
     if(!userCode || !pullDone) return;
     const codeUpper = (userCode || '').toUpperCase();
     const REFUND_BUG_SANCTIONS = {
@@ -1545,6 +1566,49 @@ export default function CookiMiner() {
       reason: s.reason,
     });
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
+
+  /* ── COMPENSATION double-sanction 11/05/2026 ────────────────────
+     Plusieurs joueurs se sont pris la popup sanction 2 ou 3 fois
+     (flag LS par-device → re-fire au changement de device). On
+     re-crédite les montants perdus en trop :
+       · Mustang (AUY-KJ9, popup vue 2 fois) : popup -1 = +1× la sanction
+         → +135 shares + 15816 totalEarned + 15816 weeklyEarned
+       · Dokiler (lookup userName, popup vue 3 fois) : -1 = +2×
+         → +20000 totalEarned + 20000 weeklyEarned
+     Flag LS distinct des sanctions originales. Set AVANT crédit.
+     ⚠️ Si LS wipé sur un nouveau device, le crédit re-fire — mais
+     comme c'est un crédit (pas un débit), pire cas = sur-crédit.
+  ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if(!userCode || !pullDone) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    const nameUpper = (userName || '').toUpperCase();
+    const COMP_BY_CODE = {
+      'AUY-KJ9': { totalEarned: 15816, weeklyEarned: 15816, shares: 135, pseudo: 'Mustang' },
+    };
+    const COMP_BY_NAME = {
+      'DOKILER': { totalEarned: 20000, weeklyEarned: 20000, shares: 0, pseudo: 'Dokiler' },
+    };
+    const comp = COMP_BY_CODE[codeUpper] || COMP_BY_NAME[nameUpper];
+    if(!comp) return;
+    const FLAG_KEY = 'cookiminer:compensation_2026_05_11_double_sanction';
+    try{
+      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
+      window.localStorage.setItem(FLAG_KEY, '1');
+    }catch{ return; }
+    if(comp.totalEarned) setTotalEarned(t => (t || 0) + comp.totalEarned);
+    if(comp.weeklyEarned) setWeeklyEarned(w => (w || 0) + comp.weeklyEarned);
+    if(comp.shares > 0 && isSupabaseEnabled()){
+      (async () => {
+        const res = await creditFreeShares(userCode, comp.shares);
+        if(!res?.success){
+          // eslint-disable-next-line no-console
+          console.warn('[compensation] creditFreeShares failed:', res?.error);
+        }
+      })();
+    }
+    showToastRef.current?.(`✨ Compensation appliquée pour ${comp.pseudo} : +${comp.totalEarned} 🍪${comp.shares ? ` + ${comp.shares} $CKM` : ''}`);
+  }, [userCode, userName, pullDone, setTotalEarned, setWeeklyEarned]);
 
   /* Refund marché — compensation pour les ex-investisseurs après le
      reset du marché (delete from market_portfolio). On crédite chaque
