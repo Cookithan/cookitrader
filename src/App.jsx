@@ -1430,17 +1430,26 @@ export default function CookiMiner() {
      Lookup par userCode (stable, résistant aux changements de pseudo
      — aaronxbox a justement contourné l'ancien cap userName en passant
      de "aaronxbox" à "aaronxbox_288 #1"). Flag LS distinct.
+
+     ⚠️ Décision 11/05/2026 : la perte est PLAFONNÉE À 40 % MAX du
+     total/weekly courant (le joueur garde au moins 60 % de ce qu'il avait).
+     Le `totalCap` (resp. `weeklyCap`) est utilisé comme cap STRICT seulement
+     s'il ne fait pas tomber le joueur en dessous de 60 % de son montant
+     actuel. Sinon, on s'arrête à 60 %.
+     Concrètement : nouveau = max(cap, current × 0.6), puis min(current, nouveau).
   ────────────────────────────────────────────────────────────── */
   useEffect(() => {
     if(!userCode || !pullDone) return;
     const codeUpper = (userCode || '').toUpperCase();
+    /* Cap UNIQUEMENT sur le total_earned (pas le weekly_earned).
+       Le hebdo reset chaque vendredi 18 h UTC, donc inutile d'y toucher
+       — l'abus se purge tout seul à la prochaine clôture. */
     const CLICK_ABUSE_CAPS = {
-      'X6G-4ZL': { totalCap: 15000, weeklyCap: 5000 },
-      'XN2-Z7M': { totalCap: 15000, weeklyCap: 5000 },
-      '83F-LV2': { totalCap: 8000,  weeklyCap: 5000 },
-      '5H5-ZA6': { totalCap: 7000,  weeklyCap: 5000 },
-      'D99-NN8': { totalCap: 6000,  weeklyCap: 5000 },
-      '7Z4-977': {                  weeklyCap: 5000 },
+      'X6G-4ZL': { totalCap: 15000 },
+      'XN2-Z7M': { totalCap: 15000 },
+      '83F-LV2': { totalCap: 8000  },
+      '5H5-ZA6': { totalCap: 7000  },
+      'D99-NN8': { totalCap: 6000  },
     };
     const caps = CLICK_ABUSE_CAPS[codeUpper];
     if(!caps) return;
@@ -1452,16 +1461,17 @@ export default function CookiMiner() {
       isCancelled: () => cancelled,
       applyFn: () => {
         if(caps.totalCap != null){
-          setTotalEarned(t => Math.min(t || 0, caps.totalCap));
-        }
-        if(caps.weeklyCap != null){
-          setWeeklyEarned(w => Math.min(w || 0, caps.weeklyCap));
+          setTotalEarned(t => {
+            const cur = t || 0;
+            const floor = Math.max(caps.totalCap, Math.floor(cur * 0.6));
+            return Math.min(cur, floor);
+          });
         }
         showToastRef.current?.(`📊 Total recalibré (équilibrage Cookie Click)`);
       },
     });
     return () => { cancelled = true; };
-  }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
+  }, [userCode, pullDone, setTotalEarned]);
 
   /* Débits manuels one-shot (rééquilibrage demandé par l'user). Pattern
      jumelé avec TOTAL_EARNED_CAPS — soustrait une valeur fixe au lieu
@@ -1639,7 +1649,8 @@ export default function CookiMiner() {
        · Mustang (AUY-KJ9, popup vue 2 fois) : -1 = +1× la sanction
          → +135 shares + 15816 totalEarned + 15816 weeklyEarned
        · Dokiler (7Z4-977, popup vue 3 fois) : -1 = +2× la sanction
-         → +100 shares + 20000 totalEarned + 20000 weeklyEarned
+         → +100 shares + 20000 totalEarned (weekly volontairement
+           non compensé pour ne pas exploser le classement hebdo)
      Lookup par userCode (stable). Flag LS distinct des sanctions.
      Set AVANT crédit.
      ⚠️ Si LS wipé sur un nouveau device, le crédit re-fire — mais
@@ -1650,7 +1661,7 @@ export default function CookiMiner() {
     const codeUpper = (userCode || '').toUpperCase();
     const COMP_BY_CODE = {
       'AUY-KJ9': { totalEarned: 15816, weeklyEarned: 15816, shares: 135, pseudo: 'Mustang' },
-      '7Z4-977': { totalEarned: 20000, weeklyEarned: 20000, shares: 100, pseudo: 'Dokiler' },
+      '7Z4-977': { totalEarned: 20000, weeklyEarned: 0,     shares: 100, pseudo: 'Dokiler' },
     };
     const comp = COMP_BY_CODE[codeUpper];
     if(!comp) return;

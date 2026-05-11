@@ -60,6 +60,18 @@ export const PROMO_CODES = {
      qu'un joueur récupère le code via Discord et l'utilise sans
      l'avoir mérité. */
   'BARISTA05': { coins: 0,    cafes: 0, unlock: 'theme_grains', secret: true, label: 'Thème Cookie & Espresso débloqué' },
+
+  /* ── 10 codes thématiques barista (distribuables Discord/réseaux) ── */
+  'ESPRESSO':    { coins: 50,  cafes: 0, label: '☕ Espresso — 50 🍪' },
+  'CAPPUCCINO':  { coins: 80,  cafes: 1, label: '☕ Cappuccino — 80 🍪 + 1 ☕' },
+  'MACCHIATO':   { coins: 60,  cafes: 0, label: '☕ Macchiato — 60 🍪' },
+  'MOKKA':       { coins: 100, cafes: 0, label: '🍫 Mokka — 100 🍪' },
+  'ARABICA':     { coins: 75,  cafes: 0, shares: 1, label: '🌱 Arabica — 75 🍪 + 1 action' },
+  'RISTRETTO':   { coins: 40,  cafes: 0, label: '☕ Ristretto — 40 🍪 (petit mais costaud)' },
+  'BARISTA':     { coins: 0,   cafes: 2, label: '👨‍🍳 Barista — 2 ☕' },
+  'CREMA':       { coins: 90,  cafes: 0, label: '🤎 Crema — 90 🍪' },
+  'GRINDER':     { coins: 50,  cafes: 0, label: '⚙️ Grinder — 50 🍪' },
+  'ROAST':       { coins: 120, cafes: 0, label: '🔥 Roast — 120 🍪' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */
