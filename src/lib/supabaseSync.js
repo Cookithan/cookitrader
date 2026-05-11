@@ -1235,3 +1235,91 @@ export async function syncDailyCounters(userCode, fields){
     await supabase.from('users').update(fields).eq('user_code', userCode);
   }catch{ /* silent — debounce upsert fera le rattrapage */ }
 }
+
+/* ════════════════════════════════════════════════════
+   APPLIED PATCHES — idempotence cross-device
+   ────────────────────────────────────────────────────
+   Avant : chaque useEffect "code-driven" (sanctions, refunds,
+   compensations, caps, débits manuels) utilisait un flag LS par-device.
+   Bug : un joueur changeant de device retrouvait le flag absent et
+   se prenait le patch en double.
+
+   Maintenant : la source de vérité est la table Supabase
+   `applied_patches (user_code, patch_key UNIQUE)`. Au montage, on
+   vérifie côté serveur si le patch a déjà été appliqué pour ce
+   userCode, peu importe le device.
+
+   Pattern d'utilisation dans un useEffect :
+     const already = await isPatchApplied(userCode, KEY);
+     if(already) return;
+     const ok = await markPatchApplied(userCode, KEY);
+     if(!ok) return; // anti race / anti double-apply si network fail
+     applyEffect();
+
+   Backward compat : un flag LS local conservé en parallèle pour le
+   anti F5 sur le même device (et migration douce des anciens flags).
+═══════════════════════════════════════════════════════ */
+export async function isPatchApplied(userCode, patchKey){
+  if(!isSupabaseEnabled() || !userCode || !patchKey) return false;
+  try{
+    const { data, error } = await supabase
+      .from('applied_patches')
+      .select('id')
+      .eq('user_code', userCode)
+      .eq('patch_key', patchKey)
+      .maybeSingle();
+    if(error) return false;
+    return !!data;
+  }catch{ return false; }
+}
+
+export async function markPatchApplied(userCode, patchKey){
+  if(!isSupabaseEnabled() || !userCode || !patchKey) return false;
+  try{
+    const { error } = await supabase
+      .from('applied_patches')
+      .upsert(
+        { user_code: userCode, patch_key: patchKey },
+        { onConflict: 'user_code,patch_key' }
+      );
+    return !error;
+  }catch{ return false; }
+}
+
+/* applyPatchOnce — séquence idempotente complète :
+   1. Check LS local (anti F5 + détection d'un ancien flag pré-migration)
+      → si présent, migre le flag vers Supabase silencieusement et skip.
+   2. Check Supabase (cross-device) — si déjà appliqué, marque le LS local
+      pour éviter ré-interrogation Supabase au prochain mount.
+   3. Mark Supabase AVANT apply — si network fail, skip (anti double-apply
+      cross-device : mieux vaut ne pas appliquer que d'appliquer 2x).
+   4. Appelle applyFn() qui fait le vrai travail (debit/credit/cap).
+
+   Paramètres :
+   - userCode : string (stable)
+   - lsKey : ancienne clé LS pour rétro-compat (ex 'cookiminer:xxx')
+   - patchKey : clé serveur dans applied_patches.patch_key
+   - applyFn : function () => void appelée si le patch doit être appliqué
+   - isCancelled : optionnel, function () => bool pour annuler en cours
+                   (utile dans un useEffect cleanup)
+   Retourne true si applyFn a été appelée, false sinon. */
+export async function applyPatchOnce({ userCode, lsKey, patchKey, applyFn, isCancelled }){
+  if(!userCode || !patchKey || !applyFn) return false;
+  let lsApplied = false;
+  try{ lsApplied = window.localStorage.getItem(lsKey) === '1'; }catch{}
+  if(lsApplied){
+    markPatchApplied(userCode, patchKey).catch(()=>{});
+    return false;
+  }
+  if(await isPatchApplied(userCode, patchKey)){
+    try{ window.localStorage.setItem(lsKey, '1'); }catch{}
+    return false;
+  }
+  if(isCancelled?.()) return false;
+  const marked = await markPatchApplied(userCode, patchKey);
+  if(!marked) return false;
+  try{ window.localStorage.setItem(lsKey, '1'); }catch{}
+  if(isCancelled?.()) return false;
+  applyFn();
+  return true;
+}

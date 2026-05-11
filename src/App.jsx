@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -1382,26 +1382,33 @@ export default function CookiMiner() {
   }, [pendingLvUp]);
 
   /* CAPS FORCÉS — limite max sur totalEarned pour certains joueurs
-     (rééquilibrage classement). Appliqué au 1er chargement après push,
-     puis flag LS pour ne plus retoucher (l'user peut re-progresser
-     depuis le cap sans être recapé en boucle).
-     Pour ajouter un cap : étendre l'objet (pseudo lowercase → max). */
+     (rééquilibrage classement). Source de vérité Supabase
+     (applied_patches) → idempotent cross-device.
+     Pour ajouter un cap : étendre l'objet (pseudo lowercase → max).
+     ⚠️ Lookup userName : pour les nouveaux caps, préférer CLICK_ABUSE_CAPS
+     ci-dessous (lookup userCode plus stable). */
   useEffect(() => {
-    if(!userName) return;
+    if(!userName || !userCode || !pullDone) return;
     const TOTAL_EARNED_CAPS = {
       'aaronxbox': 15000,
     };
     const cap = TOTAL_EARNED_CAPS[userName.trim().toLowerCase()];
     if(!cap) return;
-    try{
-      if(window.localStorage.getItem('cookiminer:totalEarnedCapped') === '1') return;
-    }catch{ return; }
-    if(totalEarned > cap){
-      setTotalEarned(cap);
-      showToastRef.current?.(`📊 Total recalibré à ${cap} 🍪`);
-    }
-    try{ window.localStorage.setItem('cookiminer:totalEarnedCapped', '1'); }catch{}
-  }, [userName, totalEarned, setTotalEarned]);
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:totalEarnedCapped',
+      patchKey: 'totalEarnedCapped_legacy',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        if(totalEarned > cap){
+          setTotalEarned(cap);
+          showToastRef.current?.(`📊 Total recalibré à ${cap} 🍪`);
+        }
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userName, userCode, pullDone, totalEarned, setTotalEarned]);
 
   /* ── CAPS rétroactifs abuseurs Cookie Click 11/05/2026 ──────────
      Le jeu Cookie Click était trop rentable (combos x2/x3/x4 + caps
@@ -1425,18 +1432,23 @@ export default function CookiMiner() {
     };
     const caps = CLICK_ABUSE_CAPS[codeUpper];
     if(!caps) return;
-    const FLAG_KEY = 'cookiminer:clickAbuseCaps_2026_05_11';
-    try{
-      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
-      window.localStorage.setItem(FLAG_KEY, '1');
-    }catch{ return; }
-    if(caps.totalCap != null){
-      setTotalEarned(t => Math.min(t || 0, caps.totalCap));
-    }
-    if(caps.weeklyCap != null){
-      setWeeklyEarned(w => Math.min(w || 0, caps.weeklyCap));
-    }
-    showToastRef.current?.(`📊 Total recalibré (équilibrage Cookie Click)`);
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:clickAbuseCaps_2026_05_11',
+      patchKey: 'clickAbuseCaps_2026_05_11',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        if(caps.totalCap != null){
+          setTotalEarned(t => Math.min(t || 0, caps.totalCap));
+        }
+        if(caps.weeklyCap != null){
+          setWeeklyEarned(w => Math.min(w || 0, caps.weeklyCap));
+        }
+        showToastRef.current?.(`📊 Total recalibré (équilibrage Cookie Click)`);
+      },
+    });
+    return () => { cancelled = true; };
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
 
   /* Débits manuels one-shot (rééquilibrage demandé par l'user). Pattern
@@ -1447,21 +1459,26 @@ export default function CookiMiner() {
      Flag LS unique daté pour ne re-débiter qu'une seule fois (créer une
      nouvelle clé `_vN` pour faire un nouveau débit plus tard). */
   useEffect(() => {
-    if(!userName || !pullDone) return;
+    if(!userName || !userCode || !pullDone) return;
     const lname = userName.trim().toLowerCase();
     const COINS_DEBITS = {
       'cookithan': 4000,
     };
     const ckDebit = COINS_DEBITS[lname] || 0;
     if(!ckDebit) return;
-    const FLAG_KEY = 'cookiminer:manualDebit2026_05_10_cookithan_coins';
-    try{
-      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
-    }catch{ return; }
-    setCoins(c => Math.max(0, (c || 0) - ckDebit));
-    showToastRef.current?.(`📊 Recalibrage : -${ckDebit} 🍪`);
-    try{ window.localStorage.setItem(FLAG_KEY, '1'); }catch{}
-  }, [userName, pullDone, setCoins]);
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:manualDebit2026_05_10_cookithan_coins',
+      patchKey: 'manualDebit_2026_05_10_cookithan_coins',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        setCoins(c => Math.max(0, (c || 0) - ckDebit));
+        showToastRef.current?.(`📊 Recalibrage : -${ckDebit} 🍪`);
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userName, userCode, pullDone, setCoins]);
 
   /* Sanctions administratives — débit forcé du totalEarned (pas du
      solde) avec popup d'avertissement. Lookup par userCode (stable).
@@ -1625,23 +1642,28 @@ export default function CookiMiner() {
     };
     const comp = COMP_BY_CODE[codeUpper];
     if(!comp) return;
-    const FLAG_KEY = 'cookiminer:compensation_2026_05_11_double_sanction';
-    try{
-      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
-      window.localStorage.setItem(FLAG_KEY, '1');
-    }catch{ return; }
-    if(comp.totalEarned) setTotalEarned(t => (t || 0) + comp.totalEarned);
-    if(comp.weeklyEarned) setWeeklyEarned(w => (w || 0) + comp.weeklyEarned);
-    if(comp.shares > 0 && isSupabaseEnabled()){
-      (async () => {
-        const res = await creditFreeShares(userCode, comp.shares);
-        if(!res?.success){
-          // eslint-disable-next-line no-console
-          console.warn('[compensation] creditFreeShares failed:', res?.error);
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:compensation_2026_05_11_double_sanction',
+      patchKey: 'compensation_2026_05_11_double_sanction',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        if(comp.totalEarned) setTotalEarned(t => (t || 0) + comp.totalEarned);
+        if(comp.weeklyEarned) setWeeklyEarned(w => (w || 0) + comp.weeklyEarned);
+        if(comp.shares > 0 && isSupabaseEnabled()){
+          (async () => {
+            const res = await creditFreeShares(userCode, comp.shares);
+            if(!res?.success){
+              // eslint-disable-next-line no-console
+              console.warn('[compensation] creditFreeShares failed:', res?.error);
+            }
+          })();
         }
-      })();
-    }
-    showToastRef.current?.(`✨ Compensation appliquée pour ${comp.pseudo} : +${comp.totalEarned} 🍪${comp.shares ? ` + ${comp.shares} $CKM` : ''}`);
+        showToastRef.current?.(`✨ Compensation appliquée pour ${comp.pseudo} : +${comp.totalEarned} 🍪${comp.shares ? ` + ${comp.shares} $CKM` : ''}`);
+      },
+    });
+    return () => { cancelled = true; };
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
 
   /* Refund marché — compensation pour les ex-investisseurs après le
@@ -1662,20 +1684,21 @@ export default function CookiMiner() {
     };
     const refund = MARKET_REFUND[codeUpper] || 0;
     if(!refund) return;
-    const FLAG_KEY = 'cookiminer:marketRefund2026_05_10';
-    /* Anti double-crédit : on SET le flag LS AVANT d'appliquer le
-       crédit. Si l'user fait F5 entre le crédit et le set du flag,
-       le flag absent ferait re-créditer au prochain mount. En settant
-       d'abord, on garantit l'idempotence. Si le setItem throw (storage
-       full / désactivé), on return sans créditer — mieux que doubler. */
-    try{
-      if(window.localStorage.getItem(FLAG_KEY) === '1') return;
-      window.localStorage.setItem(FLAG_KEY, '1');
-    }catch{ return; }
-    setCoins(c => (c || 0) + refund);
-    /* Modale d'excuses + résumé du fix (au lieu d'un simple toast).
-       Le flag est déjà set, donc fermer ou refresh ne re-déclenche pas. */
-    setMarketRefundAmount(refund);
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:marketRefund2026_05_10',
+      patchKey: 'marketRefund_2026_05_10',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        setCoins(c => (c || 0) + refund);
+        /* Modale d'excuses + résumé du fix (au lieu d'un simple toast).
+           Le patch est déjà marqué Supabase, donc fermer ou refresh ou
+           changer de device ne re-déclenche pas. */
+        setMarketRefundAmount(refund);
+      },
+    });
+    return () => { cancelled = true; };
   }, [userCode, pullDone, setCoins]);
 
   /* ── CLASSEMENT HEBDOMADAIRE — clôture & récompenses top 3 ──
