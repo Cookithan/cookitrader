@@ -13,7 +13,7 @@
    Pour désactiver : repasser à false + redeploy.
 ═══════════════════════════════════════════════════════ */
 
-export const MAINTENANCE_MODE = true;
+export const MAINTENANCE_MODE = false;
 
 /* Whitelist (lookup case-insensitive). PJ3-56A = compte Cookithan. */
 export const MAINTENANCE_BYPASS_USERCODES = ['PJ3-56A'];
