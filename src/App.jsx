@@ -1571,25 +1571,23 @@ export default function CookiMiner() {
      Plusieurs joueurs se sont pris la popup sanction 2 ou 3 fois
      (flag LS par-device → re-fire au changement de device). On
      re-crédite les montants perdus en trop :
-       · Mustang (AUY-KJ9, popup vue 2 fois) : popup -1 = +1× la sanction
+       · Mustang (AUY-KJ9, popup vue 2 fois) : -1 = +1× la sanction
          → +135 shares + 15816 totalEarned + 15816 weeklyEarned
-       · Dokiler (lookup userName, popup vue 3 fois) : -1 = +2×
-         → +20000 totalEarned + 20000 weeklyEarned
-     Flag LS distinct des sanctions originales. Set AVANT crédit.
+       · Dokiler (7Z4-977, popup vue 3 fois) : -1 = +2× la sanction
+         → +100 shares + 20000 totalEarned + 20000 weeklyEarned
+     Lookup par userCode (stable). Flag LS distinct des sanctions.
+     Set AVANT crédit.
      ⚠️ Si LS wipé sur un nouveau device, le crédit re-fire — mais
      comme c'est un crédit (pas un débit), pire cas = sur-crédit.
   ────────────────────────────────────────────────────────────── */
   useEffect(() => {
     if(!userCode || !pullDone) return;
     const codeUpper = (userCode || '').toUpperCase();
-    const nameUpper = (userName || '').toUpperCase();
     const COMP_BY_CODE = {
       'AUY-KJ9': { totalEarned: 15816, weeklyEarned: 15816, shares: 135, pseudo: 'Mustang' },
+      '7Z4-977': { totalEarned: 20000, weeklyEarned: 20000, shares: 100, pseudo: 'Dokiler' },
     };
-    const COMP_BY_NAME = {
-      'DOKILER': { totalEarned: 20000, weeklyEarned: 20000, shares: 0, pseudo: 'Dokiler' },
-    };
-    const comp = COMP_BY_CODE[codeUpper] || COMP_BY_NAME[nameUpper];
+    const comp = COMP_BY_CODE[codeUpper];
     if(!comp) return;
     const FLAG_KEY = 'cookiminer:compensation_2026_05_11_double_sanction';
     try{
@@ -1608,7 +1606,7 @@ export default function CookiMiner() {
       })();
     }
     showToastRef.current?.(`✨ Compensation appliquée pour ${comp.pseudo} : +${comp.totalEarned} 🍪${comp.shares ? ` + ${comp.shares} $CKM` : ''}`);
-  }, [userCode, userName, pullDone, setTotalEarned, setWeeklyEarned]);
+  }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
 
   /* Refund marché — compensation pour les ex-investisseurs après le
      reset du marché (delete from market_portfolio). On crédite chaque
