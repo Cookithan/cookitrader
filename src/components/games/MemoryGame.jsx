@@ -42,6 +42,11 @@ function rewardFor(moves){
   return 5;
 }
 
+/* Durée du "peek" initial (toutes les cartes face visible avant de
+   commencer). 500 ms — assez bref pour rester un challenge, mais
+   permet de balayer les positions une fois. */
+const PEEK_DURATION_MS = 500;
+
 export function MemoryGame({ coins, onEarn, onSpend, C }){
   const [phase,    setPhase]    = useState('idle');     // idle | playing | done
   const [deck,     setDeck]     = useState(()=>shuffledDeck());
@@ -49,7 +54,15 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
   const [matched,  setMatched]  = useState([]);          // ids déjà appariés
   const [shaking,  setShaking]  = useState([]);          // ids en cours de mismatch (anim shake)
   const [moves,    setMoves]    = useState(0);
+  const [peek,     setPeek]     = useState(false);       // toutes les cartes face visible pendant PEEK_DURATION_MS
   const lockRef = useRef(false);                          // bloque les taps pendant l'attente
+  const peekTRef = useRef(null);
+
+  /* Cleanup du timer peek au unmount (sinon un changement de jeu en
+     plein peek pouvait fire le timer après démontage). */
+  useEffect(() => () => {
+    if(peekTRef.current){ clearTimeout(peekTRef.current); peekTRef.current = null; }
+  }, []);
 
   /* Quand la dernière paire est trouvée → fin */
   useEffect(()=>{
@@ -69,8 +82,15 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
     setDeck(shuffledDeck());
     setFlipped([]); setMatched([]); setShaking([]);
     setMoves(0);
-    lockRef.current = false;
+    lockRef.current = true; /* bloqué pendant le peek */
     setPhase('playing');
+    setPeek(true);
+    if(peekTRef.current) clearTimeout(peekTRef.current);
+    peekTRef.current = setTimeout(() => {
+      setPeek(false);
+      lockRef.current = false;
+      peekTRef.current = null;
+    }, PEEK_DURATION_MS);
   };
 
   const replay = () => { playSound('modal'); setPhase('idle'); };
@@ -166,7 +186,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
           const isFlipped = flipped.includes(card.id);
           const isMatched = matched.includes(card.id);
           const isShaking = shaking.includes(card.id);
-          const visible   = isFlipped || isMatched;
+          const visible   = peek || isFlipped || isMatched;
           /* anim cardMatch déclenchée juste après le marquage matched */
           const matchAnim = isMatched ? 'cardMatch .8s ease-out forwards' : 'none';
           const shakeAnim = isShaking ? 'shake .25s ease-in-out 2' : 'none';
@@ -191,7 +211,11 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
                 position:'relative', width:'100%', height:'100%',
                 transformStyle:'preserve-3d',
                 transform: visible ? 'rotateY(180deg)' : 'rotateY(0)',
-                transition:'transform .45s cubic-bezier(.36,.07,.19,.97)',
+                /* Pendant le peek : pas de transition → toutes les
+                   cartes apparaissent en même temps, pas progressivement.
+                   Après le peek (peek=false), la transition reprend
+                   et anime le flip-back fluide. */
+                transition: peek ? 'none' : 'transform .45s cubic-bezier(.36,.07,.19,.97)',
               }}>
                 {/* Face cachée (dos) */}
                 <div style={{
@@ -231,7 +255,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
       {/* Texte d'instruction */}
       <div style={{ minHeight:18, fontSize:13, fontWeight:600, color: phase==='playing' ? '#D4A017' : C.muted, fontStyle: phase==='playing'?'normal':'italic', textAlign:'center' }}>
         {phase === 'idle'    && 'Trouve les 6 paires en un minimum de coups'}
-        {phase === 'playing' && 'Mémorise et associe !'}
+        {phase === 'playing' && (peek ? '👀 Mémorise vite…' : 'Mémorise et associe !')}
         {phase === 'done'    && (completed ? 'Bien joué !' : 'Tu peux mieux faire')}
       </div>
 

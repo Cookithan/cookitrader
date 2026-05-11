@@ -1191,11 +1191,11 @@ export default function CookiMiner() {
     const lv  = lvRef.current;
     const cur = xpRef.current;
 
-    /* Endgame : niveau 16 = palier final. XP accumule de 0 à 20000
-       (cap), pas de café loop, pas de level-up vers 17 — le prestige
-       prend le relais une fois les 20000 XP atteints. */
-    const ENDGAME_XP_CAP = 20000;   // = xpRequired(16)
-    if(lv === 16){
+    /* Endgame : niveau 25 = palier final. XP accumule de 0 à 60000
+       (cap), pas de café loop, pas de level-up vers 26 — le prestige
+       prend le relais une fois les 60000 XP atteints. */
+    const ENDGAME_XP_CAP = 60000;   // = xpRequired(25)
+    if(lv === 25){
       const newXp = Math.min(cur + xpDelta, ENDGAME_XP_CAP);
       setXp(newXp); xpRef.current = newXp;
       return;
@@ -1219,11 +1219,11 @@ export default function CookiMiner() {
     setPendingLvUp(nl);
     playSound('levelup');
     /* Bonus de level-up :
-       - Paliers majeurs (6, 10, 15, 16) → +1 ☕ (les "milestones")
-       - Autres paliers post-6 (7-9, 11-14) → cookies bonus 50+10*nl
+       - Paliers majeurs (6, 10, 15, 20, 25) → +1 ☕ (les "milestones")
+       - Autres paliers post-6 → cookies bonus 50+10*nl
        - Niv 1-5 → cookies bonus 10*nl (inchangé)
        Cuts -45% sur la production de café (rareté demandée). */
-    const isCafeMilestone = (nl === 6 || nl === 10 || nl === 15 || nl === 16);
+    const isCafeMilestone = (nl === 6 || nl === 10 || nl === 15 || nl === 20 || nl === 25);
     if(isCafeMilestone){
       setTimeout(()=>{ setCafes(c=>c+1); }, 700);
     } else if(nl >= 6){
@@ -2272,13 +2272,13 @@ export default function CookiMiner() {
     setShowOnboarding(true);
   };
 
-  /* Prestige (renaissance) — disponible quand niveau 16 atteint avec
-     20000 XP cumulés sur ce palier. Reset les progressions volatiles
+  /* Prestige (renaissance) — disponible quand niveau 25 atteint avec
+     60000 XP cumulés sur ce palier. Reset les progressions volatiles
      (niveau, XP, cookies, totalEarned, streak, clickRecord) et incrémente
      prestigeLevel pour booster le multiplicateur de gains de +10 %.
      Garde tout le reste : items, succès, cafés, actions $CKM, identité, amis. */
   const doPrestige = () => {
-    if(level < 16 || xp < 20000) return;
+    if(level < 25 || xp < 60000) return;
     /* Évite tout bonus level-up flottant */
     setPendingLvUp(null);
     setLevel(1);   lvRef.current = 1;
@@ -2759,10 +2759,10 @@ export default function CookiMiner() {
               );
             })()}
 
-            {/* Carte Prestige — visible quand niveau 16 atteint avec
-                20000 XP cumulés. Renaître = repartir lvl 1 avec un
+            {/* Carte Prestige — visible quand niveau 25 atteint avec
+                60000 XP cumulés. Renaître = repartir lvl 1 avec un
                 multiplicateur permanent. */}
-            {level >= 16 && xp >= 20000 && (
+            {level >= 25 && xp >= 60000 && (
               <button
                 onClick={()=>{ playSound('modal'); setShowPrestigeModal(true); }}
                 className="su"
@@ -2991,6 +2991,41 @@ export default function CookiMiner() {
                 </>
               );
             })()}
+
+            {/* Bandeau Discord — bugs & suggestions communauté.
+                Clic = ouvre invitation Discord dans un nouvel onglet. */}
+            <a
+              href="https://discord.gg/EMDQXDBV39"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => playSound('modal')}
+              style={{
+                display:'flex', alignItems:'center', gap:12,
+                marginTop:18, padding:'13px 14px', borderRadius:16,
+                background:'linear-gradient(135deg, rgba(212,160,23,.10), rgba(193,127,60,.18))',
+                border:'1.5px solid rgba(212,160,23,.45)',
+                boxShadow:'0 4px 14px rgba(212,160,23,.12)',
+                textDecoration:'none', color:'inherit',
+                cursor:'pointer',
+              }}
+            >
+              <div style={{
+                width:42, height:42, borderRadius:12, flexShrink:0,
+                background:'linear-gradient(135deg,#FFE89A,#D4A017)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                fontSize:22,
+                boxShadow:'0 3px 10px rgba(212,160,23,.4)',
+              }}>💬</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13.5, fontWeight:900, color:C.text, letterSpacing:.2 }}>
+                  Un bug ? Une suggestion ?
+                </div>
+                <div style={{ fontSize:11, color:C.muted, marginTop:2, lineHeight:1.4 }}>
+                  Rejoins notre Discord pour nous le dire 🍪
+                </div>
+              </div>
+              <span style={{ fontSize:16, color:'#D4A017', fontWeight:900, flexShrink:0 }}>↗</span>
+            </a>
 
           </div>
         )}

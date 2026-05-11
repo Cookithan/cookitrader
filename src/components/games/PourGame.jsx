@@ -111,8 +111,13 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
     }
   };
 
-  const startHold = () => {
+  const startHold = (e) => {
     if(gameOverRef.current || holdingRef.current) return;
+    /* Pointer capture : verrouille les events pointer sur ce bouton
+       même si le doigt/curseur sort de sa hitbox. Sans ça, un léger
+       glissement (combiné au scale(.96) du bouton quand pressé)
+       déclenchait onPointerLeave → stopHold inopiné. */
+    try{ e?.currentTarget?.setPointerCapture?.(e.pointerId); }catch{}
     setHolding(true); holdingRef.current = true;
     /* Démarre le bruit de café qui coule en loop. Sera coupé soit au
        relâchement du bouton (stopHold → resolveGame), soit au débordement
@@ -370,11 +375,13 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
         </div>
       )}
 
-      {/* Bouton ☕ Maintenir */}
+      {/* Bouton ☕ Maintenir — onPointerLeave retiré : avec setPointerCapture
+          dans startHold, les events restent verrouillés sur ce bouton même
+          si le pointer sort de sa hitbox. Cancel reste pour les coupures
+          système (alerte, lock écran, etc.). */}
       <button
         onPointerDown={startHold}
         onPointerUp={stopHold}
-        onPointerLeave={stopHold}
         onPointerCancel={stopHold}
         disabled={gameOver}
         className={holding ? 'pulse-hold' : ''}

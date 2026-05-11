@@ -30,19 +30,30 @@ export const LEVEL_NAMES = [
   'Gardien des Saveurs',        // 13 — débloque la Machine à Sous
   'Phoenix du Café',            // 14
   'Cookie Originel',            // 15
-  'Ascendant Caféiné',          // 16 — palier endgame : 20000 XP à grinder, café loop actif (1000 XP = 1 ☕), prestige proposé à 20000
+  'Ascendant Caféiné',          // 16
+  'Visionnaire du Café',        // 17
+  'Sage du Cookie',             // 18
+  'Mystique Caféiné',           // 19
+  'Oracle du Café',             // 20
+  'Souverain Cookie',           // 21
+  'Avatar du Café',             // 22
+  'Démiurge Caféiné',           // 23
+  'Légende Cosmique',           // 24
+  'Origine du Cookie',          // 25 — palier endgame final : 60000 XP à grinder, café loop actif, prestige proposé à 60000
 ];
 
 /* XP requise dans le niveau `level` pour passer à `level+1`.
-   Discontinuité volontaire entre 5 et 6 : passage en mode "end-game"
-   où chaque palier débloque +1 ☕ (au lieu de cookies).
-   Niveau 16 : palier endgame final = 20000 XP à grinder, à la fin
-   le prestige (renaissance) est proposé. Pas de niveau 17 — au-delà
-   c'est uniquement le prestige qui fait progresser. */
+   Rééquilibrage 11/05/2026 : avec les jeux gonflés (click + pile +
+   spin + memory), les joueurs montaient au niveau 10 en ~2 jours.
+   - Niv 1-2 : inchangé (onboarding doit rester rapide)
+   - Niv 3-5 : ×1.5
+   - Niv 6-24 : level²×50×1.5  (end-game qui se mérite)
+   - Niv 25 : 60000  (palier final, café loop actif → prestige) */
 export function xpRequired(level){
-  if(level <= 5) return level * 100 + 50;
-  if(level === 16) return 20000;
-  return level * level * 50;
+  if(level <= 2) return level * 100 + 50;
+  if(level <= 5) return Math.round((level * 100 + 50) * 1.5);
+  if(level === 25) return 60000;
+  return Math.round(level * level * 50 * 1.5);
 }
 
 /* Tarif du changement de prénom — le 1er (onboarding) est gratuit,

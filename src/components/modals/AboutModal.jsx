@@ -254,6 +254,27 @@ export function AboutModal({ onClose, C }){
               🔗 Liens
             </div>
 
+            {/* Discord — accès libre, bug reports et suggestions */}
+            <a
+              href="https://discord.gg/EMDQXDBV39"
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                width:'100%',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'11px 13px', borderRadius:11,
+                background:'linear-gradient(135deg, rgba(212,160,23,.10), rgba(193,127,60,.15))',
+                border:'1px solid rgba(212,160,23,.4)',
+                fontSize:13, fontWeight:700, color:C.text,
+                cursor:'pointer', textAlign:'left',
+                textDecoration:'none', boxSizing:'border-box',
+                marginBottom:8,
+              }}
+            >
+              <span>💬 Discord — Bugs & suggestions</span>
+              <span style={{ fontSize:12, color:'#D4A017', fontWeight:800 }}>↗</span>
+            </a>
+
             {!showCodeInput ? (
               <button
                 onClick={() => setShowCodeInput(true)}

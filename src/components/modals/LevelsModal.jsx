@@ -19,7 +19,7 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <div>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>PROGRESSION</div>
-            <div style={{ fontSize:18, fontWeight:800, color:C.text, marginTop:2 }}>Les 16 niveaux</div>
+            <div style={{ fontSize:18, fontWeight:800, color:C.text, marginTop:2 }}>Les 25 niveaux</div>
           </div>
           <button onClick={onClose} aria-label="Fermer" style={{ width:32, height:32, borderRadius:11, background:C.card2, color:C.text, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <ChevronLeft size={18} style={{ transform:'rotate(180deg)' }} />
@@ -27,7 +27,7 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
         </div>
 
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(n => {
+          {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25].map(n => {
             const passed   = n < currentLevel;
             const isCurrent = n === currentLevel;
             const locked   = n > currentLevel;

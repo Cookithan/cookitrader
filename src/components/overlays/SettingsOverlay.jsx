@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy } from "lucide-react";
+import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, LT, GOLD } from "../../data/themes.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
@@ -549,6 +549,47 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             </div>
           </section>
         )}
+
+        {/* Communauté — serveur Discord pour bugs & suggestions */}
+        <section>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>COMMUNAUTÉ</div>
+          <a
+            href="https://discord.gg/EMDQXDBV39"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => playSound('modal')}
+            style={{
+              width:'100%', borderRadius:16,
+              background:C.card, border:`1px solid ${C.border}`,
+              padding:'14px 16px',
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              cursor:'pointer', textAlign:'left',
+              textDecoration:'none', color:'inherit',
+              boxSizing:'border-box',
+            }}
+          >
+            <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+              <div style={{
+                width:38, height:38, borderRadius:10,
+                background:'rgba(212,160,23,.12)',
+                border:'1px solid rgba(212,160,23,.3)',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                flexShrink:0,
+              }}>
+                <MessagesSquare size={18} color="#D4A017" />
+              </div>
+              <div style={{ minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                  Discord — Bugs & suggestions
+                </div>
+                <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                  Rejoins la communauté pour signaler / proposer
+                </div>
+              </div>
+            </div>
+            <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>↗</span>
+          </a>
+        </section>
 
         {/* À propos — version, changelog, stats communauté */}
         {onOpenAbout && (
