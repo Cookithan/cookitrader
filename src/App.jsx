@@ -59,6 +59,8 @@ import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
 import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
 import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from "./lib/audio.js";
+import { MAINTENANCE_MODE, isBypassedFromMaintenance } from "./data/maintenance.js";
+import MaintenanceScreen from "./components/overlays/MaintenanceScreen.jsx";
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -119,6 +121,27 @@ function fmtCompact(n){
 }
 
 export default function CookiMiner() {
+  /* ──────────────────────────────────────────────────────────
+     MAINTENANCE MODE — short-circuit AVANT tout hook React.
+     Lit le userCode directement depuis localStorage (pas via
+     useLocalStorage pour ne pas casser l'ordre des hooks lors
+     d'un early return). Si MAINTENANCE_MODE=true et que le
+     userCode n'est pas whitelisté, on remplace toute l'app
+     par <MaintenanceScreen /> — pas de tick, pas de splash,
+     pas de jeu.
+     Toggle : data/maintenance.js → MAINTENANCE_MODE.
+  ────────────────────────────────────────────────────────── */
+  if(MAINTENANCE_MODE){
+    let lsUserCode = '';
+    try{
+      const raw = window.localStorage.getItem('cookiminer:userCode');
+      if(raw !== null) lsUserCode = JSON.parse(raw);
+    }catch{}
+    if(!isBypassedFromMaintenance(lsUserCode)){
+      return <MaintenanceScreen />;
+    }
+  }
+
   /* Splash screen au lancement (BRIEF_SPLASH) — affiché à chaque
      mount React, donc à chaque ouverture ET à chaque refresh (F5).
      Une simple mise en arrière-plan ne re-mount pas → pas de splash.
