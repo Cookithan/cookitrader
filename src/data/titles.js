@@ -137,6 +137,50 @@ export const TITLE_STYLES = {
     bgSize: '300% 100%',
     duration: 8,
   },
+  /* Niv 17 — Visionnaire : aube céleste, dégradé pâle rose-or-bleu doux,
+     shimmer lent. Halo lavande clair. */
+  title_visionnaire: {
+    name: 'Visionnaire',
+    bg:   'linear-gradient(135deg, #FFE5C8 0%, #F0C8E8 35%, #C8D8F0 70%, #FFE5C8 100%)',
+    color:'#A89CC0',
+    shadow:'rgba(232,200,240,.7)',
+    animation: 'latteShimmer',
+    bgSize: '300% 300%',
+    duration: 5,
+  },
+  /* Niv 19 — Mystique : violet profond mystérieux + argent, vertical,
+     anim flicker (vacillement subtil). Halo violet sombre. */
+  title_mystique: {
+    name: 'Mystique',
+    bg:   'linear-gradient(180deg, #C8B8E8 0%, #6B40A8 50%, #2C144A 100%)',
+    color:'#8870B8',
+    shadow:'rgba(140,80,200,.85)',
+    animation: 'titleFlicker',
+    bgSize: '200% 200%',
+    duration: 3.5,
+  },
+  /* Niv 21 — Souverain : or massif royal + bronze, horizontal,
+     shimmer or qui défile. Halo or vif. */
+  title_souverain: {
+    name: 'Souverain',
+    bg:   'linear-gradient(90deg, #B89060 0%, #FFD680 25%, #FFB840 50%, #FFD680 75%, #B89060 100%)',
+    color:'#C8960C',
+    shadow:'rgba(255,200,80,.85)',
+    animation: 'latteShimmer',
+    bgSize: '300% 100%',
+    duration: 3,
+  },
+  /* Niv 24 — Cosmique Vivant : étoile multi-couleur ultime (or/cyan/magenta/violet),
+     gradient anti-diagonal, titleSpin rapide. Halo magenta vif. */
+  title_cosmique_vivant: {
+    name: 'Cosmique Vivant',
+    bg:   'linear-gradient(45deg, #FFE066 0%, #50D8E8 20%, #E848B0 40%, #7820C8 60%, #50D8E8 80%, #FFE066 100%)',
+    color:'#E848B0',
+    shadow:'rgba(232,72,176,.9)',
+    animation: 'titleSpin',
+    bgSize: '400% 100%',
+    duration: 6,
+  },
 };
 
 /* Helper qui produit le style React à étaler sur un <span>.

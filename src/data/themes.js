@@ -37,6 +37,18 @@ export const THEMES = {
      de or_limite (violet+or royal) — ici palette froide cosmique pure
      sans or. Sparkles. */
   theme_cosmos:    { dark:true, bg:'linear-gradient(140deg,#02000F 0%,#0A0228 22%,#2A0860 45%,#7820B0 60%,#3A0A78 78%,#02000F 100%)', card:'#0F0828', card2:'#1F0840', text:'#F0E0FF', muted:'#B098D8', border:'#5C2890', sparkles:true },
+  /* Niv 17 — Visionnaire : aube céleste pâle (rose-or-bleu doux), gradient
+     léger qui évoque le lever du soleil. Tons clairs apaisants. */
+  theme_visionnaire: { dark:false, bg:'linear-gradient(160deg,#FFE8D8 0%,#FFD0E0 35%,#D8E0FF 70%,#FFE8D8 100%)', card:'#FFF5E8', card2:'#FFE0E8', text:'#5A3A60', muted:'#A89CB8', border:'#E8C8D8' },
+  /* Niv 23 — Démiurge : créateur mystique. Or massif + violet royal profond
+     + accents stellaires. Le théme du dieu-bâtisseur. Sparkles. */
+  theme_demiurge:    { dark:true, bg:'linear-gradient(160deg,#1A0840 0%,#3D1880 30%,#8B6914 60%,#FFD680 75%,#3D1880 90%,#0A0418 100%)', card:'#1F0F40', card2:'#3D1864', text:'#FFE5A0', muted:'#B89AC8', border:'#7C4090', sparkles:true },
+  /* Forge Caféinée (PREMIUM ☕) — palette volcanique LAVE incandescente :
+     croûte basaltique noire → lave qui rougeoie → cœur orange-cuivre
+     bouillonnant → or saturé pour les étincelles. Reste dans la palette
+     café/caramel/or (pas de rouge vif pur), mais pousse les orange-cuivre
+     saturés pour vraiment évoquer la lave. Sparkles = étincelles. */
+  theme_forge:     { dark:true, bg:'linear-gradient(170deg,#0A0402 0%,#1A0805 18%,#4A1A0A 35%,#8B3408 50%,#D85820 62%,#FFA040 72%,#8B3408 85%,#0A0402 100%)', card:'#1F0805', card2:'#3D1404', text:'#FFE8A8', muted:'#C8945C', border:'#A04018', sparkles:true },
 
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements spéciaux,
      impossibles à acheter. Visibles dans la boutique uniquement une fois
@@ -195,6 +207,24 @@ export const COOKIE_SKINS = {
     chip:[{o:'0%',c:'#FFE89A'},{o:'100%',c:'#A07014'}],
     ring:'#5C2480', cracks:'#3D1A6B', icing:false, shine:'rgba(232,213,255,.7)',
     glowColor:'rgba(120,72,184,.7)',
+    pattern:'stars'
+  },
+  /* Niv 20 — Cookie Oracle : multicolore mystique (cyan/violet/or),
+     halo iridescent. Le cookie qui voit l'avenir. */
+  skin_oracle: {
+    body:[{o:'0%',c:'#A8D5FF'},{o:'35%',c:'#8870D8'},{o:'70%',c:'#3D2080'},{o:'100%',c:'#1A0828'}],
+    chip:[{o:'0%',c:'#FFE066'},{o:'100%',c:'#C8960C'}],
+    ring:'#5C3890', cracks:'#3D1A68', icing:false, shine:'rgba(168,213,255,.65)',
+    glowColor:'rgba(168,120,232,.7)',
+    pattern:'stars'
+  },
+  /* Niv 25 — Cookie Origine : ULTIME, gradient or-blanc nacré-violet-cyan,
+     halo prismatique iridescent, icing or scintillant. Le cookie primordial. */
+  skin_origine: {
+    body:[{o:'0%',c:'#FFF5C8'},{o:'25%',c:'#FFD680'},{o:'55%',c:'#E8A8E0'},{o:'80%',c:'#8870E8'},{o:'100%',c:'#4828A8'}],
+    chip:[{o:'0%',c:'#FFFFFF'},{o:'40%',c:'#FFD24D'},{o:'100%',c:'#7820C8'}],
+    ring:'#FFD680', cracks:'rgba(255,213,128,.5)', icing:true, shine:'rgba(255,245,200,.85)',
+    glowColor:'rgba(255,213,128,.9)',
     pattern:'stars'
   },
 };

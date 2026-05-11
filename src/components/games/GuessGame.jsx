@@ -41,8 +41,9 @@ const TIMEOUT_IDX = -1;
      csCustomerWalkIn dans CafeScene.
    - Pas de répétition de question ni de client dans la même partie.
 
-   Récompenses (mêmes paliers, plus dur au niv 10+) :
-     5/5 ou 8/8 → +100  ·  4/5 ou 7/8 → +60  ·  3/5 ou 6/8 → +25  ·  sinon 0
+   Récompenses (mode 7 questions plus gradué au niv 10+) :
+     Mode 5  : 5/5 → +100  ·  4/5 → +60  ·  3/5 → +25  ·  sinon 0
+     Mode 7  : 7/7 → +100  ·  6/7 → +80  ·  5/7 → +45  ·  4/7 → +25  ·  sinon 0
 
    Mode Expert retiré le 09/05/2026 — toutes les questions sont du
    pool unique standard (65 entrées dans commandes.js).
@@ -100,14 +101,15 @@ function pickQuestions(nbQuestions){
   return qs.map(shuffleChoices);
 }
 
-/* Paliers de récompense — adaptés au nb de questions (5 ou 8).
-   Le perfect rapporte 100 dans les 2 modes ; au niv 10+ il faut juste
-   plus de bonnes réponses pour atteindre chaque palier. */
+/* Paliers de récompense — adaptés au nb de questions (5 ou 7).
+   Le perfect rapporte 100 dans les 2 modes. Mode 7 questions plus
+   gradué : 100/80/45/25 (vs 100/60/25 en mode 5). */
 function rewardFor(score, total){
-  if(total === 8){
-    if(score === 8) return 100;
-    if(score === 7) return 60;
-    if(score === 6) return 25;
+  if(total === 7){
+    if(score === 7) return 100;
+    if(score === 6) return 80;
+    if(score === 5) return 45;
+    if(score === 4) return 25;
     return 0;
   }
   if(score === 5) return 100;
@@ -142,9 +144,9 @@ function pickCustomerIndices(n, max){
 }
 
 export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, C }){
-  /* Niveau 10+ : 8 questions par partie au lieu de 5, pour le même
+  /* Niveau 10+ : 7 questions par partie au lieu de 5, pour le même
      palier de récompense (= plus exigeant, pas plus rentable). */
-  const NB_QUESTIONS = level >= 10 ? 8 : 5;
+  const NB_QUESTIONS = level >= 10 ? 7 : 5;
   const [phase,    setPhase]    = useState('idle');         // idle | playing | done
   const [questions,setQuestions]= useState([]);              // commandes tirées
   const [customerIndices, setCustomerIndices] = useState([]); // indices dans CUSTOMERS
@@ -462,8 +464,8 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
         </div>
       )}
 
-      {/* Badge "Défi 8 questions" pour les joueurs niv 10+ */}
-      {NB_QUESTIONS === 8 && phase === 'idle' && (
+      {/* Badge "Défi 7 questions" pour les joueurs niv 10+ */}
+      {NB_QUESTIONS === 7 && phase === 'idle' && (
         <div style={{
           display:'inline-block', padding:'5px 12px', borderRadius:11,
           background:'linear-gradient(135deg,#3D2010,#7D4E1F)',
@@ -471,7 +473,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
           border:'1.5px solid rgba(212,160,23,.5)',
           boxShadow:'0 3px 10px rgba(74,44,23,.35)',
         }}>
-          🎯 Défi 8 questions (niv 10+)
+          🎯 Défi 7 questions (niv 10+)
         </div>
       )}
 
@@ -529,9 +531,13 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
         </button>
       )}
 
-      {/* Tip card — paliers selon le mode (5 ou 8 questions) */}
+      {/* Tip card — paliers selon le mode (5 ou 7 questions) */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 <strong style={{ color:'#D4A017' }}>{NB_QUESTIONS}/{NB_QUESTIONS} = +100 🍪</strong> · {NB_QUESTIONS-1}/{NB_QUESTIONS} = +60 · {NB_QUESTIONS-2}/{NB_QUESTIONS} = +25 · moins = 0
+        {NB_QUESTIONS === 7 ? (
+          <>💡 <strong style={{ color:'#D4A017' }}>7/7 = +100 🍪</strong> · 6/7 = +80 · 5/7 = +45 · 4/7 = +25 · moins = 0</>
+        ) : (
+          <>💡 <strong style={{ color:'#D4A017' }}>5/5 = +100 🍪</strong> · 4/5 = +60 · 3/5 = +25 · moins = 0</>
+        )}
       </div>
     </div>
   );

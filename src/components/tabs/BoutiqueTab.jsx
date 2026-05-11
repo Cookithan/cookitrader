@@ -110,7 +110,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
 
   /* Helper : un item est-il un consommable "Bonus VIP" (jetons jeux +
      boosters café) ? Tous regroupés dans la sous-vue 'jetons' du Premium. */
-  const CONSUMABLE_APPLY_AS = ['spin_pass', 'slot_pass', 'quiz_skip', 'next_game_doubler', 'boost_x2_1h'];
+  const CONSUMABLE_APPLY_AS = ['spin_pass', 'slot_pass', 'quiz_skip', 'next_game_doubler', 'boost_x2_1h', 'boost_x2_24h', 'free_recharges_24h', 'streak_save'];
   const isJeton = (r) => CONSUMABLE_APPLY_AS.includes(r.applyAs);
 
   let visible;
@@ -258,27 +258,29 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </button>
       )}
 
-      {/* Carte d'entrée vers les Jetons VIP (vue main premium uniquement) */}
+      {/* Carte d'entrée vers les Jetons VIP — accent doré discret. */}
       {mode === 'premium' && premiumView === 'main' && (
         <button
           onClick={()=>{ playSound('tab'); setPremiumView('jetons'); }}
           style={{
-            width:'100%', display:'flex', alignItems:'center', gap:14,
-            padding:'14px 16px', borderRadius:16, marginBottom:14,
-            background:`linear-gradient(135deg, ${C.card}, ${C.card2})`,
-            border:'1.5px solid rgba(212,160,23,.45)',
-            boxShadow:'0 4px 14px rgba(74,44,23,.25)',
+            width:'100%', display:'flex', alignItems:'center', gap:12,
+            padding:'12px 14px', borderRadius:14, marginBottom:14,
+            background:'linear-gradient(135deg, rgba(212,160,23,.14), rgba(193,127,60,.20))',
+            border:'1.5px solid rgba(212,160,23,.55)',
+            boxShadow:'0 3px 10px rgba(212,160,23,.18)',
             cursor:'pointer', color:C.text, textAlign:'left',
           }}
         >
-          <div style={{ fontSize:32 }}>🎫</div>
+          <div style={{ fontSize:26 }}>🎫</div>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:13, fontWeight:900, color:C.text, marginBottom:2 }}>Bonus VIP</div>
-            <div style={{ fontSize:11.5, color:C.muted, lineHeight:1.4 }}>
-              Jetons (roue, slot) + boosters (×2 cookies, skip quiz…)
+            <div style={{
+              fontSize:14, fontWeight:900, color:'#D4A017',
+              letterSpacing:.5,
+            }}>
+              Boosts VIP
             </div>
           </div>
-          <ChevronRight size={18} color={C.muted} />
+          <ChevronRight size={18} color="#D4A017" />
         </button>
       )}
 

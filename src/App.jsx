@@ -186,6 +186,14 @@ export default function CookiMiner() {
        x2 sur tous les gains 🍪. Acheté via `boost_x2_1h` (+1 h cumulables). */
   const [nextGameDoubler, setNextGameDoubler] = useLocalStorage('nextGameDoubler', false);
   const [boostUntil,      setBoostUntil]      = useLocalStorage('boostUntil', 0);
+  /* Nouveaux sinks 11/05/2026.
+     - freeRechargesUntil : timestamp ms ; tant que Date.now() < freeRechargesUntil,
+       les recharges Roue/Slot/Pile sont gratuites (pas de débit ☕).
+     - streakSaveCount : nombre de "saves" en stock pour préserver le streak
+       au cas où un jour est manqué. Consommé automatiquement au check-in
+       si lastCheckin antérieur à hier. */
+  const [freeRechargesUntil, setFreeRechargesUntil] = useLocalStorage('freeRechargesUntil', 0);
+  const [streakSaveCount,    setStreakSaveCount]    = useLocalStorage('streakSaveCount', 0);
   /* Cap quotidien Bonus VIP : 1 achat / jour / item. Stocke
      `{ [itemId]: 'Mon May 10 2026' }`. Le check de date se fait à la
      lecture (wasBoughtVipToday) — pas de reset planifié, l'entrée
@@ -1077,47 +1085,51 @@ export default function CookiMiner() {
       setPyramidGamesToday(n => (n || 0) + 1);
     }
   }, [pyramidGamesDate, setPyramidGamesDate, setPyramidGamesToday]);
-  /* Recharge in-game : 2 ☕ → reset compteur à 0 = full 50 essais.
+  /* Recharge in-game : 1 ☕ → reset compteur à 0 = full essais.
+     Gratuite si free_recharges_24h actif (freeRechargesUntil > now).
      Retourne true si OK, false si pas assez de cafés ou pas besoin
      (encore des essais dispo). */
   const rechargePyramid = useCallback(() => {
     if(pyramidPlaysLeft > 0) return false;        /* pas besoin */
-    if(cafes < pyramidRechargeCost) return false; /* pas assez */
-    setCafes(c => c - pyramidRechargeCost);
+    const isFree = freeRechargesUntil && Date.now() < freeRechargesUntil;
+    if(!isFree && cafes < pyramidRechargeCost) return false; /* pas assez */
+    if(!isFree) setCafes(c => c - pyramidRechargeCost);
     const t = new Date().toDateString();
     setPyramidGamesDate(t);
     setPyramidGamesToday(0);
     playSound('success');
     return true;
-  }, [pyramidPlaysLeft, cafes, pyramidRechargeCost, setCafes, setPyramidGamesDate, setPyramidGamesToday]);
+  }, [pyramidPlaysLeft, cafes, pyramidRechargeCost, freeRechargesUntil, setCafes, setPyramidGamesDate, setPyramidGamesToday]);
 
-  /* Recharge in-game pour la Roue (spin) — 2 ☕ → reset compteur à 0.
-     Remplace les anciens spin_pass_50/20 vendus dans la boutique premium. */
+  /* Recharge in-game pour la Roue (spin) — 1 ☕ → reset compteur à 0.
+     Gratuite si free_recharges_24h actif. */
   const spinRechargeCost = 1;
   const rechargeSpin = useCallback(() => {
     if(spinsLeft > 0) return false;
-    if(cafes < spinRechargeCost) return false;
-    setCafes(c => c - spinRechargeCost);
+    const isFree = freeRechargesUntil && Date.now() < freeRechargesUntil;
+    if(!isFree && cafes < spinRechargeCost) return false;
+    if(!isFree) setCafes(c => c - spinRechargeCost);
     const t = new Date().toDateString();
     setSpinsDate(t);
     setSpinsToday(0);
     playSound('success');
     return true;
-  }, [spinsLeft, cafes, spinRechargeCost, setCafes, setSpinsDate, setSpinsToday]);
+  }, [spinsLeft, cafes, spinRechargeCost, freeRechargesUntil, setCafes, setSpinsDate, setSpinsToday]);
 
-  /* Recharge in-game pour la Machine à Sous (jackpot) — 2 ☕ → reset à 0.
-     Remplace l'ancien slot_pass_50 vendu dans la boutique premium. */
+  /* Recharge in-game pour la Machine à Sous — 1 ☕ → reset à 0.
+     Gratuite si free_recharges_24h actif. */
   const slotRechargeCost = 1;
   const rechargeSlot = useCallback(() => {
     if(slotPlaysLeft > 0) return false;
-    if(cafes < slotRechargeCost) return false;
-    setCafes(c => c - slotRechargeCost);
+    const isFree = freeRechargesUntil && Date.now() < freeRechargesUntil;
+    if(!isFree && cafes < slotRechargeCost) return false;
+    if(!isFree) setCafes(c => c - slotRechargeCost);
     const t = new Date().toDateString();
     setSlotGamesDate(t);
     setSlotGamesToday(0);
     playSound('success');
     return true;
-  }, [slotPlaysLeft, cafes, slotRechargeCost, setCafes, setSlotGamesDate, setSlotGamesToday]);
+  }, [slotPlaysLeft, cafes, slotRechargeCost, freeRechargesUntil, setCafes, setSlotGamesDate, setSlotGamesToday]);
 
   const badges     = REWARDS.filter(r=>r.type==='Badge' && unlocked.includes(r.id));
 
@@ -2240,6 +2252,7 @@ export default function CookiMiner() {
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
     setStreak(0); setClickRecord(0); setUnlocked([]); setLegendaryBaristaSeen(false); setPrestigeLevel(0);
     setNextGameDoubler(false); setBoostUntil(0); setVipPurchasesToday({});
+    setFreeRechargesUntil(0); setStreakSaveCount(0);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
     setMarketRealized(0);
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
@@ -2297,13 +2310,33 @@ export default function CookiMiner() {
     playSound('coin');
     addCoins(checkinReward);
     const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 24*60*60*1000).toDateString();
+    /* Streak save : si lastCheckin n'est NI hier NI null, l'user a raté
+       au moins 1 jour. Si on a un save en stock → on consomme et le
+       streak continue ; sinon le streak reset à 1.
+       (Sans cette logique, le streak incrémentait indéfiniment même
+       après plusieurs jours d'absence — équivalent à un bug.) */
+    const missedDay = lastCheckin && lastCheckin !== yesterday && lastCheckin !== today;
+    let usedSave = false;
     setStreak(s => {
-      const next = (s || 0) + 1;
-      /* Push immédiat anti-cheat cross-device — sinon le 5s debounce
-         laisse une fenêtre où l'autre device peut re-check-in. */
+      let next;
+      if(missedDay){
+        if(streakSaveCount > 0){
+          usedSave = true;
+          next = (s || 0) + 1;
+        } else {
+          next = 1; /* reset */
+        }
+      } else {
+        next = (s || 0) + 1;
+      }
       syncDailyCounters(userCode, { streak: next, last_checkin: today });
       return next;
     });
+    if(usedSave){
+      setStreakSaveCount(c => Math.max(0, (c || 0) - 1));
+      showToast(`🛡️ Streak sauvé ! ${(streakSaveCount || 0) - 1} restant`);
+    }
     setLastCheckin(today);
   };
 
@@ -2382,6 +2415,41 @@ export default function CookiMiner() {
       markVipBoughtToday(id);
       playSound('success');
       showToast('⚡ Boost +30 % activé pendant 1 heure !');
+      return;
+    }
+    /* Boost +30 % pendant 24 h — extension long format. Cumulable avec le boost 1h. */
+    if(r.applyAs === 'boost_x2_24h'){
+      if(cafes < r.cost) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const baseFrom = (boostUntil && boostUntil > now) ? boostUntil : now;
+      setBoostUntil(baseFrom + ONE_DAY);
+      playSound('success');
+      showToast('🔥 Boost +30 % activé pendant 24 heures !');
+      return;
+    }
+    /* Recharges gratuites 24 h — Roue/Slot/Pile rechargent sans coût ☕. */
+    if(r.applyAs === 'free_recharges_24h'){
+      if(cafes < r.cost) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const baseFrom = (freeRechargesUntil && freeRechargesUntil > now) ? freeRechargesUntil : now;
+      setFreeRechargesUntil(baseFrom + ONE_DAY);
+      playSound('success');
+      showToast('🔓 Recharges gratuites activées pendant 24 heures !');
+      return;
+    }
+    /* Streak Save — +1 save en stock. Consommé auto au prochain check-in
+       si un jour a été manqué. Pas de cap d'achat (l'user peut en
+       empiler plusieurs). */
+    if(r.applyAs === 'streak_save'){
+      if(cafes < r.cost) return;
+      setCafes(c => Math.max(0, c - r.cost));
+      setStreakSaveCount(c => (c || 0) + 1);
+      playSound('success');
+      showToast(`🛡️ Streak Save ajouté ! ${(streakSaveCount || 0) + 1} en stock`);
       return;
     }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
@@ -2523,10 +2591,11 @@ export default function CookiMiner() {
     { id:'click',   Icon:MousePointerClick, title:'Cookie Click',         desc:'Tapotez le cookie !',       reward:'1 cookie / clic · cap 25/50',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
     { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520', levelRequired:1 },
     { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies (coût 10🍪)', avail:coins>=10, color:'#A0784E', levelRequired:2 },
-    { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc: level >= 10 ? '8 questions café' : '5 questions café', reward:'0 à 100 cookies (coût 10🍪)', avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
+    { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc: level >= 10 ? '7 questions café' : '5 questions café', reward:'0 à 100 cookies (coût 10🍪)', avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
     { id:'reflex',  Icon:Timer,             title:'Réflexes cookies',     desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies (coût 5🍪)', avail:coins>=5, color:'#D4A017', levelRequired:6 },
     { id:'pyramid', Icon:Coffee,            title:'Pile de Tasses',       desc:'Empile sans rater',         reward:'5 à 70 cookies (coût 10🍪)', avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
     { id:'slot',    Icon:Dice5,             title:'Machine à Sous',       desc:'3 rouleaux, gros lots',     reward:'+25 à +750 cookies (coût 20🍪)', avail:coins>=20, color:'#5C3614', levelRequired:10 },
+    { id:'flappy',  Icon:Coffee,            title:'Flappy Cookie',        desc:'Esquive les tuyaux, bondis !', reward:'+3 🍪 / tuyau · cap 200 (coût 10🍪)', avail:coins>=10, color:'#C8945A', levelRequired:12 },
   ];
 
   const s = {
@@ -3187,6 +3256,7 @@ export default function CookiMiner() {
           onQuizEarn={addCoins} onQuizDone={()=>{ const ts = Date.now(); setLastQuiz(ts); syncDailyCounters(userCode, { last_quiz: ts }); }} quizMsLeft={quizMsLeft}
           onSpinEarn={addCoins} onSpend={spendCoins}
           onClickEarn={addCoins} onUpdateRecord={s=>setClickRecord(r=>Math.max(r,s))}
+          onCafeEarn={()=>setCafes(c => (c || 0) + 1)}
           onJackpot={()=>{ triggerAchievement('jackpot'); }}
           onEventChallenge={checkEventChallenge}
           spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin}

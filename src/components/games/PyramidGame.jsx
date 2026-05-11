@@ -16,10 +16,10 @@ import { SingleCup } from "./SingleCup.jsx";
      · Rapide    — vitesse ×2, reward ×2 (cap inchangé → cap atteint + vite)
      · Précision — bonus +2 🍪 si parfait, malus -1 si raté
    - 3 SKINS visuels (classic / caramel / espresso) tirés au hasard par tasse
-   - 3 TASSES SPÉCIALES (apparition aléatoire à partir du score 5) :
+   - 2 TASSES SPÉCIALES (apparition aléatoire à partir du score 5) :
      · Golden  (5 %) — +10 🍪 si bien centrée (overlap > 80 %)
      · Fragile (4 %) — game over si overlap < 50 %, mais +5 🍪 si bien posée
-     · Large   (3 %) — la prochaine tasse mobile reset à pleine largeur
+     (Large retirée le 11/05/2026 — comportement reset-width buggué.)
 
    Économie inchangée (pas de nerf demandé) :
    - COÛT = 10 🍪 par partie · niveau requis 10
@@ -45,7 +45,7 @@ const COST_TO_PLAY       = 10;
    sinon trop loin grâce à la vitesse ×2). */
 const MODES = {
   normal:    { label:'Normal',    emoji:'☕', desc:'Vitesse + reward standard · cap 80 🍪',         speedMul:1.0, rewardMul:1.0, perfectBonus:0, missPenalty:0, rewardCap:80, maxCups:null },
-  rapide:    { label:'Rapide',    emoji:'⚡', desc:'×2 vitesse, ×2 cookies · cap 70 🍪 · max 50 tasses', speedMul:2.0, rewardMul:2.0, perfectBonus:0, missPenalty:0, rewardCap:70, maxCups:50 },
+  rapide:    { label:'Rapide',    emoji:'⚡', desc:'×2 vitesse, ×2 cookies · cap 60 🍪 · fin auto au cap', speedMul:2.0, rewardMul:2.0, perfectBonus:0, missPenalty:0, rewardCap:60, maxCups:50 },
   precision: { label:'Précision', emoji:'🎯', desc:'+2 🍪 parfait, -1 raté · cap 80 🍪',           speedMul:1.0, rewardMul:1.0, perfectBonus:2, missPenalty:1, rewardCap:80, maxCups:null },
 };
 
@@ -61,7 +61,6 @@ const SPECIAL_MIN_SCORE = 5;
 const SPECIAL_SPAWN = [
   { type:'golden',  chance:0.05, bonus:10, alignThreshold:0.80, label:'Tasse dorée — +10 🍪 si bien centrée' },
   { type:'fragile', chance:0.04, bonus:5,  alignThreshold:0.50, label:'Tasse fragile — casse si <50 %, +5 🍪 sinon' },
-  { type:'large',   chance:0.03, bonus:0,  alignThreshold:0,    label:'Tasse large — la prochaine reset à pleine taille' },
 ];
 
 function pickSpecial(score){
@@ -280,6 +279,14 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
     setShowRewardPopup(delta);
     setTimeout(() => setShowRewardPopup(0), 1000);
 
+    /* Fin auto quand le cap de récompense est atteint (mode Rapide
+       principalement — cap 60, on n'incite plus à empiler des tasses
+       qui ne rapportent rien). */
+    if(newReward >= modeCfg.rewardCap){
+      handleGameOver();
+      return;
+    }
+
     if(isPerfect){
       setShowPerfectGlow(true);
       setTimeout(() => setShowPerfectGlow(false), 800);
@@ -475,7 +482,6 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
             </div>
             <div>✨ <strong style={{ color:'#FFE066' }}>Dorée</strong> : +10 🍪 si bien centrée</div>
             <div>💎 <strong style={{ color:'#D8E8F0' }}>Fragile</strong> : casse si {'<'} 50 %, sinon +5 🍪</div>
-            <div>➕ <strong style={{ color:'#88B8E8' }}>Large</strong> : reset la prochaine à pleine taille</div>
           </div>
 
           {/* Bouton principal : Commencer OU Recharger (selon quota) */}
@@ -627,18 +633,28 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
   /* ════════ PLAYING ════════ */
   const movingBottom = movingCup ? getMovingCupBottomPosition(stackedCups) : 0;
 
-  /* Scale dynamique de la game area : quand la pile (+ tasse mobile +
-     vapeur) approche du haut du game area, on dézoome progressivement
-     pour que le sommet reste visible. transform-origin: bottom center
-     pour garder la base de la pile fixe. */
+  /* Scale + suivi caméra de la game area : quand la pile (+ tasse mobile
+     + vapeur) dépasse la zone visible, on dézoome de manière LIMITÉE
+     (min 0.65 pour rester lisible même à 30+ tasses) PUIS on translate
+     la pile vers le bas (la base sort par le bas, cachée par overflow)
+     pour garder le sommet et la tasse mobile toujours visibles.
+     transformOrigin: bottom center → scale n'altère pas la position
+     de la base avant translate. */
   const movingTopHeight = movingCup
     ? movingCup.width * CUP_HEIGHT_RATIO + 50 * (movingCup.width / 100) + 20
     : 0;
   const totalContentHeight = movingBottom + movingTopHeight;
   const SAFE_VISIBLE_HEIGHT = 460;   // game area 520 - tap zone (~60)
-  const stackScale = totalContentHeight > SAFE_VISIBLE_HEIGHT
+  const MIN_STACK_SCALE = 0.65;      // dézoom max (sinon les tasses deviennent illisibles)
+  const naturalScale = totalContentHeight > SAFE_VISIBLE_HEIGHT
     ? SAFE_VISIBLE_HEIGHT / totalContentHeight
     : 1;
+  const stackScale = Math.max(MIN_STACK_SCALE, naturalScale);
+  /* Si après scale on dépasse encore la zone visible (donc on est limité
+     par MIN_STACK_SCALE), on décale la pile vers le bas — le sommet
+     reste à hauteur lisible, la base disparaît hors écran. */
+  const scaledHeight = totalContentHeight * stackScale;
+  const cameraY = Math.max(0, scaledHeight - SAFE_VISIBLE_HEIGHT);
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, paddingTop:6 }}>
@@ -709,10 +725,12 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
           Niveau {score}
         </div>
 
-        {/* Wrapper qui dézoome quand la pile devient trop haute */}
+        {/* Wrapper qui dézoome (limité) + suit le sommet quand la pile
+            devient trop haute. translateY déplace la pile vers le bas
+            pour que le sommet reste visible même avec 30+ tasses. */}
         <div style={{
           position:'absolute', inset:0,
-          transform: `scale(${stackScale})`,
+          transform: `translateY(${cameraY}px) scale(${stackScale})`,
           transformOrigin: 'bottom center',
           transition: 'transform .35s ease-out',
           pointerEvents:'none',

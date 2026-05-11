@@ -90,6 +90,12 @@ export const REWARDS = [
   { id:'badge_connaisseur', name:'Badge Connaisseur', desc:'Tu maîtrises l\'art du café',  cost:600,  type:'Badge', emoji:'🎓', levelRequired:7 },
   { id:'badge_eternel',   name:'Badge Éternel',   desc:'Au-delà de la Légende',         cost:2500, type:'Badge', emoji:'🌟', levelRequired:10 },
   { id:'badge_originel',  name:'Badge Originel',  desc:'Incarnation du premier cookie', cost:4000, type:'Badge', emoji:'✴️', levelRequired:15 },
+  /* Badges niveaux 16-25 (extension endgame). Prix progressifs. */
+  { id:'badge_ascendant', name:'Badge Ascendant', desc:'Tu as transcendé le cookie',     cost:1500, type:'Badge', emoji:'🚀', levelRequired:16 },
+  { id:'badge_sage',      name:'Badge Sage',      desc:'Ta sagesse caféinée éclaire',    cost:2500, type:'Badge', emoji:'📜', levelRequired:18 },
+  { id:'badge_oracle',    name:'Badge Oracle',    desc:'Tu vois au-delà du visible',     cost:3500, type:'Badge', emoji:'🔮', levelRequired:20 },
+  { id:'badge_avatar',    name:'Badge Avatar',    desc:'Incarnation du café absolu',     cost:4500, type:'Badge', emoji:'👁️', levelRequired:22 },
+  { id:'badge_origine',   name:'Badge Origine',   desc:'Le premier cookie en personne',  cost:8000, type:'Badge', emoji:'⚛️', levelRequired:25 },
   // TITRES
   // THÈMES
   { id:'theme_creme',      name:'Thème Cappuccino Mousseux', desc:'Fond rosé crème chaud',     cost:80,   type:'Thème', emoji:'☁️', levelRequired:1 },
@@ -100,6 +106,9 @@ export const REWARDS = [
   { id:'theme_cuir',       name:'Thème Cuir & Espresso',     desc:'Sombre cuir + accents or',    cost:1800, type:'Thème', emoji:'🛋️', levelRequired:11 },
   { id:'theme_elixir',     name:'Thème Élixir Doré',         desc:'Or liquide en fusion',        cost:1500, type:'Thème', emoji:'🧪', levelRequired:12 },
   { id:'theme_renaissance', name:'Thème Renaissance',         desc:'Flammes de phénix orangées',  cost:2500, type:'Thème', emoji:'🔥', levelRequired:14 },
+  /* Thèmes niveaux 17-23 (extension endgame). */
+  { id:'theme_visionnaire', name:'Thème Visionnaire',         desc:'Aube céleste pâle apaisante', cost:3000, type:'Thème', emoji:'🌄', levelRequired:17 },
+  { id:'theme_demiurge',    name:'Thème Démiurge',            desc:'Or massif + violet créateur', cost:5000, type:'Thème', emoji:'⚜️', levelRequired:23 },
   /* Thèmes ÉDITION LIMITÉE (PHASE 6E) — débloqués via événements
      spéciaux uniquement. cost:0, flag `limited:true` + `event:<id>`.
      La boutique les masque tant qu'ils ne sont pas dans `unlocked` ;
@@ -156,6 +165,9 @@ export const REWARDS = [
   { id:'skin_mythique', name:'Cookie Mythique', desc:'Glaçage + halo mythique',     cost:2500, type:'Skin', emoji:'🌟', levelRequired:13 },
   { id:'skin_phoenix',  name:'Cookie Phoenix',  desc:'Flammes ambrées vives',       cost:2700, type:'Skin', emoji:'🔥', levelRequired:14 },
   { id:'skin_originel', name:'Cookie Originel', desc:'Or cosmique + violet',        cost:3500, type:'Skin', emoji:'🪐', levelRequired:15 },
+  /* Skins niveaux 20 et 25 (extension endgame). */
+  { id:'skin_oracle',   name:'Cookie Oracle',   desc:'Multicolore mystique iridescent', cost:4500, type:'Skin', emoji:'🔮', levelRequired:20 },
+  { id:'skin_origine',  name:'Cookie Origine',  desc:'Primordial · or-violet-cyan',     cost:8000, type:'Skin', emoji:'⚛️', levelRequired:25 },
 
   // TITRES COULEUR — effet shimmer sur le pseudo (cf. src/data/titles.js)
   // Sélectionnable depuis Profil. Priorité après Créateur et Légende Vivante.
@@ -168,6 +180,11 @@ export const REWARDS = [
   { id:'title_saveur',   name:'Titre Saveur',   desc:'Dégradé café-épices',     cost:2200, type:'Titre', emoji:'🌶️', levelRequired:13 },
   { id:'title_phenix',   name:'Titre Phénix',   desc:'Flammes ardentes',        cost:2400, type:'Titre', emoji:'🔥', levelRequired:14 },
   { id:'title_cosmique', name:'Titre Cosmique', desc:'Lueur stellaire violette',cost:3500, type:'Titre', emoji:'💜', levelRequired:15 },
+  /* Titres niveaux 17-24 (extension endgame). */
+  { id:'title_visionnaire',     name:'Titre Visionnaire',     desc:'Aube céleste pâle',          cost:2000, type:'Titre', emoji:'🌄', levelRequired:17 },
+  { id:'title_mystique',        name:'Titre Mystique',        desc:'Violet vacillant mystérieux', cost:2800, type:'Titre', emoji:'🔮', levelRequired:19 },
+  { id:'title_souverain',       name:'Titre Souverain',       desc:'Or massif royal',             cost:3500, type:'Titre', emoji:'👑', levelRequired:21 },
+  { id:'title_cosmique_vivant', name:'Titre Cosmique Vivant', desc:'Étoile multi-couleur ultime', cost:5500, type:'Titre', emoji:'🌌', levelRequired:24 },
 
   // PACKS $CKM — crédite N actions instantanément (via creditFreeShares).
   // ONE-SHOT (fix mai 2026 anti-exploit) : ajoutés à `unlocked` après
@@ -177,9 +194,9 @@ export const REWARDS = [
   { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:850, type:'Pack', emoji:'📊', levelRequired:12 },
 
   // SINKS PREMIUM ULTRA — items chers pour justifier le bundle 200 ☕ Stripe (mai 2026)
-  /* Avatar Cosmonaute Caféiné — collectionneur whale (25 ☕). One-shot,
+  /* Avatar Cosmonaute Caféiné — collectionneur whale (15 ☕). One-shot,
      ajouté à unlocked. Géré par la branche items normaux (currency=cafe). */
-  { id:'avatar_cosmonaute', currency:'cafe', applyAs:'avatar', name:'Avatar Cosmonaute Caféiné', desc:'Casque doré, visière mocha, halo cosmique', cost:25, type:'Avatar', emoji:'🧑‍🚀', levelRequired:5 },
+  { id:'avatar_cosmonaute', currency:'cafe', applyAs:'avatar', name:'Avatar Cosmonaute Caféiné', desc:'Casque doré, visière mocha, halo cosmique', cost:15, type:'Avatar', emoji:'🧑‍🚀', levelRequired:5 },
   /* Skin Cookie Galactique — collectionneur whale (15 ☕). Skin avec
      particules cosmiques (palette violet/or). One-shot. */
   { id:'skin_galactique', currency:'cafe', applyAs:'skin', name:'Skin Cookie Galactique', desc:'Halo violet stellaire + chips dorées', cost:7, type:'Skin', emoji:'🔮', levelRequired:5 },
@@ -212,6 +229,12 @@ export const REWARDS = [
   { id:'quiz_skip',          currency:'cafe', applyAs:'quiz_skip',          name:'Skip Quiz',           desc:'Réinitialise instantanément le cooldown du quiz', cost:2, type:'Premium', emoji:'⏭️',  levelRequired:1 },
   { id:'next_game_doubler',  currency:'cafe', applyAs:'next_game_doubler',  name:'Double prochain gain',desc:'Le prochain gain 🍪 d\'un mini-jeu est doublé',    cost:1, type:'Premium', emoji:'🎯',  levelRequired:1 },
   { id:'boost_x2_1h',        currency:'cafe', applyAs:'boost_x2_1h',        name:'Boost +30 % (1 h)',   desc:'Gains 🍪 augmentés de 30 % pendant 1 heure',         cost:5, type:'Premium', emoji:'⚡',  levelRequired:3 },
+
+  /* Nouveaux sinks premium (11/05/2026) — gamme moyenne 5-15 ☕. */
+  { id:'boost_x2_24h',       currency:'cafe', applyAs:'boost_x2_24h',       name:'Boost +30 % (24 h)',  desc:'Gains 🍪 augmentés de 30 % pendant 24 heures',       cost:10, type:'Premium', emoji:'🔥',  levelRequired:3 },
+  { id:'free_recharges_24h', currency:'cafe', applyAs:'free_recharges_24h', name:'Recharges Gratuites (24 h)', desc:'Roue, Slot et Pile rechargent sans coût ☕ pendant 24 h', cost:8, type:'Premium', emoji:'🔓',  levelRequired:3 },
+  { id:'streak_save',        currency:'cafe', applyAs:'streak_save',        name:'Streak Save',         desc:'Sauve ta série de check-ins si tu rates 1 jour',     cost:4, type:'Premium', emoji:'🛡️', levelRequired:2 },
+  { id:'theme_forge',        currency:'cafe', applyAs:'theme',              name:'Thème Forge Caféinée',desc:'Palette volcanique sombre · bordeaux brûlé + or saturé', cost:12, type:'Premium', emoji:'🌋', levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */
