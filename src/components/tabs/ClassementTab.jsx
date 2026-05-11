@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ESPRESSO, GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
@@ -762,9 +763,11 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
 /* ════════════════════════════════════════════════════
    WeeklyRewardsModal — détails des récompenses du classement
    ────────────────────────────────────────────────────
-   Modale centrée (bi bounce-in). Ouverte au clic sur le bandeau
-   countdown du classement Cookies. Le slide-up depuis le bas était
-   moins lisible sur écran haut (modale collée en bas, peu visible).
+   Modale centrée (bi bounce-in), rendue via createPortal dans
+   document.body pour échapper à tout containing block créé par
+   un ancêtre transform/filter/backdrop-filter — sinon le
+   `position:fixed inset:0` devient page-relative au lieu de
+   viewport-relative et la modale tombe en bas du scroll.
 ═══════════════════════════════════════════════════════ */
 function WeeklyRewardsModal({ countdown, onClose, C }){
   const [closing, setClosing] = useState(false);
@@ -778,12 +781,13 @@ function WeeklyRewardsModal({ countdown, onClose, C }){
     { rank:2, cafes:2, color:"#C0C0C0", label:"🥈 2e",  note:"Vice-champion"          },
     { rank:3, cafes:1, color:"#C17F3C", label:"🥉 3e",  note:"Sur le podium"          },
   ];
-  return (
+  if(typeof document === 'undefined') return null;
+  return createPortal((
     <div
       onClick={handleClose}
       role="dialog"
       style={{
-        position:"fixed", inset:0, zIndex:96,
+        position:"fixed", top:0, left:0, right:0, bottom:0, zIndex:9999,
         background:"rgba(15,8,4,.78)",
         backdropFilter:"blur(6px)",
         display:"flex", alignItems:"center", justifyContent:"center",
@@ -869,5 +873,5 @@ function WeeklyRewardsModal({ countdown, onClose, C }){
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }
