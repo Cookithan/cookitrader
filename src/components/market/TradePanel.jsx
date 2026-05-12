@@ -8,6 +8,14 @@ import { buyShares, sellShares, MAX_SHARES_PER_USER, MARKET_CONFIG } from '../..
        ('buy' | 'sell') + cost ou gained + profit (vente). C'est MarketTab
        qui consomme le résultat pour appeler addCoins() puis refresh().
    - max calculé dynamiquement : min(stock dispo, cookies/prix, limite user)
+
+   ── Ordre Bulk $CKM (12/05/2026) ──
+   - bulkTradePasses : nombre de charges "tout vendre/acheter" en stock
+   - onConsumeBulkPass : callback déclenché quand on consomme une charge
+   Quand bulkTradePasses > 0, un bouton "📦 Tout" apparaît sous le sélecteur :
+   - Met la quantité au max théorique (sans cap MAX_SHARES_PER_TX)
+   - Au prochain trade, passe bypassTxCap=true à la lib market
+   - Consomme 1 charge après succès
 ═══════════════════════════════════════════════════════ */
 
 function fmtHM(date) {
@@ -17,11 +25,15 @@ function fmtHM(date) {
   return `${h}h${m}`;
 }
 
-export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, marketStatus, tradingDisabled, C }) {
+export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, marketStatus, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
   const [quantity, setQuantity] = useState(1);
   const [mode, setMode] = useState('buy');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  /* Quand l'user clique sur "Tout" (bulk), on arme un trade qui bypass
+     le cap MAX_SHARES_PER_TX. Le flag est désarmé dès que l'user retouche
+     la quantité (anti gaspillage de charge si changement d'avis). */
+  const [bulkArmed, setBulkArmed] = useState(false);
 
   const price = state?.current_price ?? 100;
   const IPS = MARKET_CONFIG.IMPACT_PER_SHARE;
@@ -55,23 +67,42 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
   const maxSellable = portfolio?.shares ?? 0;
   const isClosed = marketStatus && !marketStatus.open;
 
-  /* Cap au MAX_SHARES_PER_TX (20) : la lib market refuse au-delà avec un
-     message d'erreur. Clic sur "Max" → l'utilisateur veut un trade qui
-     PASSE, pas un nombre théorique qu'il devrait splitter à la main. */
-  const max = Math.min(
-    MARKET_CONFIG.MAX_SHARES_PER_TX,
-    mode === 'buy' ? maxBuyable : maxSellable
-  );
+  /* maxTheorical = max sans cap MAX_SHARES_PER_TX (utilisé pour le bouton
+     "Tout" du bulk pass). Le cap volume quotidien reste actif côté lib. */
+  const maxTheoretical = mode === 'buy' ? maxBuyable : maxSellable;
+  /* maxStandard = avec cap MAX_SHARES_PER_TX appliqué (mode normal). */
+  const maxStandard = Math.min(MARKET_CONFIG.MAX_SHARES_PER_TX, maxTheoretical);
+  /* Si bulk armé, la borne UI est maxTheoretical, sinon maxStandard. */
+  const max = bulkArmed ? maxTheoretical : maxStandard;
   const canTrade = !isClosed && !tradingDisabled && max >= 1 && quantity <= max;
+
+  /* Wrapper pour setQuantity qui désarme automatiquement le bulk si
+     l'user revient à une valeur ≤ cap standard (sinon on lui garde sa
+     charge, il l'a pas consommée). */
+  const updateQuantity = (n) => {
+    setQuantity(n);
+    if (bulkArmed && n <= MARKET_CONFIG.MAX_SHARES_PER_TX) {
+      setBulkArmed(false);
+    }
+  };
+
+  const armBulk = () => {
+    if (bulkTradePasses <= 0) return;
+    if (maxTheoretical < 1) return;
+    setQuantity(maxTheoretical);
+    setBulkArmed(true);
+    setFeedback(null);
+  };
 
   const handleTrade = async () => {
     if (loading || !canTrade) return;
     setLoading(true);
     setFeedback(null);
 
+    const opts = bulkArmed ? { bypassTxCap: true } : {};
     const result = mode === 'buy'
-      ? await buyShares(userCode, quantity)
-      : await sellShares(userCode, quantity);
+      ? await buyShares(userCode, quantity, opts)
+      : await sellShares(userCode, quantity, opts);
 
     setLoading(false);
     if (result.error) {
@@ -84,13 +115,17 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
           : `✓ Vendu ${quantity} action(s) pour ${result.gained} 🍪`
       });
       onTradeSuccess(result);
+      if (bulkArmed) {
+        onConsumeBulkPass?.();
+        setBulkArmed(false);
+      }
       setQuantity(1);
     }
     setTimeout(() => setFeedback(null), 4000);
   };
 
   /* Quick selector values, dédupliqués + filtrés <= max */
-  const quickValues = [...new Set([1, 5, 10, max].filter(v => v >= 1 && v <= max))].slice(0, 4);
+  const quickValues = [...new Set([1, 5, 10, maxStandard].filter(v => v >= 1 && v <= maxStandard))].slice(0, 4);
 
   return (
     <div style={{
@@ -129,7 +164,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
       {/* Tabs Buy/Sell */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
         <button
-          onClick={() => { setMode('buy'); setQuantity(1); setFeedback(null); }}
+          onClick={() => { setMode('buy'); updateQuantity(1); setFeedback(null); setBulkArmed(false); }}
           style={{
             flex: 1,
             padding: '10px',
@@ -145,7 +180,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
           📈 Acheter
         </button>
         <button
-          onClick={() => { setMode('sell'); setQuantity(1); setFeedback(null); }}
+          onClick={() => { setMode('sell'); updateQuantity(1); setFeedback(null); setBulkArmed(false); }}
           style={{
             flex: 1,
             padding: '10px',
@@ -166,10 +201,12 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.muted, marginBottom: 8 }}>
           <span>Quantité</span>
-          <span style={{ color: '#D4A017', fontWeight: 700 }}>Max : {max}</span>
+          <span style={{ color: bulkArmed ? '#FFE89A' : '#D4A017', fontWeight: 700 }}>
+            {bulkArmed ? `📦 Tout : ${maxTheoretical}` : `Max : ${max}`}
+          </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => setQuantity(Math.max(1, quantity - 1))}
+          <button onClick={() => updateQuantity(Math.max(1, quantity - 1))}
             disabled={quantity <= 1}
             style={{
               width: 40, height: 40, borderRadius: 10,
@@ -181,15 +218,16 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
           <input
             type="number"
             value={quantity}
-            onChange={e => setQuantity(Math.max(1, Math.min(Math.max(max, 1), parseInt(e.target.value) || 1)))}
+            onChange={e => updateQuantity(Math.max(1, Math.min(Math.max(max, 1), parseInt(e.target.value) || 1)))}
             style={{
               flex: 1, height: 40, textAlign: 'center',
               fontSize: 18, fontWeight: 800, color: C.text,
-              border: `1.5px solid ${C.border}`, borderRadius: 10,
+              border: `1.5px solid ${bulkArmed ? '#D4A017' : C.border}`, borderRadius: 10,
               background: C.bg,
+              boxShadow: bulkArmed ? '0 0 0 2px rgba(212,160,23,.25)' : 'none',
             }}
           />
-          <button onClick={() => setQuantity(Math.min(Math.max(max, 1), quantity + 1))}
+          <button onClick={() => updateQuantity(Math.min(Math.max(max, 1), quantity + 1))}
             disabled={quantity >= max}
             style={{
               width: 40, height: 40, borderRadius: 10,
@@ -203,17 +241,45 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
           <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
             {quickValues.map(v => (
               <button key={v}
-                onClick={() => setQuantity(v)}
+                onClick={() => updateQuantity(v)}
                 style={{
                   flex: 1, padding: '6px', borderRadius: 8,
-                  background: quantity === v ? '#D4A017' : C.card2,
-                  color: quantity === v ? '#fff' : C.muted,
+                  background: !bulkArmed && quantity === v ? '#D4A017' : C.card2,
+                  color: !bulkArmed && quantity === v ? '#fff' : C.muted,
                   border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer',
                 }}>
-                {v === max && v > 10 ? 'MAX' : v}
+                {v === maxStandard && v > 10 ? 'MAX' : v}
               </button>
             ))}
           </div>
+        )}
+
+        {/* Bouton bulk "Tout" — visible uniquement si l'user a des charges
+            ET que le bulk apporte une valeur (maxTheoretical > cap standard). */}
+        {bulkTradePasses > 0 && maxTheoretical > MARKET_CONFIG.MAX_SHARES_PER_TX && (
+          <button
+            onClick={armBulk}
+            disabled={bulkArmed || maxTheoretical < 1}
+            style={{
+              width:'100%', marginTop:8,
+              padding:'10px 12px', borderRadius:10,
+              background: bulkArmed
+                ? 'linear-gradient(135deg,#D4A017,#A07514)'
+                : 'rgba(212,160,23,.12)',
+              color: bulkArmed ? '#fff' : '#D4A017',
+              border: bulkArmed
+                ? '1.5px solid #D4A017'
+                : '1.5px solid rgba(212,160,23,.4)',
+              fontSize:12, fontWeight:800, letterSpacing:.3,
+              cursor: bulkArmed ? 'default' : 'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+              touchAction:'manipulation',
+            }}
+          >
+            📦 {bulkArmed
+              ? `Bulk armé : ${maxTheoretical} action${maxTheoretical > 1 ? 's' : ''} (-1 charge à la confirmation)`
+              : `Tout ${mode === 'buy' ? 'acheter' : 'vendre'} (${maxTheoretical}) · stock ${bulkTradePasses} 📦`}
+          </button>
         )}
       </div>
 

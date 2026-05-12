@@ -159,14 +159,19 @@ export const GLOBAL_CSS = `
   .splash-dot:nth-child(2){animation-delay:.15s}
   .splash-dot:nth-child(3){animation-delay:.3s}
   @keyframes splashDotPulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
-  /* Transition tabs : la nouvelle page rentre depuis 100% du côté
-     opposé au swipe, avec un easing iOS-like (cubic-bezier qui démarre
-     vite et finit doucement). Pas d'opacity fade — c'est un mouvement
-     pur, comme dans un carrousel natif. 320ms = sensation premium. */
-  @keyframes tabSlideInRight{from{transform:translate3d(100%,0,0)}to{transform:translate3d(0,0,0)}}
-  @keyframes tabSlideInLeft{from{transform:translate3d(-100%,0,0)}to{transform:translate3d(0,0,0)}}
-  .tab-slide-in-right{animation:tabSlideInRight .32s cubic-bezier(.22,.61,.36,1) both;will-change:transform}
-  .tab-slide-in-left{animation:tabSlideInLeft .32s cubic-bezier(.22,.61,.36,1) both;will-change:transform}
+  /* Transition tabs (cross-translate) : la page sortante glisse hors
+     écran EN MÊME TEMPS que la page entrante glisse depuis le bord
+     opposé. Les deux pages sont visibles simultanément pendant ~320ms
+     → effet carousel natif, pas de vide entre les deux. Easing iOS-like
+     (vite au début, doux à la fin). translate3d + will-change pour GPU. */
+  @keyframes tabSlideInRight  { from{transform:translate3d(100%,0,0)}  to{transform:translate3d(0,0,0)} }
+  @keyframes tabSlideInLeft   { from{transform:translate3d(-100%,0,0)} to{transform:translate3d(0,0,0)} }
+  @keyframes tabSlideOutLeft  { from{transform:translate3d(0,0,0)} to{transform:translate3d(-100%,0,0)} }
+  @keyframes tabSlideOutRight { from{transform:translate3d(0,0,0)} to{transform:translate3d(100%,0,0)}  }
+  .tab-slide-in-right  { animation:tabSlideInRight  .32s cubic-bezier(.22,.61,.36,1) both; will-change:transform }
+  .tab-slide-in-left   { animation:tabSlideInLeft   .32s cubic-bezier(.22,.61,.36,1) both; will-change:transform }
+  .tab-slide-out-left  { animation:tabSlideOutLeft  .32s cubic-bezier(.22,.61,.36,1) both; will-change:transform }
+  .tab-slide-out-right { animation:tabSlideOutRight .32s cubic-bezier(.22,.61,.36,1) both; will-change:transform }
 
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}

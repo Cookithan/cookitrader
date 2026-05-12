@@ -6,26 +6,29 @@ import { ClickTracker } from "../../lib/antiCheat.js";
 import { playSound } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
-   ClickGame — défi de clics (nerf 11/05/2026)
+   ClickGame — défi de clics (refonte 12/05/2026)
    ────────────────────────────────────────────────────
    - COST = 5 🍪 par partie · cap 100 essais/jour (recharge 2 ☕)
-   - RÈGLE : 1 clic = 1 🍪 (rewardPerClick = 1 partout)
+   - RÈGLE : 2 clics = 1 🍪 (rewardPerClick = 0.5)
+   - PAS DE CAP COOKIES sur la partie — l'auto-cheat est borné via
+     l'anticheat (15 CPS × durée mode).
    - 3 MODES sélectionnables avant chaque partie :
-     · Normal       — 5 s · cap 50 🍪
-     · Rapide       — 3 s · cap 25 🍪 (session courte)
-     · Frénétique   — 8 s · cap 50 🍪 (cookie qui bouge)
-   - PAS DE COMBOS — retirés le 11/05/2026 (le jeu était trop
-     rentable avec ×4 : ~7000 🍪/jour vs ~2500 pour les autres).
-   - AUTO-END : dès que le cap du mode est atteint, le jeu se
-     termine immédiatement (récompense pleine, plus de risque
-     d'over-grind).
+     · Normal       — 5 s · 2 clics = 1 🍪
+     · Rapide       — 3 s · 2 clics = 1 🍪 (court intense)
+     · Frénétique   — 8 s · 2 clics = 1 🍪 · cookie qui bouge
 
-   Anti auto-clicker (BRIEF_ANTICHEAT) — tout est délégué au ClickTracker
-   instancié au début de chaque partie :
-   - Cap dur 15 CPS (fenêtre glissante 1 s)
-   - Score max 150 clics par partie
-   - Détection de pattern bot (variance des intervalles < 5 ms sur 10 clics)
+   Anti auto-clicker — délégué au ClickTracker refondu (12/05/2026) :
+   - isTrusted check (filtre les events synthétiques JS)
+   - Cap glissant 15 CPS
+   - Variance de coordonnées (auto-clic stationnaire)
+   - Pattern bot (intervalle régulier serré)
+   - Visibility check (page en arrière-plan)
+   - Score max 300 clics/partie
    Les clics rejetés ne sont pas comptés ni animés.
+
+   Sync timer ↔ barre : tick toutes les 100 ms (timeLeft float),
+   barre sans transition CSS → barre et compteur restent toujours
+   alignés visuellement.
 ═══════════════════════════════════════════════════════ */
 
 export const CLICK_COST = 5;
@@ -34,9 +37,9 @@ export const CLICK_COST = 5;
 export const CLICK_DURATION = 5;
 
 const MODES = {
-  normal:     { label:'Normal',     emoji:'☕', desc:'5 s · 1 clic = 1 🍪 · cap 50 🍪',            duration:5, rewardPerClick:1, rewardCap:50, moves:false },
-  rapide:     { label:'Rapide',     emoji:'⚡', desc:'3 s · 1 clic = 1 🍪 · cap 25 🍪 (court intense)', duration:3, rewardPerClick:1, rewardCap:25, moves:false },
-  frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 1 clic = 1 🍪 · cap 50 🍪 · cookie bouge', duration:8, rewardPerClick:1, rewardCap:50, moves:true },
+  normal:     { label:'Normal',     emoji:'☕', desc:'5 s · 2 clics = 1 🍪',                                       duration:5, rewardPerClick:0.5, moves:false, moveIntervalMs:0,    cookieSize:'88%', moveRange:[50,50] },
+  rapide:     { label:'Rapide',     emoji:'⚡', desc:'3 s · 2 clics = 1 🍪 (court intense)',                       duration:3, rewardPerClick:0.5, moves:false, moveIntervalMs:0,    cookieSize:'88%', moveRange:[50,50] },
+  frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 1 clic = 1 🍪 · cookie petit + bouge vite (×2 reward)', duration:8, rewardPerClick:1.0, moves:true,  moveIntervalMs:700,  cookieSize:'35%', moveRange:[15,85] },
 };
 
 export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
@@ -45,6 +48,18 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
   const [mode,          setMode]          = useState('normal');
   const modeCfg = MODES[mode] || MODES.normal;
+
+  /* Popup prévention anti-triche — pop ONE-SHOT au 1er accès du jeu
+     après la MAJ du 12/05/2026. Sert de signal dissuasif : informer
+     les joueurs que les autoclickers sont détectés. Flag LS pour
+     ne pas re-pop ensuite. */
+  const [showAntiCheatNotice, setShowAntiCheatNotice] = useState(() => {
+    try{ return localStorage.getItem('cookiminer:antiCheatNoticeV1') !== '1'; }catch{ return false; }
+  });
+  const dismissAntiCheatNotice = () => {
+    setShowAntiCheatNotice(false);
+    try{ localStorage.setItem('cookiminer:antiCheatNoticeV1', '1'); }catch{}
+  };
 
   const [phase,         setPhase]         = useState('idle');     // idle | countdown | playing | done
   const [clicks,        setClicks]        = useState(0);
@@ -105,11 +120,11 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     /* Stop tous les timers liés au playing */
     if(cookieMoveRef.current){ clearInterval(cookieMoveRef.current); cookieMoveRef.current = null; }
 
-    /* Score fiable : `clicks` validés via tracker (max 150). */
+    /* Score fiable : `clicks` validés via tracker (max 300). */
     const finalClicks = trackerRef.current ? trackerRef.current.getValidScore() : clickRef.current;
-    /* Reward final = rewardRef accumulé via les clics + bonus spéciaux,
-       capé au cap du mode actif. */
-    const earned = Math.max(0, Math.min(Math.floor(rewardRef.current), MODES[modeRef.current].rewardCap));
+    /* Reward final = floor(rewardRef accumulé). Plus de cap par mode —
+       l'anticheat borne naturellement (15 CPS max × durée). */
+    const earned = Math.max(0, Math.floor(rewardRef.current));
     if(earned > 0) onEarn(earned);
     if(finalClicks > bestScore){
       onUpdateRecord(finalClicks);
@@ -158,26 +173,33 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
         clearInterval(countdownRef.current);
         setCountdownVal(null);
         setPhase('playing');
-        /* Timer principal (1s tick, durée selon mode) */
+        /* Timer principal — tick 100 ms avec timeLeft float pour que la
+           barre de progression et le compteur de secondes restent
+           parfaitement synchronisés visuellement. */
         timerRef.current = setInterval(()=>{
           setTimeLeft(t=>{
-            if(t <= 1){
+            const next = +(t - 0.1).toFixed(2);
+            if(next <= 0){
               clearInterval(timerRef.current);
               endGame();
               return 0;
             }
-            return t - 1;
+            return next;
           });
-        }, 1000);
-        /* Mode frénétique : déplace le cookie toutes les 2s */
-        if(MODES[modeRef.current].moves){
+        }, 100);
+        /* Mode frénétique : déplace le cookie selon moveIntervalMs.
+           range = [min, max] en % du conteneur (centre du cookie). */
+        const cfg = MODES[modeRef.current];
+        if(cfg.moves && cfg.moveIntervalMs > 0){
+          const [rMin, rMax] = cfg.moveRange || [30, 70];
+          const span = rMax - rMin;
           cookieMoveRef.current = setInterval(() => {
             if(phaseRef.current !== 'playing') return;
             setCookiePos({
-              x: 30 + Math.random() * 40,
-              y: 30 + Math.random() * 40,
+              x: rMin + Math.random() * span,
+              y: rMin + Math.random() * span,
             });
-          }, 2000);
+          }, cfg.moveIntervalMs);
         }
       }
     }, 800);
@@ -200,10 +222,10 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     if(e && e.preventDefault) e.preventDefault();
     if(!trackerRef.current) return;
 
-    /* Délégation au ClickTracker : 15 CPS max + cap 150 + détection
-       pattern bot. Si le clic est rejeté on n'incrémente rien et on
-       affiche un warning si c'est de la triche. */
-    const result = trackerRef.current.registerClick();
+    /* Délégation au ClickTracker refondu (12/05/2026) — on passe
+       l'event pour activer les vérifs isTrusted + coords. Si rejeté
+       et de la triche, on affiche un warning éphémère. */
+    const result = trackerRef.current.registerClick(e);
     if(!result.accepted){
       if(result.isCheat){
         setWarningMessage(result.reason);
@@ -218,38 +240,43 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
     const now = Date.now();
     playSound('tap');
-    clickRef.current += 1;
-    setClicks(c => c + 1);
+    const newClickCount = clickRef.current + 1;
+    clickRef.current = newClickCount;
+    setClicks(newClickCount);
     setPressed(true);
     setTimeout(()=>setPressed(false), 80);
 
-    /* Pas de combo : reward fixe = rewardPerClick (1 par clic).
-       Capé au rewardCap du mode. */
+    /* Accumule rewardPerClick (0.5 ou 1.0 selon mode). On affiche
+       une particule uniquement quand le floor() augmente — adaptatif
+       au reward par clic : 2-clics-pour-1🍪 (normal/rapide) → 1 particule
+       tous les 2 clics ; 1-clic-pour-1🍪 (frénétique) → 1 particule
+       chaque clic. */
     const delta = modeCfg.rewardPerClick;
-    rewardRef.current = Math.min(rewardRef.current + delta, modeCfg.rewardCap);
+    const prevFloor = Math.floor(rewardRef.current);
+    rewardRef.current = rewardRef.current + delta;
     setRewardScore(rewardRef.current);
-
-    /* Particle */
-    const id = now + Math.random();
-    const tx = (Math.random() - 0.5) * 80;
-    const popLabel = `+${modeCfg.rewardPerClick % 1 === 0 ? modeCfg.rewardPerClick : modeCfg.rewardPerClick.toFixed(1)} 🍪`;
-    setParticles(p => [...p, { id, tx, label: popLabel, mul: 1 }]);
-    setTimeout(()=>setParticles(p => p.filter(x => x.id !== id)), 800);
-
-    /* Ring (doré normal) */
-    setRings(r => [...r, { id, hot: false }]);
-    setTimeout(()=>setRings(r => r.filter(x => x.id !== id)), 550);
-
-    /* Auto-end : dès que le cap est atteint, fin immédiate du jeu. */
-    if(rewardRef.current >= modeCfg.rewardCap){
-      if(timerRef.current){ clearInterval(timerRef.current); timerRef.current = null; }
-      endGame();
+    const newFloor = Math.floor(rewardRef.current);
+    const gained = newFloor - prevFloor;
+    if(gained > 0){
+      const id = now + Math.random();
+      const tx = (Math.random() - 0.5) * 80;
+      setParticles(p => [...p, { id, tx, label: `+${gained} 🍪`, mul: 1 }]);
+      setTimeout(()=>setParticles(p => p.filter(x => x.id !== id)), 800);
     }
+
+    /* Ring (doré normal) à chaque clic — feedback visuel constant. */
+    const rid = now + Math.random();
+    setRings(r => [...r, { id: rid, hot: false }]);
+    setTimeout(()=>setRings(r => r.filter(x => x.id !== rid)), 550);
   };
 
 
   const urgentTime = phase === 'playing' && timeLeft <= 3;
   const timeColor  = urgentTime ? '#6B3D20' : C.text;
+  /* Display arrondi vers le HAUT — au tick 5.0 on voit "5", à 4.9 on voit
+     toujours "5", on tombe à "4" exactement quand timeLeft passe sous 4.0.
+     → barre et compteur affichent la même seconde. */
+  const timeDisplay = phase === 'playing' ? Math.ceil(timeLeft) : Math.round(timeLeft);
 
   /* Bouton central */
   const canPlay = coins >= CLICK_COST;
@@ -260,7 +287,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   :                         `Rejouer (${CLICK_COST} 🍪)`;
 
   /* Bannière de fin */
-  const earnedFinal = Math.max(0, Math.min(Math.floor(rewardRef.current), modeCfg.rewardCap));
+  const earnedFinal = Math.max(0, Math.floor(rewardRef.current));
   const cps = (clicks / modeCfg.duration).toFixed(1);
   const banner = phase === 'done'
     ? (recordHit
@@ -273,6 +300,72 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14, paddingTop:6, position:'relative' }}>
+
+      {/* POPUP PRÉVENTION ANTI-TRICHE (one-shot, LS flag) */}
+      {showAntiCheatNotice && (
+        <div
+          role="alertdialog"
+          onClick={dismissAntiCheatNotice}
+          style={{
+            position:'fixed', inset:0, zIndex:9000,
+            background:'rgba(15,8,4,.78)',
+            backdropFilter:'blur(8px)',
+            WebkitBackdropFilter:'blur(8px)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            padding:'24px',
+            animation:'inboxOverlayIn .25s ease-out both',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width:'100%', maxWidth:340,
+              background:'linear-gradient(180deg,#2A1408 0%,#1A0A04 100%)',
+              borderRadius:20,
+              padding:'22px 20px 18px',
+              textAlign:'center',
+              boxShadow:'0 16px 40px rgba(0,0,0,.5)',
+              border:'1px solid rgba(212,160,23,.35)',
+              animation:'bounceIn .5s cubic-bezier(.36,.07,.19,.97) both',
+              color:'#F0E6D3',
+            }}
+          >
+            <div style={{ fontSize:38, lineHeight:1, marginBottom:8 }}>🛡️</div>
+            <div style={{
+              fontSize:11, letterSpacing:3, textTransform:'uppercase',
+              fontWeight:800, color:'#D4A017', marginBottom:6,
+            }}>
+              Anti-triche actif
+            </div>
+            <div style={{
+              fontSize:17, fontWeight:900, color:'#FFE8A8',
+              marginBottom:12, lineHeight:1.25,
+            }}>
+              Pas d'autoclicker ici 🚫
+            </div>
+            <div style={{
+              fontSize:13, color:'#A88B70', lineHeight:1.55, marginBottom:18,
+            }}>
+              Les logiciels d'auto-clic et les scripts sont <strong style={{ color:'#FFE8A8' }}>détectés et bloqués</strong>.
+              Tape normalement avec ton doigt ou ta souris — c'est jouable jusqu'à <strong style={{ color:'#FFE8A8' }}>~20 clics/sec</strong> à la main.
+            </div>
+            <button
+              onClick={dismissAntiCheatNotice}
+              style={{
+                width:'100%', padding:'12px 20px',
+                background:GOLD, color:'#fff',
+                border:'none', borderRadius:12,
+                fontSize:14, fontWeight:800, letterSpacing:.3,
+                cursor:'pointer',
+                boxShadow:'0 4px 14px rgba(212,160,23,.4)',
+                touchAction:'manipulation',
+              }}
+            >
+              OK, j'ai compris
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sélecteur de mode + compteur quota — visible uniquement en idle */}
       {phase === 'idle' && (
@@ -344,7 +437,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
           style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${urgentTime?'#6B3D20':C.border}`, textAlign:'center', boxShadow:'0 2px 8px rgba(0,0,0,.04)', transition:'border-color .25s', animation: urgentTime ? 'shake .25s ease-in-out infinite' : 'none' }}
         >
           <div style={{ fontSize:11 }}>⏱️</div>
-          <div style={{ fontSize:22, fontWeight:900, color: timeColor, letterSpacing:'-.5px', lineHeight:1.1 }}>{timeLeft}<span style={{ fontSize:13, color:C.muted, fontWeight:700 }}>s</span></div>
+          <div style={{ fontSize:22, fontWeight:900, color: timeColor, letterSpacing:'-.5px', lineHeight:1.1 }}>{timeDisplay}<span style={{ fontSize:13, color:C.muted, fontWeight:700 }}>s</span></div>
           <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Temps</div>
         </div>
         <div
@@ -356,15 +449,18 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
         </div>
       </div>
 
-      {/* Barre de temps */}
+      {/* Barre de temps — sync absolu avec le compteur de secondes.
+          Tick state toutes les 100 ms (timeLeft float) → la largeur
+          rerender en continu sans CSS transition (qui causait avant
+          un décalage visuel entre la barre et le chiffre). */}
       <div style={{ width:'100%', maxWidth:360, height:6, borderRadius:3, background:C.card2, overflow:'hidden', border:`1px solid ${C.border}` }}>
         <div style={{
           height:'100%', borderRadius:3,
-          width: `${(timeLeft / modeCfg.duration) * 100}%`,
+          width: `${Math.max(0, Math.min(100, (timeLeft / modeCfg.duration) * 100))}%`,
           background: urgentTime
             ? 'linear-gradient(90deg, #4A2C17, #6B3D20)'
             : 'linear-gradient(90deg, #C17F3C, #D4A017)',
-          transition: 'width 1s linear, background .3s'
+          transition: 'background .3s',
         }} />
       </div>
 
@@ -412,8 +508,8 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
             transform: phase === 'playing' && modeCfg.moves
               ? `translate(-50%, -50%) ${pressed ? 'scale(.88) rotate(-3deg)' : 'scale(1)'}`
               : (pressed ? 'scale(.88) rotate(-3deg)' : 'scale(1)'),
-            width: modeCfg.moves ? '55%' : '88%',
-            height: modeCfg.moves ? '55%' : '88%',
+            width: modeCfg.cookieSize || (modeCfg.moves ? '55%' : '88%'),
+            height: modeCfg.cookieSize || (modeCfg.moves ? '55%' : '88%'),
             zIndex:2,
             cursor: phase==='playing' ? 'pointer' : 'default',
             touchAction:'manipulation',
@@ -549,9 +645,9 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
         {btnLabel}
       </button>
 
-      {/* Tip card */}
+      {/* Tip card — texte adapté au reward du mode actif */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 Tape vite pour atteindre le <strong style={{ color:'#D4A017' }}>cap {modeCfg.rewardCap} 🍪</strong> — partie termine au cap
+        💡 Tape vite : <strong style={{ color:'#D4A017' }}>{modeCfg.rewardPerClick >= 1 ? '1 clic = 1 🍪' : '2 clics = 1 🍪'}</strong> — pas de cap, tape jusqu'à la fin
       </div>
     </div>
   );

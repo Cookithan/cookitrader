@@ -53,6 +53,10 @@ export function xpRequired(level){
   if(level <= 2) return level * 100 + 50;
   if(level <= 5) return Math.round((level * 100 + 50) * 1.5);
   if(level === 25) return 60000;
+  /* Smoothing niv 9-12 (12/05/2026) : -25% sur ces 4 paliers pour
+     adoucir le passage post-niveau 8 (les joueurs décrochaient ici).
+     Reprise courbe normale à partir du niveau 13. Demande user. */
+  if(level >= 9 && level <= 12) return Math.round(level * level * 50 * 1.5 * 0.75);
   return Math.round(level * level * 50 * 1.5);
 }
 
@@ -235,6 +239,7 @@ export const REWARDS = [
   { id:'free_recharges_24h', currency:'cafe', applyAs:'free_recharges_24h', name:'Recharges Gratuites (24 h)', desc:'Roue, Slot et Pile rechargent sans coût ☕ pendant 24 h', cost:8, type:'Premium', emoji:'🔓',  levelRequired:3 },
   { id:'streak_save',        currency:'cafe', applyAs:'streak_save',        name:'Streak Save',         desc:'Sauve ta série de check-ins si tu rates 1 jour',     cost:4, type:'Premium', emoji:'🛡️', levelRequired:2 },
   { id:'theme_forge',        currency:'cafe', applyAs:'theme',              name:'Thème Forge Caféinée',desc:'Palette volcanique sombre · bordeaux brûlé + or saturé', cost:12, type:'Premium', emoji:'🌋', levelRequired:3 },
+  { id:'bulk_trade_pass',    currency:'cafe', applyAs:'bulk_trade_pass',    name:'Ordre Bulk $CKM',     desc:'1 charge : achète OU vends d\'un coup tout ton portefeuille / max possible (bypass cap 30 par tx)', cost:3, type:'Premium', emoji:'📦', levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */

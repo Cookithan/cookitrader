@@ -54,7 +54,7 @@ export const MARKET_CONFIG = {
     { minMs:  0,                    bonus: 0,    label: '< 1 h'      },  // pas de bonus
   ],
   MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du total = 500 actions max par user (un whale n'influence le prix que de ~5 %)
-  MAX_SHARES_PER_TX:       20,    // Max 20 actions par tx — couplé au cooldown 60 s entre achats, force à étaler les gros achats. 20 actions = 0.2 % impact prix.
+  MAX_SHARES_PER_TX:       30,    // Max 30 actions par tx (bypass possible via item premium "tout-acheter/vendre"). Couplé au cooldown 60 s entre achats. 30 actions = 0.3 % impact prix.
   MAX_DAILY_VOLUME:        1000,  // Volume cumulé (achats + ventes) sur 24 h, ajusté à la nouvelle profondeur
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
   HISTORY_HOURS: 24,
@@ -320,14 +320,15 @@ export async function getMarketTraderCount() {
 // ═══════════════════════════════════════════
 // ACHAT
 // ═══════════════════════════════════════════
-export async function buyShares(userCode, shares) {
+export async function buyShares(userCode, shares, options = {}) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
 
   /* Cap par transaction : force à splitter les gros trades. Couplé au
      cooldown 60 s entre 2 ventes, ça impose un délai de 4 min minimum
-     pour dumper 100 actions (au lieu de pouvoir le faire en 1 sec). */
-  if (shares > MARKET_CONFIG.MAX_SHARES_PER_TX) {
+     pour dumper 100 actions (au lieu de pouvoir le faire en 1 sec).
+     Bypass possible via item premium 'bulk_trade_pass'. */
+  if (!options.bypassTxCap && shares > MARKET_CONFIG.MAX_SHARES_PER_TX) {
     return { error: `Max ${MARKET_CONFIG.MAX_SHARES_PER_TX} actions par transaction. Splitte ton ordre en plusieurs.` };
   }
 
@@ -569,12 +570,13 @@ export async function adminDebitShares(userCode, sharesToRemove) {
 // ═══════════════════════════════════════════
 // VENTE
 // ═══════════════════════════════════════════
-export async function sellShares(userCode, shares) {
+export async function sellShares(userCode, shares, options = {}) {
   if (!isSupabaseEnabled()) return { error: 'Hors ligne' };
   if (!shares || shares < 1) return { error: 'Quantité invalide' };
 
-  /* Mêmes caps que buyShares : par transaction + volume quotidien. */
-  if (shares > MARKET_CONFIG.MAX_SHARES_PER_TX) {
+  /* Mêmes caps que buyShares : par transaction + volume quotidien.
+     Bypass possible via item premium 'bulk_trade_pass'. */
+  if (!options.bypassTxCap && shares > MARKET_CONFIG.MAX_SHARES_PER_TX) {
     return { error: `Max ${MARKET_CONFIG.MAX_SHARES_PER_TX} actions par transaction. Splitte ton ordre en plusieurs.` };
   }
   const dailyVolume = await getUserDailyVolume(userCode);

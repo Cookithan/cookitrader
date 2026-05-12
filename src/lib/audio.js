@@ -130,10 +130,61 @@ export function setMusicEnabled(enabled){
   }
 }
 
+/* ── SWIPE SYNTH — whoosh "vent" généré via Web Audio API ─────────
+   Plutôt qu'un fichier mp3 (qui sonnait comme un "saut"), on synthétise
+   un coup de vent court : bruit blanc filtré (bandpass 800 Hz, Q=0.8)
+   + sweep de filtre 1200→400 Hz + enveloppe rapide (atk 25ms, decay 280ms).
+   Résultat : whoosh aérien typique d'une transition. */
+let synthCtx = null;
+function ensureAudioContext(){
+  if(synthCtx) return synthCtx;
+  try{
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if(!Ctx) return null;
+    synthCtx = new Ctx();
+    return synthCtx;
+  }catch{ return null; }
+}
+
+function playSwipeSynth(){
+  const ctx = ensureAudioContext();
+  if(!ctx) return;
+  /* Buffer de bruit blanc — 0.35s suffit largement pour un whoosh */
+  const dur = 0.35;
+  const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for(let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.6;
+
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.Q.value = 0.8;
+  /* Sweep 1200 Hz → 400 Hz pour donner l'impression d'un coup de vent
+     qui passe à côté (effet Doppler). */
+  filter.frequency.setValueAtTime(1200, ctx.currentTime);
+  filter.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + dur);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, ctx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.35, ctx.currentTime + 0.025);   // attack rapide
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur); // decay long
+
+  src.connect(filter).connect(gain).connect(ctx.destination);
+  src.start();
+  src.stop(ctx.currentTime + dur);
+}
+
 /* ── PLAY UI SOUND ──────────────────────────────── */
 export function playSound(name){
   const s = getSettings();
   if(!s.uiSoundEnabled) return;
+  /* Swipe : route vers le synth Web Audio (whoosh vent) au lieu du mp3. */
+  if(name === 'swipe'){
+    playSwipeSynth();
+    return;
+  }
   if(!UI_SOUNDS[name]){
     // eslint-disable-next-line no-console
     console.warn('[audio] unknown sound:', name);

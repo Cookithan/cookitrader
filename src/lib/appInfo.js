@@ -11,14 +11,30 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.15.0',
-  releaseDate: '2026-05-11',
+  version: '1.16.0',
+  releaseDate: '2026-05-12',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Ethan Cuomo',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.16.0',
+    date: '2026-05-12',
+    title: '⚡ Perf + UX polish + Ordre Bulk $CKM',
+    changes: [
+      "⚡ App 2× plus rapide à charger (bundle initial divisé par 2)",
+      "🎬 Transition entre onglets totalement refondue (glisse iOS-like)",
+      "📳 Vibrations subtiles sur les actions clés (achat, niveau, succès)",
+      "💫 Animations skeleton dorées sur le classement pendant le chargement",
+      "🛡️ Plus d'écran blanc en cas de bug — écran de récupération propre",
+      "🔄 Maintenance & mises à jour pilotables en live (sans deploy)",
+      "📈 Cap actions $CKM par transaction : 20 → 30",
+      "📦 Nouvel item premium : Ordre Bulk $CKM (3 ☕) — achète OU vends d'un coup tout ton portefeuille (bypass cap, cumulable)",
+      "⬆️ XP niveaux 9-12 adouci (-25%) — fin du mur post-niveau 8",
+    ],
+  },
   {
     version: '1.15.0',
     date: '2026-05-11',

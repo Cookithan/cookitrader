@@ -23,7 +23,7 @@ import { MarketWelcomeModal } from '../market/MarketWelcomeModal.jsx';
    - Mode dégradé : si Supabase off → message clair, pas de crash.
 ═══════════════════════════════════════════════════════ */
 
-export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, C }) {
+export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
   const [portfolio, setPortfolio] = useState(null);
@@ -201,6 +201,8 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         onTradeSuccess={handleTradeSuccess}
         marketStatus={marketStatus}
         tradingDisabled={tradingDisabled}
+        bulkTradePasses={bulkTradePasses}
+        onConsumeBulkPass={onConsumeBulkPass}
         C={C}
       />
 
