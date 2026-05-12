@@ -2,6 +2,7 @@ import { supabase, isSupabaseEnabled } from './supabase';
 import { notifySupabaseError } from './supabaseError';
 import { createInboxMessage } from './inbox.js';
 import { isAdminName, notInLeaderboard } from '../utils/admin.js';
+import { withRetry } from './retry.js';
 
 /* ════════════════════════════════════════════════════
    supabaseSync — opérations sur la table public.users
@@ -1094,12 +1095,19 @@ export async function getGlobalCommunityStats(){
 export async function pullProfile(userCode){
   if(!isSupabaseEnabled() || !userCode) return null;
   try{
-    const { data, error } = await supabase
-      .from('users')
-      .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date, weekly_earned, weekly_week_id')
-      .eq('user_code', userCode)
-      .maybeSingle();
-    if(error || !data) return null;
+    /* withRetry : sur réseau bancal au mount, on retente 3× avec backoff
+       (200ms / 600ms / 1.8s) avant d'abandonner. Si la fonction renvoie
+       null (pas d'erreur mais pas de data) on n'insiste pas. */
+    const data = await withRetry(async () => {
+      const { data: row, error } = await supabase
+        .from('users')
+        .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date, weekly_earned, weekly_week_id')
+        .eq('user_code', userCode)
+        .maybeSingle();
+      if(error) throw error;
+      return row;
+    });
+    if(!data) return null;
     const splitCsv = (raw) => (raw || '').split(',').map(s => s.trim()).filter(Boolean);
     const unlocked = (data.unlocked && data.unlocked.length)
       ? splitCsv(data.unlocked)
@@ -1359,12 +1367,19 @@ function normalizeSystemStatus(row){
 export async function getSystemStatus(){
   if(!isSupabaseEnabled()) return DEFAULT_SYSTEM_STATUS;
   try{
-    const { data, error } = await supabase
-      .from('system_status')
-      .select('maintenance_mode, maintenance_title, maintenance_subtitle, force_version')
-      .eq('id', 1)
-      .maybeSingle();
-    if(error || !data) return DEFAULT_SYSTEM_STATUS;
+    /* withRetry : si Supabase rate au moment du mount, on retente 3×
+       avant de tomber sur le DEFAULT (qui peut faire passer à côté
+       d'une maintenance active). */
+    const data = await withRetry(async () => {
+      const { data: row, error } = await supabase
+        .from('system_status')
+        .select('maintenance_mode, maintenance_title, maintenance_subtitle, force_version')
+        .eq('id', 1)
+        .maybeSingle();
+      if(error) throw error;
+      return row;
+    });
+    if(!data) return DEFAULT_SYSTEM_STATUS;
     return normalizeSystemStatus(data);
   }catch{
     return DEFAULT_SYSTEM_STATUS;

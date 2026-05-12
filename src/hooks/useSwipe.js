@@ -77,15 +77,13 @@ export function useSwipe({ onLeft, onRight, threshold = 60, enabled = true } = {
       return;
     }
 
-    /* Snap final hors-écran avant de changer d'onglet : donne l'impression
-       que la page courante "sort" sur le côté. */
-    const w = ref.current?.clientWidth || 400;
-    setTx(dx > 0 ? w : -w, true);
-    setTimeout(()=>{
-      setTx(0);
-      if(dx > 0) onRight?.();
-      else       onLeft?.();
-    }, 220);
+    /* Geste validé : on reset immédiatement le transform et on déclenche
+       le changement de tab. La nouvelle page rentre via son animation
+       CSS (tab-slide-in-right/left), ce qui produit une seule transition
+       continue plutôt qu'un "sort puis rentre" en 2 temps. */
+    setTx(0);
+    if(dx > 0) onRight?.();
+    else       onLeft?.();
   };
 
   return { ref, handlers: { onTouchStart, onTouchMove, onTouchEnd } };

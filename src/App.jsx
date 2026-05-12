@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5 } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
@@ -25,40 +25,49 @@ import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
-import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
-import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
-import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
-import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
-import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
-import { MarketRefundModal } from "./components/modals/MarketRefundModal.jsx";
-import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.jsx";
-import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
-import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
-import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
+/* Modales lazy-loaded — ouvertes ponctuellement, pas besoin dans le
+   bundle initial. LevelUpModal & AchievementModal restent eager car
+   fréquentes et déjà légères. */
+const LevelsModal           = lazy(() => import("./components/modals/LevelsModal.jsx").then(m => ({ default: m.LevelsModal })));
+const LeaderGapWarningModal = lazy(() => import("./components/modals/LeaderGapWarningModal.jsx").then(m => ({ default: m.LeaderGapWarningModal })));
+const OnboardingModal       = lazy(() => import("./components/modals/OnboardingModal.jsx").then(m => ({ default: m.OnboardingModal })));
+const RestoreProfileModal   = lazy(() => import("./components/modals/RestoreProfileModal.jsx").then(m => ({ default: m.RestoreProfileModal })));
+const PrestigeConfirmModal  = lazy(() => import("./components/modals/PrestigeConfirmModal.jsx").then(m => ({ default: m.PrestigeConfirmModal })));
+const MarketRefundModal     = lazy(() => import("./components/modals/MarketRefundModal.jsx").then(m => ({ default: m.MarketRefundModal })));
+const SanctionAppliedModal  = lazy(() => import("./components/modals/SanctionAppliedModal.jsx").then(m => ({ default: m.SanctionAppliedModal })));
+const PaymentSuccessModal   = lazy(() => import("./components/modals/PaymentSuccessModal.jsx").then(m => ({ default: m.PaymentSuccessModal })));
+const CafesResetNoticeModal = lazy(() => import("./components/modals/CafesResetNoticeModal.jsx").then(m => ({ default: m.CafesResetNoticeModal })));
+const PromoCodeModal        = lazy(() => import("./components/modals/PromoCodeModal.jsx").then(m => ({ default: m.PromoCodeModal })));
 import { creditFreeShares, adminDebitShares } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
-import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
-import { AboutModal } from "./components/modals/AboutModal.jsx";
-import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
+const SettingsOverlay = lazy(() => import("./components/overlays/SettingsOverlay.jsx").then(m => ({ default: m.SettingsOverlay })));
+const AboutModal      = lazy(() => import("./components/modals/AboutModal.jsx").then(m => ({ default: m.AboutModal })));
+const NewVersionModal = lazy(() => import("./components/modals/NewVersionModal.jsx").then(m => ({ default: m.NewVersionModal })));
 import { APP_INFO } from "./lib/appInfo.js";
-import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
+const ProfileOverlay  = lazy(() => import("./components/overlays/ProfileOverlay.jsx").then(m => ({ default: m.ProfileOverlay })));
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
-import { BoutiqueTab } from "./components/tabs/BoutiqueTab.jsx";
-import { ClassementTab } from "./components/tabs/ClassementTab.jsx";
-import { MarketTab } from "./components/tabs/MarketTab.jsx";
+import CafeFillLoader from "./components/CafeFillLoader.jsx";
+/* Tabs lazy-loaded (perf : 1 seul actif à la fois, on les charge à la
+   demande). MarketLocked reste eager — léger et utilisé tant que niv<3.
+   Pas de min-delay : sur connexion rapide/cache chaud, le Suspense
+   fallback ne sera pas visible (= comportement avant lazy-split). */
+const BoutiqueTab   = lazy(() => import("./components/tabs/BoutiqueTab.jsx").then(m => ({ default: m.BoutiqueTab })));
+const ClassementTab = lazy(() => import("./components/tabs/ClassementTab.jsx").then(m => ({ default: m.ClassementTab })));
+const MarketTab     = lazy(() => import("./components/tabs/MarketTab.jsx").then(m => ({ default: m.MarketTab })));
 import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
-import { InboxModal } from "./components/modals/InboxModal.jsx";
+const InboxModal = lazy(() => import("./components/modals/InboxModal.jsx").then(m => ({ default: m.InboxModal })));
 import { getUnreadInboxCount } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
 import { BoostGainToast } from "./components/BoostGainToast.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
-import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
-import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
+const UserProfileModal       = lazy(() => import("./components/modals/UserProfileModal.jsx").then(m => ({ default: m.UserProfileModal })));
+const SecretBadgeUnlockModal = lazy(() => import("./components/modals/SecretBadgeUnlockModal.jsx").then(m => ({ default: m.SecretBadgeUnlockModal })));
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
 import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from "./lib/audio.js";
+import { haptic } from "./lib/haptic.js";
 import { MAINTENANCE_MODE, isBypassedFromMaintenance } from "./data/maintenance.js";
 import MaintenanceScreen from "./components/overlays/MaintenanceScreen.jsx";
 import MaintenanceWarningModal from "./components/modals/MaintenanceWarningModal.jsx";
@@ -969,6 +978,8 @@ export default function CookiMiner() {
     if(j === -1 || j === i) { setTab(target); return; }
     /* Son distinct selon l'origine : 'swipe' = whoosh confirm, 'tab' = clic */
     playSound(source === 'swipe' ? 'swipe' : 'tab');
+    /* Tap haptique léger pour confirmer le changement (8ms — discret). */
+    haptic('light');
     setSlideDir(j > i ? 'next' : 'prev');
     setTab(target);
   };
@@ -1325,6 +1336,8 @@ export default function CookiMiner() {
     setXp(0);       xpRef.current = 0;
     setPendingLvUp(nl);
     playSound('levelup');
+    /* Haptic success — 3 pulses, équivalent ressenti du son de niveau. */
+    haptic('success');
     /* Bonus de level-up :
        - Paliers majeurs (6, 10, 15, 20, 25) → +1 ☕ (les "milestones")
        - Autres paliers post-6 → cookies bonus 50+10*nl
@@ -2486,11 +2499,22 @@ export default function CookiMiner() {
     setVipPurchasesToday(prev => ({ ...(prev || {}), [id]: new Date().toDateString() }));
   };
 
+  /* Anti-double-clic boutique : un clic ultra-rapide pourrait lire 2×
+     la même valeur de `coins`/`cafes` avant que React re-render, et
+     débiter 2× (mais ajouter 1× à `unlocked`). Le ref est levé 200ms
+     pour bloquer les bursts. Une fois React rendu, l'état à jour gère
+     les clics suivants normalement. */
+  const unlockingRef = useRef(false);
+
   const unlockReward = (id)=>{
+    if(unlockingRef.current) return;
+    unlockingRef.current = true;
+    setTimeout(() => { unlockingRef.current = false; }, 200);
+
     const r=REWARDS.find(x=>x.id===id);
-    if(!r) return;
+    if(!r){ haptic('warning'); return; }
     /* Cap quotidien VIP — bloque tout rachat le même jour. */
-    if(VIP_DAILY_CAP_IDS.includes(id) && wasBoughtVipToday(id)) return;
+    if(VIP_DAILY_CAP_IDS.includes(id) && wasBoughtVipToday(id)){ haptic('warning'); return; }
     /* Items premium CONSOMMABLES (Jetons VIP) — pas d'ajout à `unlocked`,
        l'utilisateur peut les racheter à volonté tant qu'il a les cafés.
        L'effet (bonus de tours roue) est appliqué directement. */
@@ -2630,17 +2654,18 @@ export default function CookiMiner() {
        Store. Si un legacy item devait surgir avec ces applyAs, il
        tombera dans la branche par défaut (rejeté). */
     /* Items normaux : un seul achat, ajout à unlocked */
-    if(unlocked.includes(id)) return;
+    if(unlocked.includes(id)){ haptic('warning'); return; }
     if(r.currency==='cafe'){
-      if(cafes < r.cost) return;
+      if(cafes < r.cost){ haptic('warning'); return; }
       setCafes(c=>Math.max(0, c - r.cost));
     } else {
-      if(coins < r.cost) return;
+      if(coins < r.cost){ haptic('warning'); return; }
       spendCoins(r.cost);
     }
     setUnlocked(u=>[...u,id]);
-    /* Son d'achat dédié (caisse enregistreuse) */
+    /* Son d'achat dédié (caisse enregistreuse) + haptic medium. */
     playSound('purchase');
+    haptic('medium');
   };
 
   /* Achievements detection */
@@ -2652,6 +2677,9 @@ export default function CookiMiner() {
     earnedRef.current = [...earnedRef.current, id];
     setEarnedAchievements(earnedRef.current);
     setPendingAchievement(prev => prev || a);
+    /* Achievement = moment fort, haptic success (3 pulses) pour
+       souligner le déblocage. Jackpot a son propre pattern à part. */
+    haptic(id === 'jackpot' ? 'jackpot' : 'success');
   },[]);
 
   useEffect(()=>{
@@ -3324,63 +3352,78 @@ export default function CookiMiner() {
           </div>
         )}
 
-        {/* ── CLASSEMENT ── */}
-        {tab==='classement' && (
-          <ClassementTab
-            userCode={userCode}
-            userName={userName}
-            userAvatar={userAvatar}
-            earnedAchievements={earnedAchievements}
-            activeTitle={activeTitle}
-            onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
-            onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
-            C={C}
-          />
-        )}
-
-        {/* ── MARCHÉ ── (online via Supabase, BRIEF_MARCHE_ONLINE) */}
-        {tab==='marche' && (
-          level >= 3 ? (
-            <MarketTab
+        {/* ── TABS LAZY-LOADED ──
+            Classement / Marché / Boutique sont chargés à la demande
+            (chacun pèse 15-30 KB raw). Suspense fallback centré vertic.
+            sur 60vh (sur réseau rapide, ne s'affiche pas du tout). */}
+        <Suspense fallback={
+          <div style={{
+            minHeight:'60vh',
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+          }}>
+            <CafeFillLoader size={84} color={C.muted} />
+          </div>
+        }>
+          {/* ── CLASSEMENT ── */}
+          {tab==='classement' && (
+            <ClassementTab
               userCode={userCode}
-              coins={coins}
-              addCoins={addCoins}
-              tradingDisabled={isAdminName(userName)}
-              onTradeComplete={(result)=>{
-                if(result.type === 'buy'){
-                  /* L'achievement 'trader' attend totalInvested >= 500 cookies */
-                  setTotalInvested(t => t + result.cost);
-                } else if(result.type === 'sell'){
-                  /* Le badge secret 'investisseur' attend marketRealized >= 1000 */
-                  const profit = Math.max(0, Math.round(result.profit || 0));
-                  if(profit > 0) setMarketRealized(r => r + profit);
-                  /* Event 'market_profit' : succès si plus-value en 1 vente >= 100 🍪 */
-                  checkEventChallenge('market_profit', profit);
-                }
-              }}
+              userName={userName}
+              userAvatar={userAvatar}
+              earnedAchievements={earnedAchievements}
+              activeTitle={activeTitle}
+              onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
+              onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
               C={C}
             />
-          ) : (
-            <MarketLocked level={level} xp={xp} xpReq={xpReq} C={C} />
-          )
-        )}
+          )}
 
-        {/* ── BOUTIQUE ── */}
-        {tab==='boutique' && (
-          <BoutiqueTab
-            coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
-            mode={boutiqueMode} setMode={setBoutiqueMode}
-            activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
-            activeBanner={activeBanner} setActiveBanner={setActiveBanner}
-            activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
-            activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
-            userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
-            spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
-            userCode={userCode}
-            vipPurchasesToday={vipPurchasesToday}
-            C={C}
-          />
-        )}
+          {/* ── MARCHÉ ── (online via Supabase, BRIEF_MARCHE_ONLINE) */}
+          {tab==='marche' && (
+            level >= 3 ? (
+              <MarketTab
+                userCode={userCode}
+                coins={coins}
+                addCoins={addCoins}
+                tradingDisabled={isAdminName(userName)}
+                onTradeComplete={(result)=>{
+                  if(result.type === 'buy'){
+                    /* L'achievement 'trader' attend totalInvested >= 500 cookies */
+                    setTotalInvested(t => t + result.cost);
+                  } else if(result.type === 'sell'){
+                    /* Le badge secret 'investisseur' attend marketRealized >= 1000 */
+                    const profit = Math.max(0, Math.round(result.profit || 0));
+                    if(profit > 0) setMarketRealized(r => r + profit);
+                    /* Event 'market_profit' : succès si plus-value en 1 vente >= 100 🍪 */
+                    checkEventChallenge('market_profit', profit);
+                  }
+                }}
+                C={C}
+              />
+            ) : (
+              <MarketLocked level={level} xp={xp} xpReq={xpReq} C={C} />
+            )
+          )}
+
+          {/* ── BOUTIQUE ── */}
+          {tab==='boutique' && (
+            <BoutiqueTab
+              coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
+              mode={boutiqueMode} setMode={setBoutiqueMode}
+              activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
+              activeBanner={activeBanner} setActiveBanner={setActiveBanner}
+              activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
+              activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
+              userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
+              spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
+              userCode={userCode}
+              vipPurchasesToday={vipPurchasesToday}
+              C={C}
+            />
+          )}
+        </Suspense>
         </div>
       </div>
 
@@ -3404,6 +3447,12 @@ export default function CookiMiner() {
         </div>
       </nav>
 
+      {/* ── SUSPENSE BOUNDARY pour TOUTES les modales/overlays lazy ──
+          fallback={null} : on n'affiche rien pendant le micro-fetch du
+          chunk (les modales sont 2-8 KB gzip, latence imperceptible).
+          Boundary englobante = on évite de multiplier les `<Suspense>`
+          autour de chaque modal individuellement. */}
+      <Suspense fallback={null}>
       {/* GAME OVERLAY */}
       {gameView && (
         <GameOverlay
@@ -3829,6 +3878,7 @@ export default function CookiMiner() {
       {/* Splash custom à chaque mount (ouverture + F5). En mode fast
           si c'est un refresh détecté via Performance API. */}
       {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
+      </Suspense>
 
     </div>
   );

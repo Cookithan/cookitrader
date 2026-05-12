@@ -11,6 +11,7 @@ import {
 } from "../../lib/market.js";
 import { getNameStyle } from "../../utils/legend.js";
 import { isAdminName } from "../../utils/admin.js";
+import SkeletonRow from "../SkeletonRow.jsx";
 
 /* ════════════════════════════════════════════════════
    ClassementTab — 2 classements en un seul onglet
@@ -317,9 +318,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
 
       {/* Liste */}
       {loading && list.length === 0 ? (
-        <div style={{ fontSize:12, color:C.muted, textAlign:'center', padding:24, fontStyle:'italic' }}>
-          Chargement…
-        </div>
+        <SkeletonRow count={6} C={C} />
       ) : list.length === 0 ? (
         <div style={{
           background:C.card, border:`1px dashed ${C.border}`,
@@ -463,9 +462,7 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, active
 
       {/* Liste */}
       {loading && list.length === 0 ? (
-        <div style={{ fontSize:12, color:C.muted, textAlign:'center', padding:24, fontStyle:'italic' }}>
-          Chargement…
-        </div>
+        <SkeletonRow count={6} C={C} />
       ) : list.length === 0 ? (
         <div style={{
           background:C.card, border:`1px dashed ${C.border}`,

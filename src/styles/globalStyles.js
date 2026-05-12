@@ -159,10 +159,14 @@ export const GLOBAL_CSS = `
   .splash-dot:nth-child(2){animation-delay:.15s}
   .splash-dot:nth-child(3){animation-delay:.3s}
   @keyframes splashDotPulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
-  @keyframes tabSlideInRight{from{transform:translateX(60%);opacity:.4}to{transform:translateX(0);opacity:1}}
-  @keyframes tabSlideInLeft{from{transform:translateX(-60%);opacity:.4}to{transform:translateX(0);opacity:1}}
-  .tab-slide-in-right{animation:tabSlideInRight .28s cubic-bezier(.36,.07,.19,.97) both}
-  .tab-slide-in-left{animation:tabSlideInLeft .28s cubic-bezier(.36,.07,.19,.97) both}
+  /* Transition tabs : la nouvelle page rentre depuis 100% du côté
+     opposé au swipe, avec un easing iOS-like (cubic-bezier qui démarre
+     vite et finit doucement). Pas d'opacity fade — c'est un mouvement
+     pur, comme dans un carrousel natif. 320ms = sensation premium. */
+  @keyframes tabSlideInRight{from{transform:translate3d(100%,0,0)}to{transform:translate3d(0,0,0)}}
+  @keyframes tabSlideInLeft{from{transform:translate3d(-100%,0,0)}to{transform:translate3d(0,0,0)}}
+  .tab-slide-in-right{animation:tabSlideInRight .32s cubic-bezier(.22,.61,.36,1) both;will-change:transform}
+  .tab-slide-in-left{animation:tabSlideInLeft .32s cubic-bezier(.22,.61,.36,1) both;will-change:transform}
 
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}
@@ -266,4 +270,45 @@ export const GLOBAL_CSS = `
   /* Spin pour les loaders (BuyCafesModal pendant fetch Stripe) */
   @keyframes spin360{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
   .spin-anim{animation:spin360 1s linear infinite}
+
+  /* Skeleton shimmer — barre de lumière qui balaye un bloc placeholder.
+     Utilisé en background sur les rectangles "fake data" pendant un
+     fetch. Le bloc parent doit avoir un background café-pâle + overflow
+     hidden + position relative pour que le shimmer reste contenu. */
+  @keyframes skeletonShimmer {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+  .skeleton-block{
+    position:relative;
+    overflow:hidden;
+    background:rgba(139,90,42,.08);
+    border-radius:6px;
+  }
+  .skeleton-block::after{
+    content:'';
+    position:absolute;
+    inset:0;
+    background:linear-gradient(90deg,transparent 0%,rgba(212,160,23,.18) 50%,transparent 100%);
+    animation:skeletonShimmer 1.4s ease-in-out infinite;
+    will-change:transform;
+  }
+
+  /* CafeFillLoader — tasse qui se remplit en boucle (Suspense fallback)
+     - Cycle court (1.4s) pour qu'on voie le remplissage même si le
+       loader n'est visible que ~500ms (chunk download rapide).
+     - Remplissage concentré dans les 38 premiers % → l'œil voit la
+       tasse SE REMPLIR dès l'apparition du loader.
+     - Décalage 0/.25/.5s entre les 3 volutes de vapeur. */
+  @keyframes cafeFill {
+    0%   { height: 0%;   }
+    38%  { height: 92%;  }
+    55%  { height: 92%;  }
+    100% { height: 0%;   }
+  }
+  @keyframes cafeSteam {
+    0%   { opacity: 0;   transform: translateY(0)    scale(.55); }
+    25%  { opacity: .6;  }
+    100% { opacity: 0;   transform: translateY(-22px) scale(1.15); }
+  }
 `;
