@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -61,6 +61,8 @@ import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
 import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from "./lib/audio.js";
 import { MAINTENANCE_MODE, isBypassedFromMaintenance } from "./data/maintenance.js";
 import MaintenanceScreen from "./components/overlays/MaintenanceScreen.jsx";
+import MaintenanceWarningModal from "./components/modals/MaintenanceWarningModal.jsx";
+import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
 
 /* ════════════════════════════════════════════════════
    COOKITRADER — point d'entrée
@@ -552,6 +554,26 @@ export default function CookiMiner() {
      un changelog d'ancien). Voir useEffect plus bas. */
   const [lastSeenVersion,  setLastSeenVersion]  = useLocalStorage('lastSeenVersion', '');
   const [showNewVersion,   setShowNewVersion]   = useState(false);
+  /* Maintenance LIVE — pilotée par la table Supabase public.system_status
+     via Realtime. Permet de basculer l'app en maintenance OU de pousser
+     un popup "Mise à jour disponible" sans devoir redéployer.
+     Voir MIGRATION_system_status.sql pour le schéma + les SQL de toggle. */
+  const [systemStatus,           setSystemStatus]           = useState(DEFAULT_SYSTEM_STATUS);
+  const [liveMaintenanceActive,  setLiveMaintenanceActive]  = useState(false);
+  const [showMaintenanceWarning, setShowMaintenanceWarning] = useState(false);
+  const [showForceUpdate,        setShowForceUpdate]        = useState(false);
+  const [forceUpdateDismissed,   setForceUpdateDismissed]   = useState(false);
+  /* Refs : initialFetchDone = a-t-on reçu la 1re réponse de
+     getSystemStatus ? (avant ça, on n'a pas encore d'info fiable
+     sur le state serveur — on n'agit pas).
+     everSeenOff = a-t-on déjà vu maintenance_mode=false depuis
+     le mount ? (sinon mode déjà actif à l'arrivée → MaintenanceScreen
+     direct, pas de grace period 30s).
+     handledOn = anti double-déclenchement quand Realtime renvoie
+     plusieurs UPDATE rapprochés. */
+  const initialFetchDoneRef  = useRef(false);
+  const everSeenSystemOffRef = useRef(false);
+  const handledSystemOnRef   = useRef(false);
   /* Restauration : null = fermé, 'fresh' = depuis onboarding (pas de
      warning), 'replace' = depuis settings (warning de remplacement). */
   const [restoreMode,      setRestoreMode]      = useState(null);
@@ -749,6 +771,79 @@ export default function CookiMiner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOnboarding, userName]);
+
+  /* Maintenance LIVE — fetch initial + subscription Realtime à la table
+     public.system_status. Au moindre changement (UPDATE SQL côté admin),
+     les clients ouverts reçoivent le nouvel état en <1s.
+
+     S'exécute une seule fois au mount (deps=[]). Les bypass userCodes
+     (cf. MAINTENANCE_BYPASS_USERCODES dans data/maintenance.js) court-
+     circuitent toute la logique → Cookithan voit l'app normalement même
+     en maintenance live. */
+  useEffect(() => {
+    let cancelled = false;
+    let unsubscribe = () => {};
+
+    getSystemStatus().then(status => {
+      if(cancelled) return;
+      initialFetchDoneRef.current = true;
+      setSystemStatus(status);
+    });
+
+    unsubscribe = subscribeSystemStatus(status => {
+      if(cancelled) return;
+      initialFetchDoneRef.current = true;
+      setSystemStatus(status);
+    });
+
+    return () => { cancelled = true; unsubscribe(); };
+  }, []);
+
+  /* Réaction aux changements de system_status :
+       - maintenance_mode = true & on avait vu false depuis le mount
+         → grace period 30s via MaintenanceWarningModal puis screen plein
+       - maintenance_mode = true & on ne l'a JAMAIS vu false depuis mount
+         (= activée avant l'arrivée du joueur) → écran plein direct
+       - maintenance_mode = false → clear screen + warning
+       - force_version > APP_INFO.version → popup "Mise à jour dispo" */
+  useEffect(() => {
+    /* On attend que le 1er fetch soit revenu — sinon le state initial
+       (DEFAULT_SYSTEM_STATUS.maintenance_mode = false) ferait croire à
+       une transition off→on si le serveur renvoie true, et on tomberait
+       sur le warning 30s au lieu de l'écran plein direct. */
+    if(!initialFetchDoneRef.current) return;
+    if(isBypassedFromMaintenance(userCode)){
+      setLiveMaintenanceActive(false);
+      setShowMaintenanceWarning(false);
+      return;
+    }
+    if(systemStatus.maintenance_mode){
+      if(handledSystemOnRef.current) return;
+      handledSystemOnRef.current = true;
+      if(everSeenSystemOffRef.current){
+        setShowMaintenanceWarning(true);
+      }else{
+        setLiveMaintenanceActive(true);
+      }
+    }else{
+      everSeenSystemOffRef.current = true;
+      handledSystemOnRef.current = false;
+      setLiveMaintenanceActive(false);
+      setShowMaintenanceWarning(false);
+    }
+  }, [systemStatus.maintenance_mode, userCode]);
+
+  /* force_version : popup "Mise à jour disponible" + reload. Reste
+     affichée tant que la version locale est inférieure (ou que
+     forceUpdateDismissed n'est pas vrai pour le moment). */
+  useEffect(() => {
+    const fv = systemStatus.force_version;
+    if(fv && fv !== APP_INFO.version && !forceUpdateDismissed){
+      setShowForceUpdate(true);
+    }else{
+      setShowForceUpdate(false);
+    }
+  }, [systemStatus.force_version, forceUpdateDismissed]);
 
   /* Bouton retour Android : ferme l'overlay courant au lieu de quitter
      l'app. Pas appliqué à : showOnboarding, tutorialStep, pendingLvUp,
@@ -2646,6 +2741,18 @@ export default function CookiMiner() {
     goldBtn:(disabled)=>({ padding:'13px 36px', borderRadius:20, fontSize:14, fontWeight:700, background:disabled?C.card:GOLD, color:disabled?C.muted:'#fff', border:`2px solid ${disabled?C.border:'transparent'}`, boxShadow:disabled?'none':'0 4px 16px rgba(212,160,23,.4)', cursor:disabled?'not-allowed':'pointer' }),
   };
 
+  /* MAINTENANCE LIVE — court-circuit après le grace period 30s. Les
+     bypass userCodes (PJ3-56A) passent à travers. Le flag code-driven
+     MAINTENANCE_MODE est traité en amont (pré-hooks). */
+  if(liveMaintenanceActive && !isBypassedFromMaintenance(userCode)){
+    return (
+      <MaintenanceScreen
+        title={systemStatus.maintenance_title}
+        subtitle={systemStatus.maintenance_subtitle}
+      />
+    );
+  }
+
   return (
     <div style={{
       minHeight:'100svh', background:C.bg,
@@ -3478,6 +3585,29 @@ export default function CookiMiner() {
           }}
           onOpenAbout={() => setShowAbout(true)}
           C={C}
+        />
+      )}
+
+      {/* MAINTENANCE LIVE WARNING — pop quand system_status.maintenance_mode
+          passe à true en cours de session. 30s de grace puis bascule sur
+          MaintenanceScreen plein écran. */}
+      {showMaintenanceWarning && (
+        <MaintenanceWarningModal
+          title={systemStatus.maintenance_title}
+          subtitle={systemStatus.maintenance_subtitle}
+          onDone={() => {
+            setShowMaintenanceWarning(false);
+            setLiveMaintenanceActive(true);
+          }}
+        />
+      )}
+
+      {/* FORCE UPDATE — pop quand system_status.force_version > APP_INFO.version.
+          Permet de notifier les clients ouverts qu'un nouveau bundle est dispo. */}
+      {showForceUpdate && (
+        <ForceUpdateModal
+          targetVersion={systemStatus.force_version}
+          onDismiss={() => setForceUpdateDismissed(true)}
         />
       )}
 

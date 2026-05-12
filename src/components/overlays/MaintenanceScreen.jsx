@@ -7,8 +7,15 @@ import { GLOBAL_CSS } from "../../styles/globalStyles.js";
 /* ════════════════════════════════════════════════════
    MaintenanceScreen — écran plein "Maintenance en cours"
    ────────────────────────────────────────────────────
-   Remplace toute l'app quand MAINTENANCE_MODE = true (sauf
-   pour les userCodes whitelistés). Aucune interaction possible.
+   Remplace toute l'app quand MAINTENANCE_MODE = true (code-driven,
+   nécessite un deploy) OU quand system_status.maintenance_mode = true
+   en Supabase (live, instantané via Realtime — voir App.jsx + le
+   MaintenanceWarningModal qui donne un grace period 30s avant
+   l'affichage de cet écran). Aucune interaction possible.
+
+   Props (toutes optionnelles) :
+     title    — surcharge le titre par défaut (sinon MAINTENANCE_MESSAGE.title)
+     subtitle — surcharge le sous-titre par défaut
 
    Style :
    - Fond ESPRESSO profond (palette café-only, pas de rouge/vert)
@@ -17,7 +24,7 @@ import { GLOBAL_CSS } from "../../styles/globalStyles.js";
    - Mobile-first (max-width 430, centré)
 ═══════════════════════════════════════════════════════ */
 
-export default function MaintenanceScreen(){
+export default function MaintenanceScreen({ title, subtitle } = {}){
   const C = { text:'#F0E6D3', muted:'#A88B70', accent:'#D4A017' };
   return (
     <div style={{
@@ -92,7 +99,7 @@ export default function MaintenanceScreen(){
         WebkitTextFillColor:'transparent',
         textShadow:'0 0 24px rgba(212,160,23,.3)',
       }}>
-        🍪 {MAINTENANCE_MESSAGE.title}
+        🍪 {title || MAINTENANCE_MESSAGE.title}
       </h1>
 
       <p style={{
@@ -100,7 +107,7 @@ export default function MaintenanceScreen(){
         color:C.muted, maxWidth:320,
         whiteSpace:'pre-line'
       }}>
-        {MAINTENANCE_MESSAGE.subtitle}
+        {subtitle || MAINTENANCE_MESSAGE.subtitle}
       </p>
 
       <div style={{

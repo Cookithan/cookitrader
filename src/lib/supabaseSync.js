@@ -1323,3 +1323,76 @@ export async function applyPatchOnce({ userCode, lsKey, patchKey, applyFn, isCan
   applyFn();
   return true;
 }
+
+/* ════════════════════════════════════════════════════
+   system_status — état global "live" (maintenance + force-update)
+   ────────────────────────────────────────────────────
+   Table singleton public.system_status (id=1). Permet de basculer
+   l'app en maintenance ou de forcer un reload sans redéployer.
+   Voir MIGRATION_system_status.sql pour le schéma + les requêtes
+   SQL de toggle (côté admin).
+
+   Realtime activé sur la table → les clients ouverts reçoivent les
+   changements en <1s via subscribeSystemStatus.
+═══════════════════════════════════════════════════════ */
+
+export const DEFAULT_SYSTEM_STATUS = Object.freeze({
+  maintenance_mode: false,
+  maintenance_title: null,
+  maintenance_subtitle: null,
+  force_version: null,
+});
+
+function normalizeSystemStatus(row){
+  if(!row) return DEFAULT_SYSTEM_STATUS;
+  return {
+    maintenance_mode: !!row.maintenance_mode,
+    maintenance_title: row.maintenance_title || null,
+    maintenance_subtitle: row.maintenance_subtitle || null,
+    force_version: row.force_version || null,
+  };
+}
+
+/* Fetch one-shot du status. Renvoie DEFAULT_SYSTEM_STATUS si Supabase
+   est indispo (env vars manquantes) ou si la table n'a pas encore été
+   créée (migration non passée) — fail-safe pour ne jamais bloquer l'app. */
+export async function getSystemStatus(){
+  if(!isSupabaseEnabled()) return DEFAULT_SYSTEM_STATUS;
+  try{
+    const { data, error } = await supabase
+      .from('system_status')
+      .select('maintenance_mode, maintenance_title, maintenance_subtitle, force_version')
+      .eq('id', 1)
+      .maybeSingle();
+    if(error || !data) return DEFAULT_SYSTEM_STATUS;
+    return normalizeSystemStatus(data);
+  }catch{
+    return DEFAULT_SYSTEM_STATUS;
+  }
+}
+
+/* Subscribe Realtime aux changements de system_status. onChange(status)
+   appelé à chaque UPDATE/INSERT sur le row id=1. Retourne une fonction
+   unsubscribe (à appeler dans le cleanup du useEffect).
+   Si Supabase indispo → retourne un noop. */
+export function subscribeSystemStatus(onChange){
+  if(!isSupabaseEnabled()) return () => {};
+  try{
+    const channel = supabase
+      .channel('system_status_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'system_status' },
+        (payload) => {
+          const row = payload.new || payload.old;
+          onChange(normalizeSystemStatus(row));
+        }
+      )
+      .subscribe();
+    return () => {
+      try{ supabase.removeChannel(channel); }catch{}
+    };
+  }catch{
+    return () => {};
+  }
+}
