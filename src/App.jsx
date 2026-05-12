@@ -1689,6 +1689,37 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
 
+  /* ── Débit shares aaronxbox 12/05/2026 ──────────────────────────
+     Débit administratif silencieux de 150 actions $CKM sur X6G-4ZL.
+     Pas de toast ni popup côté user (comportement d'UPDATE admin).
+     adminDebitShares cape naturellement au stock dispo (si l'user en
+     a moins que 150 il perd juste tout son stock). applyPatchOnce
+     garantit l'idempotence cross-device via Supabase applied_patches.
+     S'applique au prochain mount d'aaronxbox.
+  ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    if(codeUpper !== 'X6G-4ZL') return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:marketDebit_2026_05_12_aaronxbox_150',
+      patchKey: 'marketDebit_2026_05_12_aaronxbox_150',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        (async () => {
+          const res = await adminDebitShares(userCode, 150);
+          if(!res?.success){
+            // eslint-disable-next-line no-console
+            console.warn('[market debit aaronxbox] adminDebitShares failed:', res?.error);
+          }
+        })();
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userCode, pullDone]);
+
   /* Refund marché — compensation pour les ex-investisseurs après le
      reset du marché (delete from market_portfolio). On crédite chaque
      user de son total_invested perdu. 7Z4-977 EXCLU (pump-and-dumper
@@ -2606,7 +2637,7 @@ export default function CookiMiner() {
     { id:'reflex',  Icon:Timer,             title:'Réflexes cookies',     desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies (coût 5🍪)', avail:coins>=5, color:'#D4A017', levelRequired:6 },
     { id:'pyramid', Icon:Coffee,            title:'Pile de Tasses',       desc:'Empile sans rater',         reward:'5 à 70 cookies (coût 10🍪)', avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
     { id:'slot',    Icon:Dice5,             title:'Machine à Sous',       desc:'3 rouleaux, gros lots',     reward:'+25 à +750 cookies (coût 20🍪)', avail:coins>=20, color:'#5C3614', levelRequired:10 },
-    { id:'flappy',  Icon:Coffee,            title:'Flappy Cookie',        desc:'Esquive les tuyaux, bondis !', reward:'+3 🍪 / tuyau · cap 200 (coût 10🍪)', avail:coins>=10, color:'#C8945A', levelRequired:12 },
+    { id:'flappy',  Icon:Coffee,            title:'Flappy Cookie',        desc:'Esquive les tuyaux, bondis !', reward:'+3 à +5 🍪 / tuyau · cap 200 (coût 10🍪)', avail:coins>=10, color:'#C8945A', levelRequired:12 },
   ];
 
   const s = {
@@ -2704,7 +2735,11 @@ export default function CookiMiner() {
       <div
         ref={swipe.ref}
         {...swipe.handlers}
-        style={{ flex:1, overflowY:'auto', overflowX:'hidden', padding:'0 16px', paddingBottom:104, willChange:'transform' }}
+        /* minHeight:0 → fix iOS Safari où un enfant flex:1 + overflow:auto
+           grandit à la hauteur du contenu au lieu d'être capé. Sans ce
+           min-height:0, l'onglet marché (4-5 cards stackées) pousse le
+           header hors écran sur petit téléphone. */
+        style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', padding:'0 16px', paddingBottom:104, willChange:'transform' }}
       >
         <div
           key={tab}
@@ -3082,9 +3117,13 @@ export default function CookiMiner() {
               style={{
                 display:'flex', alignItems:'center', gap:12,
                 marginTop:18, padding:'13px 14px', borderRadius:16,
-                background:'linear-gradient(135deg, rgba(212,160,23,.10), rgba(193,127,60,.18))',
-                border:'1.5px solid rgba(212,160,23,.45)',
-                boxShadow:'0 4px 14px rgba(212,160,23,.12)',
+                /* Opacités renforcées (.10/.18 → .22/.36) — sur thème clair
+                   le beige du bg avalait les anciennes valeurs. .55 sur le
+                   border + box-shadow plus présent → le bandeau se détache
+                   sur cream comme sur espresso. */
+                background:'linear-gradient(135deg, rgba(212,160,23,.22), rgba(193,127,60,.36))',
+                border:'1.5px solid rgba(212,160,23,.55)',
+                boxShadow:'0 4px 14px rgba(212,160,23,.18)',
                 textDecoration:'none', color:'inherit',
                 cursor:'pointer',
               }}

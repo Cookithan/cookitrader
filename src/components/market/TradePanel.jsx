@@ -55,7 +55,13 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
   const maxSellable = portfolio?.shares ?? 0;
   const isClosed = marketStatus && !marketStatus.open;
 
-  const max = mode === 'buy' ? maxBuyable : maxSellable;
+  /* Cap au MAX_SHARES_PER_TX (20) : la lib market refuse au-delà avec un
+     message d'erreur. Clic sur "Max" → l'utilisateur veut un trade qui
+     PASSE, pas un nombre théorique qu'il devrait splitter à la main. */
+  const max = Math.min(
+    MARKET_CONFIG.MAX_SHARES_PER_TX,
+    mode === 'buy' ? maxBuyable : maxSellable
+  );
   const canTrade = !isClosed && !tradingDisabled && max >= 1 && quantity <= max;
 
   const handleTrade = async () => {

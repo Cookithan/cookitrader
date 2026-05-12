@@ -14,7 +14,7 @@ import { playSound } from "../../lib/audio.js";
    - Obstacles = paires de tuyaux (haut + bas) avec un gap
      vertical à esquiver, défilent de droite à gauche
    - Vitesse horizontale augmente avec le score (progressive)
-   - +3 🍪 par tuyau passé · cap 200 🍪 · score plafonné à 100
+   - +3/+4/+5 🍪 par tuyau (Facile/Normal/Difficile) · cap 200 🍪 · score plafonné à 100
    - 5 % de chance par partie qu'une pièce dorée ☕ apparaisse dans un
      des obstacles entre les indices 5 et 30 → traversée = +1 ☕
 
@@ -26,8 +26,8 @@ import { playSound } from "../../lib/audio.js";
 export const FLAPPY_COST = 10;
 const REWARD_CAP = 200;
 /* Reward par tuyau adapté au mode :
-   Facile +2  ·  Normal +3  ·  Difficile +4   (tuyau standard)
-   Espresso clair = ×2 du reward du mode (+4 / +6 / +8) */
+   Facile +3  ·  Normal +4  ·  Difficile +5   (tuyau standard)
+   Espresso clair = ×2 du reward du mode (+6 / +8 / +10) */
 const SCORE_CAP  = 100;
 /* 20 % de chance qu'un nouveau tuyau spawn soit en "espresso clair"
    (couleur plus claire). Le cookie gagne +6 🍪 au lieu de +3 en le
@@ -64,9 +64,9 @@ const TAP_COOLDOWN_MS = 60;
    pour les débutants ; Difficile resserre tout pour les vétérans.
    Gravité douce → cookie aérien. Gaps élargis pour rendre le jeu juste. */
 const MODES = {
-  facile:    { label:'Facile',    emoji:'🍼', gap:210, gravity:640,  flapSpeed:-300, baseSpeed:115, reward:2, rewardLight:4 },
-  normal:    { label:'Normal',    emoji:'☕', gap:160, gravity:900,  flapSpeed:-350, baseSpeed:150, reward:3, rewardLight:6 },
-  difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:4, rewardLight:8 },
+  facile:    { label:'Facile',    emoji:'🍼', gap:210, gravity:640,  flapSpeed:-300, baseSpeed:115, reward:3, rewardLight:6 },
+  normal:    { label:'Normal',    emoji:'☕', gap:160, gravity:900,  flapSpeed:-350, baseSpeed:150, reward:4, rewardLight:8 },
+  difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10 },
 };
 
 export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }){
@@ -453,7 +453,10 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
             : 'linear-gradient(90deg, #1A0804 0%, #7D4E1F 50%, #1A0804 100%)';
           const BORDER_COL = ob.light ? '#5A3520' : '#0F0402';
           return (
-            <div key={ob.id} style={{ position:'absolute', left:ob.x, top:0, width:OBSTACLE_W, height:ARENA_H, pointerEvents:'none' }}>
+            /* PERF MOBILE : translate3d au lieu de `left:ob.x` pour éviter
+               un reflow par frame sur 3-5 obstacles. willChange annonce au
+               browser de promouvoir ce wrapper sur sa propre couche GPU. */
+            <div key={ob.id} style={{ position:'absolute', left:0, top:0, width:OBSTACLE_W, height:ARENA_H, transform:`translate3d(${ob.x}px, 0, 0)`, willChange:'transform', pointerEvents:'none' }}>
               {/* Tuyau HAUT */}
               <div style={{
                 position:'absolute', top:0, left:0, width:OBSTACLE_W, height:gapTop,
@@ -505,16 +508,26 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
         {/* Cookie — réutilise le même sprite que Cookie Click (PremiumCookie
             par défaut ou SkinnedCookie si l'user a activé un skin de la boutique).
             Halo doré conservé pour bien se détacher du fond ambre.
-            Quand crashed, halo coupé + filter grayscale pour l'effet "KO". */}
+            Quand crashed, halo coupé + filter grayscale pour l'effet "KO".
+
+            PERF MOBILE :
+            - On positionne via `transform: translate3d` + composé avec
+              `rotate()` plutôt que `top` (translate3d active le GPU compositing).
+            - Pas de `transition` sur transform : le rAF met déjà à jour le
+              transform à 60fps, une transition CSS de 80ms par-dessus crée un
+              double-buffer qui fait du jank sur Android.
+            - Un seul `drop-shadow` (au lieu de deux empilés) — chaque
+              drop-shadow sur un SVG transformé chaque frame est très coûteux. */}
         <div style={{
           position:'absolute',
-          left: COOKIE_X - COOKIE_SIZE/2, top: cookieY - COOKIE_SIZE/2,
+          left: COOKIE_X - COOKIE_SIZE/2, top: 0,
           width: COOKIE_SIZE, height: COOKIE_SIZE,
           filter: crashed
             ? 'grayscale(.7) brightness(.7) drop-shadow(0 4px 8px rgba(0,0,0,.4))'
-            : 'drop-shadow(0 0 10px rgba(212,160,23,.7)) drop-shadow(0 4px 8px rgba(74,44,23,.4))',
-          transform:`rotate(${cookieRot}deg)`,
-          transition: 'transform .08s linear, filter .2s',
+            : 'drop-shadow(0 2px 6px rgba(74,44,23,.5))',
+          transform:`translate3d(0, ${cookieY - COOKIE_SIZE/2}px, 0) rotate(${cookieRot}deg)`,
+          transition: 'filter .2s',
+          willChange:'transform',
           pointerEvents:'none',
         }}>
           {hasCustomSkin

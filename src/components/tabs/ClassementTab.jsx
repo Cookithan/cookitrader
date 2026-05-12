@@ -231,13 +231,19 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         </div>
       </div>
 
-      {/* Bandeau countdown — cliquable, ouvre WeeklyRewardsModal */}
+      {/* Bandeau countdown — cliquable, ouvre WeeklyRewardsModal.
+          Opacités renforcées (.12/.18 → .22/.36) car le fond gold @ 12%
+          était presque invisible sur thèmes clairs (theme_grains, _creme,
+          _caramel…) → impression d'un "cadre transparent" qui dévoile le
+          dégradé du thème sous le bandeau, juste sous le header. Même
+          renforcement que sur le bandeau Discord de l'accueil. */}
       <button
         onClick={() => setShowWeeklyRewards(true)}
         style={{
           width:'100%',
-          background:'linear-gradient(135deg, rgba(212,160,23,.12), rgba(193,127,60,.18))',
-          border:'1.5px solid rgba(212,160,23,.45)',
+          background:'linear-gradient(135deg, rgba(212,160,23,.22), rgba(193,127,60,.36))',
+          border:'1.5px solid rgba(212,160,23,.55)',
+          boxShadow:'0 4px 14px rgba(212,160,23,.18)',
           borderRadius:12,
           padding:'10px 14px',
           marginBottom:14,
