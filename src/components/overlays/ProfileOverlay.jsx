@@ -92,8 +92,10 @@ export function ProfileOverlay({
   const myPremiumAvatars = AVATAR_PREMIUM_LIST
     .filter(a => unlocked.includes(a.id))
     .map(a => ({ value:a.id, art:a.art, bg:a.bg, name:a.name, owned:true }));
+  /* `limited:true` (édition limitée code promo / event) → exclu de la
+     grille "À débloquer" : ne doit apparaître que pour les détenteurs. */
   const lockedPremiumAvatars = AVATAR_PREMIUM_LIST
-    .filter(a => !unlocked.includes(a.id))
+    .filter(a => !unlocked.includes(a.id) && !a.limited)
     .map(a => {
       const r = REWARDS.find(x => x.id === a.id);
       return { value:a.id, art:a.art, bg:a.bg, name:a.name, owned:false,

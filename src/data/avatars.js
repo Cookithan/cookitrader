@@ -58,6 +58,11 @@ export const AVATAR_PREMIUM_LIST = [
   /* Cosmonaute Caféiné — sink premium (15 ☕). Cible whales /
      collectionneurs. Ajouté avec la vague de sinks chers (mai 2026). */
   { id:'avatar_cosmonaute', art:'avCosmonaute', name:'Cosmonaute Caféiné', bg:'radial-gradient(circle at 50% 35%, #1F0E04 0%, #070100 70%, #000000 100%)', glow:true },
+  /* Édition limitée — Code promo GRAIN16. Pas listé en boutique
+     (REWARDS.limited:true → BoutiqueTab et ProfileOverlay l'excluent
+     de la grille "À débloquer"), mais doit être présent ici sinon
+     les détenteurs ne peuvent pas le sélectionner. */
+  { id:'avatar_grain_legende', art:'grainLegende', name:'Grain Légendaire', bg:'radial-gradient(circle at 35% 30%, #FFE89A 0%, #D4A017 50%, #5C3614 100%)', glow:true, limited:true },
 ];
 
 export const AVATAR_PREMIUM = AVATAR_PREMIUM_LIST.reduce((acc, a) => { acc[a.id] = a; return acc; }, {});
@@ -65,10 +70,6 @@ export const AVATAR_PREMIUM = AVATAR_PREMIUM_LIST.reduce((acc, a) => { acc[a.id]
 /* Legacy — anciens avatars supprimés du shop, conservés pour les utilisateurs
    qui les ont déjà débloqués/équipés avant la PHASE 4. */
 AVATAR_PREMIUM.avatar_cookie = { id:'avatar_cookie', art:'cookie',  name:'Cookie',  bg:'linear-gradient(140deg,#C17F3C,#D4A017)' };
-/* Édition limitée — Code promo GRAIN16. Fève de café en or massif,
-   halo doré + bordure légendaire (glow:true → AvatarFigure ajoute
-   l'anneau or). Pas en boutique. */
-AVATAR_PREMIUM.avatar_grain_legende = { id:'avatar_grain_legende', art:'grainLegende', name:'Grain Légendaire', bg:'radial-gradient(circle at 35% 30%, #FFE89A 0%, #D4A017 50%, #5C3614 100%)', glow:true };
 AVATAR_PREMIUM.avatar_legend = { id:'avatar_legend', art:'avOr',    name:'Légende', bg:'linear-gradient(140deg,#D4A017,#FFE89A)', glow:true };
 AVATAR_PREMIUM.avatar_aurore = { id:'avatar_aurore', art:'cosmos',  name:'Cosmos',  bg:'transparent', glow:true, full:true };
 
