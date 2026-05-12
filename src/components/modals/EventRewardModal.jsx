@@ -27,6 +27,8 @@ import { GOLD } from "../../data/themes.js";
 const VIEW_LABELS = {
   theme: 'Voir mon thème',
   badge: 'Voir mon badge',
+  skin:  'Voir mon skin',
+  avatar:'Voir mon avatar',
 };
 
 export function EventRewardModal({ reward, headline = 'Événement réussi !', ribbon = 'Édition limitée', onClose, onView, C }){

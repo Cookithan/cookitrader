@@ -288,6 +288,42 @@ const Grain = () => (
   </svg>
 );
 
+/* Grain Légendaire — fève de café en or massif (édition limitée code
+   promo GRAIN16). Même forme que Grain mais palette gold + étincelles
+   autour, sillon bronze, reflets crème intenses. */
+const GrainLegende = () => (
+  <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
+    <defs>
+      <radialGradient id="g_grainLeg_body" cx="35%" cy="30%" r="80%">
+        <stop offset="0%"  stopColor={OR_LTR} />
+        <stop offset="45%" stopColor={OR_LT} />
+        <stop offset="85%" stopColor={OR} />
+        <stop offset="100%" stopColor={OR_DK} />
+      </radialGradient>
+    </defs>
+    {/* Étincelles or autour du grain — 4 positions symétriques */}
+    <path d="M16 24 L18 30 L24 28 L18 32 L20 38 L16 34 L12 38 L14 32 L8 28 L14 30 Z" fill={OR_LTR} opacity=".95" />
+    <path d="M84 22 L86 28 L92 27 L86 30 L88 36 L84 33 L80 36 L82 30 L76 27 L82 28 Z" fill={OR_LTR} opacity=".95" />
+    <path d="M88 68 L89 72 L93 71 L89 73 L90 77 L88 75 L86 77 L87 73 L83 71 L87 72 Z" fill={OR_LTR} opacity=".85" />
+    <path d="M10 74 L11 77 L14 76.5 L11.5 78 L12 81 L10 79.5 L8 81 L9 78 L6 76.5 L9 77 Z" fill={OR_LTR} opacity=".75" />
+    <g transform="rotate(-15 50 50)">
+      {/* Corps : ellipse or massif */}
+      <ellipse cx="50" cy="50" rx="26" ry="38" fill="url(#g_grainLeg_body)" {...STROKE_HEAVY} stroke={OR_DK} strokeWidth="3" />
+      {/* Sillon central — bronze foncé pour profondeur */}
+      <path d="M50 14 Q42 50 50 86" stroke={OR_DK} strokeWidth="4.5" fill="none" strokeLinecap="round" />
+      <path d="M50 18 Q44 50 50 82" stroke="#6B4F0A" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      <path d="M50 22 Q46 50 50 78" stroke={OR_LTR} strokeWidth="1.2" fill="none" opacity=".8" strokeLinecap="round" />
+      {/* Reflets crème intenses (lumière haut-gauche) */}
+      <ellipse cx="36" cy="36" rx="8" ry="17" fill={OR_LTR} opacity=".7" />
+      <ellipse cx="34" cy="32" rx="4" ry="8" fill={CREME} opacity=".75" />
+      {/* Ombre or foncé opposée */}
+      <ellipse cx="62" cy="64" rx="6" ry="14" fill={OR_DK} opacity=".45" />
+      {/* Mini éclat central */}
+      <circle cx="38" cy="38" r="1.8" fill={CREME} opacity=".95" />
+    </g>
+  </svg>
+);
+
 const Muffin = () => (
   <svg viewBox="0 0 100 100" style={{ width:'100%', height:'100%' }}>
     <defs>
@@ -1117,6 +1153,7 @@ export function AvatarArtwork({ art }){
     case 'avSage':    return <AvSage />;
     case 'avEternel': return <AvEternel />;
     case 'avCosmonaute': return <AvCosmonaute />;
+    case 'grainLegende': return <GrainLegende />;
     /* legacy */
     case 'cosmos':    return <Cosmos />;
     default:          return <Cookie />;

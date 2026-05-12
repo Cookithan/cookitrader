@@ -49,14 +49,27 @@ export const LEVEL_NAMES = [
    - Niv 3-5 : ×1.5
    - Niv 6-24 : level²×50×1.5  (end-game qui se mérite)
    - Niv 25 : 60000  (palier final, café loop actif → prestige) */
+/* Smoothing 6-14 (13/05/2026) — refonte de la courbe pour éliminer
+   le mur 5→6→7. Progression ~×1.33 par palier au lieu du saut brutal
+   825 → 2700 (×3.3) au niv 6. Reprise de la formule normale à partir
+   du niveau 15. Demande user. */
+const SMOOTH_XP = {
+  6:  1100,
+  7:  1500,
+  8:  2000,
+  9:  2700,
+  10: 3600,
+  11: 4800,
+  12: 6500,
+  13: 9000,
+  14: 12000,
+};
+
 export function xpRequired(level){
   if(level <= 2) return level * 100 + 50;
   if(level <= 5) return Math.round((level * 100 + 50) * 1.5);
   if(level === 25) return 60000;
-  /* Smoothing niv 9-12 (12/05/2026) : -25% sur ces 4 paliers pour
-     adoucir le passage post-niveau 8 (les joueurs décrochaient ici).
-     Reprise courbe normale à partir du niveau 13. Demande user. */
-  if(level >= 9 && level <= 12) return Math.round(level * level * 50 * 1.5 * 0.75);
+  if(SMOOTH_XP[level] !== undefined) return SMOOTH_XP[level];
   return Math.round(level * level * 50 * 1.5);
 }
 
@@ -137,6 +150,9 @@ export const REWARDS = [
   /* Édition limitée — Code promo PINK. Skin rose poudré inspiré du
      thème Cappuccino Velours. Pas en boutique : uniquement via code. */
   { id:'skin_pink',       name:'Cookie Rose',             desc:'Édition limitée — Code promo PINK',          cost:0, type:'Skin',  emoji:'🌸', levelRequired:1, limited:true, promo:'PINK' },
+  /* Édition limitée — Code promo GRAIN16. Avatar fève de café légendaire
+     (or massif + halo). Pas en boutique : uniquement via code. */
+  { id:'avatar_grain_legende', name:'Grain Légendaire',   desc:'Édition limitée — Code promo GRAIN16',       cost:0, type:'Avatar', emoji:'☕', levelRequired:1, limited:true, promo:'GRAIN16' },
 
   /* 7 badges événements (ajoutés 09/05/2026) — défis modérés */
   { id:'badge_tireur',     name:'Badge Tireur',     desc:'Édition limitée — Stop parfait',         cost:0, type:'Badge', emoji:'🎯', levelRequired:4, limited:true, event:'event_pour_perfect' },

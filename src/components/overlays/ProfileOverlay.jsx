@@ -13,6 +13,7 @@ import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
 import { BadgeOriginModal } from "../modals/BadgeOriginModal.jsx";
 import { getBadgeOrigin } from "../../utils/badgeOrigin.js";
+import { formatPlayTime } from "../../utils/formatPlayTime.js";
 import { FriendsSection } from "../profile/FriendsSection.jsx";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 import { getNameStyle } from "../../utils/legend.js";
@@ -49,6 +50,7 @@ export function ProfileOverlay({
   level, xp, xpReq, totalEarned, streak, unlocked,
   earnedAchievements, achievementsTotal,
   marketRealized = 0,
+  totalPlayTime = 0,
   activeTheme, activeSkin, setActiveSkin, activeTitle, setActiveTitle, activeRoue,
   onReset,
   supabaseEnabled = false,
@@ -372,6 +374,7 @@ export function ProfileOverlay({
                   { label:'Succès',        value:`${earnedAchievements.length}/${achievementsTotal}`, sub:'débloqués', col:'#C17F3C' },
                   { label:'Items',         value:`${unlocked.length}/${REWARDS.length}`, sub:'possédés', col:'#7D4E1F' },
                   { label:'Marché',        value:marketRealized, sub:`cookies $CKM`, col:'#A0784E' },
+                  { label:'Temps total',   value:formatPlayTime(totalPlayTime), sub:'sur l\'app', col:'#5C3317' },
                 ].map(st => (
                   <div key={st.label} style={{ borderRadius:14, background:C.card, border:`1px solid ${C.border}`, padding:'12px 14px' }}>
                     <div style={{ fontSize:10, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase', marginBottom:4 }}>{st.label}</div>

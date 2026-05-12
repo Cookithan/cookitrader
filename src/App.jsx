@@ -177,6 +177,13 @@ export default function CookiMiner() {
   const [xp,          setXp]          = useLocalStorage('xp',          0);
   const [streak,      setStreak]      = useLocalStorage('streak',      0);
   const [clickRecord, setClickRecord] = useLocalStorage('clickRecord', 0);
+  /* Temps total passé dans l'app, en secondes. Incrémenté chaque seconde
+     tant que l'onglet est visible (document.visibilityState === 'visible').
+     Pause auto quand l'app est en background (économie batterie + métriques
+     fiables). Sync Supabase via upsertProfile/pullProfile. */
+  const [totalPlayTime, setTotalPlayTime] = useLocalStorage('totalPlayTime', 0);
+  const totalPlayTimeRef = useRef(totalPlayTime);
+  totalPlayTimeRef.current = totalPlayTime;
   /* Système Prestige : à chaque renaissance (niveau 15 atteint), le joueur
      repart au niveau 1 avec un multiplicateur permanent +10% sur les gains
      🍪. Indicateur visuel par couronne(s) sur le pseudo. Items/achievements/
@@ -419,6 +426,13 @@ export default function CookiMiner() {
             setWeeklyWeekId(currentWeekId);
           }
         }
+        /* Temps total dans l'app : on prend le MAX(serveur, local) pour
+           ne jamais perdre de temps (changement de device, F5 avant sync). */
+        const srvPlayTime = Number(server.totalPlayTime) || 0;
+        const locPlayTime = Number(totalPlayTimeRef.current) || 0;
+        if(srvPlayTime > locPlayTime){
+          setTotalPlayTime(srvPlayTime);
+        }
       }
       setPullDone(true);
     })();
@@ -470,11 +484,13 @@ export default function CookiMiner() {
         /* Classement hebdomadaire — vendredi 18h UTC reset. */
         weeklyEarned: Number(weeklyEarned) || 0,
         weeklyWeekId: weeklyWeekId || '',
+        /* Temps total dans l'app (sec). Push lifetime via debounce 5 s. */
+        totalPlayTime: Number(totalPlayTime) || 0,
       });
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate, weeklyEarned, weeklyWeekId]);
+  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate, weeklyEarned, weeklyWeekId, totalPlayTime]);
 
   /* Heartbeat présence — touche last_active toutes les 60 s tant que
      l'onglet est visible. Couplé à visibilitychange : suspend si hidden,
@@ -776,6 +792,45 @@ export default function CookiMiner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOnboarding, userName]);
+
+  /* ── Tracker temps total passé dans l'app ──────────────────────
+     Incrémente totalPlayTime de 1 toutes les 1 s tant que l'onglet
+     est visible. Pause auto via Page Visibility API (économie batterie
+     + métriques réalistes — on ne compte pas le temps en arrière-plan).
+     On vise un seul interval sur toute la vie de l'app. */
+  useEffect(() => {
+    let intervalId = null;
+
+    const tick = () => {
+      if(document.visibilityState !== 'visible') return;
+      setTotalPlayTime(t => (Number(t) || 0) + 1);
+    };
+
+    const start = () => {
+      if(intervalId) return;
+      intervalId = setInterval(tick, 1000);
+    };
+    const stop = () => {
+      if(!intervalId) return;
+      clearInterval(intervalId);
+      intervalId = null;
+    };
+
+    const onVis = () => {
+      if(document.visibilityState === 'visible') start();
+      else stop();
+    };
+
+    /* Démarre si la page est visible au mount */
+    if(document.visibilityState === 'visible') start();
+    document.addEventListener('visibilitychange', onVis);
+
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVis);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* Maintenance LIVE — fetch initial + subscription Realtime à la table
      public.system_status. Au moindre changement (UPDATE SQL côté admin),
@@ -2208,7 +2263,7 @@ export default function CookiMiner() {
       setUnlocked(u => u.includes(promo.unlock) ? u : [...u, promo.unlock]);
       unlockedItem = REWARDS.find(r => r.id === promo.unlock) || null;
       if(unlockedItem){
-        const typeMap = { 'Thème':'theme', 'Badge':'badge' };
+        const typeMap = { 'Thème':'theme', 'Badge':'badge', 'Skin':'skin', 'Avatar':'avatar' };
         setEventReward({
           source:    'promo',
           type:      typeMap[unlockedItem.type] || 'theme',
@@ -3732,6 +3787,7 @@ export default function CookiMiner() {
           totalEarned={totalEarned} streak={streak} unlocked={unlocked}
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.length}
           marketRealized={marketRealized}
+          totalPlayTime={totalPlayTime}
           activeTheme={activeTheme}
           activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
           activeTitle={activeTitle} setActiveTitle={setActiveTitle}

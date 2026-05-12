@@ -56,6 +56,9 @@ export const PROMO_CODES = {
   /* Code skin — débloque le Cookie Rose édition limitée (inspiration
      thème Cappuccino Velours). Rose poudré + pépites chocolat. */
   'PINK':      { coins: 0,    cafes: 0, unlock: 'skin_pink', label: '🌸 Cookie Rose débloqué' },
+  /* Code avatar — débloque le Grain Légendaire (fève de café en or
+     massif). Édition limitée, pas en boutique. */
+  'GRAIN16':   { coins: 0,    cafes: 0, unlock: 'avatar_grain_legende', label: '☕ Grain Légendaire débloqué' },
   /* Drop rare via le barista légendaire dans Devine la commande
      (1 % par partie, one-shot). `secret:true` → utilisable uniquement
      si l'utilisateur a effectivement croisé le barista (ajouté à

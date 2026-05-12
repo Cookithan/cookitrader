@@ -65,6 +65,10 @@ export const AVATAR_PREMIUM = AVATAR_PREMIUM_LIST.reduce((acc, a) => { acc[a.id]
 /* Legacy — anciens avatars supprimés du shop, conservés pour les utilisateurs
    qui les ont déjà débloqués/équipés avant la PHASE 4. */
 AVATAR_PREMIUM.avatar_cookie = { id:'avatar_cookie', art:'cookie',  name:'Cookie',  bg:'linear-gradient(140deg,#C17F3C,#D4A017)' };
+/* Édition limitée — Code promo GRAIN16. Fève de café en or massif,
+   halo doré + bordure légendaire (glow:true → AvatarFigure ajoute
+   l'anneau or). Pas en boutique. */
+AVATAR_PREMIUM.avatar_grain_legende = { id:'avatar_grain_legende', art:'grainLegende', name:'Grain Légendaire', bg:'radial-gradient(circle at 35% 30%, #FFE89A 0%, #D4A017 50%, #5C3614 100%)', glow:true };
 AVATAR_PREMIUM.avatar_legend = { id:'avatar_legend', art:'avOr',    name:'Légende', bg:'linear-gradient(140deg,#D4A017,#FFE89A)', glow:true };
 AVATAR_PREMIUM.avatar_aurore = { id:'avatar_aurore', art:'cosmos',  name:'Cosmos',  bg:'transparent', glow:true, full:true };
 

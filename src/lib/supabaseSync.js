@@ -1101,7 +1101,7 @@ export async function pullProfile(userCode){
     const data = await withRetry(async () => {
       const { data: row, error } = await supabase
         .from('users')
-        .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date, weekly_earned, weekly_week_id')
+        .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date, weekly_earned, weekly_week_id, total_play_time')
         .eq('user_code', userCode)
         .maybeSingle();
       if(error) throw error;
@@ -1138,6 +1138,8 @@ export async function pullProfile(userCode){
       /* Compteur hebdomadaire pour le classement weekly. */
       weeklyEarned:        Number(data.weekly_earned) || 0,
       weeklyWeekId:        data.weekly_week_id || '',
+      /* Temps total dans l'app en secondes (sync cross-device). */
+      totalPlayTime:       Number(data.total_play_time) || 0,
     };
   }catch{
     return null;
@@ -1202,6 +1204,10 @@ export async function upsertProfile(p){
            alter table users add column if not exists weekly_week_id text default ''; */
         weekly_earned:        Number(p.weeklyEarned) || 0,
         weekly_week_id:       p.weeklyWeekId ?? '',
+        /* Temps total passé dans l'app (en secondes). Incrémenté côté
+           client toutes les 1 s tant que l'onglet est visible. Nécessite :
+           alter table users add column if not exists total_play_time bigint default 0; */
+        total_play_time:      Number(p.totalPlayTime) || 0,
         last_active:  new Date().toISOString(),
       }, { onConflict: 'user_code' })
       .select()

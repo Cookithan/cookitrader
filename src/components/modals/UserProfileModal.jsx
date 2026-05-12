@@ -4,6 +4,7 @@ import { AvatarFigure } from "../AvatarFigure.jsx";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
 import { getNameStyle } from "../../utils/legend.js";
+import { formatPlayTime } from "../../utils/formatPlayTime.js";
 
 /* ════════════════════════════════════════════════════
    UserProfileModal — vue résumée d'un ami / du top 1 (BRIEF_PROFIL_VISIBLE)
@@ -274,12 +275,13 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         </div>
       )}
 
-      {/* Stats grille 2×2 */}
+      {/* Stats grille — 2 colonnes, 3 lignes (ajout du temps total). */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
         <StatBlock icon="🍪" value={cookies.toLocaleString('fr-FR')}     label="Cookies"     C={C} />
         <StatBlock icon="📊" value={totalEarned.toLocaleString('fr-FR')} label="Total gagné" C={C} />
         <StatBlock icon="🔥" value={streak}                              label="Série"        C={C} />
         <StatBlock icon="⭐" value={level}                               label="Niveau"       C={C} />
+        <StatBlock icon="⏱️" value={formatPlayTime(profile.total_play_time)} label="Temps total" C={C} />
       </div>
 
       {/* Carte classements */}
