@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS, getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -789,8 +789,7 @@ export default function CookiMiner() {
      Sans ça, le 1er swipe vers Classement/Marché/Boutique déclenche
      un fetch du chunk → Suspense fallback visible 100-300ms (perçu
      comme "ça rame"). On preload après 2s pour ne pas peser sur le
-     mount initial mais avant que l'user soit vraiment prêt à swiper.
-     Les chunks atterrissent dans le cache HTTP → swipe instantané. */
+     mount initial mais avant que l'user soit vraiment prêt à swiper. */
   useEffect(() => {
     const id = setTimeout(() => {
       import("./components/tabs/ClassementTab.jsx");
@@ -799,6 +798,53 @@ export default function CookiMiner() {
     }, 2000);
     return () => clearTimeout(id);
   }, []);
+
+  /* PERF — préchargement des 11 chunks mini-jeux dès que l'user arrive
+     sur le tab Jeux. À la 1re ouverture d'un jeu : déjà en cache,
+     instantané. On utilise delay 200ms pour ne pas bloquer la transition
+     vers le tab elle-même. */
+  useEffect(() => {
+    if(tab !== 'jeux') return;
+    const id = setTimeout(() => {
+      import("./components/games/CheckinGame.jsx");
+      import("./components/games/QuizGame.jsx");
+      import("./components/games/SpinGame.jsx");
+      import("./components/games/ClickGame.jsx");
+      import("./components/games/PourGame.jsx");
+      import("./components/games/MemoryGame.jsx");
+      import("./components/games/GuessGame.jsx");
+      import("./components/games/ReflexGame.jsx");
+      import("./components/games/PyramidGame.jsx");
+      import("./components/games/SlotGame.jsx");
+      import("./components/games/FlappyGame.jsx");
+    }, 200);
+    return () => clearTimeout(id);
+  }, [tab]);
+
+  /* PERF — préfetch des données du Classement en arrière-plan dès que
+     l'app a démarré (après 3s pour ne pas peser sur le mount initial
+     ni concurrencer la 1re sync pullProfile). Résultat écrit dans
+     sessionStorage avec la même clé que ClassementTab → cache hit
+     immédiat à la 1re ouverture, plus de skeleton long. */
+  useEffect(() => {
+    if(!userCode || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    const id = setTimeout(async () => {
+      try{
+        const weekId = getCurrentWeekId();
+        const [leaderboard, rank, count, onlineN] = await Promise.all([
+          getLeaderboard(50, weekId),
+          getMyRank(userCode, weekId),
+          getTotalPlayers(),
+          getOnlineCount(),
+        ]);
+        if(cancelled) return;
+        const payload = { list: leaderboard, myRank: rank, total: count, online: onlineN };
+        try{ sessionStorage.setItem('leaderboard:cache:v2', JSON.stringify(payload)); }catch{}
+      }catch{}
+    }, 3000);
+    return () => { cancelled = true; clearTimeout(id); };
+  }, [userCode]);
 
   /* Maintenance LIVE — fetch initial + subscription Realtime à la table
      public.system_status. Au moindre changement (UPDATE SQL côté admin),
@@ -990,6 +1036,11 @@ export default function CookiMiner() {
      animer le content entrant (depuis la droite ou la gauche). */
   const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
+  /* prevTab : tab qui sort pendant la transition (320ms). Permet le
+     cross-translate (page sortante + page entrante se déplacent ensemble).
+     transitionId pour invalider les setTimeout des swipes obsolètes. */
+  const [prevTab, setPrevTab] = useState(null);
+  const transitionIdRef = useRef(0);
 
   const goToTab = (target, source = 'click') => {
     const i = TAB_ORDER.indexOf(tab);
@@ -999,8 +1050,16 @@ export default function CookiMiner() {
     playSound(source === 'swipe' ? 'swipe' : 'tab');
     /* Tap haptique léger pour confirmer le changement (8ms — discret). */
     haptic('light');
+    const id = ++transitionIdRef.current;
     setSlideDir(j > i ? 'next' : 'prev');
+    setPrevTab(tab);
     setTab(target);
+    /* Clear prev après la fin de l'anim. Le check ID protège des swipes
+       en cascade (sans ça, un setTimeout d'un swipe précédent pourrait
+       effacer prevTab du swipe suivant). */
+    setTimeout(() => {
+      if(transitionIdRef.current === id) setPrevTab(null);
+    }, 340);
   };
 
   const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
@@ -2895,27 +2954,61 @@ export default function CookiMiner() {
       </header>
 
       {/* CONTENT — swipe horizontal navigue dans TAB_ORDER.
-          Rendu mono-tab : seul le tab actif est dans le DOM. À chaque
-          changement, le wrapper key={tab} remonte → slide-in animation
-          rejoue. Le tab précédent disparaît instantanément (sans
-          animation de sortie) — c'est un compromis : pas de carousel
-          cross-translate (qui causait un double-rendu visuel à cause
-          du padding parent vs in-flow), mais visuellement clean. */}
+          Cross-translate v2 : pendant la transition (320ms), 2 wrappers
+          rendus simultanément (prev en absolute, active en flow) avec
+          animations en miroir → effet pages collées qui glissent ensemble.
+
+          ⚠️ Padding 16px DANS chaque wrapper (pas sur le parent) pour
+          que prev (absolute, inset:0) et active (in-flow) aient la même
+          largeur → pas de bord-à-bord visible (bug "page x2" résolu). */}
       <div
         ref={swipe.ref}
         {...swipe.handlers}
         /* minHeight:0 → fix iOS Safari où un enfant flex:1 + overflow:auto
-           grandit à la hauteur du contenu au lieu d'être capé. */
-        style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', padding:'0 16px', paddingBottom:104, willChange:'transform' }}
+           grandit à la hauteur du contenu au lieu d'être capé.
+           position:relative pour permettre le positionnement absolu du
+           tab sortant (prevTab) pendant la transition.
+           pas de horizontal padding ici (déplacé dans chaque wrapper). */
+        style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', paddingBottom:104, willChange:'transform', position:'relative' }}
       >
-        <div
-          key={tab}
-          className={slideDir === 'next' ? 'tab-slide-in-right' : slideDir === 'prev' ? 'tab-slide-in-left' : ''}
-        >
+        {(() => {
+        /* Renvoie la classe CSS appropriée pour un tab :
+           - id === prevTab : slide-out (vers le côté du swipe)
+           - id === tab     : slide-in (depuis le côté opposé) */
+        const tabClass = (id) => {
+          if(prevTab && id === prevTab){
+            return slideDir === 'next' ? 'tab-slide-out-left' : slideDir === 'prev' ? 'tab-slide-out-right' : '';
+          }
+          if(id === tab && slideDir){
+            return slideDir === 'next' ? 'tab-slide-in-right' : 'tab-slide-in-left';
+          }
+          return '';
+        };
+        /* Le sortant est en absolu (inset:0) avec padding à l'intérieur,
+           pour avoir EXACTEMENT la même largeur que l'entrant en flow. */
+        const tabWrap = (id, children) => {
+          const isPrev = prevTab && id === prevTab;
+          const isCurr = id === tab;
+          if(!isPrev && !isCurr) return null;
+          return (
+            <div
+              key={`${id}-${isPrev ? 'out' : 'in'}-${transitionIdRef.current}`}
+              className={tabClass(id)}
+              style={{
+                ...(isPrev ? { position:'absolute', top:0, left:0, right:0, pointerEvents:'none' } : {}),
+                padding:'0 16px',
+              }}
+            >
+              {children}
+            </div>
+          );
+        };
+        return (
+        <>
 
         {/* ── ACCUEIL ── */}
-        {tab==='accueil' && (
-          <div className="su">
+        {(tab==='accueil' || prevTab==='accueil') && tabWrap('accueil',
+          <div>
             {/* Bannière événement spécial (PHASE 6E) — visible en
                 phase 'waiting' (timer mystère) et en phase 'active'
                 (titre + temps restant + essais). */}
@@ -3317,8 +3410,8 @@ export default function CookiMiner() {
         )}
 
         {/* ── JEUX ── */}
-        {tab==='jeux' && (
-          <div className="su">
+        {(tab==='jeux' || prevTab==='jeux') && tabWrap('jeux',
+          <div>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
             {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && g.levelRequired - level <= 1).map(g=>{
               const locked     = level < g.levelRequired;
@@ -3399,7 +3492,7 @@ export default function CookiMiner() {
           </div>
         }>
           {/* ── CLASSEMENT ── */}
-          {tab==='classement' && (
+          {(tab==='classement' || prevTab==='classement') && tabWrap('classement',
             <ClassementTab
               userCode={userCode}
               userName={userName}
@@ -3413,7 +3506,7 @@ export default function CookiMiner() {
           )}
 
           {/* ── MARCHÉ ── (online via Supabase, BRIEF_MARCHE_ONLINE) */}
-          {tab==='marche' && (
+          {(tab==='marche' || prevTab==='marche') && tabWrap('marche',
             level >= 3 ? (
               <MarketTab
                 userCode={userCode}
@@ -3442,7 +3535,7 @@ export default function CookiMiner() {
           )}
 
           {/* ── BOUTIQUE ── */}
-          {tab==='boutique' && (
+          {(tab==='boutique' || prevTab==='boutique') && tabWrap('boutique',
             <BoutiqueTab
               coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
               mode={boutiqueMode} setMode={setBoutiqueMode}
@@ -3458,7 +3551,9 @@ export default function CookiMiner() {
             />
           )}
         </Suspense>
-        </div>
+        </>
+        );
+        })()}
       </div>
 
       {/* NAV */}
