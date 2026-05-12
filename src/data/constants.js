@@ -86,7 +86,7 @@ export const SEGMENTS = [
   { value:  75, label:'+75',  weight: 7, color:'#F0C050' },  // miel saturé
   { value: -75, label:'-75',  weight: 7, color:'#3D2010' },  // espresso
   { value: 200, label:'+200', weight: 3, color:'#FFD700' },  // OR JACKPOT
-  { value: -75, label:'-75',  weight: 3, color:'#1F0E04' },  // espresso brûlé (catastrophe douce)
+  { value: -50, label:'-50',  weight: 3, color:'#1F0E04' },  // espresso brûlé (perte douce, remplace 2e -75)
 ];
 
 /* Récompenses check-in : index = jour dans la semaine (0..6). Jour 7 = jackpot. */

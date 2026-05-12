@@ -33,7 +33,9 @@ export function useSwipe({ onLeft, onRight, threshold = 60, enabled = true } = {
   const setTx = (px, animated = false) => {
     const el = ref.current;
     if(!el) return;
-    el.style.transition = animated ? 'transform .25s ease-out' : 'none';
+    /* Cubic-bezier snappy : démarre rapidement puis ralentit — donne
+       l'impression que le doigt continue sa vélocité après le release. */
+    el.style.transition = animated ? 'transform .22s cubic-bezier(.16,.84,.44,1)' : 'none';
     el.style.transform  = px === 0 ? '' : `translateX(${px}px)`;
   };
 
@@ -77,11 +79,12 @@ export function useSwipe({ onLeft, onRight, threshold = 60, enabled = true } = {
       return;
     }
 
-    /* Geste validé : on reset immédiatement le transform et on déclenche
-       le changement de tab. La nouvelle page rentre via son animation
-       CSS (tab-slide-in-right/left), ce qui produit une seule transition
-       continue plutôt qu'un "sort puis rentre" en 2 temps. */
-    setTx(0);
+    /* Geste validé : on déclenche le changement de tab ET on anime le
+       retour du wrapper à 0. Le contenu change AU MÊME instant que
+       l'animation démarre → la nouvelle page apparaît à la position
+       du drag (continuité visuelle) puis glisse doucement vers 0.
+       Pas de snap, pas de slide-in CSS supplémentaire. */
+    setTx(0, true);
     if(dx > 0) onRight?.();
     else       onLeft?.();
   };

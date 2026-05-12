@@ -967,11 +967,6 @@ export default function CookiMiner() {
      animer le content entrant (depuis la droite ou la gauche). */
   const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
-  /* prevTab : tab qui sort pendant la transition (320ms). Permet le
-     cross-translate (page sortante + page entrante se déplacent ensemble).
-     transitionId pour invalider les setTimeout des swipes obsolètes. */
-  const [prevTab, setPrevTab] = useState(null);
-  const transitionIdRef = useRef(0);
 
   const goToTab = (target, source = 'click') => {
     const i = TAB_ORDER.indexOf(tab);
@@ -981,16 +976,14 @@ export default function CookiMiner() {
     playSound(source === 'swipe' ? 'swipe' : 'tab');
     /* Tap haptique léger pour confirmer le changement (8ms — discret). */
     haptic('light');
-    const id = ++transitionIdRef.current;
-    setSlideDir(j > i ? 'next' : 'prev');
-    setPrevTab(tab);
+    /* Slide-in CSS uniquement sur clic nav (le swipe gère sa propre
+       continuité visuelle via l'animation du wrapper dans useSwipe). */
+    if(source === 'swipe'){
+      setSlideDir(null);
+    } else {
+      setSlideDir(j > i ? 'next' : 'prev');
+    }
     setTab(target);
-    /* Clear prev après la fin de l'anim. Le check ID protège des swipes
-       en cascade (sans ça, un setTimeout d'un swipe précédent pourrait
-       effacer prevTab du swipe suivant). */
-    setTimeout(() => {
-      if(transitionIdRef.current === id) setPrevTab(null);
-    }, 340);
   };
 
   const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
@@ -2931,61 +2924,25 @@ export default function CookiMiner() {
       </header>
 
       {/* CONTENT — swipe horizontal navigue dans TAB_ORDER.
-          Cross-translate v2 : pendant la transition (320ms), 2 wrappers
-          rendus simultanément (prev en absolute, active en flow) avec
-          animations en miroir → effet pages collées qui glissent ensemble.
-
-          ⚠️ Padding 16px DANS chaque wrapper (pas sur le parent) pour
-          que prev (absolute, inset:0) et active (in-flow) aient la même
-          largeur → pas de bord-à-bord visible (bug "page x2" résolu). */}
+          Rendu mono-tab simple : un seul tab dans le DOM à la fois.
+          À chaque changement, key={tab} force le remount → la classe
+          tab-slide-in-{right,left} replay l'anim sur le nouveau tab.
+          L'ancien tab disparaît instant (pas d'animation de sortie). */}
       <div
         ref={swipe.ref}
         {...swipe.handlers}
         /* minHeight:0 → fix iOS Safari où un enfant flex:1 + overflow:auto
-           grandit à la hauteur du contenu au lieu d'être capé.
-           position:relative pour permettre le positionnement absolu du
-           tab sortant (prevTab) pendant la transition.
-           pas de horizontal padding ici (déplacé dans chaque wrapper). */
-        style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', paddingBottom:104, willChange:'transform', position:'relative' }}
+           grandit à la hauteur du contenu au lieu d'être capé. */
+        style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', padding:'0 16px', paddingBottom:104, willChange:'transform' }}
       >
-        {(() => {
-        /* Renvoie la classe CSS appropriée pour un tab :
-           - id === prevTab : slide-out (vers le côté du swipe)
-           - id === tab     : slide-in (depuis le côté opposé) */
-        const tabClass = (id) => {
-          if(prevTab && id === prevTab){
-            return slideDir === 'next' ? 'tab-slide-out-left' : slideDir === 'prev' ? 'tab-slide-out-right' : '';
-          }
-          if(id === tab && slideDir){
-            return slideDir === 'next' ? 'tab-slide-in-right' : 'tab-slide-in-left';
-          }
-          return '';
-        };
-        /* Le sortant est en absolu (inset:0) avec padding à l'intérieur,
-           pour avoir EXACTEMENT la même largeur que l'entrant en flow. */
-        const tabWrap = (id, children) => {
-          const isPrev = prevTab && id === prevTab;
-          const isCurr = id === tab;
-          if(!isPrev && !isCurr) return null;
-          return (
-            <div
-              key={`${id}-${isPrev ? 'out' : 'in'}-${transitionIdRef.current}`}
-              className={tabClass(id)}
-              style={{
-                ...(isPrev ? { position:'absolute', top:0, left:0, right:0, pointerEvents:'none' } : {}),
-                padding:'0 16px',
-              }}
-            >
-              {children}
-            </div>
-          );
-        };
-        return (
-        <>
+        <div
+          key={tab}
+          className={slideDir === 'next' ? 'tab-slide-in-right' : slideDir === 'prev' ? 'tab-slide-in-left' : ''}
+        >
 
         {/* ── ACCUEIL ── */}
-        {(tab==='accueil' || prevTab==='accueil') && tabWrap('accueil',
-          <div>
+        {tab==='accueil' && (
+          <div className="su">
             {/* Bannière événement spécial (PHASE 6E) — visible en
                 phase 'waiting' (timer mystère) et en phase 'active'
                 (titre + temps restant + essais). */}
@@ -3387,8 +3344,8 @@ export default function CookiMiner() {
         )}
 
         {/* ── JEUX ── */}
-        {(tab==='jeux' || prevTab==='jeux') && tabWrap('jeux',
-          <div>
+        {tab==='jeux' && (
+          <div className="su">
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
             {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && g.levelRequired - level <= 1).map(g=>{
               const locked     = level < g.levelRequired;
@@ -3455,7 +3412,7 @@ export default function CookiMiner() {
         )}
 
         {/* ── CLASSEMENT ── */}
-          {(tab==='classement' || prevTab==='classement') && tabWrap('classement',
+          {tab==='classement' && (
             <ClassementTab
               userCode={userCode}
               userName={userName}
@@ -3469,7 +3426,7 @@ export default function CookiMiner() {
           )}
 
           {/* ── MARCHÉ ── (online via Supabase, BRIEF_MARCHE_ONLINE) */}
-          {(tab==='marche' || prevTab==='marche') && tabWrap('marche',
+          {tab==='marche' && (
             level >= 3 ? (
               <MarketTab
                 userCode={userCode}
@@ -3498,7 +3455,7 @@ export default function CookiMiner() {
           )}
 
           {/* ── BOUTIQUE ── */}
-          {(tab==='boutique' || prevTab==='boutique') && tabWrap('boutique',
+          {tab==='boutique' && (
             <BoutiqueTab
               coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
               mode={boutiqueMode} setMode={setBoutiqueMode}
@@ -3513,9 +3470,7 @@ export default function CookiMiner() {
               C={C}
             />
           )}
-        </>
-        );
-        })()}
+        </div>
       </div>
 
       {/* NAV */}
