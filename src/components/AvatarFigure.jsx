@@ -38,7 +38,15 @@ export function AvatarFigure({ value, size=40, ringColor=null, glow=false }){
           : isGlow
             ? '0 0 14px rgba(212,160,23,.55), 0 2px 8px rgba(0,0,0,.18)'
             : '0 2px 8px rgba(0,0,0,.18)',
-        overflow:'hidden', position:'relative'
+        overflow:'hidden', position:'relative',
+        /* Force un stacking context isolé + accélération GPU dédiée.
+           Fix bug Android : sans ça, les SVG avatars peuvent souffrir
+           d'artefacts de rendu (bandes, stries) quand un ancêtre est
+           translaté (swipe wrapper). isolation+transform crée un layer
+           de composition propre. */
+        isolation:'isolate',
+        transform:'translateZ(0)',
+        WebkitTransform:'translateZ(0)',
       }}
     >
       <AvatarArtwork art={a.art} />
