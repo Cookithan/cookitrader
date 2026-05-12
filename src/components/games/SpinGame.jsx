@@ -19,6 +19,9 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);
   const [result,   setResult]   = useState(null);
+  /* superJackpot : flag activé 2.5s quand la roue tombe sur +500.
+     Déclenche confettis dorés + flash plein écran pour souligner. */
+  const [superJackpot, setSuperJackpot] = useState(false);
   const COST = level >= 8 ? 20 : 10;
 
   const palette = ROUE_PALETTES[activeRoue] || null;
@@ -99,9 +102,18 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
       else {
         angleRef.current=final; setSpinning(false); setResult(SEGMENTS[idx]);
         const value = SEGMENTS[idx].value;
-        playSound(value > 0 ? 'success' : 'error');
+        /* Son adapté : jackpot pour +200, success pour gains, error pour
+           pertes. Le jackpot +200 déclenche l'overlay confettis 2.5s pour
+           souligner ce moment (event addictif demandé par user). */
+        if(value === 200) playSound('jackpot');
+        else if(value > 0) playSound('success');
+        else playSound('error');
         onEarn(value);
-        if(value === 200 && onJackpot) onJackpot();
+        if(value === 200){
+          if(onJackpot) onJackpot();
+          setSuperJackpot(true);
+          setTimeout(() => setSuperJackpot(false), 2500);
+        }
         /* PHASE 6E — challenge spin_jackpot : tomber sur +200 */
         onEventChallenge?.('spin_jackpot', value);
       }
@@ -111,6 +123,61 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
 
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:20, position:'relative' }}>
+      {/* SUPER JACKPOT — overlay plein écran qd value=500. Confettis denses
+          + flash doré + texte géant. Disparait après 2.5s. */}
+      {superJackpot && (
+        <div style={{
+          position:'fixed', inset:0, zIndex:9000,
+          pointerEvents:'none',
+          background:'radial-gradient(circle, rgba(255,215,0,.35) 0%, rgba(0,0,0,0) 70%)',
+          animation:'inboxOverlayIn .3s ease-out both',
+          display:'flex', alignItems:'center', justifyContent:'center',
+        }}>
+          {/* 24 confettis dorés en explosion radiale */}
+          {[...Array(24)].map((_, i) => {
+            const ang = (i / 24) * Math.PI * 2;
+            const dist = 180 + Math.random() * 140;
+            const tx = Math.cos(ang) * dist + 'px';
+            const ty = Math.sin(ang) * dist + 'px';
+            const emoji = i % 3 === 0 ? '⭐' : i % 3 === 1 ? '✨' : '🍪';
+            return (
+              <span key={i} className="confetti-piece" style={{
+                '--tx':tx, '--ty':ty,
+                animationDelay:`${i*0.018}s`,
+                animationDuration:'1.6s',
+                fontSize: 26,
+                filter:'drop-shadow(0 0 8px rgba(255,215,0,.8))',
+              }}>{emoji}</span>
+            );
+          })}
+          {/* Texte géant SUPER JACKPOT */}
+          <div style={{
+            position:'absolute', top:'42%', left:'50%',
+            transform:'translate(-50%, -50%)',
+            fontSize:'clamp(36px, 11vw, 56px)',
+            fontWeight:900, letterSpacing:2,
+            color:'transparent',
+            background:'linear-gradient(180deg, #FFE89A 0%, #FFD700 40%, #C8960C 100%)',
+            WebkitBackgroundClip:'text', backgroundClip:'text',
+            textShadow:'0 0 40px rgba(255,215,0,.8)',
+            animation:'popIn .6s cubic-bezier(.36,.07,.19,.97) both',
+            whiteSpace:'nowrap',
+          }}>
+            🎉 +200 🍪 🎉
+          </div>
+          <div style={{
+            position:'absolute', top:'58%', left:'50%',
+            transform:'translate(-50%, -50%)',
+            fontSize:14, fontWeight:800, letterSpacing:6,
+            color:'#FFE89A',
+            textShadow:'0 2px 8px rgba(0,0,0,.6)',
+            animation:'popIn .8s cubic-bezier(.36,.07,.19,.97) both',
+          }}>
+            JACKPOT !
+          </div>
+        </div>
+      )}
+
       {/* Pointer + wheel */}
       <div style={{ position:'relative', borderRadius:'50%', lineHeight:0 }} className={!spinning && coins>=COST ? 'glow-anim' : ''}>
         <div style={{ position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)', width:0, height:0, borderLeft:'11px solid transparent', borderRight:'11px solid transparent', borderTop:'18px solid #D4A017', zIndex:5, filter:'drop-shadow(0 2px 4px rgba(0,0,0,.3))' }} />

@@ -176,6 +176,57 @@ function playSwipeSynth(){
   src.stop(ctx.currentTime + dur);
 }
 
+/* ── FLAPPY JUMP SYNTH — "boop" cartoon montant ───────────────────
+   Pour le saut du cookie : un blip court à pitch ascendant qui rappelle
+   un saut de jeu d'arcade (Mario, Flappy Bird).
+   - Oscillateur sine sweep de 280 Hz → 600 Hz (pitch up)
+   - Triangle wave en back pour épaissir le son
+   - Enveloppe ultra-rapide (atk 8 ms, decay 110 ms) → percussif
+   - Volume modéré (.22) pour ne pas fatiguer en partie longue */
+function playFlappyJumpSynth(){
+  const ctx = ensureAudioContext();
+  if(!ctx) return;
+  const t0 = ctx.currentTime;
+  const dur = 0.12;
+
+  /* Oscillateur 1 : sine principale */
+  const osc1 = ctx.createOscillator();
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(280, t0);
+  osc1.frequency.exponentialRampToValueAtTime(600, t0 + dur * 0.6);
+
+  /* Oscillateur 2 : triangle pour la couleur (1 octave en-dessous) */
+  const osc2 = ctx.createOscillator();
+  osc2.type = 'triangle';
+  osc2.frequency.setValueAtTime(140, t0);
+  osc2.frequency.exponentialRampToValueAtTime(300, t0 + dur * 0.6);
+
+  /* Mixer */
+  const mix = ctx.createGain();
+  mix.gain.value = 1;
+
+  /* Enveloppe globale */
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0, t0);
+  env.gain.linearRampToValueAtTime(0.22, t0 + 0.008);
+  env.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+  /* Low-pass doux pour adoucir le pic du début */
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 2200;
+  lp.Q.value = 0.6;
+
+  osc1.connect(mix);
+  osc2.connect(mix);
+  mix.connect(lp).connect(env).connect(ctx.destination);
+
+  osc1.start(t0);
+  osc2.start(t0);
+  osc1.stop(t0 + dur);
+  osc2.stop(t0 + dur);
+}
+
 /* ── PLAY UI SOUND ──────────────────────────────── */
 export function playSound(name){
   const s = getSettings();
@@ -183,6 +234,11 @@ export function playSound(name){
   /* Swipe : route vers le synth Web Audio (whoosh vent) au lieu du mp3. */
   if(name === 'swipe'){
     playSwipeSynth();
+    return;
+  }
+  /* Saut Flappy : boop cartoon montant via synth (cf. playFlappyJumpSynth). */
+  if(name === 'flappy_jump'){
+    playFlappyJumpSynth();
     return;
   }
   if(!UI_SOUNDS[name]){

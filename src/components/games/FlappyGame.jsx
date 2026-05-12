@@ -39,7 +39,9 @@ const LIGHT_PIPE_CHANCE = 0.20;
    est validé, on choisit un obstacle au hasard entre les indices 5 et 30
    pour y placer la pièce. Max 1 pièce par partie. Le cookie la traverse
    sans collision et gagne 1 ☕. */
-const GOLDEN_DROP_RATE = 0.05;
+/* Taux café bonus désormais PAR MODE (cf. MODES.coffeeRate) :
+   Facile 5 %, Normal 10 %, Difficile 15 %. Cap toujours à 1 café max
+   par partie. */
 const GOLDEN_HITBOX = 22;   /* rayon d'interaction (px) */
 
 const ARENA_W = 320;
@@ -63,10 +65,13 @@ const TAP_COOLDOWN_MS = 60;
 /* 3 modes — Facile relâche tout (gap large, gravité douce, vitesse lente)
    pour les débutants ; Difficile resserre tout pour les vétérans.
    Gravité douce → cookie aérien. Gaps élargis pour rendre le jeu juste. */
+/* coffeeRate : chance d'obtenir 1 café bonus PAR PARTIE — augmente
+   avec la difficulté (5/10/15 %) pour récompenser ceux qui osent
+   les modes durs. Affiché sur chaque carte de mode. */
 const MODES = {
-  facile:    { label:'Facile',    emoji:'🍼', gap:210, gravity:640,  flapSpeed:-300, baseSpeed:115, reward:3, rewardLight:6 },
-  normal:    { label:'Normal',    emoji:'☕', gap:160, gravity:900,  flapSpeed:-350, baseSpeed:150, reward:4, rewardLight:8 },
-  difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10 },
+  facile:    { label:'Facile',    emoji:'🍼', gap:210, gravity:640,  flapSpeed:-300, baseSpeed:115, reward:3, rewardLight:6,  coffeeRate:0.05 },
+  normal:    { label:'Normal',    emoji:'☕', gap:160, gravity:900,  flapSpeed:-350, baseSpeed:150, reward:4, rewardLight:8,  coffeeRate:0.10 },
+  difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10, coffeeRate:0.15 },
 };
 
 export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }){
@@ -120,9 +125,10 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
     setEarned(0); earnedRef.current = 0;
     spawnXRef.current = ARENA_W;
     spawnCountRef.current = 0;
-    /* Roll de la pièce dorée pour cette partie : 5 % → choisir un
-       index d'obstacle dans [5, 30] pour y placer la pièce. */
-    goldenIndexRef.current = Math.random() < GOLDEN_DROP_RATE
+    /* Roll du café bonus pour cette partie selon le mode actif
+       (Facile 5%, Normal 10%, Difficile 15%). Si tiré → choisir un
+       index d'obstacle dans [5, 30] pour y placer le café. */
+    goldenIndexRef.current = Math.random() < MODES[modeRef.current].coffeeRate
       ? 5 + Math.floor(Math.random() * 26)
       : -1;
     lastTRef.current = 0;
@@ -284,11 +290,11 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
       const newEarned = Math.min(REWARD_CAP, earnedRef.current + earnedInc);
       earnedRef.current = newEarned;
       setEarned(newEarned);
-      playSound('coin');
-      /* Popup avec le reward effectif. Flag light = couleur ambre + glow
-         (le reward "light" du mode est toujours le double du standard). */
+      /* Son uniquement sur tuyau espresso x2 (light) — sinon trop fréquent
+         et lassant à chaque tuyau standard. Demande user 13/05/2026. */
       const popId = ts + Math.random();
       const wasLight = lastReward === MODES[modeRef.current].rewardLight;
+      if(wasLight) playSound('coin');
       setPops(p => [...p, { id: popId, amount: lastReward, light: wasLight }]);
       setTimeout(() => setPops(p => p.filter(x => x.id !== popId)), 700);
       /* Auto-end si score cap (anti-cheat) OU reward cap atteint */
@@ -341,7 +347,9 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
     if(now - lastTapRef.current < TAP_COOLDOWN_MS) return;
     lastTapRef.current = now;
     cookieVRef.current = MODES[modeRef.current].flapSpeed;
-    playSound('tap');
+    /* Son de saut synthétisé (sweep 280→600 Hz, sine+tri, env ultra-courte)
+       — remplace l'ancien 'tap' générique. Voir audio.js playFlappyJumpSynth. */
+    playSound('flappy_jump');
   };
 
   const replay = () => {
@@ -392,9 +400,17 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
                     fontSize:11, fontWeight:800, letterSpacing:.3,
                     cursor:'pointer', transition:'background .15s, color .15s',
                     touchAction:'manipulation', userSelect:'none',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+                    lineHeight:1.2,
                   }}
                 >
-                  {cfg.emoji} {cfg.label}
+                  <span>{cfg.emoji} {cfg.label}</span>
+                  <span style={{
+                    fontSize:9, fontWeight:700, letterSpacing:.4,
+                    opacity: active ? 0.85 : 0.7,
+                  }}>
+                    {Math.round(cfg.coffeeRate * 100)}% ☕
+                  </span>
                 </button>
               );
             })}
@@ -485,19 +501,18 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
                 boxShadow:'0 -3px 6px rgba(0,0,0,.35)',
               }}/>
 
-              {/* Pièce dorée RARE — flotte au centre du gap, scintille,
-                  disparaît quand collectée. Halo doré pour la rendre voyante. */}
+              {/* Café bonus — gros emoji ☕ qui flotte et scintille,
+                  disparaît quand collecté. Plus de pièce/halo, juste le
+                  café direct (demande user 13/05/2026). */}
               {ob.golden && !ob.goldenCollected && (
                 <div style={{
                   position:'absolute',
-                  left: OBSTACLE_W/2 - 14, top: ob.gapY - 14,
-                  width:28, height:28, borderRadius:'50%',
-                  background:'radial-gradient(circle at 35% 30%, #FFF5C8 0%, #FFD24D 45%, #C8960C 85%, #7D5A14 100%)',
-                  border:'2px solid #7D5A14',
-                  boxShadow:'0 0 16px rgba(255,210,77,.95), 0 0 28px rgba(212,160,23,.6), inset -3px -3px 6px rgba(125,90,20,.45)',
+                  left: OBSTACLE_W/2 - 18, top: ob.gapY - 18,
+                  width:36, height:36,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontSize:14, fontWeight:900, color:'#5D3A1F',
-                  animation:'pulseRing 1.2s ease-in-out infinite, float 2.5s ease-in-out infinite',
+                  fontSize:34, lineHeight:1,
+                  animation:'float 2.5s ease-in-out infinite',
+                  filter:'drop-shadow(0 0 10px rgba(255,210,77,.7))',
                   zIndex:5,
                 }}>☕</div>
               )}
@@ -522,17 +537,19 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
           position:'absolute',
           left: COOKIE_X - COOKIE_SIZE/2, top: 0,
           width: COOKIE_SIZE, height: COOKIE_SIZE,
+          /* Ombre retirée (demande user 13/05/2026) — ne reste que
+             le grayscale/brightness pour l'effet KO quand crashed. */
           filter: crashed
-            ? 'grayscale(.7) brightness(.7) drop-shadow(0 4px 8px rgba(0,0,0,.4))'
-            : 'drop-shadow(0 2px 6px rgba(74,44,23,.5))',
+            ? 'grayscale(.7) brightness(.7)'
+            : 'none',
           transform:`translate3d(0, ${cookieY - COOKIE_SIZE/2}px, 0) rotate(${cookieRot}deg)`,
           transition: 'filter .2s',
           willChange:'transform',
           pointerEvents:'none',
         }}>
           {hasCustomSkin
-            ? <SkinnedCookie skin={skin} />
-            : <PremiumCookie />}
+            ? <SkinnedCookie skin={skin} noShadow />
+            : <PremiumCookie noShadow />}
         </div>
 
         {/* Popups gain 🍪 fugaces — or pour normal, ambré pour le tuyau

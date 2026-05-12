@@ -252,38 +252,67 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
               {/* Forme intérieure de la tasse */}
               <path d="M 56,60 L 56,150 Q 56,158 64,158 L 122,158 Q 130,158 130,150 L 130,60 Z" />
             </clipPath>
+            {/* Café : dégradé radial pour profondeur + reflet de surface */}
             <linearGradient id="coffee-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"  stopColor="#7A4220" />
-              <stop offset="50%" stopColor="#5C3317" />
-              <stop offset="100%" stopColor="#2D1810" />
+              <stop offset="0%"  stopColor="#8A4D26" />
+              <stop offset="30%" stopColor="#6B3A1F" />
+              <stop offset="70%" stopColor="#4A2814" />
+              <stop offset="100%" stopColor="#1F0E04" />
             </linearGradient>
-            <linearGradient id="cup-grad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%"  stopColor="#D8C8A8" />
-              <stop offset="40%" stopColor="#FFFFFF" />
-              <stop offset="100%" stopColor="#C8B898" />
+            {/* Céramique : dégradé radial pour effet 3D (lumière en haut-gauche) */}
+            <radialGradient id="cup-grad" cx="0.3" cy="0.25" r="0.8">
+              <stop offset="0%"  stopColor="#FFFFFF" />
+              <stop offset="35%" stopColor="#F0E4D0" />
+              <stop offset="70%" stopColor="#D8C8A8" />
+              <stop offset="100%" stopColor="#A89878" />
+            </radialGradient>
+            {/* Anse : céramique avec ombre */}
+            <linearGradient id="handle-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"  stopColor="#F0E4D0" />
+              <stop offset="50%" stopColor="#E0D4C0" />
+              <stop offset="100%" stopColor="#A89878" />
+            </linearGradient>
+            {/* Mousse */}
+            <linearGradient id="foam-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"  stopColor="#F0E4C8" />
+              <stop offset="100%" stopColor="#C8A878" />
             </linearGradient>
           </defs>
 
-          {/* Soucoupe */}
-          <ellipse cx="90" cy="170" rx="68" ry="6" fill="#A0784E" opacity=".4" />
-          <ellipse cx="90" cy="167" rx="64" ry="5" fill="#F0E4D0" stroke="#3D2010" strokeWidth="1.4" />
-          <ellipse cx="90" cy="166" rx="40" ry="2" fill="none" stroke="#C17F3C" strokeWidth=".8" opacity=".5" />
+          {/* Ombre portée sous la tasse (centrée sur le corps cx=93) */}
+          <ellipse cx="93" cy="172" rx="72" ry="5" fill="rgba(45,16,8,.35)" />
+
+          {/* Soucoupe — alignée sur le centre du corps de tasse (cx=93)
+              pour que visuellement la tasse soit posée pile au milieu. */}
+          <ellipse cx="93" cy="170" rx="68" ry="7" fill="rgba(160,120,78,.55)" />
+          <ellipse cx="93" cy="167" rx="64" ry="6" fill="url(#cup-grad)" stroke="#3D2010" strokeWidth="1.5" />
+          <ellipse cx="93" cy="167" rx="64" ry="6" fill="none" stroke="rgba(212,160,23,.4)" strokeWidth="0.8" />
+          <ellipse cx="93" cy="165" rx="42" ry="2" fill="none" stroke="#C17F3C" strokeWidth=".8" opacity=".55" />
+          <ellipse cx="93" cy="165" rx="42" ry="1.5" fill="none" stroke="rgba(255,255,255,.5)" strokeWidth=".4" />
 
           {/* Anse droite — couches extérieure puis intérieure */}
           <path d="M 130,75 Q 158,80 158,108 Q 158,138 130,143"
-                stroke="#F0E4D0" strokeWidth="14" fill="none" strokeLinecap="round" />
+                stroke="url(#handle-grad)" strokeWidth="14" fill="none" strokeLinecap="round" />
           <path d="M 130,75 Q 158,80 158,108 Q 158,138 130,143"
-                stroke="#3D2010" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity=".7" />
+                stroke="#3D2010" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity=".75" />
+          {/* Highlight intérieur anse */}
           <path d="M 132,86 Q 148,90 148,108 Q 148,130 132,134"
-                stroke="#F0E4D0" strokeWidth="5" fill="none" strokeLinecap="round" />
+                stroke="rgba(255,255,255,.7)" strokeWidth="3" fill="none" strokeLinecap="round" />
 
           {/* Corps de la tasse */}
           <path d="M 50,55 L 50,150 Q 50,162 62,162 L 124,162 Q 136,162 136,150 L 136,55 Z"
                 fill="url(#cup-grad)" stroke="#3D2010" strokeWidth="2" />
 
-          {/* Reflet blanc gauche */}
-          <path d="M 56,68 Q 56,120 56,140"
-                stroke="rgba(255,255,255,0.6)" strokeWidth="3" fill="none" strokeLinecap="round" />
+          {/* Lignes décoratives gravées sur la tasse */}
+          <line x1="55" y1="80" x2="131" y2="80" stroke="#A88B70" strokeWidth="0.5" opacity=".35" />
+          <line x1="55" y1="140" x2="131" y2="140" stroke="#A88B70" strokeWidth="0.5" opacity=".35" />
+
+          {/* Reflet blanc gauche — courbe naturelle */}
+          <path d="M 56,68 Q 54,108 58,140"
+                stroke="rgba(255,255,255,0.75)" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          {/* Petit reflet droit */}
+          <path d="M 128,75 Q 130,100 128,130"
+                stroke="rgba(255,255,255,0.25)" strokeWidth="2" fill="none" strokeLinecap="round" />
 
           {/* Café (clipé, monte selon fillPct) */}
           <g clipPath="url(#cup-clip)">
@@ -293,14 +322,20 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
               fill="url(#coffee-grad)"
               style={{ transition: holding ? 'none' : 'y .25s ease, height .25s ease' }}
             />
-            {/* Mousse au-dessus */}
+            {/* Mousse au-dessus — dégradé léger pour effet crema */}
             {fillPct > 1 && (
-              <ellipse
-                id="foam"
-                cx="93" cy={y + 2} rx="38" ry="3.5"
-                fill="#C8A878"
-                opacity={Math.min(fillPct/30, 0.85)}
-              />
+              <>
+                <ellipse
+                  cx="93" cy={y + 2} rx="38" ry="4"
+                  fill="url(#foam-grad)"
+                  opacity={Math.min(fillPct/30, 0.9)}
+                />
+                <ellipse
+                  cx="93" cy={y + 1} rx="36" ry="2"
+                  fill="rgba(255,232,168,0.5)"
+                  opacity={Math.min(fillPct/40, 0.6)}
+                />
+              </>
             )}
             {/* Bulles */}
             {holding && fillPct > 5 && (
@@ -375,31 +410,44 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
         </div>
       )}
 
-      {/* Bouton ☕ Maintenir — onPointerLeave retiré : avec setPointerCapture
-          dans startHold, les events restent verrouillés sur ce bouton même
-          si le pointer sort de sa hitbox. Cancel reste pour les coupures
-          système (alerte, lock écran, etc.). */}
-      <button
+      {/* Zone tactile élargie : on capte les events pointer sur un wrapper
+          plus large (320×100) plutôt que sur le bouton (200×64). Si le
+          pouce n'est pas pile sur le bouton, le tap est quand même
+          détecté. setPointerCapture + onPointerLeave/Cancel sur le wrapper
+          gardent le pointer même en cas de drift. */}
+      <div
         onPointerDown={startHold}
         onPointerUp={stopHold}
         onPointerCancel={stopHold}
-        disabled={gameOver}
-        className={holding ? 'pulse-hold' : ''}
         style={{
-          width:200, height:64, borderRadius:28, fontSize:16, fontWeight:900, letterSpacing:.4,
-          background: gameOver ? C.card : GOLD,
-          color: gameOver ? C.muted : '#fff',
-          border:`2px solid ${gameOver?C.border:'transparent'}`,
-          boxShadow: holding ? '0 0 0 8px rgba(212,160,23,.25), 0 6px 20px rgba(212,160,23,.5)' : gameOver ? 'none' : '0 6px 20px rgba(212,160,23,.4)',
-          cursor: gameOver ? 'not-allowed' : 'pointer',
+          width:'min(100%, 360px)',
+          padding:'18px 24px',
+          display:'flex', justifyContent:'center', alignItems:'center',
           touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
-          transform: holding ? 'scale(.96)' : 'scale(1)',
-          transition:'transform .12s, background .25s, box-shadow .25s',
-          animation: holding ? 'pulseHold 1.2s ease-in-out infinite' : 'none'
+          cursor: gameOver ? 'not-allowed' : 'pointer',
         }}
       >
-        {holding ? '🫖 Tu verses...' : gameOver ? '...' : '☕ Maintenir'}
-      </button>
+        <button
+          disabled={gameOver}
+          tabIndex={-1}
+          className={holding ? 'pulse-hold' : ''}
+          style={{
+            width:220, height:72, borderRadius:32, fontSize:16, fontWeight:900, letterSpacing:.4,
+            background: gameOver ? C.card : GOLD,
+            color: gameOver ? C.muted : '#fff',
+            border:`2px solid ${gameOver?C.border:'transparent'}`,
+            boxShadow: holding ? '0 0 0 10px rgba(212,160,23,.22), 0 6px 20px rgba(212,160,23,.5)' : gameOver ? 'none' : '0 6px 20px rgba(212,160,23,.4)',
+            cursor: gameOver ? 'not-allowed' : 'pointer',
+            touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
+            transform: holding ? 'scale(.96)' : 'scale(1)',
+            transition:'transform .12s, background .25s, box-shadow .25s',
+            animation: holding ? 'pulseHold 1.2s ease-in-out infinite' : 'none',
+            pointerEvents:'none', /* events captés par le wrapper, pas le button */
+          }}
+        >
+          {holding ? '🫖 Tu verses...' : gameOver ? '...' : '☕ Maintenir'}
+        </button>
+      </div>
 
       {/* 3 cartes tips en bas */}
       <div style={{ display:'flex', gap:8, width:'100%', maxWidth:340, marginTop:4 }}>

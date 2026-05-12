@@ -68,18 +68,25 @@ export function getNameChangePrice(count){
   return NAME_CHANGE_PRICES[Math.min(count, NAME_CHANGE_PRICES.length - 1)];
 }
 
-/* Roue 100% cookie & café : pertes = sombres (espresso/mocha), gains = clairs (caramel/miel/or)
-   9 segments — -25 et +300 retirés le 09/05/2026 (équilibrage demandé par user). */
+/* Roue 100% café & cookie (refonte 13/05/2026 v3) :
+   - 10 segments ALTERNÉS gain/perte (visuel rayé clair/foncé)
+   - 50/50 pile : poids gains = poids pertes = 50
+   - +5 remplacé par +25 (2× +25 différents poids), -150 remplacé par
+     -75 (2× -75 différents poids)
+   - Sparkle/event JACKPOT sur +200 (overlay plein écran 2.5s) */
 export const SEGMENTS = [
-  { value:  10, label:'+10',  weight:12, color:'#C17F3C' },  // caramel
-  { value: 200, label:'+200', weight: 2, color:'#F5DC8A' },  // or crème (jackpot)
+  /* Alternance pos/neg/pos/neg... — l'ordre du tableau = ordre des
+     parts sur la roue (sens horaire) → visuel rayé café/or. */
+  { value:  25, label:'+25',  weight:15, color:'#E8C588' },  // caramel clair (le + fréquent)
+  { value:  -5, label:'-5',   weight:15, color:'#7A5232' },  // moka clair
+  { value:  10, label:'+10',  weight:14, color:'#D4A017' },  // caramel doré
   { value: -10, label:'-10',  weight:14, color:'#5A3520' },  // café au lait foncé
-  { value:  20, label:'+20',  weight:10, color:'#D4A017' },  // caramel doré
-  { value:  -5, label:'-5',   weight:14, color:'#6B4530' },  // moka clair
-  { value:  50, label:'+50',  weight: 8, color:'#E5B040' },  // ambre
-  { value: -15, label:'-15',  weight:17, color:'#4A2A14' },  // moka foncé
-  { value: 100, label:'+100', weight: 7, color:'#F0C050' },  // miel
-  { value:-100, label:'-100', weight: 2, color:'#2A1606' },  // espresso brûlé (catastrophe)
+  { value:  25, label:'+25',  weight:11, color:'#E5B040' },  // ambre miel
+  { value: -25, label:'-25',  weight:11, color:'#4A2A14' },  // moka foncé
+  { value:  75, label:'+75',  weight: 7, color:'#F0C050' },  // miel saturé
+  { value: -75, label:'-75',  weight: 7, color:'#3D2010' },  // espresso
+  { value: 200, label:'+200', weight: 3, color:'#FFD700' },  // OR JACKPOT
+  { value: -75, label:'-75',  weight: 3, color:'#1F0E04' },  // espresso brûlé (catastrophe douce)
 ];
 
 /* Récompenses check-in : index = jour dans la semaine (0..6). Jour 7 = jackpot. */
@@ -127,6 +134,9 @@ export const REWARDS = [
   /* Édition limitée — drop rare via le barista légendaire dans
      Devine la commande (0.5% par partie). Code BARISTA05 affiché en bulle. */
   { id:'theme_grains',    name:'Thème Cookie & Espresso', desc:'Édition limitée — Drop rare barista légendaire', cost:0, type:'Thème', emoji:'☕', levelRequired:1, limited:true, promo:'BARISTA05' },
+  /* Édition limitée — Code promo PINK. Skin rose poudré inspiré du
+     thème Cappuccino Velours. Pas en boutique : uniquement via code. */
+  { id:'skin_pink',       name:'Cookie Rose',             desc:'Édition limitée — Code promo PINK',          cost:0, type:'Skin',  emoji:'🌸', levelRequired:1, limited:true, promo:'PINK' },
 
   /* 7 badges événements (ajoutés 09/05/2026) — défis modérés */
   { id:'badge_tireur',     name:'Badge Tireur',     desc:'Édition limitée — Stop parfait',         cost:0, type:'Badge', emoji:'🎯', levelRequired:4, limited:true, event:'event_pour_perfect' },

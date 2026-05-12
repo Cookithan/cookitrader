@@ -171,6 +171,17 @@ export const COOKIE_SKINS = {
     chip:[{o:'0%',c:'#E8B81B'},{o:'100%',c:'#8B5A14'}],
     ring:'#3D2418', cracks:'#5C3614', icing:false, shine:'rgba(232,184,90,.45)'
   },
+  /* Édition limitée — Code promo PINK : rose poudré velouté dans
+     l'esprit du thème Cappuccino Velours (rose pâle → terracotta).
+     Pépites chocolat foncées pour le contraste mignon. Halo rose
+     doux. La signature "feel-good" qui réchauffe sans en faire trop. */
+  skin_pink: {
+    body:[{o:'0%',c:'#FFE3DD'},{o:'45%',c:'#F0A8A0'},{o:'85%',c:'#C57570'},{o:'100%',c:'#7D3A35'}],
+    chip:[{o:'0%',c:'#4A2018'},{o:'100%',c:'#1A0A04'}],
+    ring:'#9B4D40', cracks:'#A85850', icing:false,
+    shine:'rgba(255,235,230,.7)',
+    glowColor:'rgba(255,170,165,.55)'
+  },
   /* Niv 13 — Mythique : marbre nacré rosé/crème, veines or vibrantes,
      pas de glaçage blanc (le donut faisait moche), halo crème, sparkles.
      Esthétique antique précieuse, pas pâtisserie. */

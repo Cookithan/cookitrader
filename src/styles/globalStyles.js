@@ -276,6 +276,8 @@ export const GLOBAL_CSS = `
   @keyframes spin360{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
   .spin-anim{animation:spin360 1s linear infinite}
 
+  /* Ailes Flappy retirées 13/05/2026 (demande user). */
+
   /* Skeleton shimmer — barre de lumière qui balaye un bloc placeholder.
      Utilisé en background sur les rectangles "fake data" pendant un
      fetch. Le bloc parent doit avoir un background café-pâle + overflow

@@ -8,20 +8,25 @@
    - evaluateResult(r)  : retourne { gain, type, symbolName?, symbol? }
    - getWinningReels(r) : [bool, bool, bool] pour le highlight visuel
 
-   Total des probas = 100 % :
-     0.05 % triple 7  · 0.2 % triple 💎 · 0.3 % triple ☕
-     1.6 % triple 🥐  · 6.4 % triple 🍪
-     54 % paire (2 same) · 37.45 % aucun match
+   Total des probas = 100 % (refonte 13/05/2026 — plus généreux) :
+     0.1 % triple 7  · 0.4 % triple 💎 · 0.6 % triple ☕
+     2.5 % triple 🥐 · 9 % triple 🍪
+     58 % paire (2 same) · 29.4 % aucun match
+
+   Expected value ≈ 23.6 🍪 par spin (coût 20) → +3.6 🍪 moyen par spin
+   → ~180 🍪 net par jour si on use les 50 essais. Sensation casino mais
+   net positif pour le joueur patient.
 ═══════════════════════════════════════════════════════ */
 
 export const SLOT_SYMBOLS = ['7️⃣', '💎', '☕', '🥐', '🍪'];
 
+/* Gains boostés 13/05/2026 — demande user "plus généreux" */
 export const TRIPLE_GAINS = {
-  '7️⃣': { gain: 750, name: 'Jackpot',  isJackpot: true  },
-  '💎': { gain: 250, name: 'Diamant',  isJackpot: false },
-  '☕': { gain: 150, name: 'Café',     isJackpot: false },
-  '🥐': { gain: 80,  name: 'Croissant',isJackpot: false },
-  '🍪': { gain: 50,  name: 'Cookie',   isJackpot: false },
+  '7️⃣': { gain: 1000, name: 'Jackpot',  isJackpot: true  },
+  '💎': { gain: 400,  name: 'Diamant',  isJackpot: false },
+  '☕': { gain: 250,  name: 'Café',     isJackpot: false },
+  '🥐': { gain: 130,  name: 'Croissant',isJackpot: false },
+  '🍪': { gain: 80,   name: 'Cookie',   isJackpot: false },
 };
 
 export const SLOT_CONFIG = {
@@ -32,7 +37,7 @@ export const SLOT_CONFIG = {
      par jour. Reset auto à minuit local via le compteur gamesToday côté
      SlotGame qui regarde le date string. */
   MAX_PER_DAY: 50,
-  PAIR_GAIN: 25,
+  PAIR_GAIN: 35,                  // boost 25 → 35 (13/05/2026)
   REEL_FIRST_STOP_MS: 800,
   REEL_STOP_DELAY_MS: 500,
   JACKPOT_EXPLOSION_MS: 1500,
@@ -43,22 +48,22 @@ export function spinSlotMachine() {
   const rand = Math.random() * 100;
   let cum = 0;
 
-  cum += 0.05;
+  cum += 0.1;
   if (rand < cum) return ['7️⃣', '7️⃣', '7️⃣'];
 
-  cum += 0.2;
+  cum += 0.4;
   if (rand < cum) return ['💎', '💎', '💎'];
 
-  cum += 0.3;
+  cum += 0.6;
   if (rand < cum) return ['☕', '☕', '☕'];
 
-  cum += 1.6;
+  cum += 2.5;
   if (rand < cum) return ['🥐', '🥐', '🥐'];
 
-  cum += 6.4;
+  cum += 9;
   if (rand < cum) return ['🍪', '🍪', '🍪'];
 
-  cum += 54;
+  cum += 58;
   if (rand < cum) return generateTwoSameResult();
 
   return generateNoMatchResult();

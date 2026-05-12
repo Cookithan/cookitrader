@@ -22,17 +22,20 @@
 ═══════════════════════════════════════════════════════ */
 import { useId } from "react";
 
-export function SkinnedCookie({ skin }){
+export function SkinnedCookie({ skin, noShadow = false }){
   const uid = useId().replace(/:/g, '');
   const bodyId = `cookieBody-${uid}`;
   const chipId = `chipShine-${uid}`;
 
   /* Halo lumineux : empilage de drop-shadows. Le 1er garde l'ombre
      portée café (relief sur fond), le 2e ajoute le glow coloré
-     (signature des skins premium). */
-  const halo = skin.glowColor
-    ? `drop-shadow(0 10px 18px rgba(74,44,23,.4)) drop-shadow(0 0 12px ${skin.glowColor})`
-    : 'drop-shadow(0 10px 18px rgba(74,44,23,.4))';
+     (signature des skins premium). Si noShadow, on garde seulement
+     le glow coloré (utile en Flappy où l'ombre encombre). */
+  const halo = noShadow
+    ? (skin.glowColor ? `drop-shadow(0 0 12px ${skin.glowColor})` : 'none')
+    : (skin.glowColor
+        ? `drop-shadow(0 10px 18px rgba(74,44,23,.4)) drop-shadow(0 0 12px ${skin.glowColor})`
+        : 'drop-shadow(0 10px 18px rgba(74,44,23,.4))');
 
   return (
     <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', display:'block', filter: halo }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5 } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
@@ -18,53 +18,45 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS, getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
+import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
-/* Modales lazy-loaded — ouvertes ponctuellement, pas besoin dans le
-   bundle initial. LevelUpModal & AchievementModal restent eager car
-   fréquentes et déjà légères. */
-const LevelsModal           = lazy(() => import("./components/modals/LevelsModal.jsx").then(m => ({ default: m.LevelsModal })));
-const LeaderGapWarningModal = lazy(() => import("./components/modals/LeaderGapWarningModal.jsx").then(m => ({ default: m.LeaderGapWarningModal })));
-const OnboardingModal       = lazy(() => import("./components/modals/OnboardingModal.jsx").then(m => ({ default: m.OnboardingModal })));
-const RestoreProfileModal   = lazy(() => import("./components/modals/RestoreProfileModal.jsx").then(m => ({ default: m.RestoreProfileModal })));
-const PrestigeConfirmModal  = lazy(() => import("./components/modals/PrestigeConfirmModal.jsx").then(m => ({ default: m.PrestigeConfirmModal })));
-const MarketRefundModal     = lazy(() => import("./components/modals/MarketRefundModal.jsx").then(m => ({ default: m.MarketRefundModal })));
-const SanctionAppliedModal  = lazy(() => import("./components/modals/SanctionAppliedModal.jsx").then(m => ({ default: m.SanctionAppliedModal })));
-const PaymentSuccessModal   = lazy(() => import("./components/modals/PaymentSuccessModal.jsx").then(m => ({ default: m.PaymentSuccessModal })));
-const CafesResetNoticeModal = lazy(() => import("./components/modals/CafesResetNoticeModal.jsx").then(m => ({ default: m.CafesResetNoticeModal })));
-const PromoCodeModal        = lazy(() => import("./components/modals/PromoCodeModal.jsx").then(m => ({ default: m.PromoCodeModal })));
+import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
+import { OnboardingModal } from "./components/modals/OnboardingModal.jsx";
+import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx";
+import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
+import { MarketRefundModal } from "./components/modals/MarketRefundModal.jsx";
+import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.jsx";
+import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
+import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
+import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares, adminDebitShares } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
-const SettingsOverlay = lazy(() => import("./components/overlays/SettingsOverlay.jsx").then(m => ({ default: m.SettingsOverlay })));
-const AboutModal      = lazy(() => import("./components/modals/AboutModal.jsx").then(m => ({ default: m.AboutModal })));
-const NewVersionModal = lazy(() => import("./components/modals/NewVersionModal.jsx").then(m => ({ default: m.NewVersionModal })));
+import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
+import { AboutModal } from "./components/modals/AboutModal.jsx";
+import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
 import { APP_INFO } from "./lib/appInfo.js";
-const ProfileOverlay  = lazy(() => import("./components/overlays/ProfileOverlay.jsx").then(m => ({ default: m.ProfileOverlay })));
+import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
-import CafeFillLoader from "./components/CafeFillLoader.jsx";
-/* Tabs lazy-loaded (perf : 1 seul actif à la fois, on les charge à la
-   demande). MarketLocked reste eager — léger et utilisé tant que niv<3.
-   Pas de min-delay : sur connexion rapide/cache chaud, le Suspense
-   fallback ne sera pas visible (= comportement avant lazy-split). */
-const BoutiqueTab   = lazy(() => import("./components/tabs/BoutiqueTab.jsx").then(m => ({ default: m.BoutiqueTab })));
-const ClassementTab = lazy(() => import("./components/tabs/ClassementTab.jsx").then(m => ({ default: m.ClassementTab })));
-const MarketTab     = lazy(() => import("./components/tabs/MarketTab.jsx").then(m => ({ default: m.MarketTab })));
+import { BoutiqueTab } from "./components/tabs/BoutiqueTab.jsx";
+import { ClassementTab } from "./components/tabs/ClassementTab.jsx";
+import { MarketTab } from "./components/tabs/MarketTab.jsx";
 import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
-const InboxModal = lazy(() => import("./components/modals/InboxModal.jsx").then(m => ({ default: m.InboxModal })));
+import { InboxModal } from "./components/modals/InboxModal.jsx";
 import { getUnreadInboxCount } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
 import { BoostGainToast } from "./components/BoostGainToast.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
 import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "./lib/supabaseSync.js";
-const UserProfileModal       = lazy(() => import("./components/modals/UserProfileModal.jsx").then(m => ({ default: m.UserProfileModal })));
-const SecretBadgeUnlockModal = lazy(() => import("./components/modals/SecretBadgeUnlockModal.jsx").then(m => ({ default: m.SecretBadgeUnlockModal })));
+import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
+import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
 import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from "./lib/audio.js";
 import { haptic } from "./lib/haptic.js";
@@ -784,67 +776,6 @@ export default function CookiMiner() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showOnboarding, userName]);
-
-  /* PERF — prefetch des chunks des tabs lazy après le 1er render.
-     Sans ça, le 1er swipe vers Classement/Marché/Boutique déclenche
-     un fetch du chunk → Suspense fallback visible 100-300ms (perçu
-     comme "ça rame"). On preload après 2s pour ne pas peser sur le
-     mount initial mais avant que l'user soit vraiment prêt à swiper. */
-  useEffect(() => {
-    const id = setTimeout(() => {
-      import("./components/tabs/ClassementTab.jsx");
-      import("./components/tabs/MarketTab.jsx");
-      import("./components/tabs/BoutiqueTab.jsx");
-    }, 2000);
-    return () => clearTimeout(id);
-  }, []);
-
-  /* PERF — préchargement des 11 chunks mini-jeux dès que l'user arrive
-     sur le tab Jeux. À la 1re ouverture d'un jeu : déjà en cache,
-     instantané. On utilise delay 200ms pour ne pas bloquer la transition
-     vers le tab elle-même. */
-  useEffect(() => {
-    if(tab !== 'jeux') return;
-    const id = setTimeout(() => {
-      import("./components/games/CheckinGame.jsx");
-      import("./components/games/QuizGame.jsx");
-      import("./components/games/SpinGame.jsx");
-      import("./components/games/ClickGame.jsx");
-      import("./components/games/PourGame.jsx");
-      import("./components/games/MemoryGame.jsx");
-      import("./components/games/GuessGame.jsx");
-      import("./components/games/ReflexGame.jsx");
-      import("./components/games/PyramidGame.jsx");
-      import("./components/games/SlotGame.jsx");
-      import("./components/games/FlappyGame.jsx");
-    }, 200);
-    return () => clearTimeout(id);
-  }, [tab]);
-
-  /* PERF — préfetch des données du Classement en arrière-plan dès que
-     l'app a démarré (après 3s pour ne pas peser sur le mount initial
-     ni concurrencer la 1re sync pullProfile). Résultat écrit dans
-     sessionStorage avec la même clé que ClassementTab → cache hit
-     immédiat à la 1re ouverture, plus de skeleton long. */
-  useEffect(() => {
-    if(!userCode || !isSupabaseEnabled()) return;
-    let cancelled = false;
-    const id = setTimeout(async () => {
-      try{
-        const weekId = getCurrentWeekId();
-        const [leaderboard, rank, count, onlineN] = await Promise.all([
-          getLeaderboard(50, weekId),
-          getMyRank(userCode, weekId),
-          getTotalPlayers(),
-          getOnlineCount(),
-        ]);
-        if(cancelled) return;
-        const payload = { list: leaderboard, myRank: rank, total: count, online: onlineN };
-        try{ sessionStorage.setItem('leaderboard:cache:v2', JSON.stringify(payload)); }catch{}
-      }catch{}
-    }, 3000);
-    return () => { cancelled = true; clearTimeout(id); };
-  }, [userCode]);
 
   /* Maintenance LIVE — fetch initial + subscription Realtime à la table
      public.system_status. Au moindre changement (UPDATE SQL côté admin),
@@ -1906,6 +1837,49 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
+  /* ── Set streak Dokiler à 6 (13/05/2026) ─────────────────────────
+     Demande user : forcer le streak à 6 jours sur le compte 7Z4-977.
+     Cross-device safe via applyPatchOnce. */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    if(codeUpper !== '7Z4-977') return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:setStreak_2026_05_13_dokiler_6',
+      patchKey: 'setStreak_2026_05_13_dokiler_6',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        setStreak(6);
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userCode, pullDone, setStreak]);
+
+  /* ── Retrait badge niv 25 aaronxbox (13/05/2026) ──────────────────
+     Renaissance débloque les items niv 25 (badge_origine, skin_origine).
+     aaronxbox n'a pas atteint niv 25 mais a le badge → on le retire.
+     Cross-device safe. */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    const codeUpper = (userCode || '').toUpperCase();
+    if(codeUpper !== 'X6G-4ZL') return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:removeOrigineBadge_2026_05_13_aaronxbox',
+      patchKey: 'removeOrigineBadge_2026_05_13_aaronxbox',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        setUnlocked(arr => Array.isArray(arr)
+          ? arr.filter(id => id !== 'badge_origine')
+          : arr);
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userCode, pullDone, setUnlocked]);
+
   /* Refund marché — compensation pour les ex-investisseurs après le
      reset du marché (delete from market_portfolio). On crédite chaque
      user de son total_invested perdu. 7Z4-977 EXCLU (pump-and-dumper
@@ -2515,9 +2489,11 @@ export default function CookiMiner() {
 
   /* Prestige (renaissance) — disponible quand niveau 25 atteint avec
      60000 XP cumulés sur ce palier. Reset les progressions volatiles
-     (niveau, XP, cookies, totalEarned, streak, clickRecord) et incrémente
+     (niveau, XP, cookies, totalEarned, clickRecord) et incrémente
      prestigeLevel pour booster le multiplicateur de gains de +10 %.
-     Garde tout le reste : items, succès, cafés, actions $CKM, identité, amis. */
+     Garde tout le reste : items, succès, cafés, actions $CKM, identité,
+     amis, ET STREAK (la série de check-ins consécutifs persiste — pas
+     juste à raison de récompenser un joueur loyal qui renaît). */
   const doPrestige = () => {
     if(level < 25 || xp < 60000) return;
     /* Évite tout bonus level-up flottant */
@@ -2526,7 +2502,8 @@ export default function CookiMiner() {
     setXp(0);      xpRef.current = 0;
     setCoins(0);
     setTotalEarned(0);
-    setStreak(0);
+    /* Streak conservé (demande user 13/05/2026) — la série de check-ins
+       consécutifs est une métrique d'assiduité indépendante de la progression. */
     setClickRecord(0);
     setPrestigeLevel(p => (p || 0) + 1);
     setShowPrestigeModal(false);
@@ -3477,21 +3454,7 @@ export default function CookiMiner() {
           </div>
         )}
 
-        {/* ── TABS LAZY-LOADED ──
-            Classement / Marché / Boutique sont chargés à la demande
-            (chacun pèse 15-30 KB raw). Suspense fallback centré vertic.
-            sur 60vh (sur réseau rapide, ne s'affiche pas du tout). */}
-        <Suspense fallback={
-          <div style={{
-            minHeight:'60vh',
-            display:'flex',
-            alignItems:'center',
-            justifyContent:'center',
-          }}>
-            <CafeFillLoader size={84} color={C.muted} />
-          </div>
-        }>
-          {/* ── CLASSEMENT ── */}
+        {/* ── CLASSEMENT ── */}
           {(tab==='classement' || prevTab==='classement') && tabWrap('classement',
             <ClassementTab
               userCode={userCode}
@@ -3550,7 +3513,6 @@ export default function CookiMiner() {
               C={C}
             />
           )}
-        </Suspense>
         </>
         );
         })()}
@@ -3576,12 +3538,6 @@ export default function CookiMiner() {
         </div>
       </nav>
 
-      {/* ── SUSPENSE BOUNDARY pour TOUTES les modales/overlays lazy ──
-          fallback={null} : on n'affiche rien pendant le micro-fetch du
-          chunk (les modales sont 2-8 KB gzip, latence imperceptible).
-          Boundary englobante = on évite de multiplier les `<Suspense>`
-          autour de chaque modal individuellement. */}
-      <Suspense fallback={null}>
       {/* GAME OVERLAY */}
       {gameView && (
         <GameOverlay
@@ -4007,7 +3963,6 @@ export default function CookiMiner() {
       {/* Splash custom à chaque mount (ouverture + F5). En mode fast
           si c'est un refresh détecté via Performance API. */}
       {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
-      </Suspense>
 
     </div>
   );

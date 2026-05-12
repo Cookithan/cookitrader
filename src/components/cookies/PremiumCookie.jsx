@@ -5,9 +5,9 @@
      cercle multi-couches, gradient hardcodé. Pas de prop : forme fixe.
 ════════════════════════════════════════════════════ */
 
-export function PremiumCookie() {
+export function PremiumCookie({ noShadow = false } = {}) {
   return (
-    <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', display:'block', filter:'drop-shadow(0 12px 22px rgba(74,44,23,.42))' }}>
+    <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', display:'block', filter: noShadow ? 'none' : 'drop-shadow(0 12px 22px rgba(74,44,23,.42))' }}>
       <defs>
         <radialGradient id="ck-grad" cx="38%" cy="32%" r="78%">
           <stop offset="0%" stopColor="#F0BB7A"/>

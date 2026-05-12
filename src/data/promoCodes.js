@@ -53,6 +53,9 @@ export const PROMO_CODES = {
   /* Code thème — débloque le thème exclusif Noir & Blanc (édition
      limitée, pas en boutique). Pas de cookies/cafés associés. */
   'BLACK':     { coins: 0,    cafes: 0, unlock: 'theme_noir', label: 'Thème Noir & Blanc débloqué' },
+  /* Code skin — débloque le Cookie Rose édition limitée (inspiration
+     thème Cappuccino Velours). Rose poudré + pépites chocolat. */
+  'PINK':      { coins: 0,    cafes: 0, unlock: 'skin_pink', label: '🌸 Cookie Rose débloqué' },
   /* Drop rare via le barista légendaire dans Devine la commande
      (1 % par partie, one-shot). `secret:true` → utilisable uniquement
      si l'utilisateur a effectivement croisé le barista (ajouté à

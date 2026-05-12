@@ -11,14 +11,30 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.16.0',
-  releaseDate: '2026-05-12',
+  version: '1.17.0',
+  releaseDate: '2026-05-13',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Ethan Cuomo',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.17.0',
+    date: '2026-05-13',
+    title: '🎰 Refonte mini-jeux + Cookie Rose + UX fluide',
+    changes: [
+      "🎡 Roue : 10 segments alternés gain/perte, 50/50 pile, événement spectaculaire sur jackpot +200",
+      "🎰 Machine à Sous plus généreuse : gains boostés (jackpot 750→1000), probabilités x2 sur les triples, paire +25→+35",
+      "🐦 Flappy Cookie : café bonus plus fréquent (% variable par mode), nouveau son de saut, ombre du cookie retirée",
+      "☕ Stop le café : hitbox du bouton élargie (plus de lâché frustrant), tasse redessinée + recentrée sur l'assiette",
+      "🍪 Cookie Click : 2 clics = 1 🍪 + retrait du cap, timer & barre parfaitement synchronisés",
+      "🌸 Cookie Rose édition limitée — code promo PINK (style Cappuccino Velours)",
+      "🌟 Renaissance : la série de check-ins (streak) est désormais conservée",
+      "🛡️ Anti-triche refondu : zéro faux positif pour les joueurs rapides",
+      "🚀 App entièrement fluide : retour à un bundle unique, plus de chargements en cascade",
+    ],
+  },
   {
     version: '1.16.0',
     date: '2026-05-12',

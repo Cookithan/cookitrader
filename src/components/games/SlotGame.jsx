@@ -15,9 +15,9 @@ import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
      · cadre marron foncé + 2 boules dorées sur les coins
      · 3 rouleaux dorés qui défilent (60 ms cycle) puis s'arrêtent
        en cascade (800 / 1300 / 1800 ms) avec animation rebond
-     · 2 same → toast +25 🍪 + halo doré sur les rouleaux gagnants
-     · 3 same (pas jackpot) → flash machine + confettis + toast
-     · 3 × 7️⃣ (jackpot) → explosion 1.5 s + modal "INCROYABLE +750 🍪"
+     · 2 same → toast +35 🍪 + halo doré sur les rouleaux gagnants
+     · 3 same (pas jackpot) → flash machine + confettis + toast (+80 à +400)
+     · 3 × 7️⃣ (jackpot) → explosion 1.5 s + modal "INCROYABLE +1000 🍪"
 
    Économie :
      COST = 20 🍪 · Niveau 10+ · Cooldown 1 s · Limite 50 parties/jour
@@ -453,12 +453,13 @@ function SlotToast({ message, type }){
 }
 
 function PayoutTable({ C }){
+  /* Tableau des gains — synchronisé avec slotMachine.js (13/05/2026 refonte). */
   const ROWS = [
-    { count:'3×', symbol:'7️⃣', name:'Jackpot',   prob:'0,05 %', gain:'+750 🍪', isJackpot:true },
-    { count:'3×', symbol:'💎', name:'Diamant',   prob:'0,2 %',  gain:'+250 🍪' },
-    { count:'3×', symbol:'☕', name:'Café',      prob:'0,3 %',  gain:'+150 🍪' },
-    { count:'3×', symbol:'🥐', name:'Croissant', prob:'1,6 %',  gain:'+80 🍪' },
-    { count:'3×', symbol:'🍪', name:'Cookie',    prob:'6,4 %',  gain:'+50 🍪' },
+    { count:'3×', symbol:'7️⃣', name:'Jackpot',   prob:'0,1 %',  gain:'+1000 🍪', isJackpot:true },
+    { count:'3×', symbol:'💎', name:'Diamant',   prob:'0,4 %',  gain:'+400 🍪' },
+    { count:'3×', symbol:'☕', name:'Café',      prob:'0,6 %',  gain:'+250 🍪' },
+    { count:'3×', symbol:'🥐', name:'Croissant', prob:'2,5 %',  gain:'+130 🍪' },
+    { count:'3×', symbol:'🍪', name:'Cookie',    prob:'9 %',    gain:'+80 🍪' },
   ];
   const rowStyle = {
     display:'grid', gridTemplateColumns:'60px 1fr 60px 70px',
@@ -508,14 +509,14 @@ function PayoutTable({ C }){
       <div style={{ ...rowStyle, borderBottom:`1px dashed ${C?.border || '#E8DDD0'}` }}>
         <div></div>
         <div style={{ fontSize:12, color: C?.text || '#2C1810', fontWeight:700 }}>2 identiques</div>
-        <div style={{ fontSize:11, color: C?.muted || '#8B6A5A', textAlign:'right' }}>54 %</div>
-        <div style={{ fontSize:13, color:'#D4A017', fontWeight:800, textAlign:'right' }}>+25 🍪</div>
+        <div style={{ fontSize:11, color: C?.muted || '#8B6A5A', textAlign:'right' }}>58 %</div>
+        <div style={{ fontSize:13, color:'#D4A017', fontWeight:800, textAlign:'right' }}>+35 🍪</div>
       </div>
 
       <div style={{ ...rowStyle, borderBottom:'none' }}>
         <div></div>
         <div style={{ fontSize:12, color: C?.text || '#2C1810', fontWeight:700 }}>Aucun match</div>
-        <div style={{ fontSize:11, color: C?.muted || '#8B6A5A', textAlign:'right' }}>37 %</div>
+        <div style={{ fontSize:11, color: C?.muted || '#8B6A5A', textAlign:'right' }}>29 %</div>
         <div style={{ fontSize:13, color: C?.muted || '#8B6A5A', fontWeight:800, textAlign:'right' }}>0</div>
       </div>
     </div>
