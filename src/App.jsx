@@ -990,13 +990,6 @@ export default function CookiMiner() {
      animer le content entrant (depuis la droite ou la gauche). */
   const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
-  /* prevTab : tab qui sort pendant l'animation (320ms). Pendant la
-     transition, prevTab ET tab sont rendus simultanément — ancien en
-     absolu sur le côté, nouveau en flow normal qui rentre du côté
-     opposé. transitionId pour forcer le remount + bloquer les setPrev
-     null prématurés en cas de swipe rapide. */
-  const [prevTab, setPrevTab] = useState(null);
-  const transitionIdRef = useRef(0);
 
   const goToTab = (target, source = 'click') => {
     const i = TAB_ORDER.indexOf(tab);
@@ -1006,16 +999,8 @@ export default function CookiMiner() {
     playSound(source === 'swipe' ? 'swipe' : 'tab');
     /* Tap haptique léger pour confirmer le changement (8ms — discret). */
     haptic('light');
-    const id = ++transitionIdRef.current;
     setSlideDir(j > i ? 'next' : 'prev');
-    setPrevTab(tab);
     setTab(target);
-    /* Clear le prevTab après la fin de l'animation. Le check sur l'ID
-       protège des swipes en cascade (sinon le setTimeout d'un swipe
-       précédent effacerait le prevTab du swipe en cours). */
-    setTimeout(() => {
-      if(transitionIdRef.current === id) setPrevTab(null);
-    }, 360);
   };
 
   const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
@@ -2910,46 +2895,27 @@ export default function CookiMiner() {
       </header>
 
       {/* CONTENT — swipe horizontal navigue dans TAB_ORDER.
-          Pendant une transition, on rend SIMULTANÉMENT le tab sortant
-          (prevTab, en absolu sur la page entière) et le tab entrant
-          (tab, en flow normal) avec des animations en miroir (slide-out
-          d'un côté + slide-in de l'autre = effet carousel cross-translate). */}
+          Rendu mono-tab : seul le tab actif est dans le DOM. À chaque
+          changement, le wrapper key={tab} remonte → slide-in animation
+          rejoue. Le tab précédent disparaît instantanément (sans
+          animation de sortie) — c'est un compromis : pas de carousel
+          cross-translate (qui causait un double-rendu visuel à cause
+          du padding parent vs in-flow), mais visuellement clean. */}
       <div
         ref={swipe.ref}
         {...swipe.handlers}
         /* minHeight:0 → fix iOS Safari où un enfant flex:1 + overflow:auto
-           grandit à la hauteur du contenu au lieu d'être capé. Sans ce
-           min-height:0, l'onglet marché (4-5 cards stackées) pousse le
-           header hors écran sur petit téléphone.
-           position:relative → permet le positionnement absolu du tab
-           sortant (prevTab) pendant la transition. */
-        style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', padding:'0 16px', paddingBottom:104, willChange:'transform', position:'relative' }}
+           grandit à la hauteur du contenu au lieu d'être capé. */
+        style={{ flex:1, minHeight:0, overflowY:'auto', overflowX:'hidden', padding:'0 16px', paddingBottom:104, willChange:'transform' }}
       >
-        {(() => {
-        /* Classes CSS pour un tab donné, selon son rôle (entrant ou sortant).
-           - tab actif (id === tab) : slide-in depuis le côté opposé au swipe
-           - tab sortant (id === prevTab) : slide-out vers le côté du swipe
-           Style absolute uniquement pour le sortant — l'actif reste en
-           flow normal pour que le scroll fonctionne. */
-        const tabClass = (id) => {
-          if(prevTab && id === prevTab){
-            return slideDir === 'next' ? 'tab-slide-out-left' : slideDir === 'prev' ? 'tab-slide-out-right' : '';
-          }
-          if(id === tab && slideDir){
-            return slideDir === 'next' ? 'tab-slide-in-right' : 'tab-slide-in-left';
-          }
-          return '';
-        };
-        const tabStyle = (id) => (prevTab && id === prevTab)
-          ? { position:'absolute', top:0, left:0, right:0, pointerEvents:'none' }
-          : {};
-        const tabKey = (id) => `${id}-${id === prevTab ? 'out' : 'in'}-${transitionIdRef.current}`;
-        return (
-        <>
+        <div
+          key={tab}
+          className={slideDir === 'next' ? 'tab-slide-in-right' : slideDir === 'prev' ? 'tab-slide-in-left' : ''}
+        >
 
         {/* ── ACCUEIL ── */}
-        {(tab==='accueil' || prevTab==='accueil') && (
-          <div key={tabKey('accueil')} className={tabClass('accueil') || 'su'} style={tabStyle('accueil')}>
+        {tab==='accueil' && (
+          <div className="su">
             {/* Bannière événement spécial (PHASE 6E) — visible en
                 phase 'waiting' (timer mystère) et en phase 'active'
                 (titre + temps restant + essais). */}
@@ -3351,8 +3317,8 @@ export default function CookiMiner() {
         )}
 
         {/* ── JEUX ── */}
-        {(tab==='jeux' || prevTab==='jeux') && (
-          <div key={tabKey('jeux')} className={tabClass('jeux') || 'su'} style={tabStyle('jeux')}>
+        {tab==='jeux' && (
+          <div className="su">
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
             {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && g.levelRequired - level <= 1).map(g=>{
               const locked     = level < g.levelRequired;
@@ -3433,74 +3399,66 @@ export default function CookiMiner() {
           </div>
         }>
           {/* ── CLASSEMENT ── */}
-          {(tab==='classement' || prevTab==='classement') && (
-            <div key={tabKey('classement')} className={tabClass('classement')} style={tabStyle('classement')}>
-              <ClassementTab
-                userCode={userCode}
-                userName={userName}
-                userAvatar={userAvatar}
-                earnedAchievements={earnedAchievements}
-                activeTitle={activeTitle}
-                onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
-                onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
-                C={C}
-              />
-            </div>
+          {tab==='classement' && (
+            <ClassementTab
+              userCode={userCode}
+              userName={userName}
+              userAvatar={userAvatar}
+              earnedAchievements={earnedAchievements}
+              activeTitle={activeTitle}
+              onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
+              onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
+              C={C}
+            />
           )}
 
           {/* ── MARCHÉ ── (online via Supabase, BRIEF_MARCHE_ONLINE) */}
-          {(tab==='marche' || prevTab==='marche') && (
-            <div key={tabKey('marche')} className={tabClass('marche')} style={tabStyle('marche')}>
-              {level >= 3 ? (
-                <MarketTab
-                  userCode={userCode}
-                  coins={coins}
-                  addCoins={addCoins}
-                  tradingDisabled={isAdminName(userName)}
-                  bulkTradePasses={bulkTradePasses || 0}
-                  onConsumeBulkPass={() => setBulkTradePasses(n => Math.max(0, (n || 0) - 1))}
-                  onTradeComplete={(result)=>{
-                    if(result.type === 'buy'){
-                      /* L'achievement 'trader' attend totalInvested >= 500 cookies */
-                      setTotalInvested(t => t + result.cost);
-                    } else if(result.type === 'sell'){
-                      /* Le badge secret 'investisseur' attend marketRealized >= 1000 */
-                      const profit = Math.max(0, Math.round(result.profit || 0));
-                      if(profit > 0) setMarketRealized(r => r + profit);
-                      /* Event 'market_profit' : succès si plus-value en 1 vente >= 100 🍪 */
-                      checkEventChallenge('market_profit', profit);
-                    }
-                  }}
-                  C={C}
-                />
-              ) : (
-                <MarketLocked level={level} xp={xp} xpReq={xpReq} C={C} />
-              )}
-            </div>
+          {tab==='marche' && (
+            level >= 3 ? (
+              <MarketTab
+                userCode={userCode}
+                coins={coins}
+                addCoins={addCoins}
+                tradingDisabled={isAdminName(userName)}
+                bulkTradePasses={bulkTradePasses || 0}
+                onConsumeBulkPass={() => setBulkTradePasses(n => Math.max(0, (n || 0) - 1))}
+                onTradeComplete={(result)=>{
+                  if(result.type === 'buy'){
+                    /* L'achievement 'trader' attend totalInvested >= 500 cookies */
+                    setTotalInvested(t => t + result.cost);
+                  } else if(result.type === 'sell'){
+                    /* Le badge secret 'investisseur' attend marketRealized >= 1000 */
+                    const profit = Math.max(0, Math.round(result.profit || 0));
+                    if(profit > 0) setMarketRealized(r => r + profit);
+                    /* Event 'market_profit' : succès si plus-value en 1 vente >= 100 🍪 */
+                    checkEventChallenge('market_profit', profit);
+                  }
+                }}
+                C={C}
+              />
+            ) : (
+              <MarketLocked level={level} xp={xp} xpReq={xpReq} C={C} />
+            )
           )}
 
           {/* ── BOUTIQUE ── */}
-          {(tab==='boutique' || prevTab==='boutique') && (
-            <div key={tabKey('boutique')} className={tabClass('boutique')} style={tabStyle('boutique')}>
-              <BoutiqueTab
-                coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
-                mode={boutiqueMode} setMode={setBoutiqueMode}
-                activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
-                activeBanner={activeBanner} setActiveBanner={setActiveBanner}
-                activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
-                activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
-                userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
-                spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
-                userCode={userCode}
-                vipPurchasesToday={vipPurchasesToday}
-                C={C}
-              />
-            </div>
+          {tab==='boutique' && (
+            <BoutiqueTab
+              coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
+              mode={boutiqueMode} setMode={setBoutiqueMode}
+              activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
+              activeBanner={activeBanner} setActiveBanner={setActiveBanner}
+              activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
+              activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
+              userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
+              spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
+              userCode={userCode}
+              vipPurchasesToday={vipPurchasesToday}
+              C={C}
+            />
           )}
         </Suspense>
-        </>
-        );
-        })()}
+        </div>
       </div>
 
       {/* NAV */}
