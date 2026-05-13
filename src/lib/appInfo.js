@@ -25,7 +25,7 @@ export const CHANGELOG = [
     title: '📦 Boîte Mystère + palier communautaire 500 000 🍪',
     changes: [
       "📦 Nouveau dans la boutique Premium : la Boîte Mystère ! Animation cinématique à l'ouverture (1000 🍪 → 3 ☕)",
-      "🎉 Palier communautaire : la communauté a miné 500 000 cookies — cadeau offert à tous (+100 🍪 + 1 ☕)",
+      "🎉 Palier communautaire : la communauté a miné 500 000 cookies — un cadeau pour tous les joueurs",
       "⚡ Renommage : « Ordre Bulk $CKM » devient « Trade Express $CKM » (plus clair pour les nouveaux)",
       "🎁 De nouveaux codes promo à dénicher sur les réseaux",
     ],

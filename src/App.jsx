@@ -2461,7 +2461,11 @@ export default function CookiMiner() {
     if(promo.level)  parts.push(`Niv ${promo.level}`);
     if(promo.unlockGame) parts.push('🎮 jeu débloqué');
     if(parts.length){
-      showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
+      /* Durée allongée pour les "starter packs" (3+ récompenses ou code
+         qui débloque un jeu) — le joueur doit pouvoir tout lire. Default
+         2.8s sinon, jusqu'à 8s pour les codes généreux. */
+      const generous = parts.length >= 3 || !!promo.unlockGame;
+      showToast(`🎟️ Code validé : ${parts.join(' · ')}`, generous ? { duration: 8000 } : undefined);
     }
   }, [addCoins, setCoins, setCafes, setLevel, setXp, setUnlocked, setEventReward, setTotalEarned, totalEarned, promoCodesUsed, setPromoCodesUsed, showToast, userCode, userName]);
 
