@@ -285,7 +285,7 @@ export const ACHIEVEMENTS = [
 ];
 
 /* Pool Quiz du jour — questions sur CookiMiner et le thème café/cookie.
-   65 questions (21 Facile · 21 Moyen · 23 Expert) tirées 3 par session
+   95 questions (30 Facile · 30 Moyen · 35 Expert) tirées 3 par session
    (cf QUIZ_QUESTIONS_PER_SESSION). Mix ~50 % mécaniques de l'app,
    ~50 % culture café/pâtisserie.
    3 niveaux : Facile (20 🍪), Moyen (35 🍪), Expert (60 🍪). */
@@ -355,11 +355,48 @@ export const QUESTIONS = [
   { q:"Quelle invention italienne de 1933 a démocratisé le café à domicile ?", choices:["Cafetière Moka (Bialetti)","Cafetière à piston","Machine espresso","Cafetière à filtre"], answer:0, reward:60, difficulty:'Expert' },
   { q:"Quel est le café le plus cher au monde, issu de fèves digérées par une civette ?", choices:["Black Ivory","Geisha Panama","Kopi Luwak","Jamaica Blue Mountain"], answer:2, reward:60, difficulty:'Expert' },
   { q:"De quelle région éthiopienne provient le célèbre café Yirgacheffe ?", choices:["Sidamo","Yirgacheffe (Gedeo)","Harar","Limu"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Combien d'actions $CKM maximum peut-on échanger en UNE seule transaction ?", choices:["10","20","50","Pas de limite"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Combien d'actions $CKM maximum peut-on échanger en UNE seule transaction ?", choices:["15","30","50","Pas de limite"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel bonus permanent gagne chaque niveau de Prestige dans CookiMiner ?", choices:["+5 % sur tous les gains","+10 % sur tous les gains","+25 % XP","+1 ☕ / jour"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Combien d'XP faut-il pour atteindre le niveau 16 « Ascendant Caféiné » ?", choices:["10 000","15 000","20 000","30 000"], answer:2, reward:60, difficulty:'Expert' },
   { q:"Quelle ville italienne, port franc historique, est surnommée la capitale du café ?", choices:["Naples","Trieste","Milan","Turin"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quelle altitude minimum définit un café « Strictly High Grown » ?", choices:["500 m","1 000 m","1 500 m","2 500 m"], answer:2, reward:60, difficulty:'Expert' },
+
+  /* ─── +30 questions ajoutées 13/05/2026 (10 Facile · 10 Moyen · 10 Expert) ─── */
+  // FACILE
+  { q:"Quel arbre produit le cacao ?", choices:["Cocotier","Cacaoyer","Caféier","Vanillier"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle est la couleur d'un grain de café APRÈS torréfaction ?", choices:["Vert","Jaune","Brun foncé","Rouge"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Comment dit-on « café » en italien ?", choices:["Café","Caffè","Kafe","Kaffe"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel emoji représente un donut ?", choices:["🍩","🥯","🧁","🍰"], answer:0, reward:20, difficulty:'Facile' },
+  { q:"Le matcha provient de quelle plante ?", choices:["Café","Thé","Cacao","Menthe"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"De quel pays vient le croissant moderne ?", choices:["Italie","France","Autriche","Espagne"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quel ingrédient fait gonfler un cookie au four ?", choices:["Levure chimique","Sel","Cacao","Eau"], answer:0, reward:20, difficulty:'Facile' },
+  { q:"Quel cookie classique a des pépites de chocolat ?", choices:["Chip cookie","Snickerdoodle","Macaron","Sablé"], answer:0, reward:20, difficulty:'Facile' },
+  { q:"Comment s'appelle un croissant fourré au chocolat ?", choices:["Brioche","Pain au chocolat","Chausson","Mille-feuille"], answer:1, reward:20, difficulty:'Facile' },
+  { q:"Quelle saveur caractérise le caramel beurre salé ?", choices:["Acide","Amère","Sucré-salé","Épicé"], answer:2, reward:20, difficulty:'Facile' },
+
+  // MOYEN
+  { q:"Quel ingrédient typique parfume le chai latte indien ?", choices:["Vanille","Cardamome","Cacao","Anis étoilé"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quel café est popularisé par l'Australie : espresso + lait micro-moussé ?", choices:["Cortado","Flat White","Latte","Macchiato"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quelle texture caractérise un sablé breton ?", choices:["Friable","Élastique","Aérée","Filandreuse"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel pays a inventé le tiramisu ?", choices:["Italie","France","Espagne","Grèce"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel dessert français porte le nom d'une course cycliste ?", choices:["Paris-Brest","Tour de France","Grenoble","Bordeaux"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel grain est généralement mélangé avec l'Arabica pour ajouter du corps ?", choices:["Liberica","Robusta","Geisha","Catimor"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quelle pâtisserie autrichienne contient pommes et pâte filo ?", choices:["Strudel","Sachertorte","Linzer","Krapfen"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel mini-jeu permet de gagner des cafés ☕ avec des tuyaux espresso ?", choices:["Cookie Click","Flappy Cookies","Roue","Quiz"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quelle est la cible de la régression vers la moyenne du prix $CKM ?", choices:["50","100","150","200"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quelle pâtisserie portugaise est caramélisée au four à la crème ?", choices:["Pastel de nata","Bolo do caco","Bola","Queijada"], answer:0, reward:35, difficulty:'Moyen' },
+
+  // EXPERT
+  { q:"Quel pays produit le café Blue Mountain renommé ?", choices:["Cuba","Jamaïque","Haïti","Costa Rica"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel rapport approximatif Robusta / Arabica en caféine ?", choices:["≈ égal","×1.5","×2","×3"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quel pourcentage maximum d'écart top 1 vs top 2 au classement cookies ?", choices:["10 %","15 %","20 %","25 %"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quel est le cooldown entre 2 achats $CKM consécutifs (en secondes) ?", choices:["5 s","15 s","30 s","60 s"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Comment se nomme la machine espresso à crema inventée par Achille Gaggia ?", choices:["Cafetière Bialetti","Espresso à crema","Cold drip","French press"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quelle température idéale du lait pour le latte art ?", choices:["50-55 °C","60-65 °C","70-75 °C","80-85 °C"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quelle méthode italienne utilise la pression de la vapeur pour extraire (cafetière maison) ?", choices:["Aeropress","Moka pot","Chemex","V60"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel décay quotidien sur les actions $CKM après 7 j de hold sans activité ?", choices:["0.1 %","0.5 %","1 %","2 %"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel pourcentage de mean reversion par heure vers la target 100 ($CKM) ?", choices:["1 %","5 %","10 %","20 %"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quel pourcentage maximum d'impact prix sur une seule transaction $CKM ?", choices:["5 %","10 %","15 %","20 %"], answer:1, reward:60, difficulty:'Expert' },
 ];
 
 /* Quiz : 1 disponible toutes les 5h */

@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════
    COMMANDES — banque de questions pour GuessGame (PHASE 6C)
    ────────────────────────────────────────────────────
-   65 entrées toutes standard (le mode Expert a été retiré le 09/05/2026).
+   95 entrées (80 standard + 15 absurdes — le mode Expert a été retiré le 09/05/2026).
 
    Variété des thèmes : boissons chaudes/froides, pâtisseries françaises
    et internationales, méthodes de préparation, sirops, viennoiseries,
@@ -151,6 +151,38 @@ export const COMMANDES = [
     choices:['Pu-erh','Oolong','Sencha','Matcha'], answer:0 },
   { desc:"Le thé indien noir fort et tannique, base du chai.",
     choices:['Assam','Darjeeling','Ceylan','Pu-erh'], answer:0 },
+
+  /* ─── 15 standards complémentaires ajoutées 13/05/2026 ─── */
+  { desc:"Beignet allemand boursouflé, fourré à la confiture rouge.",
+    choices:['Berliner','Donut','Churro','Beignet français'], answer:0 },
+  { desc:"Tarte alsacienne aux pommes nappée de flan vanillé.",
+    choices:['Tarte aux pommes','Tarte alsacienne','Tarte Tatin','Clafoutis'], answer:1 },
+  { desc:"Petit pain suédois à la cannelle en forme de spirale.",
+    choices:['Kanelbulle','Cinnamon roll','Brioche cannelle','Pain au sucre'], answer:0 },
+  { desc:"Cake anglais aux fruits confits et raisins, dégusté à Noël.",
+    choices:['Christmas pudding','Christmas cake','Stollen','Galette des rois'], answer:1 },
+  { desc:"Dessert français : poire pochée sur glace vanille, sauce chocolat.",
+    choices:['Coupe Melba','Poire Belle Hélène','Banana split','Tarte poire'], answer:1 },
+  { desc:"Petit gâteau portugais à la crème, caramélisé au four.",
+    choices:['Pastel de nata','Crème caramel','Crème brûlée','Flan parisien'], answer:0 },
+  { desc:"Boisson chaude lactée au miel et à la cannelle, sans café.",
+    choices:['Chai latte','Lait épicé','Steamer miel','Lait d\'or'], answer:2 },
+  { desc:"Boisson japonaise crémeuse mêlant matcha et lait chaud.",
+    choices:['Matcha latte','Sencha latte','Hojicha latte','Genmaicha latte'], answer:0 },
+  { desc:"Café turc servi non filtré, avec son marc au fond de la tasse.",
+    choices:['Café turc','Café grec','Café arabe','Café égyptien'], answer:0 },
+  { desc:"Cocktail glacé sans alcool, fruits tropicaux mixés et frais.",
+    choices:['Smoothie','Mocktail tropical','Frappé fruité','Lassi tropical'], answer:1 },
+  { desc:"Chocolat chaud épicé au piment, à l'origine recette aztèque.",
+    choices:['Chocolat aztèque','Chocolat espagnol','Mocha épicé','Chocolat italien'], answer:0 },
+  { desc:"Café espresso shaké comme un cocktail, mousseux et bien glacé.",
+    choices:['Espresso freddo','Shakerato','Cold Brew','Iced Coffee'], answer:1 },
+  { desc:"Petit four français croquant à base de blancs d'œufs et amandes.",
+    choices:['Macaron','Calisson','Tuile aux amandes','Nougat'], answer:2 },
+  { desc:"Petit pain rond, briochée et craquant, fourré à la crème pâtissière.",
+    choices:['Chouquette','Tropezienne','Brioche','Chausson'], answer:1 },
+  { desc:"Café aromatisé caramel beurre salé avec mousse de lait.",
+    choices:['Latte caramel','Caramel beurre salé latte','Mocha caramel','Cappuccino caramel'], answer:1 },
 
   /* ─── Questions absurdes (commandes farfelues) — la "bonne" réponse
      est juste celle qui colle vaguement à la demande loufoque, mais

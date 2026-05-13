@@ -228,7 +228,10 @@ function playFlappyJumpSynth(){
 }
 
 /* ── PLAY UI SOUND ──────────────────────────────── */
-export function playSound(name){
+/* opts.volume (optional, 0..1) : override le volume par défaut (0.5).
+   Utile pour atténuer un son joué dans un contexte particulier
+   (ex: flappy 'coin' tuyau x2 → 0.18 pour pas spammer l'oreille). */
+export function playSound(name, opts = {}){
   const s = getSettings();
   if(!s.uiSoundEnabled) return;
   /* Swipe : route vers le synth Web Audio (whoosh vent) au lieu du mp3. */
@@ -249,9 +252,11 @@ export function playSound(name){
   try{
     if(!audioCache[name]){
       audioCache[name] = new Audio(UI_SOUNDS[name]);
-      audioCache[name].volume = 0.5;
     }
     const a = audioCache[name];
+    /* Set volume à chaque play : permet le override per-call sans
+       toucher au cache (instance partagée mais volume re-set à chaque tir). */
+    a.volume = typeof opts.volume === 'number' ? opts.volume : 0.5;
     a.currentTime = 0;
     a.play().catch(() => {});
   }catch{ /* mobile autoplay restrictions, etc. */ }

@@ -37,7 +37,7 @@ import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.j
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
-import { creditFreeShares, adminDebitShares } from "./lib/market.js";
+import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, applyHoldDecayIfDue } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
@@ -50,7 +50,7 @@ import { ClassementTab } from "./components/tabs/ClassementTab.jsx";
 import { MarketTab } from "./components/tabs/MarketTab.jsx";
 import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
 import { InboxModal } from "./components/modals/InboxModal.jsx";
-import { getUnreadInboxCount } from "./lib/inbox.js";
+import { getUnreadInboxCount, createInboxMessage } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
 import { BoostGainToast } from "./components/BoostGainToast.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
@@ -62,6 +62,7 @@ import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from 
 import { haptic } from "./lib/haptic.js";
 import { MAINTENANCE_MODE, isBypassedFromMaintenance } from "./data/maintenance.js";
 import MaintenanceScreen from "./components/overlays/MaintenanceScreen.jsx";
+import { AnnouncementModal } from "./components/modals/AnnouncementModal.jsx";
 import MaintenanceWarningModal from "./components/modals/MaintenanceWarningModal.jsx";
 import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
 
@@ -1391,7 +1392,11 @@ export default function CookiMiner() {
       xpDelta = Math.round(xpDelta * 0.8);
     }
 
-    setTotalEarned(t=>t+xpDelta);
+    /* Cap anti-écart top 1 (cf. checkLeaderGap) : si je suis le leader
+       et que mon totalEarned atteint top2 × 1.20, les nouveaux gains
+       sont plafonnés ici — coins/XP/niveau continuent normalement,
+       seul le classement est figé. Ref pour éviter stale closure. */
+    setTotalEarned(t => Math.min(totalEarnedCapRef.current, t + xpDelta));
 
     /* Compteur hebdomadaire — auto-reset à 0 si on est passé sur une
        nouvelle semaine (vendredi 18 h UTC). Lecture via ref pour ne
@@ -1550,31 +1555,41 @@ export default function CookiMiner() {
     showToastRef.current?.(`Pseudo mis à jour : ${newName}`);
   }, [userName, setUserName]);
 
-  /* CAP ANTI-ÉCART TOP 1 — quand je suis le leader avec plus de 30 %
-     d'avance sur le 2e, on RECALIBRE automatiquement mon total_earned
-     à pile (top2 × 1.30). Le sync auto (5 s) push ensuite la nouvelle
-     valeur vers Supabase et le classement remonte le 2e à 30 % d'écart.
-     Le cap est silencieux à l'avant-plan : seul un popup explicatif
-     s'affiche (1 fois max par session) pour que l'user comprenne ce
-     qui s'est passé.
-     Trigger : 1 fois au mount + 1 fois après chaque level-up. */
+  /* CAP ANTI-ÉCART TOP 1 — limite l'écart top 1 vs top 2 du classement
+     cookies à +20 %. 2 mécanismes complémentaires :
+
+     1. RÉTROACTIF : checkLeaderGap recalibre totalEarned à pile
+        (top2 × 1.20) si on est déjà au-dessus. Trigger au mount +
+        après chaque level-up + toutes les 30 s.
+     2. PROACTIF  : totalEarnedCap (state + ref) est lu par addCoins
+        pour clamper les futurs gains. Tant que je suis top 1 et au
+        cap, mes nouveaux gains sont silencieusement plafonnés (pas
+        de perte de coins, juste pas de progression au classement).
+        Le ref évite de re-créer addCoins à chaque refresh du cap.
+
+     Popup explicatif (1× / session) au moment du recalibrage initial. */
+  const GAP_PCT = 1.20;  // Top 1 max +20 % vs Top 2
   const [gapWarning, setGapWarning] = useState(null);  // { myTotal, topTwo, capped } | null
   const [gapShownThisSession, setGapShownThisSession] = useState(false);
+  const [totalEarnedCap, setTotalEarnedCap] = useState(Infinity);
+  const totalEarnedCapRef = useRef(Infinity);
+  useEffect(() => { totalEarnedCapRef.current = totalEarnedCap; }, [totalEarnedCap]);
+
   const checkLeaderGap = useCallback(async () => {
     if(!userCode) return;
-    if(isAdminName(userName)) return;            // admins exclus du classement → pas concernés
+    if(isAdminName(userName)) { setTotalEarnedCap(Infinity); return; }
     const [topOne, topTwo] = await getTopTwoTotalEarned();
-    if(!topOne || !topTwo) return;               // moins de 2 joueurs publics
-    if(topOne.user_code !== userCode) return;    // je ne suis pas le top 1 → rien
+    if(!topOne || !topTwo) { setTotalEarnedCap(Infinity); return; }
+    if(topOne.user_code !== userCode) { setTotalEarnedCap(Infinity); return; }
     const t2 = Number(topTwo.total_earned) || 0;
-    if(t2 <= 0) return;
-    const GAP_PCT = 1.25;  // Top 1 max +25 % vs Top 2
+    if(t2 <= 0) { setTotalEarnedCap(Infinity); return; }
+
     const cap = Math.floor(t2 * GAP_PCT);
+    setTotalEarnedCap(cap);  // PROACTIF : addCoins lit ce cap via ref
+
     if(totalEarned > cap){
-      /* Recalibrage silencieux du total_earned (le sync push à Supabase
-         dans les 5 s suivantes). Le popup n'apparaît que la 1re fois
-         dans la session pour pas spammer si l'user retrigger plusieurs
-         fois (ex : level-up qui re-bump puis re-cap). */
+      /* RÉTROACTIF : recalibrage silencieux. Le sync push à Supabase
+         dans les 5 s suivantes. Popup 1×/session pour pas spammer. */
       setTotalEarned(cap);
       if(!gapShownThisSession){
         setGapWarning({ myTotal: totalEarned, topTwo: t2, capped: cap });
@@ -1585,10 +1600,12 @@ export default function CookiMiner() {
 
   /* Check au mount (debounce 3s pour laisser le upsertProfile pousser
      les valeurs locales d'abord — sinon le check tomberait sur des
-     valeurs Supabase périmées). */
+     valeurs Supabase périmées) + recheck périodique toutes les 30 s
+     pour refresh totalEarnedCap quand le top 2 progresse. */
   useEffect(() => {
     const t = setTimeout(checkLeaderGap, 3000);
-    return () => clearTimeout(t);
+    const interval = setInterval(checkLeaderGap, 30_000);
+    return () => { clearTimeout(t); clearInterval(interval); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1924,6 +1941,69 @@ export default function CookiMiner() {
         })();
       },
     });
+    return () => { cancelled = true; };
+  }, [userCode, pullDone]);
+
+  /* ── Rebalance one-shot du marché — retire 10 % des actions ─────
+     Mécanisme pour décongestionner un marché bloqué loin de la
+     moyenne (trop d'actions thésaurisées). Pur retrait — pas de
+     compensation cookies (UX assumée). S'applique 1 seule fois
+     par user via applyPatchOnce (idempotence cross-device).
+
+     Bump le suffixe v1 → v2 pour relancer la mécanique.
+  ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey:    'cookiminer:marketRebalance10pct_v1',
+      patchKey: 'marketRebalance10pct_v1',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        (async () => {
+          const res = await applyMarketRebalance10pct(userCode);
+          if(!res || !res.sharesRemoved) return;
+          /* Notification inbox — l'user voit clairement ce qui s'est
+             passé en rouvrant l'app, pas juste un changement silencieux. */
+          await createInboxMessage(
+            userCode,
+            'market_rebalance',
+            '🔄 Rebalance du marché',
+            `Pour décongestionner le marché $CKM, 10 % de tes actions ont été retirées et réinjectées dans le pool disponible.\n\n` +
+            `Avant : ${res.sharesBefore} actions\n` +
+            `Après : ${res.sharesAfter} actions (−${res.sharesRemoved})`,
+            { sharesRemoved: res.sharesRemoved, sharesAfter: res.sharesAfter }
+          );
+        })();
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userCode, pullDone]);
+
+  /* ── Decay continu — anti-thésaurisation ──────────────────────
+     Au mount, on check si l'user a un hold ≥ 7 j SANS activité
+     depuis ≥ 24 h. Si oui, on retire 0.5 %/jour idle (cappé à 10 j
+     = 5 % max par session). Pousse les holders passifs à trader.
+     applyHoldDecayIfDue gère elle-même les conditions d'application
+     (throttle via updated_at) → pas besoin d'applyPatchOnce ici.
+  ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    (async () => {
+      const res = await applyHoldDecayIfDue(userCode);
+      if(cancelled || !res || !res.sharesLost) return;
+      await createInboxMessage(
+        userCode,
+        'hold_decay',
+        '⏳ Frais de garde appliqués',
+        `Tu n'as pas tradé tes actions $CKM depuis ${res.daysIdle} jour${res.daysIdle > 1 ? 's' : ''}. ` +
+        `${res.sharesLost} action${res.sharesLost > 1 ? 's' : ''} ${res.sharesLost > 1 ? 'ont' : 'a'} été versée${res.sharesLost > 1 ? 's' : ''} dans le pool disponible.\n\n` +
+        `Pour éviter ce decay : trade au moins une fois par 24 h après 7 jours de hold.`,
+        { sharesLost: res.sharesLost, daysIdle: res.daysIdle, newShares: res.newShares }
+      );
+    })();
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
@@ -2940,6 +3020,11 @@ export default function CookiMiner() {
   }
 
   return (
+    <>
+    <AnnouncementModal
+      message={systemStatus.banner_message}
+      severity={systemStatus.banner_severity}
+    />
     <div style={{
       minHeight:'100svh', background:C.bg,
       display:'flex', flexDirection:'column', maxWidth:430, margin:'0 auto',
@@ -4018,5 +4103,6 @@ export default function CookiMiner() {
       {showSplash && <SplashScreen onFinish={handleSplashFinish} fast={splashFastRef.current} />}
 
     </div>
+    </>
   );
 }

@@ -1355,6 +1355,10 @@ export const DEFAULT_SYSTEM_STATUS = Object.freeze({
   maintenance_title: null,
   maintenance_subtitle: null,
   force_version: null,
+  /* Bandeau d'annonce piloté par SQL — affiché en haut de l'écran.
+     null → pas de bandeau. severity ∈ {'info','warning','success'}. */
+  banner_message: null,
+  banner_severity: 'info',
 });
 
 function normalizeSystemStatus(row){
@@ -1364,6 +1368,8 @@ function normalizeSystemStatus(row){
     maintenance_title: row.maintenance_title || null,
     maintenance_subtitle: row.maintenance_subtitle || null,
     force_version: row.force_version || null,
+    banner_message: row.banner_message || null,
+    banner_severity: row.banner_severity || 'info',
   };
 }
 
@@ -1377,9 +1383,13 @@ export async function getSystemStatus(){
        avant de tomber sur le DEFAULT (qui peut faire passer à côté
        d'une maintenance active). */
     const data = await withRetry(async () => {
+      /* select('*') : tolère l'absence des colonnes banner_* tant que
+         le MIGRATION_banner.sql n'est pas passé en prod. Les champs
+         absents tombent simplement à undefined → normalize les met
+         à null/'info' (defaults DEFAULT_SYSTEM_STATUS). */
       const { data: row, error } = await supabase
         .from('system_status')
-        .select('maintenance_mode, maintenance_title, maintenance_subtitle, force_version')
+        .select('*')
         .eq('id', 1)
         .maybeSingle();
       if(error) throw error;

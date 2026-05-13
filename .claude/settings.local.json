@@ -26,7 +26,13 @@
       "Bash(curl -sL \"https://cookiminer.vercel.app/assets/index-osq7eT1J.js\" -o /tmp/prod.js)",
       "Bash(curl -sL \"https://cookiminer.vercel.app/?nc=$\\(date +%s\\)\")",
       "Bash(curl -sL \"https://cookiminer.vercel.app/assets/index-DFUWlWaL.js\" -o /tmp/prod2.js)",
-      "Read(//c/Users/RGIS~1/AppData/Local/Temp/claude/C--Users-R-gis-Desktop-CookiTrader/b38dea32-6196-4176-ac86-2a39f377f7e5/tasks/**)"
+      "Read(//c/Users/RGIS~1/AppData/Local/Temp/claude/C--Users-R-gis-Desktop-CookiTrader/b38dea32-6196-4176-ac86-2a39f377f7e5/tasks/**)",
+      "Bash(ipconfig)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"C:\\\\Users\\\\Régis\\\\Desktop\\\\CookiTrader\\\\nouveau_logo\\\\icon_cookiminer.png\"\\); \"Width=$\\($img.Width\\) Height=$\\($img.Height\\)\"; $img.Dispose\\(\\))",
+      "Bash(git check-ignore *)"
     ]
   }
 }

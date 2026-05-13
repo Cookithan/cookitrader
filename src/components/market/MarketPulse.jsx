@@ -1,0 +1,71 @@
+/* ════════════════════════════════════════════════════
+   MarketPulse — Widget "foule" : activité communautaire du marché 24 h
+   ────────────────────────────────────────────────────
+   Affiche 3 infos compactes :
+   - Nombre de traders actifs sur 24 h
+   - Volume total d'actions échangées
+   - Ratio achats / ventes (mini-baromètre or/moka)
+
+   Caché si aucune activité sur 24 h.
+   Style café-only (CLAUDE.md) : achats = or (#D4A017), ventes = moka (#7D4E1F).
+
+   Props :
+   - pulse : { activeTraders, buyVolume, sellVolume, totalVolume } | null
+   - C     : thème
+═══════════════════════════════════════════════════════ */
+
+export function MarketPulse({ pulse, C }) {
+  if (!pulse) return null;
+  const { activeTraders, buyVolume, sellVolume, totalVolume } = pulse;
+  if (activeTraders === 0 && totalVolume === 0) return null;
+
+  const buyPct  = totalVolume > 0 ? Math.round((buyVolume  / totalVolume) * 100) : 50;
+  const sellPct = 100 - buyPct;
+
+  return (
+    <div style={{
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderRadius: 12,
+      padding: '10px 12px',
+      marginBottom: 12,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 14,
+      flexWrap: 'wrap',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.muted }}>
+        <span style={{ fontSize: 13 }}>👥</span>
+        <b style={{ color: C.text, fontWeight: 800 }}>{activeTraders}</b>
+        trader{activeTraders > 1 ? 's' : ''} 24 h
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.muted }}>
+        <span style={{ fontSize: 13 }}>📊</span>
+        <b style={{ color: C.text, fontWeight: 800 }}>{totalVolume.toLocaleString('fr-FR')}</b>
+        action{totalVolume > 1 ? 's' : ''}
+      </div>
+
+      {/* Baromètre buy/sell : barre proportionnelle or/moka */}
+      <div style={{ flex: 1, minWidth: 110, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{
+          flex: 1, height: 5, borderRadius: 3,
+          background: '#7D4E1F',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${buyPct}%`,
+            height: '100%',
+            background: '#D4A017',
+            transition: 'width 0.4s ease',
+          }} />
+        </div>
+        <span style={{ fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap' }}>
+          <span style={{ color: '#D4A017' }}>🛒 {buyPct}%</span>
+          <span style={{ color: C.muted, margin: '0 4px' }}>·</span>
+          <span style={{ color: '#7D4E1F' }}>💰 {sellPct}%</span>
+        </span>
+      </div>
+    </div>
+  );
+}

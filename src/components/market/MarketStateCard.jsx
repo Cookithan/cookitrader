@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /* ════════════════════════════════════════════════════
    MarketStateCard — bandeau prix + stock
@@ -17,6 +17,25 @@ function fmtHM(date) {
 
 export function MarketStateCard({ state, dayChange, marketStatus }) {
   const [showHelp, setShowHelp] = useState(false);
+
+  /* Flash live ticker — quand le prix change entre 2 refreshs, on rejoue
+     une animation courte (or pour hausse, moka pour baisse). Le `key`
+     change à chaque variation pour forcer le remount → l'animation se
+     déclenche systématiquement, même si la direction est la même. */
+  const prevPriceRef = useRef(null);
+  const [flash, setFlash] = useState({ dir: null, key: 0 });
+  useEffect(() => {
+    if (!state) return;
+    const prev = prevPriceRef.current;
+    const curr = state.current_price;
+    /* Seuil minuscule (0.01) pour ignorer le bruit JS, mais déclencher
+       même sur des micro-variations (mean reversion permanente). */
+    if (prev !== null && Math.abs(prev - curr) > 0.01) {
+      setFlash(f => ({ dir: curr > prev ? 'up' : 'down', key: f.key + 1 }));
+    }
+    prevPriceRef.current = curr;
+  }, [state?.current_price]);
+
   const available = state?.available_shares ?? 0;
   const total = state?.total_shares_supply ?? 1000;
   const availablePct = (available / total) * 100;
@@ -44,8 +63,17 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 2 }}>
             $CKM · Action CookiMiner
           </div>
-          <div style={{ fontSize: 36, fontWeight: 900, color: '#D4A017', marginTop: 4, lineHeight: 1 }}>
-            {state ? state.current_price.toFixed(0) : '—'}
+          <div style={{ fontSize: 36, fontWeight: 900, marginTop: 4, lineHeight: 1 }}>
+            <span
+              key={flash.key}
+              className={
+                flash.dir === 'up'   ? 'price-flash-up'   :
+                flash.dir === 'down' ? 'price-flash-down' : ''
+              }
+              style={{ color: '#D4A017', transformOrigin: 'left center' }}
+            >
+              {state ? state.current_price.toFixed(0) : '—'}
+            </span>
             <span style={{ fontSize: 18, color: 'rgba(212,160,23,0.7)', marginLeft: 6 }}>🍪</span>
           </div>
           <div style={{ fontSize: 13, color: trendColor, marginTop: 4, fontWeight: 700 }}>

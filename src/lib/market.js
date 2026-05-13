@@ -54,9 +54,13 @@ export const MARKET_CONFIG = {
     { minMs:  0,                    bonus: 0,    label: '< 1 h'      },  // pas de bonus
   ],
   MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du total = 500 actions max par user (un whale n'influence le prix que de ~5 %)
-  MAX_SHARES_PER_TX:       30,    // Max 30 actions par tx (bypass possible via item premium "tout-acheter/vendre"). Couplé au cooldown 60 s entre achats. 30 actions = 0.3 % impact prix.
+  MAX_SHARES_PER_TX:       30,    // Max 30 actions par tx (bypass possible via item premium "tout-acheter/vendre"). 30 actions = 0.9 % impact prix avec IPS triplé.
   MAX_DAILY_VOLUME:        1000,  // Volume cumulé (achats + ventes) sur 24 h, ajusté à la nouvelle profondeur
-  SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump sans pénaliser le trading légitime)
+  /* Cooldowns distincts par sens — anti-exploit pump-and-dump conservé,
+     mais on assouplit l'achat-pur pour que le joueur puisse réagir au
+     marché (DCA, ajout après une baisse) sans attendre 1 minute. */
+  BUY_COOLDOWN_MS:  15_000,       // 15 s entre 2 achats consécutifs (assoupli — slippage symétrique + caps tx/jour suffisent à protéger)
+  SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente, ET entre 2 ventes (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump)
   HISTORY_HOURS: 24,
   SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
   /* Horaires d'ouverture (heure locale du joueur). Ouvert quand
@@ -302,6 +306,251 @@ export async function getMyMarketRank(userCode) {
   }
 }
 
+/* ════════════════════════════════════════════════════
+   getMarketActivity — N dernières transactions du marché, enrichies
+   ────────────────────────────────────────────────────
+   Lit market_transactions trié par created_at desc, puis JOIN client-side
+   sur users pour récupérer nom + avatar. Admin filtrés via notAdmin().
+
+   Retour : tableau d'items { user_code, user_name, user_avatar, type,
+   shares, price_per_share, created_at, timestampMs }, prêt pour le feed.
+   Mode dégradé / Supabase off → []. */
+export async function getMarketActivity(limit = 15) {
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const { data: txs } = await supabase
+      .from('market_transactions')
+      .select('user_code, type, shares, price_per_share, created_at')
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    if (!txs || txs.length === 0) return [];
+
+    const codes = [...new Set(txs.map(t => t.user_code).filter(Boolean))];
+    if (codes.length === 0) return [];
+
+    const { data: profiles } = await notAdmin(
+      supabase
+        .from('users')
+        .select('user_code, user_name, user_avatar')
+        .in('user_code', codes)
+    );
+    const profileMap = {};
+    (profiles || []).forEach(u => { profileMap[u.user_code] = u; });
+
+    /* On garde l'ordre desc des transactions, on jette celles dont le user
+       est admin (absent du profileMap) ou supprimé. */
+    return txs
+      .map(t => {
+        const u = profileMap[t.user_code];
+        if (!u) return null;
+        return {
+          user_code: t.user_code,
+          user_name: u.user_name,
+          user_avatar: u.user_avatar,
+          type: t.type,
+          shares: t.shares,
+          price_per_share: parseFloat(t.price_per_share),
+          created_at: t.created_at,
+          timestampMs: new Date(t.created_at).getTime(),
+        };
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   applyMarketRebalance10pct — Rebalance one-shot : retire 10 % des actions
+   ────────────────────────────────────────────────────
+   Mécanisme one-shot (déclenché via flag LS dans App.jsx) pour
+   décongestionner un marché bloqué loin de la moyenne quand trop
+   d'actions sont thésaurisées : on retire 10 % des shares de l'user
+   (PUR RETRAIT — sans compensation cookies, c'est le choix UX assumé)
+   et on les réinjecte dans le pool disponible (shares_in_circulation--).
+
+   total_invested est réduit proportionnellement (sinon le prix d'achat
+   moyen serait artificiellement gonflé et fausserait la PnL future).
+
+   Retour : { sharesRemoved, sharesBefore, sharesAfter } ou null si rien
+   à faire (user sans portefeuille / 0 action / < 10 actions = négligeable). */
+export async function applyMarketRebalance10pct(userCode) {
+  if (!isSupabaseEnabled() || !userCode) return null;
+  try {
+    const { data: portfolio } = await supabase
+      .from('market_portfolio')
+      .select('shares, total_invested')
+      .eq('user_code', userCode)
+      .maybeSingle();
+    if (!portfolio || !portfolio.shares || portfolio.shares < 10) return null;
+
+    /* Math.ceil : on retire au moins 1 si shares >= 10 (10 % de 10 = 1). */
+    const sharesRemoved = Math.ceil(portfolio.shares * 0.10);
+    const sharesAfter = portfolio.shares - sharesRemoved;
+    const investedAfter = sharesAfter === 0
+      ? 0
+      : Math.floor((Number(portfolio.total_invested) || 0) * sharesAfter / portfolio.shares);
+
+    const { error: pErr } = await supabase
+      .from('market_portfolio')
+      .update({
+        shares: sharesAfter,
+        total_invested: investedAfter,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_code', userCode);
+    if (pErr) return null;
+
+    /* Réinjecte dans le pool dispo (shares_in_circulation -= removed). */
+    const { data: state } = await supabase
+      .from('market_state')
+      .select('shares_in_circulation')
+      .eq('id', 1)
+      .maybeSingle();
+    if (state) {
+      await supabase
+        .from('market_state')
+        .update({
+          shares_in_circulation: Math.max(0, (Number(state.shares_in_circulation) || 0) - sharesRemoved),
+        })
+        .eq('id', 1);
+    }
+
+    return { sharesRemoved, sharesBefore: portfolio.shares, sharesAfter };
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[market] applyMarketRebalance10pct error:', e);
+    return null;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   applyHoldDecayIfDue — Decay continu 0.5 %/jour après 7 j de hold
+   ────────────────────────────────────────────────────
+   Mécanisme anti-thésaurisation : pousse les holders très longs à
+   vendre (ou trader) en grignotant leurs actions s'ils restent passifs.
+
+   Conditions cumulées pour appliquer :
+   - portfolio.shares >= 10 (sinon négligeable, on n'embête pas)
+   - weighted_buy_at présent ET hold >= 7 jours
+   - updated_at >= 24 h dans le passé (== aucune activité depuis 1 jour)
+
+   Le decay est proportionnel aux jours idle, cappé à 10 jours (5 %
+   max par session). updated_at est mis à jour → auto-throttle 24 h
+   pour la prochaine application.
+
+   Race condition : 2 tabs ouverts peuvent appliquer 2x en parallèle.
+   Accepté — l'écart reste minime (1-2 actions max), et la 2e appli
+   verra updated_at déjà mis à jour au tick suivant.
+
+   Retour : { sharesLost, daysIdle, newShares } ou null si rien à faire. */
+export async function applyHoldDecayIfDue(userCode) {
+  if (!isSupabaseEnabled() || !userCode) return null;
+  try {
+    const { data: portfolio } = await supabase
+      .from('market_portfolio')
+      .select('shares, total_invested, weighted_buy_at, updated_at')
+      .eq('user_code', userCode)
+      .maybeSingle();
+    if (!portfolio || !portfolio.shares || portfolio.shares < 10) return null;
+    if (!portfolio.weighted_buy_at || !portfolio.updated_at) return null;
+
+    const now = Date.now();
+    const SEVEN_DAYS = 7 * 24 * 3600 * 1000;
+    const ONE_DAY    = 24 * 3600 * 1000;
+
+    const holdMs = now - new Date(portfolio.weighted_buy_at).getTime();
+    if (holdMs < SEVEN_DAYS) return null;
+
+    const sinceUpdate = now - new Date(portfolio.updated_at).getTime();
+    if (sinceUpdate < ONE_DAY) return null;
+
+    /* Cap à 10 jours idle (5 % par session) — évite chocs énormes
+       au retour après plusieurs semaines d'absence. */
+    const daysIdle = Math.min(10, Math.floor(sinceUpdate / ONE_DAY));
+    const decayRate = 0.005; // 0.5 % / jour
+    const sharesLost = Math.floor(portfolio.shares * decayRate * daysIdle);
+    if (sharesLost < 1) return null;
+
+    const newShares = portfolio.shares - sharesLost;
+    const newInvested = newShares === 0
+      ? 0
+      : Math.floor((Number(portfolio.total_invested) || 0) * newShares / portfolio.shares);
+
+    const { error: pErr } = await supabase
+      .from('market_portfolio')
+      .update({
+        shares: newShares,
+        total_invested: newInvested,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_code', userCode);
+    if (pErr) return null;
+
+    /* Pool dispo : les shares decayed retournent à la circulation négative
+       (i.e. shares_in_circulation diminue → available augmente). */
+    const { data: state } = await supabase
+      .from('market_state')
+      .select('shares_in_circulation')
+      .eq('id', 1)
+      .maybeSingle();
+    if (state) {
+      await supabase
+        .from('market_state')
+        .update({
+          shares_in_circulation: Math.max(0, (Number(state.shares_in_circulation) || 0) - sharesLost),
+        })
+        .eq('id', 1);
+    }
+
+    return { sharesLost, daysIdle, newShares };
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[market] applyHoldDecayIfDue error:', e);
+    return null;
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   getMarketPulse — Snapshot communautaire du marché sur 24 h
+   ────────────────────────────────────────────────────
+   1 seule query market_transactions, on dérive 3 chiffres côté client :
+   - activeTraders : DISTINCT user_code (joueurs ayant tradé)
+   - buyVolume / sellVolume : actions cumulées par sens
+   - totalVolume = buy + sell
+
+   Admin compté (cohérent avec getMarketTraderCount, pas de JOIN coûteux).
+   Limite 5000 rows par sécurité — largement au-delà du volume réel
+   journalier (cap actuel : 1000 actions / 24 h / user × ~quelques dizaines
+   de traders). */
+export async function getMarketPulse() {
+  if (!isSupabaseEnabled()) return null;
+  try {
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data } = await supabase
+      .from('market_transactions')
+      .select('user_code, type, shares')
+      .gte('created_at', since)
+      .limit(5000);
+    if (!data) return null;
+    const traders = new Set();
+    let buy = 0, sell = 0;
+    data.forEach(t => {
+      if (t.user_code) traders.add(t.user_code);
+      if (t.type === 'buy') buy += Number(t.shares) || 0;
+      else                  sell += Number(t.shares) || 0;
+    });
+    return {
+      activeTraders: traders.size,
+      buyVolume: buy,
+      sellVolume: sell,
+      totalVolume: buy + sell,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* Nombre total de joueurs avec au moins 1 action (admin compté ici car
    on ne croise pas users — coût raisonnable pour rester simple). */
 export async function getMarketTraderCount() {
@@ -366,12 +615,13 @@ export async function buyShares(userCode, shares, options = {}) {
     };
   }
 
-  /* Cooldown 60 s entre 2 achats — empêche d'acheter en spam pour faire
-     monter le prix rapidement. Force à étaler les achats dans le temps. */
+  /* Cooldown court entre 2 achats — empêche le spam mais reste fluide
+     (BUY_COOLDOWN_MS = 15 s vs 60 s pour les ventes). Le slippage
+     symétrique et le cap MAX_SHARES_PER_TX protègent suffisamment. */
   if (portfolio.last_buy_at) {
     const elapsed = Date.now() - new Date(portfolio.last_buy_at).getTime();
-    if (elapsed < MARKET_CONFIG.SELL_COOLDOWN_MS) {
-      const wait = Math.ceil((MARKET_CONFIG.SELL_COOLDOWN_MS - elapsed) / 1000);
+    if (elapsed < MARKET_CONFIG.BUY_COOLDOWN_MS) {
+      const wait = Math.ceil((MARKET_CONFIG.BUY_COOLDOWN_MS - elapsed) / 1000);
       return { error: `Cooldown achat — patiente ${wait} s avant le prochain achat` };
     }
   }

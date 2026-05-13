@@ -81,6 +81,8 @@ export const GLOBAL_CSS = `
   @keyframes ringRotate{from{transform:rotate(0)}to{transform:rotate(360deg)}}
   @keyframes livePulse{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.35)}}
   @keyframes marketTickIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes priceFlashUp{0%{color:#D4A017;text-shadow:0 0 0 #F0C050}30%{color:#F0C050;text-shadow:0 0 14px #F0C050;transform:scale(1.05)}100%{color:#D4A017;text-shadow:0 0 0 #F0C050;transform:scale(1)}}
+  @keyframes priceFlashDown{0%{color:#D4A017;text-shadow:0 0 0 #A88060}30%{color:#A88060;text-shadow:0 0 14px #7D4E1F;transform:scale(.97)}100%{color:#D4A017;text-shadow:0 0 0 #A88060;transform:scale(1)}}
   @keyframes cupShake{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-6px) rotate(-3deg)}30%{transform:translateX(6px) rotate(3deg)}45%{transform:translateX(-5px) rotate(-2deg)}60%{transform:translateX(5px) rotate(2deg)}75%{transform:translateX(-2px) rotate(-1deg)}}
   @keyframes steamRise{0%{opacity:0;transform:translateY(0) scaleX(1)}30%{opacity:.55}100%{opacity:0;transform:translateY(-26px) scaleX(1.6)}}
   @keyframes cardMatch{0%{transform:scale(1);box-shadow:0 4px 12px rgba(0,0,0,.1)}35%{transform:scale(1.12);box-shadow:0 0 28px rgba(212,160,23,.85),0 4px 12px rgba(212,160,23,.5)}100%{transform:scale(.92);opacity:.35;box-shadow:0 0 0 rgba(0,0,0,0)}}
@@ -179,6 +181,8 @@ export const GLOBAL_CSS = `
   .pulse-ring{animation:pulseRing 1.6s ease-in-out infinite}
   .live-pulse{animation:livePulse 1.8s ease-in-out infinite}
   .market-tick{animation:marketTickIn .4s ease-out both}
+  .price-flash-up{animation:priceFlashUp .7s ease-out;display:inline-block}
+  .price-flash-down{animation:priceFlashDown .7s ease-out;display:inline-block}
   .cup-shake{animation:cupShake .55s ease-in-out}
   .steam-rise{animation:steamRise 1.2s ease-out infinite}
   .sparkle-anim{animation:sparkle 1.8s ease-in-out infinite}

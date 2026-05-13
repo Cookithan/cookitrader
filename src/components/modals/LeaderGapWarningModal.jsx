@@ -5,9 +5,9 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
    LeaderGapWarningModal — popup recalibrage anti-écart top 1
    ────────────────────────────────────────────────────
    Affichée au top 1 quand son `total_earned` a été RECALÉ par le
-   système à pile 30 % d'avance sur le 2e (sinon l'écart explosait).
-   Le cap est appliqué AVANT que la modal s'affiche — la modal explique
-   juste ce qui s'est passé.
+   système à l'écart cible (cf. GAP_PCT dans App.jsx). Le cap est
+   appliqué AVANT que la modal s'affiche — la modal explique juste
+   ce qui s'est passé.
 
    Affichée au max 1 fois par session (state parent), pas de LS.
    Palette café-only — pas de rouge alerte (cf. règle CLAUDE.md).
@@ -15,14 +15,22 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
    Props :
      - myTotal   : total_earned AVANT recalibrage (référence "tu avais")
      - topTwo    : total_earned du 2ème
-     - capped    : nouvelle valeur après cap (top2 × 1.30)
+     - capped    : nouvelle valeur après cap (= top2 × (1 + GAP_PCT_TARGET))
      - onClose   : ferme la modal
      - C         : palette du thème actif
+
+   Le pourcentage affiché est dérivé des props (pas hardcodé) → reste
+   cohérent si GAP_PCT change côté App.jsx.
 ═══════════════════════════════════════════════════════ */
 
 export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
   const pctAhead = topTwo > 0
     ? Math.round(((myTotal - topTwo) / topTwo) * 100)
+    : 0;
+  /* Écart effectif APRÈS cap — dérivé pour rester aligné si GAP_PCT
+     évolue côté App.jsx (au lieu d'un hardcode "+25 %"/"+30 %"). */
+  const pctCapped = topTwo > 0
+    ? Math.round(((capped - topTwo) / topTwo) * 100)
     : 0;
   const lost = Math.max(0, myTotal - capped);
 
@@ -101,7 +109,7 @@ export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
             <span style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700, letterSpacing:.5 }}>Avance gardée</span>
             <span style={{ fontSize:18, fontWeight:900, color:'#F0C050', fontVariantNumeric:'tabular-nums' }}>
-              +25%
+              +{pctCapped}%
             </span>
           </div>
         </div>
@@ -117,7 +125,7 @@ export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
           <AlertCircle size={16} color="#C17F3C" style={{ flexShrink:0, marginTop:2 }} />
           <div style={{ fontSize:12, color:C.text, lineHeight:1.5 }}>
             Tu avais <strong style={{ color:'#C17F3C' }}>+{pctAhead}% d'avance</strong> sur le 2<sup>e</sup>.
-            On t'a recalé à <strong style={{ color:'#C17F3C' }}>+30 % pile</strong> ({lost.toLocaleString('fr-FR')} 🍪 de perdus) pour préserver la concurrence.
+            On t'a recalé à <strong style={{ color:'#C17F3C' }}>+{pctCapped} % pile</strong> ({lost.toLocaleString('fr-FR')} 🍪 de perdus) pour préserver la concurrence.
           </div>
         </div>
 

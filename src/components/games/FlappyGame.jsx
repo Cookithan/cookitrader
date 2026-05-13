@@ -291,10 +291,12 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
       earnedRef.current = newEarned;
       setEarned(newEarned);
       /* Son uniquement sur tuyau espresso x2 (light) — sinon trop fréquent
-         et lassant à chaque tuyau standard. Demande user 13/05/2026. */
+         et lassant à chaque tuyau standard. Volume atténué (0.18 vs
+         défaut 0.5) car le son revient à chaque tuyau bonus et fatigue
+         l'oreille à pleine puissance (demande user 13/05/2026). */
       const popId = ts + Math.random();
       const wasLight = lastReward === MODES[modeRef.current].rewardLight;
-      if(wasLight) playSound('coin');
+      if(wasLight) playSound('coin', { volume: 0.18 });
       setPops(p => [...p, { id: popId, amount: lastReward, light: wasLight }]);
       setTimeout(() => setPops(p => p.filter(x => x.id !== popId)), 700);
       /* Auto-end si score cap (anti-cheat) OU reward cap atteint */

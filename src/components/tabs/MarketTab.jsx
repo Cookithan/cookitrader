@@ -1,12 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  getMarketState, getMarketHistory,
+  getMarketState, getMarketHistory, getMarketActivity, getMarketPulse,
   getUserPortfolio, maintenanceTick, getMarketStatus,
 } from '../../lib/market';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { MarketStateCard } from '../market/MarketStateCard.jsx';
 import { MarketChart } from '../market/MarketChart.jsx';
+import { MarketFeed } from '../market/MarketFeed.jsx';
+import { MarketPulse } from '../market/MarketPulse.jsx';
 import { PortfolioCard } from '../market/PortfolioCard.jsx';
 import { TradePanel } from '../market/TradePanel.jsx';
 import { MarketWelcomeModal } from '../market/MarketWelcomeModal.jsx';
@@ -26,6 +28,8 @@ import { MarketWelcomeModal } from '../market/MarketWelcomeModal.jsx';
 export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [pulse, setPulse] = useState(null);
   const [portfolio, setPortfolio] = useState(null);
   const [dayChange, setDayChange] = useState(0);
   const [chartRange, setChartRange] = useState(1440);  /* minutes — défaut 24h */
@@ -40,16 +44,21 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
 
   const refresh = useCallback(async () => {
     if (!isSupabaseEnabled()) return;
-    /* Toujours récupérer 24h pour calculer dayChange (vs il y a 24h),
-       et la fenêtre choisie pour la courbe — 2 requêtes parallèles. */
-    const [s, hRange, h24, p] = await Promise.all([
+    /* En parallèle : prix courant, courbe (fenêtre choisie), historique 24h
+       (sert au dayChange + au feed pour détecter les sauts), portfolio user,
+       activité globale récente (alimente le feed live). */
+    const [s, hRange, h24, p, act, pls] = await Promise.all([
       getMarketState(),
       getMarketHistory(chartRange),
       getMarketHistory(24 * 60),
       userCode ? getUserPortfolio(userCode) : Promise.resolve(null),
+      getMarketActivity(15),
+      getMarketPulse(),
     ]);
     setState(s);
     setHistory(hRange);
+    setActivity(act);
+    setPulse(pls);
     setPortfolio(p);
     /* Passer s au getMarketStatus pour qu'il détecte le circuit breaker
        (lit serverState.circuit_breaker_until). Sinon UI manquerait le
@@ -191,7 +200,9 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
       )}
 
       <MarketStateCard state={state} dayChange={dayChange} marketStatus={marketStatus} />
+      <MarketPulse pulse={pulse} C={C} />
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
+      <MarketFeed activity={activity} C={C} />
       <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
       <TradePanel
         state={state}
