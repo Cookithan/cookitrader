@@ -11,7 +11,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.18.0',
+  version: '1.19.0',
   releaseDate: '2026-05-13',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -19,6 +19,23 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.19.0',
+    date: '2026-05-13',
+    title: '📊 Marché vivant + popup système',
+    changes: [
+      "📰 Activité des autres joueurs visible sous la courbe (3 dernières transactions)",
+      "📊 Pouls du marché : nb de traders 24 h, volume, ratio achats/ventes en un coup d'œil",
+      "✨ Le prix flashe en temps réel à chaque variation (or hausse / moka baisse)",
+      "👆 Glisse ton doigt sur la courbe : prix + heure exacte à chaque instant",
+      "⏳ Carte Mes Actions enrichie : durée de hold + bonus actif + jauge prochain palier",
+      "⚡ Cooldown entre 2 achats $CKM ramené à 15 s (vs 60 s) — réagis enfin en direct",
+      "⚖️ Anti-monopole renforcé : top 1 du classement cookies plafonné automatiquement",
+      "📣 Nouveau : popup d'annonces pilotées en live (maintenance, événements, mises à jour)",
+      "❓ +30 questions au Quiz, +15 commandes au mini-jeu Devine la commande",
+      "🔊 Son du bonus Flappy Cookie atténué",
+    ],
+  },
   {
     version: '1.18.0',
     date: '2026-05-13',
