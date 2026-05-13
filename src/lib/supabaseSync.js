@@ -232,6 +232,29 @@ export async function getTopTwoTotalEarned(){
   }catch{ return [null, null]; }
 }
 
+/* ════════════════════════════════════════════════════
+   getCommunityCookieTotal — Total cumulé des cookies miné
+   ────────────────────────────────────────────────────
+   Somme de `total_earned` de tous les joueurs (admins exclus via
+   notInLeaderboard, cohérent avec getTopTwoTotalEarned).
+
+   Utilisé pour les paliers communautaires (ex: 500 000 → cadeau
+   one-shot à tous les joueurs). 1 query par mount d'app — coût
+   acceptable pour quelques dizaines de joueurs.
+
+   Retour : nombre (0 si Supabase off / erreur). */
+export async function getCommunityCookieTotal(){
+  if(!isSupabaseEnabled()) return 0;
+  try{
+    const { data } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('total_earned')
+    );
+    return (data || []).reduce((sum, u) => sum + (Number(u.total_earned) || 0), 0);
+  }catch{ return 0; }
+}
+
 /* Vérifie si un pseudo est déjà pris dans la base (case-insensitive,
    trim côté client). On exclut éventuellement son propre user_code
    (utile pour ChangeNameModal où l'utilisateur peut tomber sur une

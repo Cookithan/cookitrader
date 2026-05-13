@@ -83,6 +83,14 @@ export const GLOBAL_CSS = `
   @keyframes marketTickIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
   @keyframes priceFlashUp{0%{color:#D4A017;text-shadow:0 0 0 #F0C050}30%{color:#F0C050;text-shadow:0 0 14px #F0C050;transform:scale(1.05)}100%{color:#D4A017;text-shadow:0 0 0 #F0C050;transform:scale(1)}}
   @keyframes priceFlashDown{0%{color:#D4A017;text-shadow:0 0 0 #A88060}30%{color:#A88060;text-shadow:0 0 14px #7D4E1F;transform:scale(.97)}100%{color:#D4A017;text-shadow:0 0 0 #A88060;transform:scale(1)}}
+
+  /* ── Animations Boîte Mystère (BRIEF_COFFRE) ─────────── */
+  @keyframes boxIntro{0%{transform:scale(.6) translateY(20px);opacity:0;filter:drop-shadow(0 0 0 transparent)}60%{transform:scale(1.1) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0);filter:drop-shadow(0 8px 20px rgba(212,160,23,.4))}}
+  @keyframes boxShake{0%,100%{transform:translateX(0) rotate(0)}10%{transform:translateX(-4px) rotate(-2deg)}20%{transform:translateX(5px) rotate(3deg)}30%{transform:translateX(-6px) rotate(-3deg)}40%{transform:translateX(6px) rotate(3deg)}50%{transform:translateX(-7px) rotate(-4deg)}60%{transform:translateX(7px) rotate(4deg)}70%{transform:translateX(-5px) rotate(-3deg)}80%{transform:translateX(5px) rotate(3deg)}90%{transform:translateX(-3px) rotate(-1deg)}}
+  @keyframes boxBurst{0%{transform:scale(1);opacity:1;filter:brightness(1)}50%{transform:scale(1.3);opacity:1;filter:brightness(2)}100%{transform:scale(2);opacity:0;filter:brightness(3)}}
+  @keyframes boxFlash{0%{background:rgba(255,255,255,0)}30%{background:rgba(255,224,154,.9)}60%{background:rgba(255,255,255,.7)}100%{background:rgba(255,255,255,0)}}
+  @keyframes boxRewardReveal{0%{transform:scale(.3) translateY(40px);opacity:0;filter:drop-shadow(0 0 30px #FFE066)}50%{transform:scale(1.15) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0)}}
+  @keyframes boxParticle{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx,0),var(--dy,-80px)) scale(.4);opacity:0}}
   @keyframes cupShake{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-6px) rotate(-3deg)}30%{transform:translateX(6px) rotate(3deg)}45%{transform:translateX(-5px) rotate(-2deg)}60%{transform:translateX(5px) rotate(2deg)}75%{transform:translateX(-2px) rotate(-1deg)}}
   @keyframes steamRise{0%{opacity:0;transform:translateY(0) scaleX(1)}30%{opacity:.55}100%{opacity:0;transform:translateY(-26px) scaleX(1.6)}}
   @keyframes cardMatch{0%{transform:scale(1);box-shadow:0 4px 12px rgba(0,0,0,.1)}35%{transform:scale(1.12);box-shadow:0 0 28px rgba(212,160,23,.85),0 4px 12px rgba(212,160,23,.5)}100%{transform:scale(.92);opacity:.35;box-shadow:0 0 0 rgba(0,0,0,0)}}

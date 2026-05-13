@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -63,6 +63,8 @@ import { haptic } from "./lib/haptic.js";
 import { MAINTENANCE_MODE, isBypassedFromMaintenance } from "./data/maintenance.js";
 import MaintenanceScreen from "./components/overlays/MaintenanceScreen.jsx";
 import { AnnouncementModal } from "./components/modals/AnnouncementModal.jsx";
+import { CommunityMilestoneModal } from "./components/modals/CommunityMilestoneModal.jsx";
+import { BoxOpenAnimation } from "./components/modals/BoxOpenAnimation.jsx";
 import MaintenanceWarningModal from "./components/modals/MaintenanceWarningModal.jsx";
 import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
 
@@ -220,6 +222,10 @@ export default function CookiMiner() {
      resetProgress (cf. plus bas). */
   const [legendaryBaristaSeen, setLegendaryBaristaSeen] = useLocalStorage('legendaryBaristaSeen', false);
   const [unlocked,    setUnlocked]    = useLocalStorage('unlocked',    []);
+  /* Jeux force-unlock par code promo (ex: YUZUKAWAI → flappy même sans
+     niveau requis). Array d'ids GAMES.id. Override le levelRequired du
+     mini-jeu côté UI : carte non locked, accès direct. */
+  const [unlockedGames, setUnlockedGames] = useLocalStorage('unlockedGames', []);
   const [lastCheckin, setLastCheckin] = useLocalStorage('lastCheckin', null);
   const [lastQuiz,    setLastQuiz]    = useLocalStorage('lastQuiz',    null);
   /* Cap quotidien de spins : 50 (niv 1-9) ou 20 (niv 10+). spinsDate
@@ -2007,6 +2013,49 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
+  /* ── Palier communautaire 500 000 🍪 ──────────────────────────
+     Quand la somme des total_earned de tous les joueurs (hors admins)
+     dépasse 500 000, on offre +100 🍪 + 1 ☕ à chaque joueur — une
+     seule fois par compte via applyPatchOnce (clé v1).
+
+     Si l'user a déjà reçu le cadeau côté Supabase mais pas LS local
+     (changement de device), applyPatchOnce le détecte et ne re-paye
+     pas. Set state pour afficher le popup festif.
+
+     Pour relancer un palier 1M ou 2M : créer un nouveau useEffect
+     similaire avec threshold + applyPatchOnce key incrémentée. */
+  const [milestoneReward, setMilestoneReward] = useState(null);
+  /* Boîte en cours d'ouverture (animation cinéma) — { name, emoji, reward }
+     ou null. Le crédit est déjà appliqué quand l'animation démarre, donc
+     l'animation est cosmétique : si l'user F5, il a déjà reçu son cadeau. */
+  const [openingBox, setOpeningBox] = useState(null);
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    (async () => {
+      const total = await getCommunityCookieTotal();
+      if(cancelled) return;
+      const THRESHOLD = 500_000;
+      if(total < THRESHOLD) return;
+      applyPatchOnce({
+        userCode,
+        lsKey:    'cookiminer:communityMilestone_500k_v1',
+        patchKey: 'communityMilestone_500k_v1',
+        isCancelled: () => cancelled,
+        applyFn: () => {
+          /* Crédit cadeau : 100 🍪 (compte aussi pour XP/totalEarned)
+             + 1 ☕. Le 2e arg de addCoins force le compteur de gains
+             "vrais" (XP + totalEarned) — cohérent avec la philosophie. */
+          addCoins(100, 100);
+          setCafes(c => (c || 0) + 1);
+          setMilestoneReward({ threshold: THRESHOLD, cookieReward: 100, cafeReward: 1 });
+        },
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCode, pullDone]);
+
   /* ── Set streak Dokiler à 6 (13/05/2026) ─────────────────────────
      Demande user : forcer le streak à 6 jours sur le compte 7Z4-977.
      Cross-device safe via applyPatchOnce. */
@@ -2395,6 +2444,11 @@ export default function CookiMiner() {
         });
       }
     }
+    /* unlockGame : force le déblocage d'un mini-jeu indépendamment du
+       niveau requis. Idempotent. Utilisé par les codes starter pack. */
+    if(promo.unlockGame){
+      setUnlockedGames(g => Array.isArray(g) && g.includes(promo.unlockGame) ? g : [...(g || []), promo.unlockGame]);
+    }
     setPromoCodesUsed(arr => Array.isArray(arr) ? [...arr, promo.code] : [promo.code]);
     playSound('success');
     /* Toast minimal — la modale festive prend le relais quand un item
@@ -2405,6 +2459,7 @@ export default function CookiMiner() {
     if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
     if(promo.shares) parts.push(`+${promo.shares} action${promo.shares > 1 ? 's' : ''} $CKM`);
     if(promo.level)  parts.push(`Niv ${promo.level}`);
+    if(promo.unlockGame) parts.push('🎮 jeu débloqué');
     if(parts.length){
       showToast(`🎟️ Code validé : ${parts.join(' · ')}`);
     }
@@ -2622,7 +2677,7 @@ export default function CookiMiner() {
     try{ sessionStorage.removeItem('leaderboard:cache'); }catch{}
 
     setCoins(0); setCafes(0); setTotalEarned(0); setLevel(1); setXp(0);
-    setStreak(0); setClickRecord(0); setUnlocked([]); setLegendaryBaristaSeen(false); setPrestigeLevel(0);
+    setStreak(0); setClickRecord(0); setUnlocked([]); setUnlockedGames([]); setLegendaryBaristaSeen(false); setPrestigeLevel(0);
     setNextGameDoubler(false); setBoostUntil(0); setVipPurchasesToday({});
     setFreeRechargesUntil(0); setStreakSaveCount(0);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
@@ -2787,7 +2842,7 @@ export default function CookiMiner() {
       setBulkTradePasses(n => (n || 0) + 1);
       playSound('success');
       haptic('medium');
-      showToast(`📦 +1 ordre bulk $CKM (stock : ${(bulkTradePasses || 0) + 1})`);
+      showToast(`📦 +1 Trade Express $CKM (stock : ${(bulkTradePasses || 0) + 1})`);
       return;
     }
     /* Doubler le prochain gain — flag one-shot consommé par addCoins.
@@ -2849,6 +2904,25 @@ export default function CookiMiner() {
       setStreakSaveCount(c => (c || 0) + 1);
       playSound('success');
       showToast(`🛡️ Streak Save ajouté ! ${(streakSaveCount || 0) + 1} en stock`);
+      return;
+    }
+    /* Boîte/Coffre — crédit immédiat du boxReward (cafés et/ou cookies)
+       puis déclenche une animation cinéma (cosmétique, peut être skippée
+       par F5 sans perdre la récompense). One-shot via `unlocked`. */
+    if(r.applyAs === 'open_box'){
+      if(unlocked.includes(id)){ haptic('warning'); return; }
+      if(coins < r.cost){ haptic('warning'); return; }
+      spendCoins(r.cost);
+      setUnlocked(u => [...u, id]);
+      /* Crédit instantané — l'animation est juste pour le show. Si l'user
+         F5 pendant l'anim, ses cafés/cookies sont déjà arrivés. */
+      const reward = r.boxReward || {};
+      if(reward.cafes)   setCafes(c => (c || 0) + reward.cafes);
+      if(reward.cookies) addCoins(reward.cookies, reward.cookies);
+      /* Lance l'animation. onCollect ferme juste la modale. */
+      setOpeningBox({ name: r.name, emoji: r.emoji, reward });
+      playSound('purchase');
+      haptic('medium');
       return;
     }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
@@ -3025,6 +3099,23 @@ export default function CookiMiner() {
       message={systemStatus.banner_message}
       severity={systemStatus.banner_severity}
     />
+    {milestoneReward && (
+      <CommunityMilestoneModal
+        threshold={milestoneReward.threshold}
+        cookieReward={milestoneReward.cookieReward}
+        cafeReward={milestoneReward.cafeReward}
+        onClose={() => setMilestoneReward(null)}
+        C={C}
+      />
+    )}
+    {openingBox && (
+      <BoxOpenAnimation
+        boxName={openingBox.name}
+        boxEmoji={openingBox.emoji}
+        reward={openingBox.reward}
+        onCollect={() => setOpeningBox(null)}
+      />
+    )}
     <div style={{
       minHeight:'100svh', background:C.bg,
       display:'flex', flexDirection:'column', maxWidth:430, margin:'0 auto',
@@ -3529,8 +3620,11 @@ export default function CookiMiner() {
         {tab==='jeux' && (
           <div className="su">
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
-            {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && g.levelRequired - level <= 1).map(g=>{
-              const locked     = level < g.levelRequired;
+            {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))).map(g=>{
+              /* Override force-unlock par code promo (cf. unlockedGames).
+                 Si l'id du jeu est dans unlockedGames, on ignore le
+                 niveau requis (utile pour les codes starter pack). */
+              const locked     = level < g.levelRequired && !unlockedGames.includes(g.id);
               const comingSoon = !locked && g.comingSoon;
               const blocked    = locked || comingSoon;
               const onClick    = blocked ? undefined : ()=>{ playSound('modal'); setGameView(g.id); };

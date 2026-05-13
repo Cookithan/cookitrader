@@ -11,7 +11,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.19.0',
+  version: '1.19.1',
   releaseDate: '2026-05-13',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -19,6 +19,17 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.19.1',
+    date: '2026-05-13',
+    title: '📦 Boîte Mystère + palier communautaire 500 000 🍪',
+    changes: [
+      "📦 Nouveau dans la boutique Premium : la Boîte Mystère ! Animation cinématique à l'ouverture (1000 🍪 → 3 ☕)",
+      "🎉 Palier communautaire : la communauté a miné 500 000 cookies — cadeau offert à tous (+100 🍪 + 1 ☕)",
+      "⚡ Renommage : « Ordre Bulk $CKM » devient « Trade Express $CKM » (plus clair pour les nouveaux)",
+      "🎁 De nouveaux codes promo à dénicher sur les réseaux",
+    ],
+  },
   {
     version: '1.19.0',
     date: '2026-05-13',
@@ -97,20 +108,6 @@ export const CHANGELOG = [
       "🛡️ Système de patches Supabase cross-device — fini les doubles pop-ups au changement d'appareil",
       "🎯 Modale 'Voir détails' du classement enfin centrée à l'écran",
       "☕ Stop le café : fini les arrêts inopinés quand le doigt glisse hors du bouton",
-    ],
-  },
-  {
-    version: '1.14.0',
-    date: '2026-05-11',
-    title: '🎮 Pile de Tasses & Cookie Click — diversifiés + recharge in-game',
-    changes: [
-      "🥞 Pile de Tasses : 3 modes au choix (Normal / Rapide / Précision) avec caps adaptés",
-      "✨ Pile de Tasses : tasses spéciales aléatoires (dorée bonus, fragile, large) dès 5 tasses posées",
-      "🍪 Cookie Click : 3 modes (Normal 5 s / Rapide 3 s / Frénétique 8 s avec cookie qui bouge)",
-      "🔥 Cookie Click : les combos x2/x3/x4 boostent vraiment le reward (avant : juste visuels)",
-      "🎰 Roue & Machine à Sous : recharge directe pour 2 ☕ quand le quota est atteint",
-      "🛒 Plus besoin d'aller dans la boutique premium pour racheter des tours / parties",
-      "⏳ Pile de Tasses : 50 essais quotidiens, recharge 2 ☕ pour repartir à 50",
     ],
   },
 ];

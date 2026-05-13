@@ -44,7 +44,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   /* Filtres premium — basés sur applyAs pour la robustesse. Catégorie
      'Spécial' supprimée (unlock_all_shop retiré pour la dé-pay-to-win
      Play Store, banner remappée dans Thème par convention UX). */
-  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack'];
+  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack','Coffre'];
   const matchPremiumFilter = (r, f) => {
     if(f === 'Tous')     return true;
     if(f === 'Avatar')   return r.applyAs === 'avatar';
@@ -52,6 +52,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     if(f === 'Thème')    return r.applyAs === 'theme' || r.applyAs === 'banner';
     if(f === 'Musique')  return r.applyAs === 'music';
     if(f === 'Pack')     return r.applyAs === 'pack_shares';
+    if(f === 'Coffre')   return r.applyAs === 'open_box';
     return true;
   };
 
@@ -89,7 +90,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      qui peuvent ne jamais être gagnés — sinon on bloque la progression) et
      les items consommables (Pack actions $CKM, jamais ajoutés à unlocked). */
   const isCountable = (r) =>
-    r.currency !== 'cafe' && !r.limited && r.applyAs !== 'pack_shares';
+    r.currency !== 'cafe' && !r.inPremium && !r.limited && r.applyAs !== 'pack_shares';
   let revealedLevel = 1;
   for(let n=1; n<=level; n++){
     const itemsAtN = REWARDS.filter(r => r.levelRequired === n && isCountable(r));
@@ -116,7 +117,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   let visible;
   if(mode === 'premium'){
     visible = REWARDS.filter(r => {
-      if(r.currency !== 'cafe') return false;
+      /* Items premium = soit currency cafe, soit flag explicite inPremium
+         (ex: Coffre payée en cookies mais affichée en premium). */
+      if(r.currency !== 'cafe' && !r.inPremium) return false;
       /* Filtres par niveau (utilisés par les Jetons VIP) :
          - levelRequired : niveau minimum pour voir l'item (caché sinon,
            pas de cadenas affiché — l'user préfère cette approche pour
@@ -138,6 +141,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
        le niveau est atteint (ne sont jamais dans `unlocked`). */
     visible = REWARDS.filter(r => {
       if(r.currency === 'cafe') return false;
+      /* Coffre payée en cookies mais affichée en premium → exclue de la
+         boutique normale (visible uniquement dans le tab Premium). */
+      if(r.inPremium) return false;
       if(r.limited) return false;
       if(r.applyAs === 'pack_shares') return r.levelRequired <= revealedLevel;
       return !initialUnlocked.includes(r.id) && r.levelRequired <= revealedLevel;
@@ -156,7 +162,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   /* Tri : déjà unlocked en haut, puis ordre logique par famille (premium
      uniquement → Avatar/Skin/Thème/Musique/Pack/Spécial), puis level requis
      croissant, puis coût croissant. */
-  const PREMIUM_FAMILY_ORDER = ['avatar', 'skin', 'theme', 'music', 'banner', 'pack_shares'];
+  const PREMIUM_FAMILY_ORDER = ['avatar', 'skin', 'theme', 'music', 'banner', 'pack_shares', 'open_box'];
   const familyRank = (r) => {
     const i = PREMIUM_FAMILY_ORDER.indexOf(r.applyAs);
     return i === -1 ? 99 : i;

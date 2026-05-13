@@ -223,6 +223,13 @@ export const REWARDS = [
   { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:450, type:'Pack', emoji:'📈', levelRequired:7 },
   { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:850, type:'Pack', emoji:'📊', levelRequired:12 },
 
+  /* Coffres / Boîtes — items one-shot avec animation cinéma à l'ouverture.
+     Préfixe `box_` ou `chest_` selon le tier (boîte basique → coffre rare).
+     boxReward.cafes : nombre de ☕ offerts à l'ouverture (récompense fixe
+     côté boîte basique ; les futurs coffres premium pourront avoir loot
+     aléatoire). Marqué one-shot (ajout à `unlocked`) — pas rachetable. */
+  { id:'box_starter', applyAs:'open_box', boxReward:{ cafes:3 }, name:'Boîte Mystère', desc:'Ouvre-la pour découvrir une surprise café !', cost:1000, type:'Coffre', emoji:'📦', levelRequired:5, inPremium:true },
+
   // SINKS PREMIUM ULTRA — items chers pour justifier le bundle 200 ☕ Stripe (mai 2026)
   /* Avatar Cosmonaute Caféiné — collectionneur whale (15 ☕). One-shot,
      ajouté à unlocked. Géré par la branche items normaux (currency=cafe). */
@@ -265,7 +272,7 @@ export const REWARDS = [
   { id:'free_recharges_24h', currency:'cafe', applyAs:'free_recharges_24h', name:'Recharges Gratuites (24 h)', desc:'Roue, Slot et Pile rechargent sans coût ☕ pendant 24 h', cost:8, type:'Premium', emoji:'🔓',  levelRequired:3 },
   { id:'streak_save',        currency:'cafe', applyAs:'streak_save',        name:'Streak Save',         desc:'Sauve ta série de check-ins si tu rates 1 jour',     cost:4, type:'Premium', emoji:'🛡️', levelRequired:2 },
   { id:'theme_forge',        currency:'cafe', applyAs:'theme',              name:'Thème Forge Caféinée',desc:'Palette volcanique sombre · bordeaux brûlé + or saturé', cost:12, type:'Premium', emoji:'🌋', levelRequired:3 },
-  { id:'bulk_trade_pass',    currency:'cafe', applyAs:'bulk_trade_pass',    name:'Ordre Bulk $CKM',     desc:'1 charge : achète OU vends d\'un coup tout ton portefeuille / max possible (bypass cap 30 par tx)', cost:3, type:'Premium', emoji:'📦', levelRequired:3 },
+  { id:'bulk_trade_pass',    currency:'cafe', applyAs:'bulk_trade_pass',    name:'Trade Express $CKM',  desc:'1 charge : achète ou vends tout ton portefeuille d\'un seul coup, sans limite de quantité',          cost:3, type:'Premium', emoji:'📦', levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */

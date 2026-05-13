@@ -24,6 +24,9 @@
                  cohérent au classement)
      - unlock  : id d'un item REWARDS à ajouter à `unlocked` (typiquement
                  un thème édition limitée). Le toast mentionnera le nom.
+     - unlockGame : id d'un mini-jeu (GAMES.id : flappy, slot, etc.) à
+                 débloquer indépendamment du niveau. Persistant via
+                 useLocalStorage('unlockedGames'). Override le levelRequired.
      - label   : description courte (affichée à la confirmation)
      - secret  : si true, le code n'est PAS utilisable tant qu'il n'a
                  pas été révélé via l'item premium "Révéler Code Promo
@@ -78,6 +81,12 @@ export const PROMO_CODES = {
   'CREMA':       { coins: 90,  cafes: 0, label: '🤎 Crema — 90 🍪' },
   'GRINDER':     { coins: 50,  cafes: 0, label: '⚙️ Grinder — 50 🍪' },
   'ROAST':       { coins: 120, cafes: 0, label: '🔥 Roast — 120 🍪' },
+
+  /* Starter Pack — gros pack de bienvenue distribué via réseaux.
+     +1000 🍪 + 10 ☕ + déblocage immédiat du mini-jeu Flappy Cookie
+     (qui demande normalement le niveau 12). noXp:true pour que les
+     1000 cookies ne fassent pas exploser le niveau d'un coup. */
+  'YUZUKAWAI':   { coins: 1000, noXp: true, cafes: 10, unlockGame: 'flappy', label: '🎁 Starter Pack — 1000 🍪 + 10 ☕ + Flappy Cookie' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */

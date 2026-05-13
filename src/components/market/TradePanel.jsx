@@ -277,7 +277,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
             }}
           >
             📦 {bulkArmed
-              ? `Bulk armé : ${maxTheoretical} action${maxTheoretical > 1 ? 's' : ''} (-1 charge à la confirmation)`
+              ? `Trade Express : ${maxTheoretical} action${maxTheoretical > 1 ? 's' : ''} (-1 charge à la confirmation)`
               : `Tout ${mode === 'buy' ? 'acheter' : 'vendre'} (${maxTheoretical}) · stock ${bulkTradePasses} 📦`}
           </button>
         )}
