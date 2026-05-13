@@ -490,7 +490,13 @@ export default function CookiMiner() {
       setSupabaseError(!res?.ok);
     }, 5000);
     return ()=>clearTimeout(t);
-  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate, weeklyEarned, weeklyWeekId, totalPlayTime]);
+    /* ⚠️ totalPlayTime EST VOLONTAIREMENT ABSENT des deps — il change toutes
+       les secondes et reset constamment le debounce 5 s, ce qui empêchait
+       TOUT push vers le serveur tant que le joueur était actif. La sync de
+       total_play_time est gérée à part par un useEffect dédié (interval
+       30 s + flush sur hidden/pagehide). La valeur courante est lue depuis
+       le state au moment où un AUTRE champ déclenche un upsert. */
+  }, [pullDone, pauseUpsertUntil, userCode, userName, userAvatar, level, totalEarned, coins, streak, userBio, unlocked, cafes, xp, nameChangeCount, earnedAchievements, activeTheme, activeTitle, restorePin, prestigeLevel, lastCheckin, lastQuiz, spinsToday, spinsDate, slotGamesToday, slotGamesDate, weeklyEarned, weeklyWeekId]);
 
   /* Heartbeat présence — touche last_active toutes les 60 s tant que
      l'onglet est visible. Couplé à visibilitychange : suspend si hidden,
@@ -831,6 +837,42 @@ export default function CookiMiner() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* ── Sync dédié de total_play_time ────────────────────────────
+     L'upsert général est debouncé 5 s ET ses deps incluaient autrefois
+     totalPlayTime (qui change toutes les secondes) → le timeout était
+     toujours reset, donc le serveur ne recevait JAMAIS le temps tant
+     que le joueur jouait. Bug observé : autre device ou cache vidé
+     = compteur à 0 alors que la valeur locale était bonne.
+     Fix : push ciblé `total_play_time` toutes les 30 s + flush
+     immédiat quand l'onglet devient caché ou se ferme. Best-effort
+     (sendBeacon non utilisé : Supabase n'expose pas d'API compatible,
+     mais le push 30 s limite la perte à <30 s par fermeture). */
+  useEffect(() => {
+    if(!isSupabaseEnabled() || !userCode || !pullDone) return;
+    let intervalId = null;
+    let lastPushed = -1;
+
+    const flush = () => {
+      const v = Number(totalPlayTimeRef.current) || 0;
+      if(v === lastPushed) return;          /* rien à pousser */
+      lastPushed = v;
+      syncDailyCounters(userCode, { total_play_time: v });
+    };
+
+    intervalId = setInterval(flush, 30000);
+    const onVis = () => { if(document.visibilityState === 'hidden') flush(); };
+    const onHide = () => flush();
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('pagehide', onHide);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('pagehide', onHide);
+      flush();                              /* dernier push à l'unmount */
+    };
+  }, [userCode, pullDone]);
 
   /* Maintenance LIVE — fetch initial + subscription Realtime à la table
      public.system_status. Au moindre changement (UPDATE SQL côté admin),

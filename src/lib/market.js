@@ -30,7 +30,7 @@ export const MARKET_CONFIG = {
      Repasser à false dès que les déséquilibres sont corrigés. */
   MAINTENANCE_MODE: false,
   TOTAL_SHARES: 10000,            // 10× plus d'actions pour un marché vraiment profond. Cap PCT 0.05 = 500 actions max/user.
-  IMPACT_PER_SHARE: 0.0001,       // +0.01 % par action — calibré pour 10000 actions. Range théorique 36-270 (toutes achetées / toutes vendues). 100 actions/tx = 1 % impact (visible).
+  IMPACT_PER_SHARE: 0.0003,       // +0.03 % par action — impact triplé pour rendre l'offre/demande visible (avant 0.0001 → prix scotché à 100 même avec 2000 actions écoulées). 30 actions/tx = 0.9 % impact (sensible). Range théorique 5-700 (toutes achetées / toutes vendues), bornée par PRICE_MIN/PRICE_MAX et la mean reversion.
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
   MEAN_REVERSION_TARGET: 100,     // Prix cible vers lequel le marché revient
