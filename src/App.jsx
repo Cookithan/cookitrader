@@ -3301,12 +3301,12 @@ export default function CookiMiner() {
                 </div>
               )}
               <div style={{ position:'absolute', top:14, right:16, fontSize:10, color:'rgba(255,255,255,.45)', display:'flex', alignItems:'center', gap:3, fontWeight:600 }}>
-                Voir tous <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
+                {t('home.see_all')} <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12, marginTop:14 }}>
                 <div>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:2, display:'flex', alignItems:'center', gap:6 }}>
-                    NIVEAU {level}
+                    {t('home.level_uppercase')} {level}
                     {prestigeLevel > 0 && (
                       <span title={`Prestige ${prestigeLevel} · multiplicateur x${(1 + prestigeLevel * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:'#FFE066', letterSpacing:.5 }}>
                         {prestigeLevel <= 5 ? '👑'.repeat(prestigeLevel) : `👑×${prestigeLevel}`}
@@ -3316,12 +3316,12 @@ export default function CookiMiner() {
                   <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{LEVEL_NAMES[level]}</div>
                 </div>
                 <div style={{ textAlign:'right' }}>
-                  <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>Total gagné</div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>{t('profile.stat_total')}</div>
                   <div style={{ fontSize:20, fontWeight:800, color:'#fff' }}>{totalEarned} 🍪</div>
                 </div>
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,.6)', marginBottom:5 }}>
-                <span>Expérience</span><span>{xp}/{xpReq}</span>
+                <span>{t('home.experience')}</span><span>{xp}/{xpReq}</span>
               </div>
               <div style={{ height:8, borderRadius:4, background:'rgba(255,255,255,.18)', overflow:'hidden', position:'relative' }}>
                 <div style={{ height:'100%', borderRadius:4, width:`${xpPct}%`, background:'rgba(255,255,255,.85)', transition:'width .8s cubic-bezier(.36,.07,.19,.97)', position:'relative', overflow:'hidden' }}>

@@ -17,6 +17,7 @@ import { formatPlayTime } from "../../utils/formatPlayTime.js";
 import { FriendsSection } from "../profile/FriendsSection.jsx";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 import { getNameStyle } from "../../utils/legend.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ProfileOverlay — plein écran z-index 60 (PHASE 5)
@@ -62,6 +63,7 @@ export function ProfileOverlay({
   onSendGift,
   C
 }) {
+  const { t, localizedField } = useTranslation();
   const [editing, setEditing] = useState(false);
   const [editAvatar, setEditAvatar] = useState(userAvatar);
   const [showChangeName, setShowChangeName] = useState(false);
@@ -127,12 +129,12 @@ export function ProfileOverlay({
           <ChevronLeft size={20} />
         </button>
         <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1, display:'flex', alignItems:'center', gap:10 }}>
-          {editing ? 'Modifier mon avatar' : 'Mon profil'}
+          {editing ? t('profile.edit_avatar') : t('profile.title')}
           {!editing && (
             supabaseEnabled && supabaseSyncOk ? (
-              <span style={{ fontSize:10, fontWeight:700, color:'#D4A017', letterSpacing:.3 }} title="Profil synchronisé en ligne">● Synchronisé</span>
+              <span style={{ fontSize:10, fontWeight:700, color:'#D4A017', letterSpacing:.3 }} title={t('profile.sync_online_title')}>● {t('profile.synced')}</span>
             ) : (
-              <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', letterSpacing:.3 }} title="Pas de sync en ligne">○ Hors ligne</span>
+              <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', letterSpacing:.3 }} title={t('profile.sync_offline_title')}>○ {t('profile.offline')}</span>
             )
           )}
         </span>
@@ -169,7 +171,7 @@ export function ProfileOverlay({
           </button>
         )}
         {!editing && (
-          <button onClick={onOpenSettings} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <button onClick={onOpenSettings} aria-label={t('settings.title')} style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />
           </button>
         )}
@@ -180,7 +182,7 @@ export function ProfileOverlay({
         {editing ? (
           <>
             <section>
-              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>MES AVATARS</div>
+              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.my_avatars')}</div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, justifyItems:'center' }}>
                 {[...myBaseAvatars, ...myPremiumAvatars].map(a => {
                   const sel = editAvatar===a.value;
@@ -209,7 +211,7 @@ export function ProfileOverlay({
 
             {lockedPremiumAvatars.length > 0 && (
               <section>
-                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>À DÉBLOQUER</div>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.to_unlock')}</div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, justifyItems:'center' }}>
                   {lockedPremiumAvatars.map(a => (
                     <div
@@ -251,10 +253,10 @@ export function ProfileOverlay({
 
             <div style={{ display:'flex', gap:10, marginTop:'auto' }}>
               <button onClick={()=>{ setEditing(false); setEditAvatar(userAvatar); }} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:14, fontWeight:700 }}>
-                Annuler
+                {t('common.cancel')}
               </button>
               <button onClick={saveEdit} disabled={editAvatar===null} style={{ flex:1, padding:'13px 0', borderRadius:14, background: editAvatar===null ? C.card2 : GOLD, color: editAvatar===null ? C.muted : '#fff', border:'none', fontSize:14, fontWeight:800, cursor:editAvatar===null?'not-allowed':'pointer' }}>
-                Confirmer
+                {t('common.confirm')}
               </button>
             </div>
           </>
@@ -394,7 +396,7 @@ export function ProfileOverlay({
                 <div style={{ fontSize:11, color:C.muted }}>{badges.length + secretBadgesUnlocked.length}</div>
               </div>
               {badges.length === 0 && secretBadgesUnlocked.length === 0 ? (
-                <div style={{ fontSize:12, color:C.muted, fontStyle:'italic', padding:'10px 4px' }}>Aucun badge encore — direction la boutique !</div>
+                <div style={{ fontSize:12, color:C.muted, fontStyle:'italic', padding:'10px 4px' }}>{t('profile.no_badge_yet')}</div>
               ) : (
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8 }}>
                   {/* Badges secrets en premier (effet "découvert" plus marquant) */}
@@ -555,7 +557,7 @@ export function ProfileOverlay({
                 }}
               >
                 <User size={15} color="#D4A017" />
-                <span>Modifier mon pseudo</span>
+                <span>{t('profile.edit_name')}</span>
                 <span style={{ fontSize:11, fontWeight:800, color:'#D4A017' }}>· payant 🍪</span>
               </button>
               <button

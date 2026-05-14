@@ -12,6 +12,7 @@ import {
 import { getNameStyle } from "../../utils/legend.js";
 import { isAdminName } from "../../utils/admin.js";
 import SkeletonRow from "../SkeletonRow.jsx";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ClassementTab — 2 classements en un seul onglet
@@ -58,6 +59,7 @@ function saveCache(key, payload){
 }
 
 export function ClassementTab({ userCode, userName, userAvatar, earnedAchievements, activeTitle, onOpenProfile, onOpenUserProfile, C }){
+  const { t } = useTranslation();
   const enabled = isSupabaseEnabled();
   const isAdmin = isAdminName(userName);
   const [mode, setMode] = useState('cookies'); /* 'cookies' | 'market' */
@@ -66,14 +68,14 @@ export function ClassementTab({ userCode, userName, userAvatar, earnedAchievemen
   if(!enabled){
     return (
       <div className="su" style={{ paddingTop:4 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>CLASSEMENT</div>
+        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>{t('leaderboard.title')}</div>
         <div style={{
           background:'rgba(193,127,60,.08)',
           border:`2px dashed ${C.border}`,
           borderRadius:18, padding:'30px 22px', textAlign:'center',
         }}>
           <div style={{ fontSize:42, marginBottom:8 }}>🔌</div>
-          <div style={{ fontSize:14, fontWeight:800, color:C.text, marginBottom:6 }}>Hors ligne</div>
+          <div style={{ fontSize:14, fontWeight:800, color:C.text, marginBottom:6 }}>{t('leaderboard.offline')}</div>
           <div style={{ fontSize:12, color:C.muted, lineHeight:1.5 }}>
             Le classement nécessite une connexion réseau. Réessaie plus tard.
           </div>
@@ -84,7 +86,7 @@ export function ClassementTab({ userCode, userName, userAvatar, earnedAchievemen
 
   return (
     <div className="su" style={{ paddingTop:4, paddingBottom:8 }}>
-      <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12 }}>CLASSEMENT</div>
+      <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12 }}>{t('leaderboard.title')}</div>
 
       {/* Toggle Cookies / Marché */}
       <ModeToggle mode={mode} setMode={setMode} C={C} />

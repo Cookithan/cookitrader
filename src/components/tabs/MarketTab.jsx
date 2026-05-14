@@ -12,6 +12,7 @@ import { MarketPulse } from '../market/MarketPulse.jsx';
 import { PortfolioCard } from '../market/PortfolioCard.jsx';
 import { TradePanel } from '../market/TradePanel.jsx';
 import { MarketWelcomeModal } from '../market/MarketWelcomeModal.jsx';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    MarketTab — onglet marché $CKM en ligne (Supabase)
@@ -26,6 +27,7 @@ import { MarketWelcomeModal } from '../market/MarketWelcomeModal.jsx';
 ═══════════════════════════════════════════════════════ */
 
 export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
+  const { t } = useTranslation();
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
   const [activity, setActivity] = useState([]);
@@ -121,10 +123,10 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         }}>
           <div style={{ fontSize: 40, marginBottom: 8 }}>📡</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-            Marché hors ligne
+            {t('market.offline_title')}
           </div>
           <div style={{ fontSize: 12, lineHeight: 1.4 }}>
-            La connexion au serveur n'est pas disponible. Reviens un peu plus tard !
+            {t('market.offline_desc')}
           </div>
         </div>
       </div>
@@ -134,8 +136,8 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
   return (
     <div style={{ padding: 16, paddingBottom: 100 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, paddingTop:4 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MARCHÉ $CKM</div>
-        <div style={{ fontSize:11, color:C.muted }}>Partagé entre tous les joueurs</div>
+        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>{t('market.title')}</div>
+        <div style={{ fontSize:11, color:C.muted }}>{t('market.shared_subtitle')}</div>
       </div>
 
       {/* Bandeau Maintenance / Circuit Breaker — fond espresso sombre +
@@ -166,7 +168,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
             textTransform: 'uppercase',
             pointerEvents: 'none',
           }}>
-            Pause · Pause · Pause
+            {t('market.pause_label')}
           </div>
 
           <div style={{
@@ -179,22 +181,20 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
             fontSize: 11, fontWeight: 800, color: 'rgba(255,232,154,.7)',
             letterSpacing: 3, textTransform: 'uppercase', marginBottom: 6,
           }}>
-            {marketStatus.circuitBreaker ? 'Circuit breaker' : 'Maintenance'}
+            {marketStatus.circuitBreaker ? t('market.cb_label') : t('market.maintenance_label')}
           </div>
           <div style={{
             fontSize: 17, fontWeight: 900, color: '#FFE066',
             letterSpacing: .3, marginBottom: 8,
             textShadow: '0 0 12px rgba(212,160,23,.6)',
           }}>
-            {marketStatus.circuitBreaker ? 'Marché en pause auto' : 'Marché temporairement fermé'}
+            {marketStatus.circuitBreaker ? t('market.cb_title') : t('market.maintenance_title')}
           </div>
           <div style={{
             fontSize: 12, fontWeight: 600, color: 'rgba(255,232,154,.78)',
             lineHeight: 1.5, maxWidth: 320, margin: '0 auto',
           }}>
-            {marketStatus.circuitBreaker
-              ? '⚠ Variation de prix trop forte détectée. Réouverture automatique dans 1 h.'
-              : 'Le trading est suspendu le temps d\'un rééquilibrage. Réouverture bientôt — merci de ta patience ☕'}
+            {marketStatus.circuitBreaker ? t('market.cb_desc') : t('market.maintenance_desc')}
           </div>
         </div>
       )}
