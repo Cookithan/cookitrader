@@ -563,6 +563,8 @@ export const EN = {
     reload_app:         'Reload the app to get the latest version.',
     reloading:          'Reloading…',
     reload_now:         'Reload now',
+    progression:        'PROGRESSION',
+    the_25_levels:      'The 25 levels',
     onboarding_welcome:   'Welcome to CookiMiner ☕',
     onboarding_name_q:    'How do you want to be called?',
     onboarding_avatar_q:  'Choose an avatar',

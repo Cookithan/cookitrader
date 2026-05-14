@@ -1,6 +1,7 @@
 import { ChevronLeft, Check, Lock } from "lucide-react";
 import { LEVEL_NAMES, xpRequired } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    LevelsModal — popup "Voir les niveaux"
@@ -12,16 +13,17 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ════════════════════════════════════════════════════ */
 
 export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
+  const { t, localizedLevelName } = useTranslation();
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.78)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:80, backdropFilter:'blur(6px)', padding:18 }}>
       <div onClick={e=>e.stopPropagation()} className="bi" style={{ background:C.card, borderRadius:24, padding:'22px 18px 18px', width:'100%', maxWidth:380, maxHeight:'85vh', overflowY:'auto', border:`1px solid ${C.border}`, boxShadow:'0 24px 64px rgba(0,0,0,.45)' }}>
 
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <div>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>PROGRESSION</div>
-            <div style={{ fontSize:18, fontWeight:800, color:C.text, marginTop:2 }}>Les 25 niveaux</div>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>{t('modal.progression')}</div>
+            <div style={{ fontSize:18, fontWeight:800, color:C.text, marginTop:2 }}>{t('modal.the_25_levels')}</div>
           </div>
-          <button onClick={onClose} aria-label="Fermer" style={{ width:32, height:32, borderRadius:11, background:C.card2, color:C.text, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <button onClick={onClose} aria-label={t('common.close')} style={{ width:32, height:32, borderRadius:11, background:C.card2, color:C.text, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <ChevronLeft size={18} style={{ transform:'rotate(180deg)' }} />
           </button>
         </div>
@@ -56,10 +58,10 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
 
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:'uppercase', color: isCurrent ? 'rgba(255,255,255,.6)' : C.muted, marginBottom:2 }}>
-                    Niveau {n}
+                    {t('modal.level_n', { n })}
                   </div>
                   <div style={{ fontSize:15, fontWeight:800, color: isCurrent ? '#fff' : passed ? C.text : locked ? C.muted : C.text, letterSpacing: locked ? 4 : 0 }}>
-                    {locked ? '? ? ?' : LEVEL_NAMES[n]}
+                    {locked ? '? ? ?' : (localizedLevelName(n) || LEVEL_NAMES[n])}
                   </div>
                   {isCurrent && (
                     <div style={{ marginTop:8 }}>

@@ -439,7 +439,7 @@ export function ProfileOverlay({
                       }}
                     >
                       <div style={{ fontSize:24, marginBottom:4 }}>{b.emoji}</div>
-                      <div style={{ fontSize:9, fontWeight:700, color:C.text, lineHeight:1.2 }}>{b.name.replace(/^Badge\s+/, '')}</div>
+                      <div style={{ fontSize:9, fontWeight:700, color:C.text, lineHeight:1.2 }}>{localizedField(b, 'name', 'REWARDS').replace(/^Badge\s+/, '').replace(/\sBadge$/, '')}</div>
                     </button>
                   ))}
                 </div>
