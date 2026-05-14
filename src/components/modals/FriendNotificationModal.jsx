@@ -58,7 +58,10 @@ const subStyle = {
   fontSize:13, color:'rgba(255,255,255,.75)', marginTop:8, lineHeight:1.4,
 };
 
+import { useTranslation } from "../../i18n/index.js";
+
 export function FriendNotificationModal({ notification, onClose, onSeeRequests }){
+  const { t } = useTranslation();
   if(!notification) return null;
 
   if(notification.type === 'received'){
@@ -67,20 +70,18 @@ export function FriendNotificationModal({ notification, onClose, onSeeRequests }
       <div style={overlayStyle} onClick={onClose}>
         <div style={cardStyle} onClick={(e)=>e.stopPropagation()}>
           <div style={{ fontSize:56, marginBottom:6 }}>📬</div>
-          <div style={labelStyle}>Nouvelle demande d'ami</div>
+          <div style={labelStyle}>{t('friend_notif.new_request')}</div>
           <div style={titleStyle}>
             {single
-              ? `${notification.firstName || 'Quelqu\'un'} veut être ton ami !`
-              : `Tu as ${notification.count} nouvelles demandes`}
+              ? t('friend_notif.wants_to_be_friend', { name: notification.firstName || t('friend_notif.someone') })
+              : t('friend_notif.n_new_requests', { n: notification.count })}
           </div>
           <div style={subStyle}>
-            {single
-              ? 'Va sur ton profil pour accepter ou refuser.'
-              : 'Va sur ton profil pour les traiter.'}
+            {single ? t('friend_notif.go_profile_single') : t('friend_notif.go_profile_multi')}
           </div>
           <div style={{ display:'flex', gap:10, marginTop:20 }}>
-            <button onClick={onClose} style={btnSecondary}>Plus tard</button>
-            <button onClick={onSeeRequests} style={btnPrimary}>Voir</button>
+            <button onClick={onClose} style={btnSecondary}>{t('modal.later')}</button>
+            <button onClick={onSeeRequests} style={btnPrimary}>{t('common.show')}</button>
           </div>
         </div>
       </div>
@@ -92,18 +93,18 @@ export function FriendNotificationModal({ notification, onClose, onSeeRequests }
       <div style={overlayStyle} onClick={onClose}>
         <div style={cardStyle} onClick={(e)=>e.stopPropagation()}>
           <div style={{ fontSize:56, marginBottom:6 }}>🎉</div>
-          <div style={labelStyle}>Demande acceptée !</div>
+          <div style={labelStyle}>{t('friend_notif.request_accepted')}</div>
           <div style={titleStyle}>
-            {notification.friendName || 'Un ami'} t'a ajouté en ami !
+            {t('friend_notif.added_you', { name: notification.friendName || t('friend_notif.a_friend') })}
           </div>
           <div style={subStyle}>
-            Vous êtes maintenant amis sur CookiMiner.
+            {t('friend_notif.now_friends')}
           </div>
           <button
             onClick={onClose}
             style={{ ...btnPrimary, marginTop:20, width:'100%', flex:'none' }}
           >
-            Génial ! 🎉
+            {t('friend_notif.awesome')}
           </button>
         </div>
       </div>

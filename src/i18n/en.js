@@ -361,6 +361,73 @@ export const EN = {
     thanks_support:  'Thanks for your support! 💛',
   },
 
+  /* InboxModal */
+  inbox: {
+    title:               'Inbox',
+    no_message:          'No messages',
+    n_messages_singular: '{n} message',
+    n_messages_plural:   '{n} messages',
+    mark_all_read:       'Mark all read',
+    no_message_title:    'No messages',
+    no_message_desc:     "You'll receive your notifications, gifts and rewards here.",
+    auto_delete_30d:     'Messages are automatically deleted after 30 days',
+  },
+
+  /* EventRewardModal */
+  event_reward: {
+    event_completed:  'Event completed!',
+    limited_edition:  'Limited edition',
+    you_unlocked:     'You unlocked:',
+    coffee_bonus_n:   '+{n} ☕ Bonus',
+    view_theme:       'View my theme',
+    view_badge:       'View my badge',
+    view_skin:        'View my skin',
+    view_avatar:      'View my avatar',
+    view_reward:      'View reward',
+  },
+
+  /* EventAnnounceModal */
+  event_announce: {
+    next_event:        'Next event',
+    special_event:     'Special event!',
+    exclusive_reward:  'Exclusive reward + 1 ☕',
+    bonus_n_coffees:   '🎁 Bonus: +{n} ☕',
+    unlimited_attempts:'unlimited attempts',
+    trophies_won:      'Trophies already won',
+    none_yet:          "None yet — give it a go next time!",
+    via:               'via',
+    lets_go:           "Let's go! 🚀",
+  },
+
+  /* GiftModal — send a gift */
+  gift: {
+    give_a_gift:    'Send a gift',
+    your_friend:    'your friend',
+    friend:         'Friend',
+    sent_to:        '🎁 Sent to {name}!',
+    remaining_today:'{n}/{cap} gifts remaining today',
+    '50_cookies':   '50 cookies',
+    '1_coffee':     '1 coffee',
+    you_have_cookies:'You have {n} 🍪',
+    you_have_cafes: 'You have {n} ☕',
+    send_gift:      'Send the gift',
+  },
+
+  /* FriendNotificationModal */
+  friend_notif: {
+    new_request:           'New friend request',
+    someone:               'Someone',
+    wants_to_be_friend:    '{name} wants to be your friend!',
+    n_new_requests:        'You have {n} new requests',
+    go_profile_single:     'Go to your profile to accept or decline.',
+    go_profile_multi:      'Go to your profile to handle them.',
+    request_accepted:      'Request accepted!',
+    a_friend:              'A friend',
+    added_you:             '{name} added you as a friend!',
+    now_friends:           "You're now friends on CookiMiner.",
+    awesome:               'Awesome! 🎉',
+  },
+
   /* WeeklyChampModal — weekly top 3 */
   weekly: {
     champion:        'Champion',

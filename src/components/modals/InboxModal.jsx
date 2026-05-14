@@ -7,6 +7,7 @@ import {
   cleanupOldMessages,
   markAsProcessed,
 } from "../../lib/inbox.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    InboxModal — boîte de réception (BRIEF_INBOX phase 4)
@@ -45,13 +46,14 @@ const TYPE_ACCENTS = {
   system:            { accent:'#8B6A5A', icon:'📜' },
 };
 
-function formatDate(iso){
+function formatDate(iso, lang){
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+    return new Date(iso).toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day:'numeric', month:'short' });
   } catch { return ''; }
 }
 
 export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChange, C }){
+  const { t, lang } = useTranslation();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [closing, setClosing]   = useState(false);
@@ -142,7 +144,7 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
         {/* Bouton fermer */}
         <button
           onClick={handleClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           style={{
             position:'absolute', top:14, right:14,
             width:32, height:32, borderRadius:10,
@@ -160,10 +162,10 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
         }}>
           <div style={{ minWidth:0 }}>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>
-              📬 Messagerie
+              📬 {t('inbox.title')}
             </div>
             <div style={{ fontSize:18, fontWeight:800, color:C.text, marginTop:2 }}>
-              {total === 0 ? 'Aucun message' : `${total} message${total > 1 ? 's' : ''}`}
+              {total === 0 ? t('inbox.no_message') : t(total > 1 ? 'inbox.n_messages_plural' : 'inbox.n_messages_singular', { n: total })}
             </div>
           </div>
           {unreadCount > 0 && (
@@ -176,7 +178,7 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
                 cursor:'pointer', flexShrink:0,
               }}
             >
-              Tout marquer lu
+              {t('inbox.mark_all_read')}
             </button>
           )}
         </div>
@@ -185,7 +187,7 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
         <div style={{ flex:1, overflowY:'auto', padding:'14px 18px 24px' }}>
           {loading ? (
             <div style={{ padding:40, textAlign:'center', color:C.muted, fontSize:13 }}>
-              Chargement…
+              {t('common.loading')}
             </div>
           ) : total === 0 ? (
             <div style={{
@@ -193,9 +195,9 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
               background:C.card, borderRadius:16, border:`1.5px solid ${C.border}`,
             }}>
               <div style={{ fontSize:48, marginBottom:8 }}>📭</div>
-              <div style={{ fontSize:14, fontWeight:800, color:C.text }}>Pas de message</div>
+              <div style={{ fontSize:14, fontWeight:800, color:C.text }}>{t('inbox.no_message_title')}</div>
               <div style={{ fontSize:12, color:C.muted, marginTop:4, lineHeight:1.5 }}>
-                Tu recevras ici tes notifications,<br/>cadeaux et récompenses.
+                {t('inbox.no_message_desc')}
               </div>
             </div>
           ) : (
@@ -205,6 +207,8 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
                 message={msg}
                 onOpen={() => handleOpenMessage(msg)}
                 onDelete={() => handleDelete(msg)}
+                t={t}
+                lang={lang}
                 C={C}
               />
             ))
@@ -215,7 +219,7 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
               fontSize:10, color:C.muted, textAlign:'center',
               marginTop:14, fontStyle:'italic',
             }}>
-              Les messages sont supprimés automatiquement après 30 jours
+              {t('inbox.auto_delete_30d')}
             </div>
           )}
         </div>
@@ -224,10 +228,10 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
   );
 }
 
-function InboxMessageItem({ message, onOpen, onDelete, C }){
+function InboxMessageItem({ message, onOpen, onDelete, t, lang, C }){
   const [expanded, setExpanded] = useState(false);
   const meta = TYPE_ACCENTS[message.type] ?? TYPE_ACCENTS.system;
-  const dateStr = formatDate(message.created_at);
+  const dateStr = formatDate(message.created_at, lang);
 
   const handleClick = () => {
     if(!expanded){
@@ -294,7 +298,7 @@ function InboxMessageItem({ message, onOpen, onDelete, C }){
                   padding:0,
                 }}
               >
-                Supprimer
+                {t('common.delete')}
               </button>
             </>
           )}

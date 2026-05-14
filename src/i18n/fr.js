@@ -377,6 +377,73 @@ export const FR = {
     thanks_support:  'Merci pour ton soutien ! 💛',
   },
 
+  /* InboxModal */
+  inbox: {
+    title:               'Messagerie',
+    no_message:          'Aucun message',
+    n_messages_singular: '{n} message',
+    n_messages_plural:   '{n} messages',
+    mark_all_read:       'Tout marquer lu',
+    no_message_title:    'Pas de message',
+    no_message_desc:     'Tu recevras ici tes notifications, cadeaux et récompenses.',
+    auto_delete_30d:     'Les messages sont supprimés automatiquement après 30 jours',
+  },
+
+  /* EventRewardModal */
+  event_reward: {
+    event_completed:  'Événement réussi !',
+    limited_edition:  'Édition limitée',
+    you_unlocked:     'Tu as débloqué :',
+    coffee_bonus_n:   '+{n} ☕ Bonus',
+    view_theme:       'Voir mon thème',
+    view_badge:       'Voir mon badge',
+    view_skin:        'Voir mon skin',
+    view_avatar:      'Voir mon avatar',
+    view_reward:      'Voir la récompense',
+  },
+
+  /* EventAnnounceModal */
+  event_announce: {
+    next_event:        'Prochain événement',
+    special_event:     'Événement spécial !',
+    exclusive_reward:  'Une récompense exclusive + 1 ☕',
+    bonus_n_coffees:   '🎁 Bonus : +{n} ☕',
+    unlimited_attempts:'essais illimités',
+    trophies_won:      'Trophées déjà gagnés',
+    none_yet:          "Aucun pour l'instant — joue bien le prochain !",
+    via:               'via',
+    lets_go:           "C'est parti ! 🚀",
+  },
+
+  /* GiftModal — offrir un cadeau */
+  gift: {
+    give_a_gift:    'Offrir un cadeau',
+    your_friend:    'ton ami',
+    friend:         'Ami',
+    sent_to:        '🎁 Envoyé à {name} !',
+    remaining_today:"{n}/{cap} cadeaux restants aujourd'hui",
+    '50_cookies':   '50 cookies',
+    '1_coffee':     '1 café',
+    you_have_cookies:'Tu as {n} 🍪',
+    you_have_cafes: 'Tu as {n} ☕',
+    send_gift:      'Envoyer le cadeau',
+  },
+
+  /* FriendNotificationModal */
+  friend_notif: {
+    new_request:           "Nouvelle demande d'ami",
+    someone:               "Quelqu'un",
+    wants_to_be_friend:    '{name} veut être ton ami !',
+    n_new_requests:        'Tu as {n} nouvelles demandes',
+    go_profile_single:     'Va sur ton profil pour accepter ou refuser.',
+    go_profile_multi:      'Va sur ton profil pour les traiter.',
+    request_accepted:      'Demande acceptée !',
+    a_friend:              'Un ami',
+    added_you:             "{name} t'a ajouté en ami !",
+    now_friends:           'Vous êtes maintenant amis sur CookiMiner.',
+    awesome:               'Génial ! 🎉',
+  },
+
   /* WeeklyChampModal — top 3 hebdo */
   weekly: {
     champion:        'Champion',

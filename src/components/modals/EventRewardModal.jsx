@@ -1,4 +1,5 @@
 import { GOLD } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    EventRewardModal — récompense débloquée (PHASE 6E + codes promo)
@@ -24,16 +25,18 @@ import { GOLD } from "../../data/themes.js";
    - C        : palette
 ═══════════════════════════════════════════════════════ */
 
-const VIEW_LABELS = {
-  theme: 'Voir mon thème',
-  badge: 'Voir mon badge',
-  skin:  'Voir mon skin',
-  avatar:'Voir mon avatar',
-};
-
-export function EventRewardModal({ reward, headline = 'Événement réussi !', ribbon = 'Édition limitée', onClose, onView, C }){
+export function EventRewardModal({ reward, headline, ribbon, onClose, onView, C }){
+  const { t, localizedField } = useTranslation();
   if(!reward) return null;
-  const viewLabel = VIEW_LABELS[reward.type] || 'Voir la récompense';
+  const VIEW_LABELS = {
+    theme:  t('event_reward.view_theme'),
+    badge:  t('event_reward.view_badge'),
+    skin:   t('event_reward.view_skin'),
+    avatar: t('event_reward.view_avatar'),
+  };
+  const viewLabel = VIEW_LABELS[reward.type] || t('event_reward.view_reward');
+  const headlineText = headline || t('event_reward.event_completed');
+  const ribbonText   = ribbon   || t('event_reward.limited_edition');
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:96, backdropFilter:'blur(6px)', padding:16 }}>
@@ -72,13 +75,13 @@ export function EventRewardModal({ reward, headline = 'Événement réussi !', r
             fontSize:11, fontWeight:900, color:'#5D3A1F',
             letterSpacing:3, textTransform:'uppercase', marginBottom:10,
           }}>
-            {headline}
+            {headlineText}
           </div>
           <div style={{ fontSize:13, color:'#5D3A1F', marginBottom:6, fontWeight:600 }}>
-            Tu as débloqué :
+            {t('event_reward.you_unlocked')}
           </div>
           <div style={{ fontSize:20, fontWeight:900, color:'#3D2010', marginBottom:8, lineHeight:1.25 }}>
-            {reward.name}
+            {localizedField(reward, 'name', 'REWARDS')}
           </div>
           <div style={{ display:'flex', justifyContent:'center', gap:8, flexWrap:'wrap', marginBottom:20 }}>
             <span style={{
@@ -86,7 +89,7 @@ export function EventRewardModal({ reward, headline = 'Événement réussi !', r
               background:'rgba(60,30,10,.18)', color:'#3D2010',
               fontSize:10, fontWeight:800, letterSpacing:1.5, textTransform:'uppercase',
             }}>
-              {ribbon}
+              {ribbonText}
             </span>
             {reward.cafeBonus > 0 && (
               <span style={{
@@ -94,7 +97,7 @@ export function EventRewardModal({ reward, headline = 'Événement réussi !', r
                 background:'#3D2010', color:'#F5DC8A',
                 fontSize:10, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase',
               }}>
-                +{reward.cafeBonus} ☕ Bonus
+                {t('event_reward.coffee_bonus_n', { n: reward.cafeBonus })}
               </span>
             )}
           </div>
@@ -110,7 +113,7 @@ export function EventRewardModal({ reward, headline = 'Événement réussi !', r
                 cursor:'pointer',
               }}
             >
-              Fermer
+              {t('common.close')}
             </button>
             {onView && (
               <button

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { GIFT_CONFIG, GIFT_TYPES, getGiftsSentToday } from "../../lib/supabaseSync.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    GiftModal — offrir un cadeau à un ami (BRIEF_CADEAUX_AMIS)
@@ -21,6 +22,7 @@ import { GIFT_CONFIG, GIFT_TYPES, getGiftsSentToday } from "../../lib/supabaseSy
    Pas de rouge / vert : succès = or, erreur = espresso (palette café-only).
 ═══════════════════════════════════════════════════════ */
 export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, onSend, C }){
+  const { t } = useTranslation();
   const [selectedType, setSelectedType] = useState(null);
   const [sending,      setSending]      = useState(false);
   const [feedback,     setFeedback]     = useState(null);  // { type:'ok'|'err', msg }
@@ -47,7 +49,7 @@ export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, o
       setFeedback({ type:'err', msg: res.error });
       return;
     }
-    setFeedback({ type:'ok', msg:`🎁 Envoyé à ${friend.user_name || 'ton ami'} !` });
+    setFeedback({ type:'ok', msg: t('gift.sent_to', { name: friend.user_name || t('gift.your_friend') }) });
     /* Decrement local count (on garde la modale 1.4s pour montrer le succès) */
     setTodayCount(n => (n ?? 0) + 1);
     setTimeout(onClose, 1400);
@@ -76,7 +78,7 @@ export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, o
       >
         <button
           onClick={onClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           style={{
             position:'absolute', top:12, right:12,
             width:30, height:30, borderRadius:9,
@@ -89,16 +91,16 @@ export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, o
         <div style={{ textAlign:'center', marginBottom:14 }}>
           <div style={{ fontSize:38, marginBottom:4 }}>🎁</div>
           <div style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:8 }}>
-            Offrir un cadeau
+            {t('gift.give_a_gift')}
           </div>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10 }}>
             <AvatarFigure value={friend?.user_avatar} size={36} />
             <div style={{ textAlign:'left' }}>
               <div style={{ fontSize:15, fontWeight:800, color:C.text, lineHeight:1.2 }}>
-                {friend?.user_name || 'Ami'}
+                {friend?.user_name || t('gift.friend')}
               </div>
               <div style={{ fontSize:11, color:C.muted, fontWeight:600 }}>
-                Niveau {friend?.level ?? 1}
+                {t('modal.level_n', { n: friend?.level ?? 1 })}
               </div>
             </div>
           </div>
@@ -113,16 +115,16 @@ export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, o
           textAlign:'center', marginBottom:14,
         }}>
           {remaining == null
-            ? 'Chargement…'
-            : `🎁 ${remaining}/${GIFT_CONFIG.MAX_PER_DAY} cadeaux restants aujourd'hui`}
+            ? t('common.loading')
+            : `🎁 ${t('gift.remaining_today', { n: remaining, cap: GIFT_CONFIG.MAX_PER_DAY })}`}
         </div>
 
         {/* Choix 2 options */}
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
           <GiftOption
             icon="🍪"
-            amount="50 cookies"
-            cost={`Tu as ${coins} 🍪`}
+            amount={t('gift.50_cookies')}
+            cost={t('gift.you_have_cookies', { n: coins })}
             selected={selectedType === 'cookies'}
             disabled={!canSendCookies}
             onClick={() => canSendCookies && setSelectedType('cookies')}
@@ -130,8 +132,8 @@ export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, o
           />
           <GiftOption
             icon="☕"
-            amount="1 café"
-            cost={`Tu as ${cafes} ☕`}
+            amount={t('gift.1_coffee')}
+            cost={t('gift.you_have_cafes', { n: cafes })}
             selected={selectedType === 'cf'}
             disabled={!canSendCf}
             onClick={() => canSendCf && setSelectedType('cf')}
@@ -162,7 +164,7 @@ export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, o
               color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer',
             }}
           >
-            Annuler
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSend}
@@ -176,7 +178,7 @@ export function GiftModal({ friend, myUserCode, coins = 0, cafes = 0, onClose, o
               boxShadow: selectedType && !sending && feedback?.type !== 'ok' ? '0 6px 18px rgba(212,160,23,.35)' : 'none',
             }}
           >
-            {sending ? '…' : 'Envoyer le cadeau'}
+            {sending ? '…' : t('gift.send_gift')}
           </button>
         </div>
       </div>
