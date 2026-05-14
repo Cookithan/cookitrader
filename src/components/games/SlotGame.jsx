@@ -7,6 +7,7 @@ import {
   getWinningReels,
 } from "../../lib/slotMachine.js";
 import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    SlotGame — "Machine à Sous" (BRIEF refonte 09/05/2026)
@@ -33,6 +34,7 @@ import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
    slot tant qu'il reste des parties dispos. */
 
 export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, slotPlaysLeft, slotGamesCap = 50, consumeSlotGame, slotRechargeCost = 1, cafes = 0, onRechargeSlot, C }){
+  const { t } = useTranslation();
   /* État des 3 rouleaux */
   const [reelStates, setReelStates] = useState([
     { spinning:false, stopping:false, symbol:'?', isWinner:false, isJackpot:false },
@@ -234,11 +236,11 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
 
   /* Label du bouton */
   let buttonLabel;
-  if(level < SLOT_CONFIG.REQUIRED_LEVEL) buttonLabel = `🔒 Niveau ${SLOT_CONFIG.REQUIRED_LEVEL} requis`;
-  else if((slotPlaysLeft ?? 1) <= 0) buttonLabel = '🔒 Limite atteinte';
-  else if(coins < SLOT_CONFIG.COST) buttonLabel = '🔒 Pas assez de cookies';
+  if(level < SLOT_CONFIG.REQUIRED_LEVEL) buttonLabel = `🔒 ${t('common.level_required', { n: SLOT_CONFIG.REQUIRED_LEVEL })}`;
+  else if((slotPlaysLeft ?? 1) <= 0) buttonLabel = `🔒 ${t('games.quota_full')}`;
+  else if(coins < SLOT_CONFIG.COST) buttonLabel = `🔒 ${t('common.insufficient')}`;
   else if(isSpinning) buttonLabel = '...';
-  else buttonLabel = `▶ Lancer (${SLOT_CONFIG.COST} 🍪)`;
+  else buttonLabel = `▶ ${t('game_slot.spin_btn', { cost: SLOT_CONFIG.COST })}`;
 
   return (
     <div style={{
@@ -250,7 +252,7 @@ export function SlotGame({ coins, onEarn, onSpend, onEventChallenge, level = 1, 
         textAlign:'center', color:'#C17F3C',
         fontSize:11, fontWeight:800, letterSpacing:3,
         textTransform:'uppercase',
-      }}>🎰 Tente ta chance</div>
+      }}>{t('game_slot.subtitle')}</div>
 
       {/* Toasts */}
       <div style={{

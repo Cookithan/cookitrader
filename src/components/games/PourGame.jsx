@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { playSound, playSoundLoop, stopSoundLoop } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    PourGame — "Stop le café" : maintiens le bouton, relâche au bon moment
@@ -18,6 +19,7 @@ const PERFECT   = 100;
 const OVERFLOW  = 105;
 
 export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
+  const { t } = useTranslation();
   const [fillPct,     setFillPct]     = useState(0);
   const [holding,     setHolding]     = useState(false);
   const [gameOver,    setGameOver]    = useState(false);
@@ -72,7 +74,7 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
     } else if(pct >= PERFECT){
       setParfaits(p => p + 1);
       onEarn(15);
-      setResult({ type:'perfect', title:'⭐ Parfait absolu !', sub:'+15 🍪 gagnés' });
+      setResult({ type:'perfect', title: t('game_pour.perfect_title'), sub: t('game_pour.perfect_sub') });
       showFeedback('+15 🍪', '#C8960C');
       playSound('success');
       /* Event 'pour_perfect' : succès si parfait absolu (zone PERFECT) */
@@ -80,12 +82,12 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
     } else if(pct >= GOLD_MIN){
       setParfaits(p => p + 1);
       onEarn(6);
-      setResult({ type:'win', title:'✦ Zone dorée !', sub:'+6 🍪 gagnés' });
+      setResult({ type:'win', title: t('game_pour.gold_title'), sub: t('game_pour.gold_sub') });
       showFeedback('+6 🍪', '#D4A017');
       playSound('success');
     } else {
       setParfaits(0);
-      setResult({ type:'lose', title:'Trop tôt...', sub:'Vise entre 90% et 100%' });
+      setResult({ type:'lose', title: t('game_pour.early_title'), sub: t('game_pour.early_sub') });
       playSound('error');
     }
 
@@ -145,10 +147,10 @@ export function PourGame({ onEarn, onSpend, onEventChallenge, C }) {
     return 'idle';
   };
   const getLabel = (pct) => {
-    if(pct > OVERFLOW) return '💧 Ça déborde !';
-    if(pct >= PERFECT)  return '★ Parfait ! Lâche maintenant !';
-    if(pct >= GOLD_MIN) return '✦ Zone dorée — encore un peu...';
-    return 'Maintiens pour verser le café';
+    if(pct > OVERFLOW) return t('game_pour.label_overflow');
+    if(pct >= PERFECT)  return t('game_pour.label_perfect_now');
+    if(pct >= GOLD_MIN) return t('game_pour.label_gold_zone');
+    return t('game_pour.label_hold');
   };
   const zone  = getZone(fillPct);
   const label = getLabel(fillPct);

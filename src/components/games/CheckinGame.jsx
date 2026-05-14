@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check } from "lucide-react";
 import { DAILY_REWARDS } from "../../data/constants.js";
 import { GOLD } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    CheckinGame — récompense quotidienne progressive
@@ -13,6 +14,7 @@ import { GOLD } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function CheckinGame({ streak, canCheckin, onCheckin, checkinReward, C }) {
+  const { t } = useTranslation();
   const [done, setDone] = useState(false);
   const handle = () => { if(!canCheckin||done) return; onCheckin(); setDone(true); };
   const disabled = !canCheckin || done;
@@ -21,12 +23,13 @@ export function CheckinGame({ streak, canCheckin, onCheckin, checkinReward, C })
   const completedInWeek = streak === 0 ? 0 : ((streak - 1) % 7) + 1;
   const todayIdx = (canCheckin && !done) ? streak % 7 : -1;
   const justEarned = streak > 0 ? DAILY_REWARDS[(streak - 1) % 7] : DAILY_REWARDS[0];
+  const daysToJackpot = 6 - (streak % 7);
 
   return (
     <div style={{ textAlign:'center', paddingTop:24 }}>
       <div className={!disabled ? 'cookie-idle' : ''} style={{ fontSize:56, marginBottom:12, display:'inline-block' }}>☕</div>
-      <div style={{ fontSize:22, fontWeight:800, color:C.text, marginBottom:4 }}>Série : {streak} jour{streak>1?'s':''}</div>
-      <div style={{ fontSize:13, color:C.muted, marginBottom:22 }}>Plus tu reviens, plus tu gagnes</div>
+      <div style={{ fontSize:22, fontWeight:800, color:C.text, marginBottom:4 }}>{t('game_checkin.streak_n', { n: streak, s: streak > 1 ? 's' : '' })}</div>
+      <div style={{ fontSize:13, color:C.muted, marginBottom:22 }}>{t('game_checkin.subtitle')}</div>
 
       {/* Grille 7 jours avec récompenses progressives */}
       <div style={{ display:'flex', gap:5, justifyContent:'center', marginBottom:28, padding:'0 4px' }}>
@@ -51,12 +54,18 @@ export function CheckinGame({ streak, canCheckin, onCheckin, checkinReward, C })
 
       {!disabled && (
         <div style={{ fontSize:11, color:C.muted, marginBottom:18 }}>
-          {streak % 7 === 6 ? '🎁 Jackpot hebdomadaire en jeu !' : `Encore ${6 - (streak % 7)} jour${6-(streak%7)>1?'s':''} avant le jackpot 🎁 +${DAILY_REWARDS[6]}`}
+          {streak % 7 === 6
+            ? t('game_checkin.jackpot_ready')
+            : t('game_checkin.jackpot_in', { n: daysToJackpot, s: daysToJackpot > 1 ? 's' : '', jackpot: DAILY_REWARDS[6] })}
         </div>
       )}
 
       <button onClick={handle} disabled={disabled} className={!disabled ? 'glow-anim' : ''} style={{ padding:'15px 38px', borderRadius:22, fontSize:15, fontWeight:800, background:disabled?C.card:GOLD, color:disabled?C.muted:'#fff', border:`2px solid ${disabled?C.border:'transparent'}`, cursor:disabled?'not-allowed':'pointer', letterSpacing:.3 }}>
-        {done ? `✓ Récupéré ! +${justEarned} 🍪` : disabled ? 'Déjà récupéré aujourd\'hui' : `Récupérer +${checkinReward} 🍪`}
+        {done
+          ? t('game_checkin.claimed_amount', { n: justEarned })
+          : disabled
+            ? t('game_checkin.already_today')
+            : t('game_checkin.claim_amount', { n: checkinReward })}
       </button>
     </div>
   );

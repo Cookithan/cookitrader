@@ -3,6 +3,7 @@ import { SEGMENTS } from "../../data/constants.js";
 import { ROUE_PALETTES, ROUE_GLOWS, GOLD } from "../../data/themes.js";
 import { SEG_A, SEG_C, wRandom } from "../../utils/spin.js";
 import { playSound } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    SpinGame — roue canvas avec 11 segments pondérés
@@ -15,6 +16,7 @@ import { playSound } from "../../lib/audio.js";
 ═══════════════════════════════════════════════════════ */
 
 export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, activeRoue, level = 1, spinsLeft = Infinity, spinsCap = Infinity, consumeSpin, spinRechargeCost = 1, cafes = 0, onRechargeSpin, C }) {
+  const { t } = useTranslation();
   const canvasRef  = useRef(null);
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);
@@ -192,7 +194,7 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
             animation:'popIn .8s cubic-bezier(.36,.07,.19,.97) both',
             whiteSpace:'nowrap',
           }}>
-            {superJackpot === 500 ? '🌟 SECRET JACKPOT 🌟' : 'JACKPOT !'}
+            {superJackpot === 500 ? t('game_spin.secret_jackpot') : t('game_spin.jackpot')}
           </div>
         </div>
       )}
@@ -227,10 +229,10 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
         const noQuota   = spinsLeft <= 0;
         const blocked   = spinning || noBalance || noQuota;
         const label =
-          spinning  ? 'En cours…' :
-          noQuota   ? '⏳ Limite atteinte' :
-          noBalance ? `Pas assez (min. ${COST} 🍪)` :
-                      `Tourner (${COST} 🍪)`;
+          spinning  ? t('games.ongoing') :
+          noQuota   ? t('games.quota_full') :
+          noBalance ? t('games.not_enough', { cost: COST }) :
+                      t('game_spin.spin_btn', { cost: COST });
         return (
           <button
             onClick={spin}
@@ -258,8 +260,8 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
           textAlign:'center',
         }}>
           {spinsLeft > 0
-            ? <>🎡 <strong style={{ color:'#D4A017' }}>{spinsLeft}</strong>/{spinsCap} tours restants aujourd'hui</>
-            : <>⏳ Limite atteinte — recharge ou reviens demain</>}
+            ? <>🎡 <strong style={{ color:'#D4A017' }}>{spinsLeft}</strong>/{spinsCap} {t('game_spin.spins_remaining_today')}</>
+            : <>{t('game_spin.spins_exhausted')}</>}
         </div>
       )}
 
@@ -282,13 +284,13 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
             }}
           >
             {canRecharge
-              ? `🔄 Recharger ${spinsCap} tours (${spinRechargeCost} ☕)`
-              : `Pas assez (${spinRechargeCost} ☕)`}
+              ? t('games.recharge_btn', { cap: spinsCap, cost: spinRechargeCost })
+              : t('games.not_enough_cafe', { cost: spinRechargeCost })}
           </button>
         );
       })()}
 
-      {result && spinsLeft > 0 && <div style={{ fontSize:13, color:C.muted }}>Relancez pour tenter à nouveau !</div>}
+      {result && spinsLeft > 0 && <div style={{ fontSize:13, color:C.muted }}>{t('games.relaunch')}</div>}
     </div>
   );
 }

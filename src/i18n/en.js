@@ -281,6 +281,7 @@ export const EN = {
   games: {
     title:           'Mini-games',
     select_mode:     'Choose your mode',
+    select_mode_short:'Mode',
     mode_easy:       'Easy',
     mode_normal:     'Normal',
     mode_hard:       'Hard',
@@ -317,15 +318,18 @@ export const EN = {
     spin_btn:        'Spin ({cost} 🍪)',
     jackpot:         'JACKPOT!',
     secret_jackpot:  '🌟 SECRET JACKPOT 🌟',
+    spins_remaining_today: 'spins left today',
+    spins_exhausted: '⏳ Limit reached — recharge or come back tomorrow',
   },
 
   game_slot: {
     title:           'Slot Machine',
-    spin_btn:        'Pull ({cost} 🍪)',
+    spin_btn:        'Spin ({cost} 🍪)',
     jackpot:         '🎰 JACKPOT 🎰',
     triple:          'Triple!',
     pair:            'Pair',
     nope:            'Miss',
+    subtitle:        '🎰 Try your luck',
   },
 
   game_pour: {
@@ -335,6 +339,16 @@ export const EN = {
     too_low:         'Too low',
     too_much:        'Overflow!',
     good:            'Nice! +{n} 🍪',
+    perfect_title:   '⭐ Absolute perfect!',
+    perfect_sub:     '+15 🍪 earned',
+    gold_title:      '✦ Golden zone!',
+    gold_sub:        '+6 🍪 earned',
+    early_title:     'Too early...',
+    early_sub:       'Aim between 90% and 100%',
+    label_overflow:  '💧 Overflowing!',
+    label_perfect_now:'★ Perfect! Release now!',
+    label_gold_zone: '✦ Golden zone — a bit more...',
+    label_hold:      'Hold to pour coffee',
   },
 
   game_pyramid: {
@@ -352,6 +366,16 @@ export const EN = {
     pairs:           'Pairs: {found}/{total}',
     end_title:       'Well done!',
     end_sub:         '{moves} moves · {time}s',
+    moves_label:     'Moves',
+    pairs_label:     'Pairs',
+    instruction_idle:'Find the 6 pairs in as few moves as possible',
+    peek:            '👀 Memorize fast…',
+    play:            'Match the pairs!',
+    well_done:       'Well done!',
+    try_better:      'You can do better',
+    perfect_game:    '🏆 Perfect game!',
+    well_done_n:     'Well done! {n} moves',
+    abandoned:       'Game abandoned',
   },
 
   game_flappy: {
@@ -399,8 +423,15 @@ export const EN = {
     today:           'Today',
     day_label:       'Day {n}',
     streak_label:    'Streak: {n}',
+    streak_n:        'Streak: {n} day{s}',
+    subtitle:        'The more you come back, the more you earn',
+    jackpot_ready:   '🎁 Weekly jackpot in play!',
+    jackpot_in:      '{n} more day{s} until the jackpot 🎁 +{jackpot}',
     claim_btn:       'Claim +{n} 🍪',
+    claim_amount:    'Claim +{n} 🍪',
     claimed:         'Claimed ✓',
+    claimed_amount:  '✓ Claimed! +{n} 🍪',
+    already_today:   'Already claimed today',
     locked:          'Come back in {time}',
   },
 

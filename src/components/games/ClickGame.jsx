@@ -4,6 +4,7 @@ import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { ClickTracker } from "../../lib/antiCheat.js";
 import { playSound } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ClickGame — défi de clics (refonte 12/05/2026)
@@ -49,6 +50,7 @@ const MODES = {
 };
 
 export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
+  const { t } = useTranslation();
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
 
@@ -315,20 +317,20 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   /* Bouton central */
   const canPlay = coins >= CLICK_COST;
   const btnLabel =
-    phase === 'idle'      ? `Commencer (${CLICK_COST} 🍪)`
+    phase === 'idle'      ? t('games.start_btn', { cost: CLICK_COST })
   : phase === 'countdown' ? '...'
-  : phase === 'playing'   ? '🍪 Tape !'
-  :                         `Rejouer (${CLICK_COST} 🍪)`;
+  : phase === 'playing'   ? t('game_click.tap_action')
+  :                         t('games.replay_btn', { cost: CLICK_COST });
 
   /* Bannière de fin */
   const earnedFinal = Math.max(0, Math.floor(rewardRef.current));
   const cps = (clicks / modeCfg.duration).toFixed(1);
   const banner = phase === 'done'
     ? (recordHit
-        ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:'🏆 Nouveau record !' }
+        ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title: t('game_click.end_record') }
         : clicks === 0
-          ? { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title:'0 clic… réessaie ?' }
-          : { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`${clicks} clics !` }
+          ? { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title: t('game_click.end_zero') }
+          : { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title: t('game_click.end_normal', { n: clicks }) }
       )
     : null;
 
@@ -369,19 +371,18 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
               fontSize:11, letterSpacing:3, textTransform:'uppercase',
               fontWeight:800, color:'#D4A017', marginBottom:6,
             }}>
-              Anti-triche actif
+              {t('game_click.anticheat_title')}
             </div>
             <div style={{
               fontSize:17, fontWeight:900, color:'#FFE8A8',
               marginBottom:12, lineHeight:1.25,
             }}>
-              Pas d'autoclicker ici 🚫
+              {t('game_click.anticheat_desc1')}
             </div>
             <div style={{
               fontSize:13, color:'#A88B70', lineHeight:1.55, marginBottom:18,
             }}>
-              Les logiciels d'auto-clic et les scripts sont <strong style={{ color:'#FFE8A8' }}>détectés et bloqués</strong>.
-              Tape normalement avec ton doigt ou ta souris — c'est jouable jusqu'à <strong style={{ color:'#FFE8A8' }}>~20 clics/sec</strong> à la main.
+              {t('game_click.anticheat_desc2')}
             </div>
             <button
               onClick={dismissAntiCheatNotice}
@@ -395,7 +396,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
                 touchAction:'manipulation',
               }}
             >
-              OK, j'ai compris
+              {t('game_click.anticheat_btn')}
             </button>
           </div>
         </div>
@@ -409,7 +410,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
             textTransform:'uppercase', letterSpacing:1.5,
             textAlign:'left',
           }}>
-            Mode
+            {t('games.select_mode_short')}
           </div>
           <div style={{
             display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6,

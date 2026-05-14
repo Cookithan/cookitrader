@@ -297,6 +297,7 @@ export const FR = {
   games: {
     title:           'Mini-jeux',
     select_mode:     'Choisis ton mode',
+    select_mode_short:'Mode',
     mode_easy:       'Facile',
     mode_normal:     'Normal',
     mode_hard:       'Difficile',
@@ -333,15 +334,18 @@ export const FR = {
     spin_btn:        'Tourner ({cost} 🍪)',
     jackpot:         'JACKPOT !',
     secret_jackpot:  '🌟 SECRET JACKPOT 🌟',
+    spins_remaining_today: 'tours restants aujourd\'hui',
+    spins_exhausted: '⏳ Limite atteinte — recharge ou reviens demain',
   },
 
   game_slot: {
     title:           'Machine à Sous',
-    spin_btn:        'Tirer ({cost} 🍪)',
+    spin_btn:        'Lancer ({cost} 🍪)',
     jackpot:         '🎰 JACKPOT 🎰',
     triple:          'Triple !',
     pair:            'Paire',
     nope:            'Raté',
+    subtitle:        '🎰 Tente ta chance',
   },
 
   game_pour: {
@@ -351,6 +355,16 @@ export const FR = {
     too_low:         'Trop peu',
     too_much:        'Débordement !',
     good:            'Bien ! +{n} 🍪',
+    perfect_title:   '⭐ Parfait absolu !',
+    perfect_sub:     '+15 🍪 gagnés',
+    gold_title:      '✦ Zone dorée !',
+    gold_sub:        '+6 🍪 gagnés',
+    early_title:     'Trop tôt...',
+    early_sub:       'Vise entre 90% et 100%',
+    label_overflow:  '💧 Ça déborde !',
+    label_perfect_now:'★ Parfait ! Lâche maintenant !',
+    label_gold_zone: '✦ Zone dorée — encore un peu...',
+    label_hold:      'Maintiens pour verser le café',
   },
 
   game_pyramid: {
@@ -368,6 +382,16 @@ export const FR = {
     pairs:           'Paires : {found}/{total}',
     end_title:       'Bravo !',
     end_sub:         '{moves} coups · {time}s',
+    moves_label:     'Coups',
+    pairs_label:     'Paires',
+    instruction_idle:'Trouve les 6 paires en un minimum de coups',
+    peek:            '👀 Mémorise vite…',
+    play:            'Mémorise et associe !',
+    well_done:       'Bien joué !',
+    try_better:      'Tu peux mieux faire',
+    perfect_game:    '🏆 Partie parfaite !',
+    well_done_n:     'Bien joué ! {n} coups',
+    abandoned:       'Partie abandonnée',
   },
 
   game_flappy: {
@@ -415,8 +439,15 @@ export const FR = {
     today:           "Aujourd'hui",
     day_label:       'Jour {n}',
     streak_label:    'Série : {n}',
+    streak_n:        'Série : {n} jour{s}',
+    subtitle:        'Plus tu reviens, plus tu gagnes',
+    jackpot_ready:   '🎁 Jackpot hebdomadaire en jeu !',
+    jackpot_in:      'Encore {n} jour{s} avant le jackpot 🎁 +{jackpot}',
     claim_btn:       'Récupérer +{n} 🍪',
+    claim_amount:    'Récupérer +{n} 🍪',
     claimed:         'Récupéré ✓',
+    claimed_amount:  '✓ Récupéré ! +{n} 🍪',
+    already_today:   "Déjà récupéré aujourd'hui",
     locked:          'Reviens dans {time}',
   },
 
