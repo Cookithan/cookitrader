@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import { FR } from './fr.js';
 import { EN } from './en.js';
+import { REWARDS_EN, LEVEL_NAMES_EN, ACHIEVEMENTS_EN } from './dataTranslations.js';
 
 /* ════════════════════════════════════════════════════
    i18n — système de traduction maison léger
@@ -98,16 +99,43 @@ export function t(key, vars){
   return interpolate(lookup(key, currentLang), vars);
 }
 
-/* Helper pour data dynamiques : retourne `item[field_<lang>]` ou
-   fallback sur `item[field]` (FR par défaut). Utilisé pour REWARDS,
-   QUESTIONS, ACHIEVEMENTS, LEVEL_NAMES, etc. */
-export function localizedField(item, field){
+/* Mapping externe : data trad par id/index. Consulté en priorité par
+   localizedField pour les types qui ont une table dédiée (REWARDS,
+   ACHIEVEMENTS, etc.). Pour CHANGELOG et QUESTIONS, on lookup par
+   indices/clés différentes (cf. plus bas). */
+const EXTERNAL_EN_MAPS = {
+  REWARDS: REWARDS_EN,
+  ACHIEVEMENTS: ACHIEVEMENTS_EN,
+};
+
+/* Helper pour data dynamiques : retourne le champ traduit selon la
+   langue active. Plusieurs sources de traduction tentées dans l'ordre :
+     1. item[field_<lang>] inline (pour les ajouts simples sur les data)
+     2. EXTERNAL_EN_MAPS[item.__source][item.id][field] (mapping centralisé)
+     3. item[field] (FR fallback)
+
+   Pour utiliser le mapping centralisé, le caller peut passer un 3e
+   argument `source` : ex. localizedField(reward, 'name', 'REWARDS'). */
+export function localizedField(item, field, source){
   if(!item) return '';
-  const key = `${field}_${currentLang}`;
-  if(currentLang !== 'fr' && key in item && item[key] != null){
-    return item[key];
+  if(currentLang !== 'fr'){
+    /* 1. Champ inline _<lang> sur l'item lui-même */
+    const inlineKey = `${field}_${currentLang}`;
+    if(inlineKey in item && item[inlineKey] != null) return item[inlineKey];
+    /* 2. Mapping externe par id */
+    if(source && EXTERNAL_EN_MAPS[source] && item.id != null){
+      const entry = EXTERNAL_EN_MAPS[source][item.id];
+      if(entry && entry[field] != null) return entry[field];
+    }
   }
   return item[field] ?? '';
+}
+
+/* Helper pour LEVEL_NAMES (lookup par index) — séparé car les niveaux
+   ne sont pas des objets {id, name} mais un tableau plat de strings. */
+export function localizedLevelName(index){
+  if(currentLang === 'en' && LEVEL_NAMES_EN[index] != null) return LEVEL_NAMES_EN[index];
+  return null; /* caller utilise LEVEL_NAMES[index] en fallback */
 }
 
 /* ── Hook React ─────────────────────────────────────
@@ -126,11 +154,23 @@ export function useTranslation(){
     t: (key, vars) => interpolate(lookup(key, lang), vars),
     lang,
     setLang,
-    localizedField: (item, field) => {
+    /* localizedField hook-aware : utilise la même logique que la version
+       module mais avec `lang` du hook (déjà à jour via useSyncExternalStore). */
+    localizedField: (item, field, source) => {
       if(!item) return '';
-      const key = `${field}_${lang}`;
-      if(lang !== 'fr' && key in item && item[key] != null) return item[key];
+      if(lang !== 'fr'){
+        const inlineKey = `${field}_${lang}`;
+        if(inlineKey in item && item[inlineKey] != null) return item[inlineKey];
+        if(source && EXTERNAL_EN_MAPS[source] && item.id != null){
+          const entry = EXTERNAL_EN_MAPS[source][item.id];
+          if(entry && entry[field] != null) return entry[field];
+        }
+      }
       return item[field] ?? '';
+    },
+    localizedLevelName: (index) => {
+      if(lang === 'en' && LEVEL_NAMES_EN[index] != null) return LEVEL_NAMES_EN[index];
+      return null;
     },
   };
 }

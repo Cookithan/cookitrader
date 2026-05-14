@@ -131,7 +131,7 @@ function fmtCompact(n){
 
 export default function CookiMiner() {
   /* i18n — hook au top pour pouvoir t() partout dans le composant. */
-  const { t, localizedField } = useTranslation();
+  const { t, localizedField, localizedLevelName } = useTranslation();
   /* ──────────────────────────────────────────────────────────
      MAINTENANCE MODE — short-circuit AVANT tout hook React.
      Lit le userCode directement depuis localStorage (pas via
@@ -3313,7 +3313,7 @@ export default function CookiMiner() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{LEVEL_NAMES[level]}</div>
+                  <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{localizedLevelName(level) || LEVEL_NAMES[level]}</div>
                 </div>
                 <div style={{ textAlign:'right' }}>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>{t('profile.stat_total')}</div>

@@ -63,7 +63,8 @@ export function ProfileOverlay({
   onSendGift,
   C
 }) {
-  const { t, localizedField } = useTranslation();
+  const { t, localizedField, localizedLevelName } = useTranslation();
+  const levelLabel = localizedLevelName(level) || LEVEL_NAMES[level];
   const [editing, setEditing] = useState(false);
   const [editAvatar, setEditAvatar] = useState(userAvatar);
   const [showChangeName, setShowChangeName] = useState(false);
@@ -323,7 +324,7 @@ export function ProfileOverlay({
               </div>
               <div style={{ padding:'4px 12px', borderRadius:12, background:'rgba(212,160,23,.22)', border:'1px solid rgba(193,127,60,.55)', marginBottom:8 }}>
                 <span style={{ fontSize:11, fontWeight:800, color:'#7D4E1F', letterSpacing:.5 }}>
-                  {LEVEL_NAMES[level]}
+                  {levelLabel}
                 </span>
               </div>
               {userCode && (
@@ -374,7 +375,7 @@ export function ProfileOverlay({
                 {[
                   { label:'Total gagné',  value:totalEarned, sub:'cookies', col:'#D4A017' },
                   { label:'Série',         value:streak,      sub:`jour${streak>1?'s':''}`, col:'#E07040' },
-                  { label:'Niveau',        value:level,       sub:LEVEL_NAMES[level], col:'#8B5A2B' },
+                  { label: t('profile.stat_level'), value:level, sub: levelLabel, col:'#8B5A2B' },
                   { label:'Succès',        value:`${earnedAchievements.length}/${achievementsTotal}`, sub:'débloqués', col:'#C17F3C' },
                   { label:'Items',         value:`${unlocked.length}/${REWARDS.length}`, sub:'possédés', col:'#7D4E1F' },
                   { label:'Marché',        value:marketRealized, sub:`cookies $CKM`, col:'#A0784E' },

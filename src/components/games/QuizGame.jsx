@@ -4,6 +4,7 @@ import { QUESTIONS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
+import { QUESTIONS_EN } from "../../i18n/questionsEn.js";
 
 /* ════════════════════════════════════════════════════
    QuizGame — 3 questions tirées dans la difficulté choisie
@@ -19,7 +20,7 @@ export const QUIZ_HINT_COST = 10;
 export const QUIZ_HINT_DELAY_MS = 8000;
 
 export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onClose, onEventChallenge, C }) {
-  const { t, localizedField } = useTranslation();
+  const { t, localizedField, lang } = useTranslation();
   const [chosenDifficulty, setChosenDifficulty] = useState(null);
   const [qIndices,         setQIndices]         = useState([]);
 
@@ -155,7 +156,13 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     );
   }
 
-  const q = QUESTIONS[qIndices[step]];
+  const qIdx = qIndices[step];
+  const q = QUESTIONS[qIdx];
+  /* Helper : retourne la version traduite (EN) si disponible, sinon
+     le champ FR original. lookup par index pour rester aligné. */
+  const qTrans = lang === 'en' && QUESTIONS_EN[qIdx] ? QUESTIONS_EN[qIdx] : null;
+  const qText = qTrans?.q || q.q;
+  const qChoices = qTrans?.choices || q.choices;
 
   const goNext = (lastWasCorrect = false) => {
     if(step + 1 >= qIndices.length){
@@ -225,11 +232,11 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
             <div style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700 }}>+{q.reward} 🍪</div>
           </div>
         </div>
-        <div style={{ fontSize:17, fontWeight:700, color:'#fff', lineHeight:1.45 }}>{localizedField(q, 'q')}</div>
+        <div style={{ fontSize:17, fontWeight:700, color:'#fff', lineHeight:1.45 }}>{qText}</div>
       </div>
 
       <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:14 }}>
-        {(localizedField(q, 'choices') || q.choices).map((ch,i)=>{
+        {qChoices.map((ch,i)=>{
           const isHidden = hiddenChoices.includes(i);
           let bg=C.card, border=C.border, col=C.text, opacity=1;
           if(isHidden){ bg=C.card2; border=C.border; col=C.muted; opacity=.35; }

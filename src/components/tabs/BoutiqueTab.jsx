@@ -501,8 +501,8 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               )}
               {isUnlocked && !r.limited && <span className="sparkle-anim" style={{ position:'absolute', top:8, right:10, fontSize:14, animationDelay:`${i*0.3}s` }}>✨</span>}
               <div className={isUnlocked ? 'float-anim' : ''} style={{ fontSize:30, marginBottom:8, display:'inline-block', filter:lvLocked?'grayscale(.7)':'none' }}>{lvLocked ? '🔒' : r.emoji}</div>
-              <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:3 }}>{r.name}</div>
-              <div style={{ fontSize:11, color:C.muted, marginBottom: (r.savingsLabel || r.applyAs === 'unlock_all_shop') ? 6 : 12 }}>{r.desc}</div>
+              <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:3 }}>{localizedField(r, 'name', 'REWARDS')}</div>
+              <div style={{ fontSize:11, color:C.muted, marginBottom: (r.savingsLabel || r.applyAs === 'unlock_all_shop') ? 6 : 12 }}>{localizedField(r, 'desc', 'REWARDS')}</div>
               {/* Badge "économies" — sur les packs pour justifier le prix.
                   (Calcul dynamique unlock_all_shop retiré, item supprimé.) */}
               {(() => {

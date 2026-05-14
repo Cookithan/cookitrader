@@ -11,7 +11,8 @@ import { useTranslation } from "../../i18n/index.js";
 ═══════════════════════════════════════════════════════ */
 
 export function MarketLocked({ level, xp, xpReq, C }) {
-  const { t } = useTranslation();
+  const { t, localizedLevelName } = useTranslation();
+  const levelLabel = localizedLevelName(level) || LEVEL_NAMES[level];
   const TARGET_LEVEL = 3;
   const xpDone   = 100 * ((level-1)*level)/2 + xp;
   const xpTarget = 100 * ((TARGET_LEVEL-1)*TARGET_LEVEL)/2;
@@ -30,7 +31,7 @@ export function MarketLocked({ level, xp, xpReq, C }) {
 
       <div style={{ borderRadius:18, padding:16, background:C.card, border:`1px solid ${C.border}`, maxWidth:340, margin:'0 auto' }}>
         <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:C.muted, marginBottom:8 }}>
-          <span>{t('home.level_card', { n: level, label: LEVEL_NAMES[level] })}</span>
+          <span>{t('home.level_card', { n: level, label: levelLabel })}</span>
           <span>{t('home.xp_label', { cur: xpDone, max: xpTarget })}</span>
         </div>
         <div style={{ height:8, borderRadius:4, background:C.card2, overflow:'hidden' }}>

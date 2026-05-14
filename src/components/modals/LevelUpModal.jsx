@@ -12,7 +12,8 @@ import { useTranslation } from "../../i18n/index.js";
 ════════════════════════════════════════════════════ */
 
 export function LevelUpModal({ level, onCollect }) {
-  const { t } = useTranslation();
+  const { t, localizedLevelName } = useTranslation();
+  const levelLabel = localizedLevelName(level) || LEVEL_NAMES[level];
   const isEndGame = level >= 6;
   const bonus = 10 * level;
   const newItems = REWARDS.filter(r => r.levelRequired === level).length;
@@ -33,7 +34,7 @@ export function LevelUpModal({ level, onCollect }) {
         <div className="wiggle-anim" style={{ fontSize:54, marginBottom:10, display:'inline-block' }}>🎉</div>
         <div style={{ fontSize:10, color:'rgba(255,255,255,.65)', textTransform:'uppercase', letterSpacing:3, marginBottom:6 }}>{t('modal.level_up_banner')}</div>
         <div style={{ fontSize:32, fontWeight:900, color:'#fff', marginBottom:3 }}>{t('modal.level_n', { n: level })}</div>
-        <div style={{ fontSize:20, fontWeight:700, color:'#D4A017', marginBottom:20 }}>{LEVEL_NAMES[level]}</div>
+        <div style={{ fontSize:20, fontWeight:700, color:'#D4A017', marginBottom:20 }}>{levelLabel}</div>
         <div style={{ background:'rgba(212,160,23,.15)', borderRadius:16, padding:'12px 20px', marginBottom:14, border:'1px solid rgba(212,160,23,.3)' }}>
           <div style={{ fontSize:11, color:'rgba(255,255,255,.6)', marginBottom:4 }}>{t('modal.bonus_offered')}</div>
           <div className="coin-pop" style={{ fontSize:26, fontWeight:800, color:'#D4A017' }}>
