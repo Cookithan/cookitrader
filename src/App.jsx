@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, isPatchApplied, markPatchApplied, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -1013,6 +1013,13 @@ export default function CookiMiner() {
        - knownFriendCodes (LS)   : codes amis déjà connus localement ;
          tout nouveau code → notif "X t'a accepté". Mis à jour APRÈS
          détection pour ne plus la repopulariser.
+
+     Cross-device (applyPatchOnce friendNotifsBootstrap_v1) : sur un nouveau
+     device, les caches LS sont vides → tous les amis acceptés et toutes
+     les demandes pending réapparaîtraient en notif. Si le patch a déjà
+     été marqué côté Supabase (autre device a déjà vu les notifs), on
+     initialise les caches LS silently sans rien afficher.
+
      Tourne 1 fois quand userCode + showOnboarding=false (sinon la
      modale onboarding cache la nôtre). */
   useEffect(() => {
@@ -1030,6 +1037,33 @@ export default function CookiMiner() {
       let notifiedIds = [];
       try { notifiedIds = JSON.parse(window.localStorage.getItem('cookiminer:notifiedRequestIds') || '[]'); }
       catch { notifiedIds = []; }
+
+      /* Bootstrap cross-device : caches LS vides ET patch déjà appliqué
+         sur un autre device → init silently, pas de notif (l'user a déjà
+         vu les acceptations/demandes ailleurs). */
+      const isFreshOnThisDevice = knownCodes.length === 0 && notifiedIds.length === 0;
+      let bootstrapAlready = false;
+      if(isFreshOnThisDevice){
+        bootstrapAlready = await isPatchApplied(userCode, 'friendNotifsBootstrap_v1');
+      }
+      if(!alive) return;
+
+      if(bootstrapAlready){
+        try {
+          const ids = received.map(r => r.request_id);
+          window.localStorage.setItem('cookiminer:notifiedRequestIds', JSON.stringify(ids));
+        } catch {}
+        try {
+          const allFriends = await getFriends(userCode);
+          if(alive){
+            window.localStorage.setItem(
+              'cookiminer:knownFriendCodes',
+              JSON.stringify(allFriends.map(f => f.user_code)),
+            );
+          }
+        } catch {}
+        return;
+      }
 
       const newRequests = received.filter(r => !notifiedIds.includes(r.request_id));
       const newlyAccepted = await getNewlyAcceptedFriends(userCode, knownCodes);
@@ -1063,6 +1097,11 @@ export default function CookiMiner() {
           );
         }
       } catch {}
+
+      /* Marque le bootstrap côté Supabase : tout autre device qui se
+         connecte ensuite verra ce flag et n'affichera plus les anciennes
+         notifs. */
+      markPatchApplied(userCode, 'friendNotifsBootstrap_v1').catch(()=>{});
 
       if(alive && queue.length > 0) setPendingFriendNotifs(queue);
     })();
@@ -2659,21 +2698,28 @@ export default function CookiMiner() {
   /* Migration one-shot : reset des cafés à 0 pour tous les utilisateurs
      (mai 2026, refonte économie premium → café devient rare). Ancien
      stock = trop d'avantage vs nouvelle distribution réduite (-45%).
-     Flag LS pour idempotence ; au prochain upsert (5s), la valeur 0 est
-     poussée vers Supabase. Les paiements Stripe futurs partent de 0.
-     Affiche une notice (CafesResetNoticeModal) pour expliquer. On évite
-     de pop la notice pour les fresh installs (pas d'utilisateur encore
-     connecté, ou stock déjà = 0). */
+     Idempotence cross-device via applyPatchOnce (applied_patches) — un
+     ancien flag LS pré-migration est automatiquement migré en serveur.
+     Au prochain upsert (5s), la valeur 0 est poussée vers Supabase.
+     Affiche une notice (CafesResetNoticeModal) pour expliquer le reset
+     une seule fois par compte. */
   useEffect(() => {
-    try {
-      if (window.localStorage.getItem('cookiminer:cafesResetMay10') === '1') return;
-      const hadCafes = (cafesRef.current ?? 0) > 0;
-      setCafes(0);
-      window.localStorage.setItem('cookiminer:cafesResetMay10', '1');
-      if (hadCafes) setShowCafesResetNotice(true);
-    } catch {}
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:cafesResetMay10',
+      patchKey: 'cafesResetMay10',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        const hadCafes = (cafesRef.current ?? 0) > 0;
+        setCafes(0);
+        if (hadCafes) setShowCafesResetNotice(true);
+      },
+    });
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userCode, pullDone]);
 
   const checkinReward = DAILY_REWARDS[streak % 7];
   const resetProgress = () => {

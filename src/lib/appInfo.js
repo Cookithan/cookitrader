@@ -13,7 +13,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.19.3',
+  version: '1.20.0',
   releaseDate: '2026-05-14',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -21,6 +21,22 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.20.0',
+    date: '2026-05-14',
+    title: '🌍 App bilingue FR / EN + marché libéré',
+    title_en: '🌍 Bilingual app FR / EN + market unleashed',
+    changes: [
+      "🌍 L'app est maintenant entièrement traduite en anglais — bascule la langue depuis les Paramètres",
+      "📈 Le marché ne tire plus le prix vers 100 — la courbe peut s'envoler ou plonger plus longtemps",
+      "🔔 Les pops d'amis acceptés ne réapparaissent plus quand tu te connectes sur un autre appareil",
+    ],
+    changes_en: [
+      "🌍 The app is now fully translated to English — switch language from Settings",
+      "📈 The market no longer pulls the price back toward 100 — the curve can fly higher or dive longer",
+      "🔔 Accepted-friend pop-ups no longer reappear when you log in on another device",
+    ],
+  },
   {
     version: '1.19.3',
     date: '2026-05-14',
@@ -113,32 +129,6 @@ export const CHANGELOG = [
       "⏱️ New: total time spent on the app shown in your profile and on other players' profiles",
       "⬆️ Levels 6-14 softened: no more brutal wall at 6 → 7 (progression ~×1.33 per tier)",
       "🐛 Android rendering fix for users with an animated color title",
-    ],
-  },
-  {
-    version: '1.17.0',
-    date: '2026-05-13',
-    title: '🎰 Refonte mini-jeux + UX fluide',
-    title_en: '🎰 Mini-games overhaul + smooth UX',
-    changes: [
-      "🎡 Roue : 10 segments alternés gain/perte, 50/50 pile, événement spectaculaire sur jackpot +200",
-      "🎰 Machine à Sous plus généreuse : gains boostés (jackpot 750→1000), probabilités x2 sur les triples, paire +25→+35",
-      "🐦 Flappy Cookie : café bonus plus fréquent (% variable par mode), nouveau son de saut, ombre du cookie retirée",
-      "☕ Stop le café : hitbox du bouton élargie (plus de lâché frustrant), tasse redessinée + recentrée sur l'assiette",
-      "🍪 Cookie Click : 2 clics = 1 🍪 + retrait du cap, timer & barre parfaitement synchronisés",
-      "🌟 Renaissance : la série de check-ins (streak) est désormais conservée",
-      "🛡️ Anti-triche refondu : zéro faux positif pour les joueurs rapides",
-      "🚀 App entièrement fluide : retour à un bundle unique, plus de chargements en cascade",
-    ],
-    changes_en: [
-      "🎡 Wheel: 10 alternating win/loss segments, 50/50 split, spectacular event on +200 jackpot",
-      "🎰 More generous Slot Machine: boosted wins (jackpot 750→1000), x2 triple odds, pair +25→+35",
-      "🐦 Flappy Cookie: more frequent coffee bonus (% varies by mode), new jump sound, cookie shadow removed",
-      "☕ Stop the coffee: enlarged button hitbox (no more frustrating drops), redesigned cup + recentered on the saucer",
-      "🍪 Cookie Click: 2 clicks = 1 🍪 + cap removed, timer & bar perfectly synced",
-      "🌟 Renaissance: the check-in streak is now preserved",
-      "🛡️ Anti-cheat overhauled: zero false positives for fast players",
-      "🚀 Fully smooth app: back to a single bundle, no more cascading loads",
     ],
   },
 ];
