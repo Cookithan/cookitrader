@@ -1,6 +1,7 @@
 import { ShoppingBag } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { GOLD } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    LevelUpModal — popup plein écran à chaque montée de niveau
@@ -11,6 +12,7 @@ import { GOLD } from "../../data/themes.js";
 ════════════════════════════════════════════════════ */
 
 export function LevelUpModal({ level, onCollect }) {
+  const { t } = useTranslation();
   const isEndGame = level >= 6;
   const bonus = 10 * level;
   const newItems = REWARDS.filter(r => r.levelRequired === level).length;
@@ -29,11 +31,11 @@ export function LevelUpModal({ level, onCollect }) {
           <span key={i} className="sparkle-anim" style={{ position:'absolute', top:p.top, left:p.left, fontSize:18, animationDelay:`${p.delay}s`, pointerEvents:'none' }}>✨</span>
         ))}
         <div className="wiggle-anim" style={{ fontSize:54, marginBottom:10, display:'inline-block' }}>🎉</div>
-        <div style={{ fontSize:10, color:'rgba(255,255,255,.65)', textTransform:'uppercase', letterSpacing:3, marginBottom:6 }}>NIVEAU SUPÉRIEUR !</div>
-        <div style={{ fontSize:32, fontWeight:900, color:'#fff', marginBottom:3 }}>Niveau {level}</div>
+        <div style={{ fontSize:10, color:'rgba(255,255,255,.65)', textTransform:'uppercase', letterSpacing:3, marginBottom:6 }}>{t('modal.level_up_banner')}</div>
+        <div style={{ fontSize:32, fontWeight:900, color:'#fff', marginBottom:3 }}>{t('modal.level_n', { n: level })}</div>
         <div style={{ fontSize:20, fontWeight:700, color:'#D4A017', marginBottom:20 }}>{LEVEL_NAMES[level]}</div>
         <div style={{ background:'rgba(212,160,23,.15)', borderRadius:16, padding:'12px 20px', marginBottom:14, border:'1px solid rgba(212,160,23,.3)' }}>
-          <div style={{ fontSize:11, color:'rgba(255,255,255,.6)', marginBottom:4 }}>Bonus offert</div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,.6)', marginBottom:4 }}>{t('modal.bonus_offered')}</div>
           <div className="coin-pop" style={{ fontSize:26, fontWeight:800, color:'#D4A017' }}>
             {isEndGame ? '+1 ☕' : `+${bonus} 🍪`}
           </div>
@@ -42,12 +44,12 @@ export function LevelUpModal({ level, onCollect }) {
           <div className="su" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:18, padding:'10px 14px', borderRadius:14, background:'rgba(255,255,255,.08)', border:'1px dashed rgba(212,160,23,.4)' }}>
             <ShoppingBag size={15} color="#D4A017" />
             <span style={{ fontSize:12, color:'#fff', fontWeight:700 }}>
-              {newItems} nouvel{newItems>1?'s':''} item{newItems>1?'s':''} en boutique !
+              {t(newItems > 1 ? 'modal.new_items_plural' : 'modal.new_items_singular', { n: newItems })}
             </span>
           </div>
         )}
         <button onClick={onCollect} className="glow-anim" style={{ width:'100%', padding:14, borderRadius:16, fontSize:15, fontWeight:800, background:GOLD, color:'#fff', cursor:'pointer', letterSpacing:.3 }}>
-          {isEndGame ? 'Récupérer le café ☕' : 'Récupérer les cookies 🍪'}
+          {isEndGame ? t('modal.collect_coffee') : t('modal.collect_cookies')}
         </button>
       </div>
     </div>

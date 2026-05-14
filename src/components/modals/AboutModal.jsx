@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { APP_INFO, CHANGELOG } from "../../lib/appInfo.js";
 import { getGlobalCommunityStats } from "../../lib/supabaseSync.js";
 import { ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* Code 4 chiffres pour ouvrir le code source. Pas une vraie sécurité
    (le bundle JS est public sur Vercel) — juste un petit gate UX. */
@@ -29,6 +30,7 @@ function fmt(n){
 }
 
 export function AboutModal({ onClose, C }){
+  const { t, localizedField, lang } = useTranslation();
   const [stats,   setStats]   = useState(null);
   const [closing, setClosing] = useState(false);
 
@@ -108,7 +110,7 @@ export function AboutModal({ onClose, C }){
         {/* Bouton fermer */}
         <button
           onClick={handleClose}
-          aria-label="Fermer"
+          aria-label={t('common.close')}
           style={{
             position:'absolute', top:14, right:14,
             width:32, height:32, borderRadius:10,
@@ -152,12 +154,12 @@ export function AboutModal({ onClose, C }){
               textTransform:'uppercase', letterSpacing:2, fontWeight:700,
               textAlign:'center', marginBottom:12,
             }}>
-              🌍 La communauté CookiMiner
+              {t('about.community_title')}
             </div>
 
             {stats == null ? (
               <div style={{ textAlign:'center', color:'rgba(255,255,255,.55)', fontSize:12, fontStyle:'italic', padding:'10px 0' }}>
-                Chargement…
+                {t('common.loading')}
               </div>
             ) : (
               <>
@@ -175,15 +177,15 @@ export function AboutModal({ onClose, C }){
                       animation:'pulse-dot 1.6s ease-in-out infinite',
                     }} />
                     <span style={{ fontSize:12.5, fontWeight:800, color:'#F0C050' }}>
-                      {fmt(stats.onlineCount)} en ligne {stats.onlineCount > 1 ? 'maintenant' : 'maintenant'}
+                      {t('about.online_now', { n: fmt(stats.onlineCount) })}
                     </span>
                   </div>
                 )}
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-                  <StatBlock icon="👥" value={fmt(stats.userCount)}           label="Joueurs" />
-                  <StatBlock icon="🍪" value={fmt(stats.totalCookiesEarned)}  label="Cookies gagnés" />
-                  <StatBlock icon="🤝" value={fmt(stats.friendshipsCount)}    label="Amitiés" />
-                  <StatBlock icon="📈" value={fmt(stats.transactionsCount)}   label="Trades $CKM" />
+                  <StatBlock icon="👥" value={fmt(stats.userCount)}           label={t('about.stat_players')} />
+                  <StatBlock icon="🍪" value={fmt(stats.totalCookiesEarned)}  label={t('about.stat_cookies_earned')} />
+                  <StatBlock icon="🤝" value={fmt(stats.friendshipsCount)}    label={t('about.stat_friendships')} />
+                  <StatBlock icon="📈" value={fmt(stats.transactionsCount)}   label={t('about.stat_trades')} />
                 </div>
               </>
             )}
@@ -199,7 +201,7 @@ export function AboutModal({ onClose, C }){
               textTransform:'uppercase', letterSpacing:2, fontWeight:700,
               marginBottom:12,
             }}>
-              📋 Nouveautés
+              📋 {t('about.changelog')}
             </div>
 
             {CHANGELOG.map((release, i) => {
@@ -221,7 +223,7 @@ export function AboutModal({ onClose, C }){
                           background:'linear-gradient(135deg,#D4A017,#C17F3C)',
                           color:'#fff', padding:'2px 7px', borderRadius:8,
                           textTransform:'uppercase',
-                        }}>Nouveau</span>
+                        }}>{t('about.badge_new')}</span>
                       )}
                     </div>
                     <div style={{ fontSize:10, color:C.muted, flexShrink:0 }}>
@@ -229,10 +231,10 @@ export function AboutModal({ onClose, C }){
                     </div>
                   </div>
                   <div style={{ fontSize:13, fontWeight:800, color:C.text, marginBottom:6 }}>
-                    {release.title}
+                    {localizedField(release, 'title')}
                   </div>
                   <ul style={{ fontSize:11.5, color:C.muted, paddingLeft:18, lineHeight:1.6, margin:0 }}>
-                    {release.changes.map((c, j) => (
+                    {(localizedField(release, 'changes') || release.changes).map((c, j) => (
                       <li key={j}>{c}</li>
                     ))}
                   </ul>
@@ -251,7 +253,7 @@ export function AboutModal({ onClose, C }){
               textTransform:'uppercase', letterSpacing:2, fontWeight:700,
               marginBottom:10,
             }}>
-              🔗 Liens
+              🔗 {t('about.links')}
             </div>
 
             {/* Discord — accès libre, bug reports et suggestions */}
@@ -271,7 +273,7 @@ export function AboutModal({ onClose, C }){
                 marginBottom:8,
               }}
             >
-              <span>💬 Discord — Bugs & suggestions</span>
+              <span>💬 {t('settings.community_title')}</span>
               <span style={{ fontSize:12, color:'#D4A017', fontWeight:800 }}>↗</span>
             </a>
 
@@ -287,8 +289,8 @@ export function AboutModal({ onClose, C }){
                   cursor:'pointer', textAlign:'left',
                 }}
               >
-                <span>💻 Code source GitHub</span>
-                <span style={{ fontSize:11, color:C.muted, fontWeight:700, letterSpacing:.5 }}>🔒 code</span>
+                <span>💻 {t('about.source_code')}</span>
+                <span style={{ fontSize:11, color:C.muted, fontWeight:700, letterSpacing:.5 }}>🔒 {t('about.code')}</span>
               </button>
             ) : (
               <div
