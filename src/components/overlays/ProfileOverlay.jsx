@@ -340,7 +340,7 @@ export function ProfileOverlay({
 
               <div style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:joinDate?0:14, marginBottom:6 }}>
                 <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', textTransform:'uppercase', letterSpacing:2 }}>
-                  NIVEAU {level}
+                  {t('home.level_uppercase')} {level}
                 </span>
                 <span style={{ fontSize:11, color:'#7D4E1F', fontWeight:600 }}>
                   {xp} / {xpReq} XP
@@ -350,7 +350,7 @@ export function ProfileOverlay({
                 <div style={{ height:'100%', width:`${xpPct}%`, background:GOLD, transition:'width .8s cubic-bezier(.36,.07,.19,.97)' }} />
               </div>
               <button onClick={onOpenLevels} style={{ width:'100%', padding:'9px', borderRadius:11, background:'rgba(255,255,255,.5)', border:'1px solid rgba(193,127,60,.4)', color:'#4A2C17', fontSize:12, fontWeight:700, cursor:'pointer' }}>
-                Voir tous les niveaux →
+                {t('profile.see_all_levels')}
               </button>
             </section>
 
@@ -370,16 +370,16 @@ export function ProfileOverlay({
 
             {/* 3. Stats grid 2×3 */}
             <section>
-              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>STATISTIQUES</div>
+              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.stats')}</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 {[
-                  { label:'Total gagné',  value:totalEarned, sub:'cookies', col:'#D4A017' },
-                  { label:'Série',         value:streak,      sub:`jour${streak>1?'s':''}`, col:'#E07040' },
-                  { label: t('profile.stat_level'), value:level, sub: levelLabel, col:'#8B5A2B' },
-                  { label:'Succès',        value:`${earnedAchievements.length}/${achievementsTotal}`, sub:'débloqués', col:'#C17F3C' },
-                  { label:'Items',         value:`${unlocked.length}/${REWARDS.length}`, sub:'possédés', col:'#7D4E1F' },
-                  { label:'Marché',        value:marketRealized, sub:`cookies $CKM`, col:'#A0784E' },
-                  { label:'Temps total',   value:formatPlayTime(totalPlayTime), sub:'sur l\'app', col:'#5C3317' },
+                  { label: t('profile.stat_total'),  value:totalEarned, sub: t('common.cookies'), col:'#D4A017' },
+                  { label: t('profile.stat_streak'), value:streak,      sub: t('profile.day_unit', { n: streak, s: streak > 1 ? 's' : '' }), col:'#E07040' },
+                  { label: t('profile.stat_level'),  value:level,       sub: levelLabel, col:'#8B5A2B' },
+                  { label: t('profile.stat_achievements'), value:`${earnedAchievements.length}/${achievementsTotal}`, sub: t('profile.unlocked_lc'), col:'#C17F3C' },
+                  { label: t('profile.stat_items'),  value:`${unlocked.length}/${REWARDS.length}`, sub: t('profile.owned_lc'), col:'#7D4E1F' },
+                  { label: t('profile.stat_market'), value:marketRealized, sub: t('profile.cookies_ckm'), col:'#A0784E' },
+                  { label: t('profile.stat_playtime'), value:formatPlayTime(totalPlayTime), sub: t('profile.on_app'), col:'#5C3317' },
                 ].map(st => (
                   <div key={st.label} style={{ borderRadius:14, background:C.card, border:`1px solid ${C.border}`, padding:'12px 14px' }}>
                     <div style={{ fontSize:10, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase', marginBottom:4 }}>{st.label}</div>
@@ -393,7 +393,7 @@ export function ProfileOverlay({
             {/* 4. Mes Badges (boutique + secrets découverts) */}
             <section>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:10 }}>
-                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES BADGES</div>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>{t('profile.my_badges')}</div>
                 <div style={{ fontSize:11, color:C.muted }}>{badges.length + secretBadgesUnlocked.length}</div>
               </div>
               {badges.length === 0 && secretBadgesUnlocked.length === 0 ? (
@@ -450,15 +450,15 @@ export function ProfileOverlay({
                 Chaque liste inclut systématiquement l'option "défaut" en tête. */}
             {(ownedSkins.length > 0 || ownedTitles.length > 0) && (
               <section>
-                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>MES PERSONNALISATIONS</div>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.my_customizations')}</div>
 
                 {/* SKINS COOKIE — preview SkinnedCookie 44px par option */}
                 {ownedSkins.length > 0 && setActiveSkin && (
                   <div style={{ marginBottom:12 }}>
-                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>SKIN DU COOKIE</div>
+                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>{t('profile.cookie_skin')}</div>
                     <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
                       {/* Option défaut systématique */}
-                      {[{ id:'', name:'Défaut' }, ...ownedSkins].map(s => {
+                      {[{ id:'', name: t('settings.theme_default') }, ...ownedSkins].map(s => {
                         const skinData = COOKIE_SKINS[s.id] || COOKIE_SKINS[''];
                         const sel = activeSkin === s.id;
                         return (
@@ -491,16 +491,17 @@ export function ProfileOverlay({
                 {/* TITRES COULEUR — preview du pseudo dans le style du titre */}
                 {ownedTitles.length > 0 && setActiveTitle && (
                   <div>
-                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>TITRE COULEUR</div>
+                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>{t('profile.color_title')}</div>
                     <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4, flexWrap:'wrap' }}>
-                      {/* Option défaut */}
-                      {[{ id:'', name:'Aucun' }, ...ownedTitles].map(t => {
-                        const sel = activeTitle === t.id;
-                        const previewStyle = t.id ? (getTitleStyle(t.id) || {}) : { color:C.text, fontWeight:800 };
+                      {/* Option défaut. Variable renommée en `tt` pour ne pas
+                          masquer le hook t() de useTranslation. */}
+                      {[{ id:'', name: t('profile.none_title') }, ...ownedTitles].map(tt => {
+                        const sel = activeTitle === tt.id;
+                        const previewStyle = tt.id ? (getTitleStyle(tt.id) || {}) : { color:C.text, fontWeight:800 };
                         return (
                           <button
-                            key={t.id || 'none'}
-                            onClick={()=>setActiveTitle(t.id)}
+                            key={tt.id || 'none'}
+                            onClick={()=>setActiveTitle(tt.id)}
                             style={{
                               padding:'8px 14px', borderRadius:14,
                               background: sel ? 'rgba(212,160,23,.16)' : C.card,
@@ -517,10 +518,10 @@ export function ProfileOverlay({
                                 Key liée à sel pour remount à chaque changement
                                 de sélection (sinon le keyframe garde son état). */}
                             <span
-                              key={`title-${t.id || 'none'}-${sel ? 'sel' : 'idle'}`}
+                              key={`title-${tt.id || 'none'}-${sel ? 'sel' : 'idle'}`}
                               style={{ ...previewStyle, display:'inline-block', lineHeight:1.2 }}
                             >
-                              {(TITLE_STYLES[t.id]?.name) || t.name?.replace(/^Titre\s+/, '') || 'Aucun'}
+                              {(TITLE_STYLES[tt.id]?.name) || (tt.id ? localizedField(tt, 'name', 'REWARDS').replace(/^Titre\s+/, '').replace(/\sTitle$/, '') : tt.name)}
                             </span>
                           </button>
                         );
@@ -574,7 +575,7 @@ export function ProfileOverlay({
                 }}
               >
                 <Pencil size={15} color="#D4A017" />
-                Modifier mon avatar
+                {t('profile.edit_avatar')}
               </button>
               <button
                 onClick={()=>setShowChangeBio(true)}
@@ -589,7 +590,7 @@ export function ProfileOverlay({
                 }}
               >
                 <MessageSquare size={15} color="#D4A017" />
-                {userBio ? 'Modifier ma bio' : '+ Ajouter une bio'}
+                {userBio ? t('modal.edit_bio') : '+ ' + t('modal.add_bio')}
               </button>
             </div>
 
@@ -602,7 +603,7 @@ export function ProfileOverlay({
 
             {/* 8. Crédit auteur — toujours en pied de profil (PHASE 2) */}
             <div style={{ textAlign:'center', marginTop:24, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
-              Réalisé par <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
+              {t('profile.realized_by')} <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
               <div style={{ fontSize:10, marginTop:2, opacity:0.7 }}>
                 CookiMiner v{APP_INFO.version}
               </div>

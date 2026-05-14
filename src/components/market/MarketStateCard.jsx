@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    MarketStateCard — bandeau prix + stock
@@ -16,6 +17,7 @@ function fmtHM(date) {
 }
 
 export function MarketStateCard({ state, dayChange, marketStatus }) {
+  const { t } = useTranslation();
   const [showHelp, setShowHelp] = useState(false);
 
   /* Flash live ticker — quand le prix change entre 2 refreshs, on rejoue
@@ -42,11 +44,11 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
 
   let trendText, trendColor, arrow;
   if (dayChange > 1) {
-    trendText = "Plus haut qu'hier"; trendColor = '#F0C050'; arrow = '↑';
+    trendText = t('market_card.higher_than_yesterday'); trendColor = '#F0C050'; arrow = '↑';
   } else if (dayChange < -1) {
-    trendText = "Plus bas qu'hier"; trendColor = '#A88060'; arrow = '↓';
+    trendText = t('market_card.lower_than_yesterday'); trendColor = '#A88060'; arrow = '↓';
   } else {
-    trendText = 'Stable'; trendColor = 'rgba(255,255,255,0.7)'; arrow = '→';
+    trendText = t('market_card.stable'); trendColor = 'rgba(255,255,255,0.7)'; arrow = '→';
   }
 
   return (
@@ -61,7 +63,7 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 2 }}>
-            $CKM · Action CookiMiner
+            {t('market_card.ckm_label')}
           </div>
           <div style={{ fontSize: 36, fontWeight: 900, marginTop: 4, lineHeight: 1 }}>
             <span
@@ -89,7 +91,7 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
           const bg     = open ? 'rgba(212, 160, 23, 0.2)' : maintenance ? 'rgba(193, 127, 60, 0.28)' : 'rgba(120, 90, 60, 0.25)';
           const border = open ? 'rgba(212, 160, 23, 0.5)' : maintenance ? 'rgba(193, 127, 60, 0.65)' : 'rgba(160, 130, 100, 0.5)';
           const fg     = open ? '#D4A017' : maintenance ? '#FFB060' : '#D8C8B0';
-          const label  = open ? 'OUVERT' : maintenance ? '🛠️ MAINTENANCE' : 'FERMÉ';
+          const label  = open ? t('market_card.open') : maintenance ? `🛠️ ${t('market_card.maintenance')}` : t('market_card.closed');
           return (
             <div style={{
               background: bg,
@@ -108,11 +110,11 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
               </div>
               {maintenance ? (
                 <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, letterSpacing: 0.3 }}>
-                  trading bloqué
+                  {t('market_card.trading_blocked')}
                 </div>
               ) : next ? (
                 <div style={{ fontSize: 9, fontWeight: 600, opacity: 0.85, letterSpacing: 0.3 }}>
-                  {open ? 'ferme' : 'ouvre'} {fmtHM(next)}
+                  {open ? t('market_card.closes') : t('market_card.opens')} {fmtHM(next)}
                 </div>
               ) : null}
             </div>
@@ -124,7 +126,7 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
-              💎 Actions disponibles
+              💎 {t('market_card.available_shares')}
             </span>
             <button
               onClick={() => setShowHelp(!showHelp)}
@@ -162,7 +164,7 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
             color: 'rgba(255,255,255,0.85)',
             lineHeight: 1.4,
           }}>
-            💡 Plus les joueurs achètent, moins il en reste et plus le prix monte. Quand on vend, le stock revient.
+            💡 {t('market_card.help_text')}
           </div>
         )}
       </div>

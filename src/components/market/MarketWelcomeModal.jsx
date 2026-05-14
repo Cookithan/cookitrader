@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    MarketWelcomeModal — mini-tutoriel 3 étapes au PREMIER accès au marché
@@ -7,23 +8,12 @@ import { useState } from 'react';
 ═══════════════════════════════════════════════════════ */
 
 export function MarketWelcomeModal({ onClose }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const steps = [
-    {
-      icon: '📊',
-      title: 'Bienvenue sur le marché $CKM !',
-      text: 'Ici tu peux acheter et vendre des actions Cookie. Le prix change selon ce que font les autres joueurs.',
-    },
-    {
-      icon: '📈',
-      title: 'Comment ça marche ?',
-      text: 'Achète quand tu penses que le prix va monter. Vends quand tu penses qu\'il va descendre. Plus le marché bouge, plus c\'est rentable !',
-    },
-    {
-      icon: '💎',
-      title: 'Stock limité',
-      text: 'Il n\'y a que 1 000 actions au total. Plus les gens achètent, plus c\'est rare et plus le prix monte. Bon trade !',
-    },
+    { icon: '📊', title: t('market_welcome.step1_title'), text: t('market_welcome.step1_text') },
+    { icon: '📈', title: t('market_welcome.step2_title'), text: t('market_welcome.step2_text') },
+    { icon: '💎', title: t('market_welcome.step3_title'), text: t('market_welcome.step3_text') },
   ];
   const cur = steps[step];
   const isLast = step === steps.length - 1;
@@ -44,7 +34,7 @@ export function MarketWelcomeModal({ onClose }) {
       }}>
         <div style={{ fontSize: 56, marginBottom: 12 }}>{cur.icon}</div>
         <div style={{ fontSize: 11, color: '#D4A017', letterSpacing: 3, textTransform: 'uppercase' }}>
-          Étape {step + 1} / {steps.length}
+          {t('market_welcome.step_x_of_n', { x: step + 1, n: steps.length })}
         </div>
         <div style={{ fontSize: 18, fontWeight: 800, color: '#D4A017', marginTop: 6 }}>
           {cur.title}
@@ -62,7 +52,7 @@ export function MarketWelcomeModal({ onClose }) {
             width: '100%',
           }}
         >
-          {isLast ? "C'est parti ! 🚀" : 'Suivant →'}
+          {isLast ? t('market_welcome.lets_go') : t('common.next') + ' →'}
         </button>
         {!isLast && (
           <button
@@ -73,7 +63,7 @@ export function MarketWelcomeModal({ onClose }) {
               textDecoration: 'underline', cursor: 'pointer',
             }}
           >
-            Passer
+            {t('common.skip')}
           </button>
         )}
       </div>

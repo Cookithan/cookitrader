@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    MarketChart — Courbe SVG des prix avec hover/touch
@@ -59,6 +60,7 @@ function fmtTime(iso) {
 }
 
 export function MarketChart({ history, range, onRangeChange, C }) {
+  const { t } = useTranslation();
   const containerRef = useRef(null);
   const [hoverIdx, setHoverIdx] = useState(null);
 
@@ -75,23 +77,23 @@ export function MarketChart({ history, range, onRangeChange, C }) {
         border: `1.5px solid ${C.border}`,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>📊 Évolution</div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>📊 {t('chart.evolution')}</div>
           <RangeSelector range={range} onRangeChange={onRangeChange} C={C} />
         </div>
         <div style={{ padding: '24px 8px', textAlign: 'center', color: C.muted, fontSize: 12 }}>
           {empty ? (
             <>
               <div style={{ fontSize: 28, marginBottom: 6 }}>📊</div>
-              <div>Aucune donnée sur les {range >= 60 ? `${range / 60}h` : `${range}m`} dernières.</div>
-              <div style={{ fontSize: 11, marginTop: 4 }}>Essaie une fenêtre plus large.</div>
+              <div>{t('chart.no_data', { range: range >= 60 ? `${range / 60}h` : `${range}m` })}</div>
+              <div style={{ fontSize: 11, marginTop: 4 }}>{t('chart.try_wider')}</div>
             </>
           ) : (
             <>
               <div style={{ fontSize: 28, marginBottom: 6 }}>📈</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                Premier point : {history[0].price.toFixed(0)} 🍪
+                {t('chart.first_point', { n: history[0].price.toFixed(0) })}
               </div>
-              <div style={{ marginTop: 4 }}>La courbe se dessinera dans quelques secondes.</div>
+              <div style={{ marginTop: 4 }}>{t('chart.will_draw_soon')}</div>
             </>
           )}
         </div>
@@ -145,7 +147,7 @@ export function MarketChart({ history, range, onRangeChange, C }) {
       border: `1.5px solid ${C.border}`,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>📊 Évolution</div>
+        <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>📊 {t('chart.evolution')}</div>
         <RangeSelector range={range} onRangeChange={onRangeChange} C={C} />
       </div>
 
@@ -210,9 +212,9 @@ export function MarketChart({ history, range, onRangeChange, C }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.muted, marginTop: 6 }}>
-        <span>Min : {minPrice.toFixed(0)} 🍪</span>
-        <span>{history.length} points</span>
-        <span>Max : {maxPrice.toFixed(0)} 🍪</span>
+        <span>{t('chart.min')} : {minPrice.toFixed(0)} 🍪</span>
+        <span>{history.length} {t('chart.points')}</span>
+        <span>{t('chart.max')} : {maxPrice.toFixed(0)} 🍪</span>
       </div>
     </div>
   );
