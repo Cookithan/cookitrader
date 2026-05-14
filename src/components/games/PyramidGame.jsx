@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { GOLD } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { SingleCup } from "./SingleCup.jsx";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    PyramidGame — "Pile de Tasses" (refonte diversification mai 2026)
@@ -96,6 +97,7 @@ function getMovingCupBottomPosition(stackedCups){
 }
 
 export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, C }){
+  const { t } = useTranslation();
   const [phase,           setPhase]           = useState('intro');     // intro | playing | gameover
   const [mode,            setMode]            = useState('normal');    // sélectionné dans l'intro, lock pendant playing
   const [stackedCups,     setStackedCups]     = useState([]);
@@ -503,11 +505,11 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
                 }}
               >
                 {canRecharge
-                  ? `🔄 Recharger ${pyramidGamesCap} essais (${pyramidRechargeCost} ☕)`
-                  : `Pas assez (${pyramidRechargeCost} ☕)`}
+                  ? t('games.recharge_attempts_btn', { cap: pyramidGamesCap, cost: pyramidRechargeCost })
+                  : t('games.not_enough_cafe', { cost: pyramidRechargeCost })}
               </button>
               <div style={{ fontSize:10.5, color:'rgba(245,239,230,.55)', textAlign:'center', fontStyle:'italic', marginTop:-4 }}>
-                Quota épuisé pour aujourd'hui · reset à minuit
+                {t('games.quota_reset_midnight')}
               </div>
             </>
           ) : (
@@ -526,7 +528,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
                 touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
               }}
             >
-              {canAfford ? `Commencer (${COST_TO_PLAY} 🍪)` : `Pas assez (${COST_TO_PLAY} 🍪)`}
+              {canAfford ? t('games.start_btn', { cost: COST_TO_PLAY }) : t('games.not_enough', { cost: COST_TO_PLAY })}
             </button>
           )}
         </div>
@@ -622,7 +624,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
                 boxShadow: (coins >= COST_TO_PLAY && pyramidPlaysLeft > 0) ? '0 4px 14px rgba(212,160,23,.4)' : 'none',
               }}
             >
-              {pyramidPlaysLeft > 0 ? `Rejouer (${COST_TO_PLAY} 🍪)` : `Recharger (${pyramidRechargeCost} ☕)`}
+              {pyramidPlaysLeft > 0 ? t('games.replay_btn', { cost: COST_TO_PLAY }) : t('games.recharge_simple', { cost: pyramidRechargeCost })}
             </button>
           </div>
         </div>
@@ -660,8 +662,8 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, paddingTop:6 }}>
       {/* 2 cartes stats */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:340 }}>
-        <StatCard value={score}  label="Tasses posées" />
-        <StatCard value={reward} label="🍪 Gagnés" highlight={reward >= (MODES[mode]?.rewardCap || 80)} />
+        <StatCard value={score}  label={t('game_pyramid.cups_placed')} />
+        <StatCard value={reward} label={t('game_pyramid.earned')} highlight={reward >= (MODES[mode]?.rewardCap || 80)} />
       </div>
 
       {/* Game area */}
