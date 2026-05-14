@@ -19,10 +19,16 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
   const angleRef   = useRef(0); // cumulative rotation in degrees
   const [spinning, setSpinning] = useState(false);
   const [result,   setResult]   = useState(null);
-  /* superJackpot : flag activé 2.5s quand la roue tombe sur +500.
-     Déclenche confettis dorés + flash plein écran pour souligner. */
-  const [superJackpot, setSuperJackpot] = useState(false);
+  /* superJackpot : stocke la valeur (+200 ou +500 easter egg) du jackpot
+     pendant 2.5s — déclenche confettis dorés + flash plein écran. Null
+     quand inactif. */
+  const [superJackpot, setSuperJackpot] = useState(null);
   const COST = level >= 8 ? 20 : 10;
+
+  /* 🥚 EASTER EGG : 0.3% par spin → segment caché "+500 🍪". L'aiguille
+     atterrit visuellement sur le +200 (jackpot natif) mais le popup et
+     le crédit cookies sont à +500. Surprise pour les chanceux. */
+  const EASTER_EGG_500_CHANCE = 0.003;
 
   const palette = ROUE_PALETTES[activeRoue] || null;
   const glowColor = ROUE_GLOWS[activeRoue];
@@ -83,7 +89,17 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
     /* Son one-shot du wheel-spin-click (slowdown intégré dans le MP3,
        ~1-2s) — pas en loop pour éviter la répétition robotique. */
     playSound('wheel');
-    const idx = wRandom();
+    /* Easter egg roll AVANT le tirage normal. Si trigger, on force
+       idx vers le segment +200 (visuel jackpot) — la valeur réelle
+       sera overridée à 500 plus bas. */
+    const easterEgg500 = Math.random() < EASTER_EGG_500_CHANCE;
+    let idx;
+    if(easterEgg500){
+      idx = SEGMENTS.findIndex(s => s.value === 200);
+      if(idx === -1) idx = wRandom();
+    } else {
+      idx = wRandom();
+    }
     const mid  = SEG_C[idx] + SEG_A[idx]/2;
     /* target angle so segment mid lands at top (270°) */
     const target = (270 - mid + 36000) % 360;
@@ -100,22 +116,23 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
       draw(from + (final-from)*e);
       if(t<1){ requestAnimationFrame(animate); }
       else {
-        angleRef.current=final; setSpinning(false); setResult(SEGMENTS[idx]);
-        const value = SEGMENTS[idx].value;
-        /* Son adapté : jackpot pour +200, success pour gains, error pour
-           pertes. Le jackpot +200 déclenche l'overlay confettis 2.5s pour
-           souligner ce moment (event addictif demandé par user). */
-        if(value === 200) playSound('jackpot');
-        else if(value > 0) playSound('success');
+        angleRef.current=final; setSpinning(false);
+        const baseValue  = SEGMENTS[idx].value;
+        const finalValue = easterEgg500 ? 500 : baseValue;
+        setResult({ ...SEGMENTS[idx], value: finalValue });
+        /* Son adapté : jackpot pour +200 (et easter egg +500), success
+           pour gains, error pour pertes. */
+        if(baseValue === 200) playSound('jackpot');
+        else if(baseValue > 0) playSound('success');
         else playSound('error');
-        onEarn(value);
-        if(value === 200){
+        onEarn(finalValue);
+        if(baseValue === 200){
           if(onJackpot) onJackpot();
-          setSuperJackpot(true);
-          setTimeout(() => setSuperJackpot(false), 2500);
+          setSuperJackpot(finalValue);  /* stocke 200 ou 500 */
+          setTimeout(() => setSuperJackpot(null), 2500);
         }
         /* PHASE 6E — challenge spin_jackpot : tomber sur +200 */
-        onEventChallenge?.('spin_jackpot', value);
+        onEventChallenge?.('spin_jackpot', baseValue);
       }
     };
     requestAnimationFrame(animate);
@@ -163,17 +180,19 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
             animation:'popIn .6s cubic-bezier(.36,.07,.19,.97) both',
             whiteSpace:'nowrap',
           }}>
-            🎉 +200 🍪 🎉
+            🎉 +{superJackpot} 🍪 🎉
           </div>
           <div style={{
             position:'absolute', top:'58%', left:'50%',
             transform:'translate(-50%, -50%)',
-            fontSize:14, fontWeight:800, letterSpacing:6,
+            fontSize: superJackpot === 500 ? 16 : 14,
+            fontWeight:800, letterSpacing: superJackpot === 500 ? 4 : 6,
             color:'#FFE89A',
             textShadow:'0 2px 8px rgba(0,0,0,.6)',
             animation:'popIn .8s cubic-bezier(.36,.07,.19,.97) both',
+            whiteSpace:'nowrap',
           }}>
-            JACKPOT !
+            {superJackpot === 500 ? '🌟 SECRET JACKPOT 🌟' : 'JACKPOT !'}
           </div>
         </div>
       )}

@@ -36,6 +36,12 @@ export const CLICK_COST = 5;
    définit la vraie durée à l'exécution). */
 export const CLICK_DURATION = 5;
 
+/* 🥚 EASTER EGG : 0.2% par tap (passé les checks anti-cheat) → bonus
+   +50 🍪 instant + flash doré sur le cookie + particule géante. Mythique
+   à trouver sans le savoir. */
+const GOLDEN_TAP_CHANCE = 0.002;
+const GOLDEN_TAP_REWARD = 50;
+
 const MODES = {
   normal:     { label:'Normal',     emoji:'☕', desc:'5 s · 2 clics = 1 🍪',                                       duration:5, rewardPerClick:0.5, moves:false, moveIntervalMs:0,    cookieSize:'88%', moveRange:[50,50] },
   rapide:     { label:'Rapide',     emoji:'⚡', desc:'3 s · 2 clics = 1 🍪 (court intense)',                       duration:3, rewardPerClick:0.5, moves:false, moveIntervalMs:0,    cookieSize:'88%', moveRange:[50,50] },
@@ -77,6 +83,9 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   /* Position relative du cookie principal (en %). Fixe au centre sauf
      mode frénétique où il se déplace toutes les 2 s. */
   const [cookiePos,     setCookiePos]     = useState({ x:50, y:50 });
+  /* 🥚 Flash doré du cookie quand l'easter egg "Cookie Doré" se déclenche.
+     Bool 700ms — visuel : saturation + glow doré + scale léger. */
+  const [goldenFlash,   setGoldenFlash]   = useState(false);
 
   const lastTapRef     = useRef(0);
   const comboCountRef  = useRef(0);
@@ -245,6 +254,31 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     setClicks(newClickCount);
     setPressed(true);
     setTimeout(()=>setPressed(false), 80);
+
+    /* 🥚 EASTER EGG Cookie Doré — 0.2% par tap. Bonus +50 🍪 instant,
+       flash doré sur le cookie + particule géante + son jackpot. Si
+       déclenché, on bypass l'incrément normal pour que la particule
+       géante ne soit pas écrasée par une petite "+1 🍪". */
+    if(Math.random() < GOLDEN_TAP_CHANCE){
+      rewardRef.current = rewardRef.current + GOLDEN_TAP_REWARD;
+      setRewardScore(rewardRef.current);
+      const id = now + Math.random();
+      const tx = (Math.random() - 0.5) * 40;
+      setParticles(p => [...p, {
+        id, tx,
+        label: `🌟 +${GOLDEN_TAP_REWARD} 🍪 BONUS`,
+        mul: 3,  /* déclenche le rendu "gros + doré saturé" — voir map plus bas */
+      }]);
+      setTimeout(()=>setParticles(p => p.filter(x => x.id !== id)), 1200);
+      playSound('jackpot');
+      setGoldenFlash(true);
+      setTimeout(() => setGoldenFlash(false), 700);
+      /* Ring chaud (doré clair) pour souligner */
+      const rid = now + Math.random();
+      setRings(r => [...r, { id: rid, hot: true }]);
+      setTimeout(()=>setRings(r => r.filter(x => x.id !== rid)), 550);
+      return;
+    }
 
     /* Accumule rewardPerClick (0.5 ou 1.0 selon mode). On affiche
        une particule uniquement quand le floor() augmente — adaptatif
@@ -516,8 +550,12 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
             transition: pressed
               ? 'transform .05s ease, top .4s ease, left .4s ease'
               : 'transform .15s cubic-bezier(.36,.07,.19,.97), top .4s ease, left .4s ease',
-            filter: phase === 'done' ? 'grayscale(.4) brightness(.85)' : 'none',
-            willChange:'transform, top, left',
+            filter: phase === 'done'
+              ? 'grayscale(.4) brightness(.85)'
+              : goldenFlash
+                ? 'saturate(2.2) brightness(1.35) drop-shadow(0 0 28px #FFE066) drop-shadow(0 0 14px #FFD700)'
+                : 'none',
+            willChange:'transform, top, left, filter',
             animation: (phase==='idle' || phase==='done') ? 'idle 3s ease-in-out infinite' : 'none'
           }}
         >
@@ -526,22 +564,31 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
             : <PremiumCookie />}
         </div>
 
-        {/* Particules reward (montant variable selon mode + combo) */}
-        {particles.map(p => (
-          <div
-            key={p.id}
-            style={{
-              position:'absolute', top:'50%', left:'50%',
-              fontSize: (p.mul && p.mul > 1 ? 20 : 16),
-              fontWeight:900,
-              color: (p.mul && p.mul > 1 ? '#FFD24D' : '#D4A017'),
-              pointerEvents:'none', zIndex:5,
-              animation:'floatUpClick .8s ease-out forwards',
-              textShadow:'0 1px 3px rgba(0,0,0,.3)',
-              ['--tx']: `${p.tx}px`
-            }}
-          >{p.label || '+1 🍪'}</div>
-        ))}
+        {/* Particules reward (montant variable selon mode + combo).
+            mul=3 → easter egg "Cookie Doré" : taille géante + halo doré. */}
+        {particles.map(p => {
+          const isGolden = p.mul === 3;
+          return (
+            <div
+              key={p.id}
+              style={{
+                position:'absolute', top:'50%', left:'50%',
+                fontSize: isGolden ? 24 : (p.mul && p.mul > 1 ? 20 : 16),
+                fontWeight:900,
+                color: isGolden ? '#FFE066' : (p.mul && p.mul > 1 ? '#FFD24D' : '#D4A017'),
+                pointerEvents:'none', zIndex:5,
+                animation: isGolden
+                  ? 'floatUpClick 1.2s ease-out forwards'
+                  : 'floatUpClick .8s ease-out forwards',
+                textShadow: isGolden
+                  ? '0 0 14px rgba(255,215,0,.85), 0 2px 4px rgba(0,0,0,.5)'
+                  : '0 1px 3px rgba(0,0,0,.3)',
+                whiteSpace: isGolden ? 'nowrap' : 'normal',
+                ['--tx']: `${p.tx}px`,
+              }}
+            >{p.label || '+1 🍪'}</div>
+          );
+        })}
 
         {/* Overlay countdown */}
         {phase === 'countdown' && countdownVal !== null && (

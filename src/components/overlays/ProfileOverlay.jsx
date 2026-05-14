@@ -30,7 +30,7 @@ import { getNameStyle } from "../../utils/legend.js";
      5. Mes Amis (FriendsSection)
      6. Boutons d'édition : pseudo (payant), avatar (gratuit), bio (gratuit)
      7. Réinitialiser ma progression (double validation, ResetProgressButton)
-     8. Crédit "Réalisé par Ethan Cuomo"
+     8. Crédit "Réalisé par Cookithan"
 
    Mode édition (toggle "Modifier mon avatar") : sections "Mes avatars"
    + "À débloquer" (grille des 12 base + 8 premium avec cadenas).
@@ -599,7 +599,7 @@ export function ProfileOverlay({
 
             {/* 8. Crédit auteur — toujours en pied de profil (PHASE 2) */}
             <div style={{ textAlign:'center', marginTop:24, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
-              Réalisé par <strong style={{ color:'#C17F3C' }}>Ethan Cuomo</strong>
+              Réalisé par <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
               <div style={{ fontSize:10, marginTop:2, opacity:0.7 }}>
                 CookiMiner v{APP_INFO.version}
               </div>

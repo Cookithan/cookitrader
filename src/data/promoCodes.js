@@ -1,7 +1,7 @@
 /* ════════════════════════════════════════════════════
    promoCodes.js — codes promo distribuables manuellement
    ────────────────────────────────────────────────────
-   Ethan Cuomo distribue ces codes à ses joueurs (réseaux sociaux,
+   Cookithan distribue ces codes à ses joueurs (réseaux sociaux,
    Discord, événements). L'utilisateur les rentre depuis Settings →
    Code promo et reçoit la récompense (cookies / cafés).
 

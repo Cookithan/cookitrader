@@ -81,25 +81,26 @@ export function getNameChangePrice(count){
   return NAME_CHANGE_PRICES[Math.min(count, NAME_CHANGE_PRICES.length - 1)];
 }
 
-/* Roue 100% café & cookie (refonte 13/05/2026 v3) :
-   - 10 segments ALTERNÉS gain/perte (visuel rayé clair/foncé)
-   - 50/50 pile : poids gains = poids pertes = 50
-   - +5 remplacé par +25 (2× +25 différents poids), -150 remplacé par
-     -75 (2× -75 différents poids)
+/* Roue 100% café & cookie (refonte 14/05/2026 — 75/25) :
+   - 10 segments ALTERNÉS gain/perte (visuel rayé clair/foncé conservé)
+   - 75/25 : poids gains = 75, poids pertes = 25 (la roue est généreuse,
+     elle reste joueuse mais les pertes mordent moins)
+   - Hiérarchies internes conservées : petit gain/petite perte sont
+     toujours les plus fréquents, jackpot et grosse perte rares
    - Sparkle/event JACKPOT sur +200 (overlay plein écran 2.5s) */
 export const SEGMENTS = [
   /* Alternance pos/neg/pos/neg... — l'ordre du tableau = ordre des
      parts sur la roue (sens horaire) → visuel rayé café/or. */
-  { value:  25, label:'+25',  weight:15, color:'#E8C588' },  // caramel clair (le + fréquent)
-  { value:  -5, label:'-5',   weight:15, color:'#7A5232' },  // moka clair
-  { value:  10, label:'+10',  weight:14, color:'#D4A017' },  // caramel doré
-  { value: -10, label:'-10',  weight:14, color:'#5A3520' },  // café au lait foncé
-  { value:  25, label:'+25',  weight:11, color:'#E5B040' },  // ambre miel
-  { value: -25, label:'-25',  weight:11, color:'#4A2A14' },  // moka foncé
-  { value:  75, label:'+75',  weight: 7, color:'#F0C050' },  // miel saturé
-  { value: -75, label:'-75',  weight: 7, color:'#3D2010' },  // espresso
-  { value: 200, label:'+200', weight: 3, color:'#FFD700' },  // OR JACKPOT
-  { value: -50, label:'-50',  weight: 3, color:'#1F0E04' },  // espresso brûlé (perte douce, remplace 2e -75)
+  { value:  25, label:'+25',  weight:23, color:'#E8C588' },  // caramel clair (le + fréquent)
+  { value:  -5, label:'-5',   weight: 8, color:'#7A5232' },  // moka clair
+  { value:  10, label:'+10',  weight:21, color:'#D4A017' },  // caramel doré
+  { value: -10, label:'-10',  weight: 7, color:'#5A3520' },  // café au lait foncé
+  { value:  25, label:'+25',  weight:17, color:'#E5B040' },  // ambre miel
+  { value: -25, label:'-25',  weight: 5, color:'#4A2A14' },  // moka foncé
+  { value:  75, label:'+75',  weight:10, color:'#F0C050' },  // miel saturé
+  { value: -75, label:'-75',  weight: 3, color:'#3D2010' },  // espresso
+  { value: 200, label:'+200', weight: 4, color:'#FFD700' },  // OR JACKPOT
+  { value: -50, label:'-50',  weight: 2, color:'#1F0E04' },  // espresso brûlé
 ];
 
 /* Récompenses check-in : index = jour dans la semaine (0..6). Jour 7 = jackpot. */
@@ -359,7 +360,7 @@ export const QUESTIONS = [
   { q:"Quelle variété de café est la plus résistante aux maladies ?", choices:["Arabica","Robusta","Liberica","Geisha"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel pourcentage approximatif de la production mondiale est de l'Arabica ?", choices:["30%","60%","80%","95%"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Combien de tours bonus donne le Jeton VIP +50 dans CookiMiner ?", choices:["20","30","50","100"], answer:2, reward:60, difficulty:'Expert' },
-  { q:"Qui est le créateur de l'application CookiMiner ?", choices:["Ethan Cuomo","BaristaDev","CookieMaker","GrindMaster"], answer:0, reward:60, difficulty:'Expert' },
+  { q:"Qui est le créateur de l'application CookiMiner ?", choices:["Cookithan","BaristaDev","CookieMaker","GrindMaster"], answer:0, reward:60, difficulty:'Expert' },
   { q:"Quelle est la température idéale d'extraction d'un espresso ?", choices:["60-70 °C","75-85 °C","90-96 °C","100-105 °C"], answer:2, reward:60, difficulty:'Expert' },
   { q:"Quel pays produit le célèbre café « Geisha » réputé pour ses arômes floraux ?", choices:["Éthiopie","Kenya","Panama","Costa Rica"], answer:2, reward:60, difficulty:'Expert' },
   { q:"Au-delà de quel pourcentage de variation en 5 min le circuit breaker du marché $CKM se déclenche-t-il ?", choices:["5 %","10 %","15 %","25 %"], answer:2, reward:60, difficulty:'Expert' },

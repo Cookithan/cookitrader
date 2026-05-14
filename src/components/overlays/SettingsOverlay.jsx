@@ -496,7 +496,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                     Code promo
                   </div>
                   <div style={{ fontSize:11, color:'rgba(255,255,255,.85)', marginTop:2 }}>
-                    Saisis un code distribué par Ethan Cuomo
+                    Saisis un code distribué par Cookithan
                   </div>
                 </div>
               </div>

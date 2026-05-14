@@ -11,14 +11,23 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.19.2',
+  version: '1.19.3',
   releaseDate: '2026-05-14',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
-  author: 'Ethan Cuomo',
+  author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.19.3',
+    date: '2026-05-14',
+    title: '🎡 Roue plus généreuse + surprises cachées',
+    changes: [
+      "🎡 La roue est rééquilibrée 75/25 : trois fois plus de gains que de pertes (les pertes mordent encore mais beaucoup moins souvent)",
+      "✨ De nouvelles surprises planquées dans certains mini-jeux — très rares à dénicher, gros bonus quand ça tombe",
+    ],
+  },
   {
     version: '1.19.2',
     date: '2026-05-14',
@@ -80,22 +89,6 @@ export const CHANGELOG = [
       "🌟 Renaissance : la série de check-ins (streak) est désormais conservée",
       "🛡️ Anti-triche refondu : zéro faux positif pour les joueurs rapides",
       "🚀 App entièrement fluide : retour à un bundle unique, plus de chargements en cascade",
-    ],
-  },
-  {
-    version: '1.16.0',
-    date: '2026-05-12',
-    title: '⚡ Perf + UX polish + Ordre Bulk $CKM',
-    changes: [
-      "⚡ App 2× plus rapide à charger (bundle initial divisé par 2)",
-      "🎬 Transition entre onglets totalement refondue (glisse iOS-like)",
-      "📳 Vibrations subtiles sur les actions clés (achat, niveau, succès)",
-      "💫 Animations skeleton dorées sur le classement pendant le chargement",
-      "🛡️ Plus d'écran blanc en cas de bug — écran de récupération propre",
-      "🔄 Maintenance & mises à jour pilotables en live (sans deploy)",
-      "📈 Cap actions $CKM par transaction : 20 → 30",
-      "📦 Nouvel item premium : Ordre Bulk $CKM (3 ☕) — achète OU vends d'un coup tout ton portefeuille (bypass cap, cumulable)",
-      "⬆️ XP niveaux 9-12 adouci (-25%) — fin du mur post-niveau 8",
     ],
   },
 ];

@@ -34,6 +34,10 @@ const SCORE_CAP  = 100;
    franchissant. C'est plus fréquent que la pièce dorée mais moins
    payant à l'unité. */
 const LIGHT_PIPE_CHANCE = 0.20;
+/* 🥚 EASTER EGG : 0.2% par spawn → tuyau "arc-en-ciel" (palette café :
+   or → caramel → cuivre → moka, gradient animé). Passer dedans = ×3 du
+   reward du mode. Très rare, l'user qui le voit s'en souvient. */
+const RAINBOW_PIPE_CHANCE = 0.002;
 /* Pièce dorée — 5 % de chance PAR PARTIE (rolled au startGame, pas par
    spawn), comme le legendary barista de Devine la commande. Quand le drop
    est validé, on choisit un obstacle au hasard entre les indices 5 et 30
@@ -169,8 +173,11 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
     const gapY = minY + Math.random() * (maxY - minY);
     /* Pièce dorée : seulement sur l'obstacle ciblé (rolled au reset). */
     const hasGolden = spawnCountRef.current === goldenIndexRef.current;
+    /* 🥚 Easter egg tuyau arc-en-ciel — rolled en premier, prend priorité
+       sur le light (mutuellement exclusifs). */
+    const isRainbow = Math.random() < RAINBOW_PIPE_CHANCE;
     /* Espresso clair : 20 % par spawn, indépendant de la pièce dorée. */
-    const isLight = Math.random() < LIGHT_PIPE_CHANCE;
+    const isLight = !isRainbow && Math.random() < LIGHT_PIPE_CHANCE;
     spawnCountRef.current += 1;
     const ob = {
       id: Date.now() + Math.random(),
@@ -178,6 +185,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
       passed: false,
       golden: hasGolden, goldenCollected: false,
       light: isLight,
+      rainbow: isRainbow,
     };
     obstaclesRef.current = [...obstaclesRef.current, ob];
     setObstacles(obstaclesRef.current);
@@ -225,6 +233,8 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
     let scoreInc = 0;
     let earnedInc = 0;
     let lastReward = 0;     /* dernier gain unitaire (pour le popup) */
+    let lastWasRainbow = false; /* easter egg flag pour le popup/son */
+    let lastWasLight = false;
     let collided = false;
     const next = [];
     for(const ob of obstaclesRef.current){
@@ -233,9 +243,11 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
       if(passed && !ob.passed){
         scoreInc += 1;
         const m = MODES[modeRef.current];
-        const r = ob.light ? m.rewardLight : m.reward;
+        const r = ob.rainbow ? m.reward * 3 : (ob.light ? m.rewardLight : m.reward);
         earnedInc += r;
         lastReward = r;
+        lastWasRainbow = !!ob.rainbow;
+        lastWasLight = !!ob.light;
       }
       /* Collision AABB sur la hitbox réduite (cookie rond → carré inscrit ~65 %).
          Le visuel est plus grand mais les "frôlements" ne tuent pas. */
@@ -290,15 +302,15 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
       const newEarned = Math.min(REWARD_CAP, earnedRef.current + earnedInc);
       earnedRef.current = newEarned;
       setEarned(newEarned);
-      /* Son uniquement sur tuyau espresso x2 (light) — sinon trop fréquent
-         et lassant à chaque tuyau standard. Volume atténué (0.18 vs
-         défaut 0.5) car le son revient à chaque tuyau bonus et fatigue
-         l'oreille à pleine puissance (demande user 13/05/2026). */
+      /* Son : jackpot pour tuyau arc-en-ciel (easter egg), coin atténué
+         pour tuyau espresso clair, silence pour tuyau standard (sinon
+         trop fréquent et lassant). Volume atténué pour coin (demande
+         user 13/05/2026). */
       const popId = ts + Math.random();
-      const wasLight = lastReward === MODES[modeRef.current].rewardLight;
-      if(wasLight) playSound('coin', { volume: 0.18 });
-      setPops(p => [...p, { id: popId, amount: lastReward, light: wasLight }]);
-      setTimeout(() => setPops(p => p.filter(x => x.id !== popId)), 700);
+      if(lastWasRainbow) playSound('jackpot');
+      else if(lastWasLight) playSound('coin', { volume: 0.18 });
+      setPops(p => [...p, { id: popId, amount: lastReward, light: lastWasLight, rainbow: lastWasRainbow }]);
+      setTimeout(() => setPops(p => p.filter(x => x.id !== popId)), lastWasRainbow ? 1200 : 700);
       /* Auto-end si score cap (anti-cheat) OU reward cap atteint */
       if(newScore >= SCORE_CAP || newEarned >= REWARD_CAP){
         endGame();
@@ -463,13 +475,23 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
           const gapTop = ob.gapY - halfGap;
           const gapBottom = ob.gapY + halfGap;
           const RIM_H = 12;
-          const PIPE_GRAD = ob.light
-            ? 'linear-gradient(90deg, #6B4530 0%, #C8945A 50%, #6B4530 100%)'
-            : 'linear-gradient(90deg, #2A1408 0%, #5A3520 50%, #2A1408 100%)';
-          const RIM_GRAD  = ob.light
-            ? 'linear-gradient(90deg, #5A3520 0%, #FFB840 50%, #5A3520 100%)'
-            : 'linear-gradient(90deg, #1A0804 0%, #7D4E1F 50%, #1A0804 100%)';
-          const BORDER_COL = ob.light ? '#5A3520' : '#0F0402';
+          /* Tuyau easter egg "arc-en-ciel" : palette café multicolore
+             (or → caramel → cuivre → moka), gradient diagonal + animation
+             gradientShift pour faire "vibrer" la couleur. */
+          const PIPE_GRAD = ob.rainbow
+            ? 'linear-gradient(135deg, #FFE066 0%, #D4A017 25%, #C17F3C 50%, #7A5232 75%, #FFE066 100%)'
+            : ob.light
+              ? 'linear-gradient(90deg, #6B4530 0%, #C8945A 50%, #6B4530 100%)'
+              : 'linear-gradient(90deg, #2A1408 0%, #5A3520 50%, #2A1408 100%)';
+          const RIM_GRAD  = ob.rainbow
+            ? 'linear-gradient(90deg, #C8960C 0%, #FFE066 50%, #C8960C 100%)'
+            : ob.light
+              ? 'linear-gradient(90deg, #5A3520 0%, #FFB840 50%, #5A3520 100%)'
+              : 'linear-gradient(90deg, #1A0804 0%, #7D4E1F 50%, #1A0804 100%)';
+          const BORDER_COL = ob.rainbow ? '#C8960C' : (ob.light ? '#5A3520' : '#0F0402');
+          /* Animation gradient seulement pour rainbow (palettes statiques sinon). */
+          const PIPE_ANIM = ob.rainbow ? 'gradientShift 1.8s ease-in-out infinite' : 'none';
+          const PIPE_BG_SIZE = ob.rainbow ? '300% 300%' : 'auto';
           return (
             /* PERF MOBILE : translate3d au lieu de `left:ob.x` pour éviter
                un reflow par frame sur 3-5 obstacles. willChange annonce au
@@ -479,28 +501,34 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
               <div style={{
                 position:'absolute', top:0, left:0, width:OBSTACLE_W, height:gapTop,
                 background:PIPE_GRAD,
+                backgroundSize: PIPE_BG_SIZE,
+                animation: PIPE_ANIM,
                 borderLeft:`2px solid ${BORDER_COL}`, borderRight:`2px solid ${BORDER_COL}`,
+                boxShadow: ob.rainbow ? '0 0 18px rgba(255,224,102,.55)' : 'none',
               }}/>
               {/* Embouchure basse du tuyau haut */}
               <div style={{
                 position:'absolute', top:gapTop - RIM_H, left:-4, width:OBSTACLE_W + 8, height:RIM_H,
                 background:RIM_GRAD,
                 border:`2px solid ${BORDER_COL}`, borderRadius:'3px',
-                boxShadow:'0 3px 6px rgba(0,0,0,.35)',
+                boxShadow: ob.rainbow ? '0 0 14px rgba(255,224,102,.7)' : '0 3px 6px rgba(0,0,0,.35)',
               }}/>
 
               {/* Tuyau BAS */}
               <div style={{
                 position:'absolute', top:gapBottom, left:0, width:OBSTACLE_W, height:ARENA_H - gapBottom,
                 background:PIPE_GRAD,
+                backgroundSize: PIPE_BG_SIZE,
+                animation: PIPE_ANIM,
                 borderLeft:`2px solid ${BORDER_COL}`, borderRight:`2px solid ${BORDER_COL}`,
+                boxShadow: ob.rainbow ? '0 0 18px rgba(255,224,102,.55)' : 'none',
               }}/>
               {/* Embouchure haute du tuyau bas */}
               <div style={{
                 position:'absolute', top:gapBottom, left:-4, width:OBSTACLE_W + 8, height:RIM_H,
                 background:RIM_GRAD,
                 border:`2px solid ${BORDER_COL}`, borderRadius:'3px',
-                boxShadow:'0 -3px 6px rgba(0,0,0,.35)',
+                boxShadow: ob.rainbow ? '0 0 14px rgba(255,224,102,.7)' : '0 -3px 6px rgba(0,0,0,.35)',
               }}/>
 
               {/* Café bonus — gros emoji ☕ qui flotte et scintille,
@@ -555,20 +583,23 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
         </div>
 
         {/* Popups gain 🍪 fugaces — or pour normal, ambré pour le tuyau
-            espresso clair (×2 du reward du mode). */}
+            espresso clair (×2), or saturé géant pour easter egg rainbow (×3). */}
         {pops.map(p => (
           <div key={p.id} style={{
             position:'absolute', top:cookieY - 30, left:COOKIE_X,
             transform:'translateX(-50%)',
-            fontSize: p.light ? 18 : 16,
+            fontSize: p.rainbow ? 22 : (p.light ? 18 : 16),
             fontWeight:900,
-            color: p.light ? '#FFB840' : '#D4A017',
+            color: p.rainbow ? '#FFE066' : (p.light ? '#FFB840' : '#D4A017'),
             pointerEvents:'none',
-            animation:'floatUpFb .7s ease-out forwards',
-            textShadow: p.light
-              ? '0 0 6px rgba(255,184,64,.7), 0 1px 3px rgba(0,0,0,.3)'
-              : '0 1px 3px rgba(0,0,0,.3)',
-          }}>+{p.amount} 🍪</div>
+            animation: p.rainbow ? 'floatUpFb 1.1s ease-out forwards' : 'floatUpFb .7s ease-out forwards',
+            textShadow: p.rainbow
+              ? '0 0 12px rgba(255,224,102,.95), 0 2px 5px rgba(0,0,0,.5)'
+              : p.light
+                ? '0 0 6px rgba(255,184,64,.7), 0 1px 3px rgba(0,0,0,.3)'
+                : '0 1px 3px rgba(0,0,0,.3)',
+            whiteSpace:'nowrap',
+          }}>{p.rainbow ? `🌈 +${p.amount} 🍪 ×3` : `+${p.amount} 🍪`}</div>
         ))}
 
         {/* Popup +1 ☕ quand pièce dorée collectée — flash plus voyant */}

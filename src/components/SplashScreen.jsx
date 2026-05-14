@@ -77,7 +77,7 @@ export default function SplashScreen({ onFinish, fast = false }){
       </div>
 
       <div className="splash-credit">
-        Réalisé par <strong>Ethan Cuomo</strong>
+        Réalisé par <strong>Cookithan</strong>
       </div>
     </div>
   );

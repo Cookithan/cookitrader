@@ -90,7 +90,7 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
             Code promo
           </div>
           <div style={{ fontSize:12, color:C.muted, marginTop:6, lineHeight:1.5 }}>
-            Saisis un code distribué par Ethan Cuomo pour gagner des cookies
+            Saisis un code distribué par Cookithan pour gagner des cookies
             ou cafés.
           </div>
         </div>
