@@ -13,7 +13,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.20.0',
+  version: '1.20.1',
   releaseDate: '2026-05-14',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -21,6 +21,18 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.20.1',
+    date: '2026-05-14',
+    title: '🎟️ Codes promo verrouillés cross-device',
+    title_en: '🎟️ Promo codes locked cross-device',
+    changes: [
+      "🎟️ Les codes promo ne peuvent plus être réutilisés en changeant d'appareil — un code = une seule fois par compte, où que tu te connectes",
+    ],
+    changes_en: [
+      "🎟️ Promo codes can no longer be reused by switching devices — one code = one redemption per account, anywhere you log in",
+    ],
+  },
   {
     version: '1.20.0',
     date: '2026-05-14',
@@ -113,22 +125,6 @@ export const CHANGELOG = [
       "📣 New: live-driven announcement popups (maintenance, events, updates)",
       "❓ +30 Quiz questions, +15 commands in the Guess the order mini-game",
       "🔊 Flappy Cookie bonus sound dimmed",
-    ],
-  },
-  {
-    version: '1.18.0',
-    date: '2026-05-13',
-    title: '⏱️ Temps total joué + progression XP adoucie',
-    title_en: '⏱️ Total playtime + smoother XP progression',
-    changes: [
-      "⏱️ Nouveau : temps total passé sur l'app affiché dans ton profil et celui des autres joueurs",
-      "⬆️ Niveaux 6 à 14 adoucis : fini le mur brutal au passage du 6 → 7 (progression ~×1.33 par palier)",
-      "🐛 Fix d'affichage Android pour les utilisateurs avec un titre couleur animé",
-    ],
-    changes_en: [
-      "⏱️ New: total time spent on the app shown in your profile and on other players' profiles",
-      "⬆️ Levels 6-14 softened: no more brutal wall at 6 → 7 (progression ~×1.33 per tier)",
-      "🐛 Android rendering fix for users with an animated color title",
     ],
   },
 ];

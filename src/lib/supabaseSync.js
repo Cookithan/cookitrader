@@ -1323,6 +1323,24 @@ export async function markPatchApplied(userCode, patchKey){
   }catch{ return false; }
 }
 
+/* Liste tous les patch_keys d'un user matchant un préfixe (ex 'promo_').
+   Utilisé pour sync cross-device des codes promo : au mount on récupère
+   tous les codes déjà appliqués côté serveur et on les pousse en LS pour
+   que la modale les reconnaisse comme utilisés. Renvoie un array de
+   patch_keys (chaîne brute, ex 'promo_RICHE' / 'promo_YUZUKAWAI'). */
+export async function listAppliedPatchesByPrefix(userCode, prefix){
+  if(!isSupabaseEnabled() || !userCode || !prefix) return [];
+  try{
+    const { data, error } = await supabase
+      .from('applied_patches')
+      .select('patch_key')
+      .eq('user_code', userCode)
+      .like('patch_key', `${prefix}%`);
+    if(error || !Array.isArray(data)) return [];
+    return data.map(r => r.patch_key).filter(Boolean);
+  }catch{ return []; }
+}
+
 /* applyPatchOnce — séquence idempotente complète :
    1. Check LS local (anti F5 + détection d'un ancien flag pré-migration)
       → si présent, migre le flag vers Supabase silencieusement et skip.

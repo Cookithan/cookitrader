@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, isPatchApplied, markPatchApplied, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, isPatchApplied, markPatchApplied, listAppliedPatchesByPrefix, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -2436,6 +2436,18 @@ export default function CookiMiner() {
       showToast(`🛠️ Mode admin — codes promo désactivés`);
       return;
     }
+    /* Défense cross-device : si l'effect de sync au mount n'a pas encore
+       résolu et que l'user a déjà été crédité sur un autre device, le
+       check LS rate. On vérifie Supabase à la volée et on sync le LS
+       pour que la prochaine tentative soit instantanément bloquée. */
+    if(isSupabaseEnabled() && userCode){
+      const already = await isPatchApplied(userCode, `promo_${promo.code}`);
+      if(already){
+        setPromoCodesUsed(arr => Array.isArray(arr) && arr.includes(promo.code) ? arr : [...(arr || []), promo.code]);
+        showToast(`🎟️ Code déjà utilisé sur un autre appareil`);
+        return;
+      }
+    }
     /* Crédit shares en premier (peut échouer si Supabase off) */
     if(promo.shares){
       const res = await creditFreeShares(userCode, promo.shares);
@@ -2498,6 +2510,14 @@ export default function CookiMiner() {
       setUnlockedGames(g => Array.isArray(g) && g.includes(promo.unlockGame) ? g : [...(g || []), promo.unlockGame]);
     }
     setPromoCodesUsed(arr => Array.isArray(arr) ? [...arr, promo.code] : [promo.code]);
+    /* Persistance cross-device : marque le code comme appliqué dans
+       applied_patches. Tout autre device se logguant sur le compte verra
+       le patch et refusera le code. Fire-and-forget — si Supabase est
+       down, le crédit local reste valide (sera resync à la prochaine
+       reconnexion via le mount effect). */
+    if(isSupabaseEnabled() && userCode){
+      markPatchApplied(userCode, `promo_${promo.code}`).catch(()=>{});
+    }
     playSound('success');
     /* Toast minimal — la modale festive prend le relais quand un item
        est débloqué, donc on ne mentionne pas l'item dans le toast pour
@@ -2717,6 +2737,31 @@ export default function CookiMiner() {
         if (hadCafes) setShowCafesResetNotice(true);
       },
     });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCode, pullDone]);
+
+  /* Sync cross-device des codes promo déjà utilisés. Au mount, on
+     récupère depuis applied_patches tous les patch_keys 'promo_*' et on
+     les pousse en LS (promoCodesUsed) pour que PromoCodeModal refuse
+     instantanément un code déjà utilisé sur un autre appareil. La
+     modale lit `usedCodes` (passé en prop) qui est exactement ce state. */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    (async () => {
+      const keys = await listAppliedPatchesByPrefix(userCode, 'promo_');
+      if(cancelled || !keys.length) return;
+      const codes = keys
+        .map(k => k.slice('promo_'.length))
+        .filter(Boolean);
+      if(!codes.length) return;
+      setPromoCodesUsed(arr => {
+        const cur = Array.isArray(arr) ? arr : [];
+        const merged = Array.from(new Set([...cur, ...codes]));
+        return merged.length === cur.length ? cur : merged;
+      });
+    })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCode, pullDone]);
