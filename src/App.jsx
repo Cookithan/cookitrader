@@ -67,6 +67,7 @@ import { CommunityMilestoneModal } from "./components/modals/CommunityMilestoneM
 import { BoxOpenAnimation } from "./components/modals/BoxOpenAnimation.jsx";
 import { ChestOpenAnimation } from "./components/modals/ChestOpenAnimation.jsx";
 import { CHEST_TIERS, rollChest } from "./data/chests.js";
+import { useTranslation } from "./i18n/index.js";
 import MaintenanceWarningModal from "./components/modals/MaintenanceWarningModal.jsx";
 import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
 
@@ -129,6 +130,8 @@ function fmtCompact(n){
 }
 
 export default function CookiMiner() {
+  /* i18n — hook au top pour pouvoir t() partout dans le composant. */
+  const { t, localizedField } = useTranslation();
   /* ──────────────────────────────────────────────────────────
      MAINTENANCE MODE — short-circuit AVANT tout hook React.
      Lit le userCode directement depuis localStorage (pas via
@@ -3796,7 +3799,7 @@ export default function CookiMiner() {
       {/* NAV */}
       <nav style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, padding:'0 16px 16px', zIndex:40 }}>
         <div style={{ background:isDark?'rgba(30,16,10,.95)':'rgba(253,250,246,.95)', backdropFilter:'blur(12px)', borderRadius:24, border:`1px solid ${C.border}`, boxShadow:'0 8px 32px rgba(0,0,0,.12)', display:'flex', padding:8 }}>
-          {[{id:'accueil',Icon:Home,label:'Accueil'},{id:'jeux',Icon:Gamepad2,label:'Jeux'},{id:'classement',Icon:Trophy,label:'Classement'},{id:'marche',Icon:TrendingUp,label:'Marché'},{id:'boutique',Icon:ShoppingBag,label:'Boutique'}].map(item=>{
+          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
             const showDot = item.id==='accueil' && (canCheckin || canQuiz);
             return (
               <button key={item.id} id={`nav-${item.id}`} onClick={()=>goToTab(item.id)} style={s.pill(tab===item.id)}>

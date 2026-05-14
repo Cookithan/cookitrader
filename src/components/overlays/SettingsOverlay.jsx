@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare } from "lucide-react";
+import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, LT, GOLD } from "../../data/themes.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
+import { useTranslation } from "../../i18n/index.js";
 import {
   MUSICS,
   getAudioSettings,
@@ -23,6 +24,7 @@ import {
 ═══════════════════════════════════════════════════════ */
 
 export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, userCode, restorePin, C }) {
+  const { t, lang, setLang } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
   const [pinRevealed,      setPinRevealed]      = useState(false);
@@ -123,19 +125,19 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
         <button onClick={onClose} style={{ width:36, height:36, borderRadius:12, background:C.card2, display:'flex', alignItems:'center', justifyContent:'center', color:C.text }}>
           <ChevronLeft size={20} />
         </button>
-        <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1 }}>Paramètres</span>
+        <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1 }}>{t('settings.title')}</span>
       </div>
 
       <div style={{ flex:1, overflowY:'auto', padding:20, display:'flex', flexDirection:'column', gap:18 }}>
 
         {/* Apparence — uniquement les thèmes (skins cookie/roue retirés) */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>APPARENCE</div>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_appearance')}</div>
           <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14, display:'flex', flexDirection:'column', gap:10 }}>
-            {defaultRow('Défaut', 'Crème classique', activeTheme==='', ()=>setActiveTheme(''))}
+            {defaultRow(t('settings.theme_default'), t('settings.theme_default_desc'), activeTheme==='', ()=>setActiveTheme(''))}
             {unlockedThemes.length === 0 ? (
               <div style={{ display:'flex', alignItems:'center', gap:10, color:C.muted, fontSize:12, padding:'8px 4px', fontStyle:'italic' }}>
-                <Lock size={14} /> Débloque des thèmes en boutique pour les activer ici.
+                <Lock size={14} /> {t('settings.themes_locked_hint')}
               </div>
             ) : (
               unlockedThemes.map(t => renderItem(
@@ -149,7 +151,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
 
         {/* Audio (BRIEF_AUDIO) */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>AUDIO</div>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_audio')}</div>
           <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
 
             {/* Toggle sons UI */}
@@ -162,8 +164,8 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
               }}
             >
               <div style={{ textAlign:'left' }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Sons d'interface</div>
-                <div style={{ fontSize:11, color:C.muted }}>Petits sons sur les boutons</div>
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t('settings.audio_ui')}</div>
+                <div style={{ fontSize:11, color:C.muted }}>{t('settings.audio_ui_desc')}</div>
               </div>
               <Switch enabled={audio.uiSoundEnabled} />
             </button>
@@ -180,8 +182,8 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
               }}
             >
               <div style={{ textAlign:'left' }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Musique d'ambiance</div>
-                <div style={{ fontSize:11, color:C.muted }}>Musique de fond pendant le jeu</div>
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t('settings.audio_music')}</div>
+                <div style={{ fontSize:11, color:C.muted }}>{t('settings.audio_music_desc')}</div>
               </div>
               <Switch enabled={audio.musicEnabled} />
             </button>
@@ -190,7 +192,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             {audio.musicEnabled && (
               <div style={{ marginTop:10, paddingTop:12, borderTop:`1px dashed ${C.border}` }}>
                 <div style={{ fontSize:11, color:C.muted, marginBottom:8, textTransform:'uppercase', letterSpacing:1.5, fontWeight:700 }}>
-                  Musique en cours
+                  {t('settings.audio_current_music')}
                 </div>
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {availableMusics.map(m => {
@@ -213,7 +215,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                       >
                         <span>{m.emoji} {m.name}</span>
                         {active && (
-                          <span style={{ fontSize:10, fontWeight:800, color:'#D4A017', letterSpacing:.3 }}>● En lecture</span>
+                          <span style={{ fontSize:10, fontWeight:800, color:'#D4A017', letterSpacing:.3 }}>{t('settings.audio_now_playing')}</span>
                         )}
                       </button>
                     );
@@ -221,7 +223,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 </div>
                 {availableMusics.length === 1 && (
                   <div style={{ fontSize:11, color:C.muted, marginTop:10, fontStyle:'italic', textAlign:'center', lineHeight:1.45 }}>
-                    💡 Débloque d'autres musiques dans la boutique
+                    {t('settings.audio_unlock_hint')}
                   </div>
                 )}
               </div>
@@ -229,13 +231,53 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
           </div>
         </section>
 
+        {/* Langue / Language — switch FR ↔ EN, ré-rend toute l'app en live
+            via le hook useTranslation (useSyncExternalStore). */}
+        <section>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
+            <Globe size={11} /> {t('settings.section_language')}
+          </div>
+          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
+            <div style={{ fontSize:11, color:C.muted, marginBottom:10 }}>
+              {t('settings.lang_select')}
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              {[
+                { id:'fr', flag:'🇫🇷', label:t('settings.lang_fr') },
+                { id:'en', flag:'🇬🇧', label:t('settings.lang_en') },
+              ].map(opt => {
+                const active = lang === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => { if(!active){ playSound('toggle'); setLang(opt.id); } }}
+                    style={{
+                      flex:1, padding:'10px 12px', borderRadius:12,
+                      background: active ? 'rgba(212,160,23,.14)' : 'transparent',
+                      border: `1.5px solid ${active ? '#D4A017' : C.border}`,
+                      color: active ? '#D4A017' : C.text,
+                      fontSize:13, fontWeight:800, cursor:'pointer',
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                      transition:'all .2s',
+                    }}
+                  >
+                    <span style={{ fontSize:18, lineHeight:1 }}>{opt.flag}</span>
+                    {opt.label}
+                    {active && <Check size={14} color="#D4A017" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         {/* Données */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>DONNÉES</div>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_data')}</div>
           <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16, marginBottom:8 }}>
-            <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>Sauvegarde locale</div>
+            <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>{t('settings.data_local_save')}</div>
             <div style={{ fontSize:11, color:C.muted, lineHeight:1.5 }}>
-              Ta progression est enregistrée automatiquement dans ce navigateur. Elle est conservée même après fermeture, mais ne suit pas entre appareils.
+              {t('settings.data_local_desc')}
             </div>
           </div>
 
@@ -265,15 +307,15 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 </div>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    Mes infos de récupération
+                    {t('settings.data_recovery_title')}
                   </div>
                   <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    Code + PIN pour récupérer ton compte
+                    {t('settings.data_recovery_sub')}
                   </div>
                 </div>
               </div>
               <span style={{ fontSize:11, fontWeight:700, color:'#D4A017', flexShrink:0, letterSpacing:.3 }}>
-                Voir plus →
+                {t('settings.data_recovery_see')}
               </span>
             </button>
           )}
@@ -289,7 +331,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
                   <Lock size={14} color="#D4A017" />
                   <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    Mes infos de récupération
+                    {t('settings.data_recovery_title')}
                   </div>
                 </div>
                 <button
@@ -301,7 +343,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                     textDecoration:'underline',
                   }}
                 >
-                  Réduire
+                  {t('settings.data_recovery_hide')}
                 </button>
               </div>
 
@@ -313,7 +355,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 marginBottom:8,
               }}>
                 <div style={{ minWidth:0, flex:1 }}>
-                  <div style={{ fontSize:9, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:2 }}>Code</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:2 }}>{t('settings.data_code_label')}</div>
                   <div style={{
                     fontSize:16, fontWeight:900, color:'#D4A017',
                     letterSpacing:3, fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
@@ -324,7 +366,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 <button
                   onClick={() => userCode && copyText(userCode, 'code')}
                   disabled={!userCode}
-                  aria-label="Copier le code"
+                  aria-label={t('common.copy')}
                   style={{
                     background: codeCopied ? 'rgba(212,160,23,.18)' : 'transparent',
                     border:`1px solid ${codeCopied ? '#D4A017' : C.border}`,
@@ -334,7 +376,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                     display:'flex', alignItems:'center', gap:5,
                   }}
                 >
-                  {codeCopied ? <><Check size={12}/> Copié</> : <><Copy size={12}/> Copier</>}
+                  {codeCopied ? <><Check size={12}/> {t('common.copied')}</> : <><Copy size={12}/> {t('common.copy')}</>}
                 </button>
               </div>
 
@@ -346,7 +388,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
               }}>
                 <div style={{ minWidth:0, flex:1 }}>
                   <div style={{ fontSize:9, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:2 }}>
-                    PIN <span style={{ color:'#C17F3C' }}>· secret</span>
+                    {t('settings.data_pin_label')} <span style={{ color:'#C17F3C' }}>· {t('settings.data_pin_secret')}</span>
                   </div>
                   <div style={{
                     fontSize:16, fontWeight:900, color:'#D4A017',
@@ -361,7 +403,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                   <button
                     onClick={() => setPinRevealed(v => !v)}
                     disabled={!restorePin}
-                    aria-label={pinRevealed ? 'Cacher le PIN' : 'Révéler le PIN'}
+                    aria-label={pinRevealed ? t('common.hide') : t('common.show')}
                     style={{
                       background:'transparent',
                       border:`1px solid ${C.border}`,
@@ -376,7 +418,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                   <button
                     onClick={() => restorePin && copyText(restorePin, 'pin')}
                     disabled={!restorePin}
-                    aria-label="Copier le PIN"
+                    aria-label={t('common.copy')}
                     style={{
                       background: pinCopied ? 'rgba(212,160,23,.18)' : 'transparent',
                       border:`1px solid ${pinCopied ? '#D4A017' : C.border}`,
@@ -386,14 +428,14 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                       display:'flex', alignItems:'center', gap:5,
                     }}
                   >
-                    {pinCopied ? <><Check size={12}/> Copié</> : <><Copy size={12}/> Copier</>}
+                    {pinCopied ? <><Check size={12}/> {t('common.copied')}</> : <><Copy size={12}/> {t('common.copy')}</>}
                   </button>
                 </div>
               </div>
 
               <div style={{ fontSize:10.5, color:C.muted, marginTop:10, lineHeight:1.5 }}>
-                Note ces 2 infos quelque part. Tu en as besoin pour récupérer ton compte sur un autre appareil.
-                <strong style={{ color:'#7D4E1F' }}> Ne partage jamais ton PIN.</strong>
+                {t('settings.data_recovery_note')}
+                <strong style={{ color:'#7D4E1F' }}> {t('settings.data_pin_warning')}</strong>
               </div>
             </div>
           )}
@@ -422,10 +464,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 </div>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    Restaurer / changer de compte
+                    {t('settings.data_restore')}
                   </div>
                   <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    Charger un autre profil via son code + PIN
+                    {t('settings.data_restore_sub')}
                   </div>
                 </div>
               </div>
@@ -457,10 +499,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 </div>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    Démarrer un nouveau compte
+                    {t('settings.data_new_account')}
                   </div>
                   <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    Onboarding fresh — l'actuel reste sauvegardé en ligne
+                    {t('settings.data_new_account_sub')}
                   </div>
                 </div>
               </div>
@@ -493,10 +535,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 </div>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:'#fff', letterSpacing:.2 }}>
-                    Code promo
+                    {t('settings.data_promo')}
                   </div>
                   <div style={{ fontSize:11, color:'rgba(255,255,255,.85)', marginTop:2 }}>
-                    Saisis un code distribué par Cookithan
+                    {t('settings.data_promo_sub')}
                   </div>
                 </div>
               </div>
@@ -509,17 +551,17 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             badge "déjà installée" si standalone, rien sinon. */}
         {install && (install.canInstall || install.isIos || install.isStandalone) && (
           <section>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>INSTALLATION</div>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_installation')}</div>
             <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16 }}>
               {install.isStandalone ? (
                 <div style={{ display:'flex', alignItems:'center', gap:10, color:'#D4A017', fontSize:13, fontWeight:700 }}>
-                  <Check size={18} /> App installée sur ton appareil ✓
+                  <Check size={18} /> {t('settings.install_installed')}
                 </div>
               ) : install.canInstall ? (
                 <>
-                  <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>Installer CookiMiner 🍪</div>
+                  <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>{t('settings.install_cta_title')}</div>
                   <div style={{ fontSize:11, color:C.muted, lineHeight:1.5, marginBottom:12 }}>
-                    Ajoute l'app à ton écran d'accueil pour la lancer en plein écran, comme une vraie app native.
+                    {t('settings.install_cta_desc')}
                   </div>
                   <button
                     onClick={()=>install.install()}
@@ -533,16 +575,18 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                       display:'flex', alignItems:'center', justifyContent:'center', gap:8,
                     }}
                   >
-                    <Download size={16} /> Installer l'application
+                    <Download size={16} /> {t('settings.install_button')}
                   </button>
                 </>
               ) : install.isIos ? (
                 <>
-                  <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>Installer CookiMiner sur iOS</div>
+                  <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>{t('settings.install_ios_title')}</div>
                   <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>
-                    Sur Safari : appuie sur <strong style={{ color:'#D4A017' }}>
-                      <Share size={11} style={{ display:'inline', verticalAlign:'middle' }} /> Partager
-                    </strong> en bas de l'écran, puis <strong style={{ color:'#D4A017' }}>« Sur l'écran d'accueil »</strong>.
+                    {/* Texte iOS — pose Share emoji manuellement pour préserver la richesse visuelle */}
+                    {lang === 'fr'
+                      ? <>Sur Safari : appuie sur <strong style={{ color:'#D4A017' }}><Share size={11} style={{ display:'inline', verticalAlign:'middle' }} /> Partager</strong> en bas de l'écran, puis <strong style={{ color:'#D4A017' }}>« Sur l'écran d'accueil »</strong>.</>
+                      : <>In Safari: tap <strong style={{ color:'#D4A017' }}><Share size={11} style={{ display:'inline', verticalAlign:'middle' }} /> Share</strong> at the bottom of the screen, then <strong style={{ color:'#D4A017' }}>"Add to Home Screen"</strong>.</>
+                    }
                   </div>
                 </>
               ) : null}
@@ -552,7 +596,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
 
         {/* Communauté — serveur Discord pour bugs & suggestions */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>COMMUNAUTÉ</div>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_community')}</div>
           <a
             href="https://discord.gg/EMDQXDBV39"
             target="_blank"
@@ -580,10 +624,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
               </div>
               <div style={{ minWidth:0 }}>
                 <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                  Discord — Bugs & suggestions
+                  {t('settings.community_title')}
                 </div>
                 <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                  Rejoins la communauté pour signaler / proposer
+                  {t('settings.community_sub')}
                 </div>
               </div>
             </div>
@@ -594,7 +638,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
         {/* À propos — version, changelog, stats communauté */}
         {onOpenAbout && (
           <section>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>À PROPOS</div>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_about')}</div>
             <button
               onClick={() => { playSound('modal'); onOpenAbout(); }}
               style={{
@@ -617,10 +661,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
                 </div>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    À propos de CookiMiner
+                    {t('settings.about_title')}
                   </div>
                   <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    Version, nouveautés, crédits
+                    {t('settings.about_sub')}
                   </div>
                 </div>
               </div>
@@ -632,7 +676,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
         {/* Zone à risque — repoussée tout en bas, palette espresso, double validation */}
         <section style={{ marginTop:'auto', paddingTop:14, borderTop:`1px dashed ${C.border}` }}>
           <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
-            <AlertTriangle size={11} /> ZONE SENSIBLE
+            <AlertTriangle size={11} /> {t('settings.section_danger')}
           </div>
 
           <ResetProgressButton onReset={onReset} C={C} />
