@@ -24,7 +24,7 @@ import {
 ═══════════════════════════════════════════════════════ */
 
 export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, userCode, restorePin, C }) {
-  const { t, lang, setLang } = useTranslation();
+  const { t, lang, setLang, localizedField } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
   const [pinRevealed,      setPinRevealed]      = useState(false);
@@ -86,7 +86,7 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
     >
       {swatch}
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{item.name.replace(/^(Thème|Cookie|Roue)\s+/, '')}</div>
+        <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{(localizedField(item, 'name', 'REWARDS') || '').replace(/^(Thème|Cookie|Roue|Theme)\s+/, '').replace(/\s(Theme|Cookie)$/, '')}</div>
         <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{item.desc}</div>
       </div>
       {isActive && <Check size={16} color="#D4A017" />}

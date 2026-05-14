@@ -166,13 +166,17 @@ export const LEVEL_NAMES_EN = [
 
 /* ── ACHIEVEMENTS — par id (cf. data/constants.js → ACHIEVEMENTS) ── */
 export const ACHIEVEMENTS_EN = {
-  first_click:   { name: 'First click!',      desc: 'You clicked your first cookie' },
-  level_3:       { name: 'On the way!',       desc: 'You reached level 3' },
-  level_6:       { name: 'Legendary!',        desc: 'You reached level 6 — Legend' },
-  level_10:      { name: 'Eternal!',          desc: 'You reached level 10 — Eternal' },
-  level_15:      { name: 'Primordial Cookie!',desc: 'You reached the maximum level' },
-  trader:        { name: 'Trader!',           desc: 'You invested 500 cookies in $CKM' },
-  end_game:      { name: 'Living Legend!',    desc: 'Max level + all other achievements' },
+  first_cookie:   { name: 'First Cookie!',    desc: 'You earned your first cookie' },
+  first_purchase: { name: 'First Purchase!',  desc: 'You unlocked your first shop item' },
+  streak_3:       { name: 'On a Roll!',       desc: '3 consecutive check-in days' },
+  streak_7:       { name: 'On Fire!',         desc: '7 consecutive check-in days' },
+  jackpot:        { name: 'Jackpot!',         desc: 'You hit +200 on the wheel' },
+  level_3:        { name: 'Progressing!',     desc: 'You reached level 3' },
+  level_6:        { name: 'Legendary!',       desc: 'You reached level 6 — Legend' },
+  level_10:       { name: 'Eternal!',         desc: 'You reached level 10 — Eternal' },
+  level_15:       { name: 'Primordial Cookie!',desc: 'You reached the maximum level' },
+  trader:         { name: 'Trader!',          desc: 'You invested 500 cookies in $CKM' },
+  end_game:       { name: 'Living Legend!',   desc: 'Max level + all other achievements' },
 };
 
 /* ── QUESTIONS quiz (indexed array, same order as constants.js) ───── */

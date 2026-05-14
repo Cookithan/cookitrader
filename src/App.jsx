@@ -2933,7 +2933,7 @@ export default function CookiMiner() {
       if(reward.cafes)   setCafes(c => (c || 0) + reward.cafes);
       if(reward.cookies) addCoins(reward.cookies, reward.cookies);
       /* Lance l'animation. onCollect ferme juste la modale. */
-      setOpeningBox({ name: r.name, emoji: r.emoji, reward });
+      setOpeningBox({ name: localizedField(r, 'name', 'REWARDS'), emoji: r.emoji, reward });
       playSound('purchase');
       haptic('medium');
       return;
@@ -3102,17 +3102,17 @@ export default function CookiMiner() {
      - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
        le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title:'Série du jour',       desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C', levelRequired:1 },
-    { id:'quiz',    Icon:Star,              title:'Quiz du jour',         desc:'Toutes les 5h', reward:'20 à 60 cookies', avail:canQuiz, color:'#D4A017', levelRequired:1 },
-    { id:'spin',    Icon:CircleDot,         title:'Roue de la chance',    desc:`${spinsLeft}/${spinsCap} tours/jour`,       reward:`-100 à +200 cookies (coût ${level>=8?20:10}🍪)`, avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
-    { id:'click',   Icon:MousePointerClick, title:'Cookie Click',         desc:'Tapotez le cookie !',       reward:'1 cookie / clic · cap 25/50',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
-    { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520', levelRequired:1 },
-    { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies (coût 10🍪)', avail:coins>=10, color:'#A0784E', levelRequired:2 },
-    { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc: level >= 10 ? '7 questions café' : '5 questions café', reward:'0 à 100 cookies (coût 10🍪)', avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
-    { id:'reflex',  Icon:Timer,             title:'Réflexes cookies',     desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies (coût 5🍪)', avail:coins>=5, color:'#D4A017', levelRequired:6 },
-    { id:'pyramid', Icon:Coffee,            title:'Pile de Tasses',       desc:'Empile sans rater',         reward:'5 à 70 cookies (coût 10🍪)', avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
-    { id:'slot',    Icon:Dice5,             title:'Machine à Sous',       desc:'3 rouleaux, gros lots',     reward:'+25 à +750 cookies (coût 20🍪)', avail:coins>=20, color:'#5C3614', levelRequired:10 },
-    { id:'flappy',  Icon:Coffee,            title:'Flappy Cookie',        desc:'Esquive les tuyaux, bondis !', reward:'+3 à +5 🍪 / tuyau · cap 200 (coût 10🍪)', avail:coins>=10, color:'#C8945A', levelRequired:12 },
+    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: t('games_list.checkin_reward', { n: checkinReward }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'quiz',    Icon:Star,              title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
+    { id:'spin',    Icon:CircleDot,         title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
+    { id:'click',   Icon:MousePointerClick, title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
+    { id:'pour',    Icon:Coffee,            title: t('games_list.pour_title'),         desc: t('games_list.pour_desc'),     reward: t('games_list.pour_reward'),      avail:true,        color:'#5A3520', levelRequired:1 },
+    { id:'memory',  Icon:LayoutGrid,        title: t('games_list.memory_title'),       desc: t('games_list.memory_desc'),         reward: t('games_list.memory_reward'), avail:coins>=10, color:'#A0784E', levelRequired:2 },
+    { id:'guess',   Icon:HelpCircle,        title: t('games_list.guess_title'),        desc: level >= 10 ? t('games_list.guess_desc_7') : t('games_list.guess_desc_5'), reward: t('games_list.guess_reward'), avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
+    { id:'reflex',  Icon:Timer,             title: t('games_list.reflex_title'),       desc: t('games_list.reflex_desc'), reward: t('games_list.reflex_reward'), avail:coins>=5, color:'#D4A017', levelRequired:6 },
+    { id:'pyramid', Icon:Coffee,            title: t('games_list.pyramid_title'),      desc: t('games_list.pyramid_desc'),         reward: t('games_list.pyramid_reward'), avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
+    { id:'slot',    Icon:Dice5,             title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
+    { id:'flappy',  Icon:Coffee,            title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
   ];
 
   const s = {
@@ -3443,7 +3443,7 @@ export default function CookiMiner() {
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
                       <span style={{ fontWeight:700, fontSize:14 }}>{g.title}</span>
-                      {g.avail && <span className="pulse-ring" style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:10, background:GOLD, color:'#fff' }}>Dispo</span>}
+                      {g.avail && <span className="pulse-ring" style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:10, background:GOLD, color:'#fff' }}>{t('games_list.available')}</span>}
                     </div>
                     <div style={{ fontSize:11, color:C.muted }}>{g.desc} · {g.reward}</div>
                   </div>
