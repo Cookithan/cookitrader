@@ -91,6 +91,12 @@ export const GLOBAL_CSS = `
   @keyframes boxFlash{0%{background:rgba(255,255,255,0)}30%{background:rgba(255,224,154,.9)}60%{background:rgba(255,255,255,.7)}100%{background:rgba(255,255,255,0)}}
   @keyframes boxRewardReveal{0%{transform:scale(.3) translateY(40px);opacity:0;filter:drop-shadow(0 0 30px #FFE066)}50%{transform:scale(1.15) translateY(-6px);opacity:1}100%{transform:scale(1) translateY(0)}}
   @keyframes boxParticle{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx,0),var(--dy,-80px)) scale(.4);opacity:0}}
+  /* Coffres premium (data/chests.js) — révélation séquentielle des 3 items
+     avec glow couleur selon rareté. chestItemPop = entrée d'une carte item,
+     chestItemGlow = pulse continu pour les rare/epic/legendary. */
+  @keyframes chestItemPop{0%{transform:scale(.4) translateY(20px);opacity:0;filter:blur(4px)}55%{transform:scale(1.12) translateY(-4px);opacity:1;filter:blur(0)}100%{transform:scale(1) translateY(0)}}
+  @keyframes chestItemGlow{0%,100%{box-shadow:0 0 12px var(--glow-soft,rgba(212,160,23,.3))}50%{box-shadow:0 0 24px var(--glow-soft,rgba(212,160,23,.6))}}
+  @keyframes chestSparkleOrbit{0%{transform:rotate(0deg) translateX(var(--orbit,28px)) rotate(0deg);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:rotate(360deg) translateX(var(--orbit,28px)) rotate(-360deg);opacity:0}}
   @keyframes cupShake{0%,100%{transform:translateX(0) rotate(0)}15%{transform:translateX(-6px) rotate(-3deg)}30%{transform:translateX(6px) rotate(3deg)}45%{transform:translateX(-5px) rotate(-2deg)}60%{transform:translateX(5px) rotate(2deg)}75%{transform:translateX(-2px) rotate(-1deg)}}
   @keyframes steamRise{0%{opacity:0;transform:translateY(0) scaleX(1)}30%{opacity:.55}100%{opacity:0;transform:translateY(-26px) scaleX(1.6)}}
   @keyframes cardMatch{0%{transform:scale(1);box-shadow:0 4px 12px rgba(0,0,0,.1)}35%{transform:scale(1.12);box-shadow:0 0 28px rgba(212,160,23,.85),0 4px 12px rgba(212,160,23,.5)}100%{transform:scale(.92);opacity:.35;box-shadow:0 0 0 rgba(0,0,0,0)}}

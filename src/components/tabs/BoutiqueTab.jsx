@@ -29,9 +29,10 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      Thèmes/Musiques/Packs/Spécial (Coup de Grâce + bannière). Mappé par
      applyAs (plus fiable que `type` qui est inconsistant en premium). */
   const [premiumFilter, setPremiumFilter] = useState('Tous');
-  /* Sous-vue du premium : 'main' (catégories + items normaux) ou 'jetons'
-     (spin_pass + slot_pass uniquement). On ne pollue pas la grid premium
-     principale avec les jetons consommables — ils ont leur dédiée. */
+  /* Sous-vue du premium : 'main' (catégories + items normaux),
+     'jetons' (spin_pass + slot_pass uniquement), ou 'chests' (coffres
+     mystères one-shot — Boîte Mystère + chests Bronze/Or/Légendaire).
+     Chaque sous-vue a son entrée dédiée dans la vue main. */
   const [premiumView, setPremiumView] = useState('main');
   const [showBuyCafes, setShowBuyCafes] = useState(false);
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
@@ -44,7 +45,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   /* Filtres premium — basés sur applyAs pour la robustesse. Catégorie
      'Spécial' supprimée (unlock_all_shop retiré pour la dé-pay-to-win
      Play Store, banner remappée dans Thème par convention UX). */
-  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack','Coffre'];
+  /* Filtres de la vue main premium — 'Coffre' retiré car les coffres
+     ont maintenant leur sous-vue dédiée 'chests'. */
+  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack'];
   const matchPremiumFilter = (r, f) => {
     if(f === 'Tous')     return true;
     if(f === 'Avatar')   return r.applyAs === 'avatar';
@@ -52,9 +55,12 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     if(f === 'Thème')    return r.applyAs === 'theme' || r.applyAs === 'banner';
     if(f === 'Musique')  return r.applyAs === 'music';
     if(f === 'Pack')     return r.applyAs === 'pack_shares';
-    if(f === 'Coffre')   return r.applyAs === 'open_box';
     return true;
   };
+
+  /* Items "coffres mystères" — Boîte Mystère + chests Bronze/Or/Légendaire.
+     Tous one-shot, tous routés vers la sous-vue 'chests'. */
+  const isChestLike = (r) => r.applyAs === 'open_box' || r.applyAs === 'open_chest';
 
   /* Musique active — état local synchronisé avec le système audio (LS).
      Convention : côté REWARDS l'id est `music_<key>` (ex 'music_matin') ;
@@ -129,8 +135,11 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
       if(r.levelMax && level > r.levelMax) return false;
       /* Sous-vue jetons : uniquement les jetons consommables. */
       if(premiumView === 'jetons') return isJeton(r);
-      /* Sous-vue main : on cache les jetons (ils sont dans leur catégorie). */
+      /* Sous-vue chests : uniquement les coffres (Boîte Mystère + chests). */
+      if(premiumView === 'chests') return isChestLike(r) && !initialUnlocked.includes(r.id);
+      /* Sous-vue main : on cache les jetons ET les coffres (sous-vues dédiées). */
       if(isJeton(r)) return false;
+      if(isChestLike(r)) return false;
       return !initialUnlocked.includes(r.id);
     });
   } else {
@@ -162,7 +171,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   /* Tri : déjà unlocked en haut, puis ordre logique par famille (premium
      uniquement → Avatar/Skin/Thème/Musique/Pack/Spécial), puis level requis
      croissant, puis coût croissant. */
-  const PREMIUM_FAMILY_ORDER = ['avatar', 'skin', 'theme', 'music', 'banner', 'pack_shares', 'open_box'];
+  const PREMIUM_FAMILY_ORDER = ['avatar', 'skin', 'theme', 'music', 'banner', 'pack_shares', 'open_box', 'open_chest'];
   const familyRank = (r) => {
     const i = PREMIUM_FAMILY_ORDER.indexOf(r.applyAs);
     return i === -1 ? 99 : i;
@@ -220,10 +229,8 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </button>
       </div>
 
-      {/* Bandeau Premium — uniquement en sous-vue jetons (la vue main
-         premium pose maintenant directement la carte d'achat ☕ en tête,
-         sans bandeau "EXCLUSIF" qui faisait doublon visuel). */}
-      {mode === 'premium' && premiumView === 'jetons' && (
+      {/* Bouton retour — affiché dans les sous-vues 'jetons' et 'chests'. */}
+      {mode === 'premium' && (premiumView === 'jetons' || premiumView === 'chests') && (
         <button
           onClick={()=>{ playSound('tab'); setPremiumView('main'); }}
           style={{
@@ -236,6 +243,26 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         >
           <ChevronLeft size={16} /> Retour Premium
         </button>
+      )}
+
+      {/* En-tête de la sous-vue 'chests' — pitch + rappel one-shot. */}
+      {mode === 'premium' && premiumView === 'chests' && (
+        <div style={{
+          padding:'14px 16px', borderRadius:14, marginBottom:14,
+          background:'linear-gradient(135deg, rgba(212,160,23,.12), rgba(193,127,60,.18))',
+          border:'1.5px solid rgba(212,160,23,.45)',
+        }}>
+          <div style={{
+            fontSize:13, fontWeight:900, color:'#D4A017',
+            letterSpacing:.4, marginBottom:4,
+          }}>
+            🎁 Coffres Mystères
+          </div>
+          <div style={{ fontSize:11.5, color:C.muted, lineHeight:1.5 }}>
+            Chaque coffre s'ouvre <strong style={{ color:'#D4A017' }}>une seule fois</strong> et révèle
+            3 cosmétiques cachés que tu ne possèdes pas encore.
+          </div>
+        </div>
       )}
 
       {/* Carte achat de cafés réels (Stripe) — affichée en 1er, version
@@ -264,30 +291,60 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </button>
       )}
 
-      {/* Carte d'entrée vers les Jetons VIP — accent doré discret. */}
+      {/* Cartes d'entrée vers les sous-vues — Boosts VIP + Coffres Mystères. */}
       {mode === 'premium' && premiumView === 'main' && (
-        <button
-          onClick={()=>{ playSound('tab'); setPremiumView('jetons'); }}
-          style={{
-            width:'100%', display:'flex', alignItems:'center', gap:12,
-            padding:'12px 14px', borderRadius:14, marginBottom:14,
-            background:'linear-gradient(135deg, rgba(212,160,23,.14), rgba(193,127,60,.20))',
-            border:'1.5px solid rgba(212,160,23,.55)',
-            boxShadow:'0 3px 10px rgba(212,160,23,.18)',
-            cursor:'pointer', color:C.text, textAlign:'left',
-          }}
-        >
-          <div style={{ fontSize:26 }}>🎫</div>
-          <div style={{ flex:1 }}>
-            <div style={{
-              fontSize:14, fontWeight:900, color:'#D4A017',
-              letterSpacing:.5,
-            }}>
-              Boosts VIP
+        <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:14 }}>
+          <button
+            onClick={()=>{ playSound('tab'); setPremiumView('jetons'); }}
+            style={{
+              width:'100%', display:'flex', alignItems:'center', gap:12,
+              padding:'12px 14px', borderRadius:14,
+              background:'linear-gradient(135deg, rgba(212,160,23,.14), rgba(193,127,60,.20))',
+              border:'1.5px solid rgba(212,160,23,.55)',
+              boxShadow:'0 3px 10px rgba(212,160,23,.18)',
+              cursor:'pointer', color:C.text, textAlign:'left',
+            }}
+          >
+            <div style={{ fontSize:26 }}>🎫</div>
+            <div style={{ flex:1 }}>
+              <div style={{
+                fontSize:14, fontWeight:900, color:'#D4A017',
+                letterSpacing:.5,
+              }}>
+                Boosts VIP
+              </div>
             </div>
-          </div>
-          <ChevronRight size={18} color="#D4A017" />
-        </button>
+            <ChevronRight size={18} color="#D4A017" />
+          </button>
+
+          {/* Coffres Mystères — sous-vue dédiée. Glow plus marqué pour
+              attirer l'œil sur la nouveauté. */}
+          <button
+            onClick={()=>{ playSound('tab'); setPremiumView('chests'); }}
+            style={{
+              width:'100%', display:'flex', alignItems:'center', gap:12,
+              padding:'12px 14px', borderRadius:14,
+              background:'linear-gradient(135deg, rgba(255,224,102,.18), rgba(212,160,23,.28))',
+              border:'1.5px solid rgba(255,224,102,.65)',
+              boxShadow:'0 4px 14px rgba(212,160,23,.28)',
+              cursor:'pointer', color:C.text, textAlign:'left',
+            }}
+          >
+            <div style={{ fontSize:26 }}>🎁</div>
+            <div style={{ flex:1 }}>
+              <div style={{
+                fontSize:14, fontWeight:900, color:'#D4A017',
+                letterSpacing:.5,
+              }}>
+                Coffres Mystères
+              </div>
+              <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                Découvre des cosmétiques cachés
+              </div>
+            </div>
+            <ChevronRight size={18} color="#D4A017" />
+          </button>
+        </div>
       )}
 
       {STRIPE_ENABLED && showBuyCafes && (

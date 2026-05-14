@@ -65,6 +65,8 @@ import MaintenanceScreen from "./components/overlays/MaintenanceScreen.jsx";
 import { AnnouncementModal } from "./components/modals/AnnouncementModal.jsx";
 import { CommunityMilestoneModal } from "./components/modals/CommunityMilestoneModal.jsx";
 import { BoxOpenAnimation } from "./components/modals/BoxOpenAnimation.jsx";
+import { ChestOpenAnimation } from "./components/modals/ChestOpenAnimation.jsx";
+import { CHEST_TIERS, rollChest } from "./data/chests.js";
 import MaintenanceWarningModal from "./components/modals/MaintenanceWarningModal.jsx";
 import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
 
@@ -2029,6 +2031,10 @@ export default function CookiMiner() {
      ou null. Le crédit est déjà appliqué quand l'animation démarre, donc
      l'animation est cosmétique : si l'user F5, il a déjà reçu son cadeau. */
   const [openingBox, setOpeningBox] = useState(null);
+  /* Coffre premium en cours d'ouverture (data/chests.js) — { chest, items }
+     ou null. Comme la Boîte Mystère, les items sont crédités AVANT le
+     démarrage de l'animation (F5 friendly). Animation purement cosmétique. */
+  const [openingChest, setOpeningChest] = useState(null);
   useEffect(() => {
     if(!userCode || !pullDone || !isSupabaseEnabled()) return;
     let cancelled = false;
@@ -2929,6 +2935,33 @@ export default function CookiMiner() {
       haptic('medium');
       return;
     }
+    /* Coffre premium (data/chests.js) — ONE-SHOT (ajouté à `unlocked`
+       après ouverture, devient indispo dans la boutique). Roll 3 items
+       pondérés par rareté avec filtre amont sur les cosmétiques déjà
+       possédés. Crédit immédiat (F5 friendly). Toujours payé en cafés. */
+    if(r.applyAs === 'open_chest'){
+      if(unlocked.includes(id)){ haptic('warning'); return; }
+      if(cafes < r.cost){ haptic('warning'); return; }
+      const chest = CHEST_TIERS[r.chestTier];
+      if(!chest){ haptic('warning'); return; }
+      setCafes(c => (c || 0) - r.cost);
+      const items = rollChest(r.chestTier, lvRef.current, unlocked);
+      /* Crédite chaque item immédiatement. Loot = cosmétiques ou
+         fallback cookies (jamais de ☕ — l'user vient d'en payer).
+         Marque aussi le coffre comme ouvert (`id`) → one-shot. */
+      let cookieGain = 0;
+      const newUnlocks = [id];
+      for(const it of items){
+        if(it.type === 'cookies') cookieGain += it.amount;
+        else if(it.type === 'cosmetic' && it.cosmeticId) newUnlocks.push(it.cosmeticId);
+      }
+      if(cookieGain > 0) addCoins(cookieGain, cookieGain);
+      setUnlocked(u => [...u, ...newUnlocks]);
+      setOpeningChest({ chest, items });
+      playSound('purchase');
+      haptic('medium');
+      return;
+    }
     /* Pack actions $CKM — crédite N actions via Supabase (creditFreeShares).
        One-shot par défaut (ajouté à `unlocked` après achat). Seuls les
        items explicitement marqués `consumable:true` restent rachetables
@@ -3118,6 +3151,13 @@ export default function CookiMiner() {
         boxEmoji={openingBox.emoji}
         reward={openingBox.reward}
         onCollect={() => setOpeningBox(null)}
+      />
+    )}
+    {openingChest && (
+      <ChestOpenAnimation
+        chest={openingChest.chest}
+        items={openingChest.items}
+        onCollect={() => setOpeningChest(null)}
       />
     )}
     <div style={{

@@ -11,14 +11,24 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.19.1',
-  releaseDate: '2026-05-13',
+  version: '1.19.2',
+  releaseDate: '2026-05-14',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Ethan Cuomo',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.19.2',
+    date: '2026-05-14',
+    title: '📲 Vraie installation PWA + 🎁 Coffres Mystères',
+    changes: [
+      "📲 L'app peut maintenant s'installer comme une vraie app — mode offline, mises à jour gérées proprement, plus un raccourci dans le navigateur",
+      "🎁 Nouvelle section « Coffres Mystères » dans la boutique premium — chaque coffre se découvre en une seule ouverture et révèle 3 cosmétiques cachés",
+      "🥉 3 tiers à débloquer selon ton niveau : Bronze, Or et Légendaire — la rareté monte avec le prix",
+    ],
+  },
   {
     version: '1.19.1',
     date: '2026-05-13',
@@ -86,28 +96,6 @@ export const CHANGELOG = [
       "📈 Cap actions $CKM par transaction : 20 → 30",
       "📦 Nouvel item premium : Ordre Bulk $CKM (3 ☕) — achète OU vends d'un coup tout ton portefeuille (bypass cap, cumulable)",
       "⬆️ XP niveaux 9-12 adouci (-25%) — fin du mur post-niveau 8",
-    ],
-  },
-  {
-    version: '1.15.0',
-    date: '2026-05-11',
-    title: '🎮 Flappy Cookie + niveaux 16-25 + Discord communauté',
-    changes: [
-      "🎮 Nouveau mini-jeu Flappy Cookie (niv 12) — 3 modes Facile/Normal/Difficile, esquive les tuyaux espresso",
-      "✨ Tuyaux clairs aléatoires (×2 reward) et bonus rares à dénicher",
-      "⬆️ Extension à 25 niveaux : Ascendant Caféiné → Origine du Cookie (le palier final endgame est désormais au niv 25)",
-      "🛍️ 13 nouveaux items boutique pour les niveaux 16-25 (badges, titres, skins, thèmes)",
-      "🌋 Thème Forge Caféinée — palette volcanique sombre + or saturé",
-      "⚡ 3 boosts premium en plus : Boost +30 % (24 h), Recharges Gratuites (24 h), Streak Save",
-      "💬 Serveur Discord intégré (accueil + paramètres + à propos) pour bugs & suggestions",
-      "🥞 Pile de Tasses : cap quotidien 50 → 100 + recharge 2 ☕ → 1 ☕",
-      "🎰 Roue & Machine à Sous : recharge 2 ☕ → 1 ☕",
-      "🧠 Memory Café : aperçu 0,5 s de toutes les cartes au démarrage",
-      "🍪 Cookie Click : refonte douce (auto-fin au cap, +1 🍪 par clic, plus équilibré)",
-      "📊 Rééquilibrage XP : progression du niv 3 au niv 24 plus posée pour valoriser la montée",
-      "🛡️ Système de patches Supabase cross-device — fini les doubles pop-ups au changement d'appareil",
-      "🎯 Modale 'Voir détails' du classement enfin centrée à l'écran",
-      "☕ Stop le café : fini les arrêts inopinés quand le doigt glisse hors du bouton",
     ],
   },
 ];

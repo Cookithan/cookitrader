@@ -32,7 +32,8 @@
       "Bash(taskkill *)",
       "PowerShell(Stop-Process *)",
       "PowerShell(Add-Type -AssemblyName System.Drawing; $img = [System.Drawing.Image]::FromFile\\(\"C:\\\\Users\\\\Régis\\\\Desktop\\\\CookiTrader\\\\nouveau_logo\\\\icon_cookiminer.png\"\\); \"Width=$\\($img.Width\\) Height=$\\($img.Height\\)\"; $img.Dispose\\(\\))",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

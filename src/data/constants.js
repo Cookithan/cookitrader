@@ -230,6 +230,15 @@ export const REWARDS = [
      aléatoire). Marqué one-shot (ajout à `unlocked`) — pas rachetable. */
   { id:'box_starter', applyAs:'open_box', boxReward:{ cafes:3 }, name:'Boîte Mystère', desc:'Ouvre-la pour découvrir une surprise café !', cost:1000, type:'Coffre', emoji:'📦', levelRequired:5, inPremium:true },
 
+  /* Coffres premium (data/chests.js) — 3 tiers, rachetables à volonté
+     (JAMAIS ajoutés à `unlocked`, pas de flag `consumable` nécessaire
+     puisqu'aucun handler ne les y met).
+     Chaque ouverture tire 3 items via rollChest() — ressources (🍪/☕) +
+     cosmétiques pondérés par rareté, filtre amont sur items déjà possédés. */
+  { id:'chest_bronze',    currency:'cafe', applyAs:'open_chest', chestTier:'bronze',    name:'Coffre Bronze',     desc:'3 cosmétiques à découvrir',         cost:5,  type:'Coffre', emoji:'📦', levelRequired:3, inPremium:true },
+  { id:'chest_gold',      currency:'cafe', applyAs:'open_chest', chestTier:'gold',      name:"Coffre d'Or",       desc:'3 cosmétiques rares à découvrir',   cost:15, type:'Coffre', emoji:'🎁', levelRequired:5, inPremium:true },
+  { id:'chest_legendary', currency:'cafe', applyAs:'open_chest', chestTier:'legendary', name:'Coffre Légendaire', desc:'3 cosmétiques épiques à découvrir', cost:40, type:'Coffre', emoji:'💎', levelRequired:8, inPremium:true },
+
   // SINKS PREMIUM ULTRA — items chers pour justifier le bundle 200 ☕ Stripe (mai 2026)
   /* Avatar Cosmonaute Caféiné — collectionneur whale (15 ☕). One-shot,
      ajouté à unlocked. Géré par la branche items normaux (currency=cafe). */
