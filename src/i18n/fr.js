@@ -276,6 +276,17 @@ export const FR = {
     admin_label:     'Admin',
     badge_champion:  'Badge Champion',
     player:          'Joueur',
+    online_n:        '{n} en ligne',
+    players_singular:'{n} joueur',
+    players_plural:  '{n} joueurs',
+    reset_in:        'Reset dans {time}',
+    outside_ranking: 'hors classement',
+    out_of:          'sur {n}',
+    no_shares:       'aucune action',
+    shares_singular: 'action',
+    shares_plural:   'actions',
+    no_players_yet:  'Pas encore de joueurs. Sois le premier !',
+    no_traders_yet:  "Aucun trader pour l'instant.",
   },
 
   /* ── Tab Marché ───────────────────────────────── */
@@ -341,6 +352,70 @@ export const FR = {
     min:          'Min',
     max:          'Max',
     points:       'points',
+  },
+
+  /* LeaderGapWarningModal — cap anti-écart top 1 */
+  gap_warn: {
+    header:       'Cap anti-écart appliqué',
+    too_far:      'Tu allais trop loin !',
+    top2:         'Top 2',
+    you_before:   'Toi (avant)',
+    you_capped:   'Toi (recalé)',
+    lead_kept:    'Avance gardée',
+    explanation:  "Tu avais +{pctAhead}% d'avance sur le 2e. On t'a recalé à +{pctCapped} % pile ({lost} 🍪 de perdus) pour préserver la concurrence.",
+    acknowledge:  'OK, je continue plus calme 🐌',
+  },
+
+  /* PrestigeConfirmModal — Renaissance */
+  prestige: {
+    header_n:        'Renaissance · Prestige {n}',
+    about_to_restart:'Tu vas tout recommencer',
+    lose_label:      'Tu repars de zéro',
+    lose_1:          'Niveau 1, XP, streak et record clic à 0',
+    lose_2:          'Cookies remis à 0',
+    lose_3:          'Total cumulé remis à 0',
+    keep_label:      'Tu gardes',
+    keep_1:          'Tous tes items débloqués (boutique, badges, thèmes…)',
+    keep_2:          'Tous tes succès et badges secrets',
+    keep_3:          'Tes cafés ☕ et tes actions $CKM',
+    keep_4:          'Tes amis 👥',
+    permanent_bonus: 'Bonus permanent',
+    mult_all_gains:  'x{mult} sur tous les gains 🍪',
+    before_was:      'Avant : x{mult}',
+    type_to_confirm_before:'Tape',
+    type_to_confirm_after: 'pour confirmer',
+    rebirth_btn:     'RENAÎTRE',
+  },
+
+  /* BuyCafesModal — Stripe checkout */
+  buy_cafes: {
+    test_mode_badge: 'Mode test',
+    buy_coffees:     'Achat de cafés',
+    choose_bundle:   'Choisis ton bundle',
+    n_coffees:       '{n} cafés',
+    tagline_taste:   'Pour goûter',
+    tagline_popular: 'Le populaire',
+    tagline_best_value:'Meilleur rapport ☕/€',
+    error_status:    'Erreur ({code})',
+    network_error:   'Erreur réseau',
+    test_mode_warn:  'Mode test — aucun débit réel ne sera effectué.',
+    stripe_info:     'Paiement sécurisé via Stripe. Tes cafés sont crédités automatiquement après confirmation.',
+  },
+
+  /* RestoreProfileModal — restauration compte cross-device */
+  restore: {
+    title:           'Restaure ton compte',
+    intro:           "Saisis ton code unique (6 caractères). Tu le trouves dans ton profil sur l'autre appareil.",
+    warning_title:   'Tu vas charger un autre profil',
+    warning_desc:    "Ton compte actuel reste sauvegardé en ligne — tu pourras y revenir en restaurant à nouveau avec son code + PIN.",
+    recent_accounts: 'Comptes récents',
+    anonymous:       'Anonyme',
+    forget_account:  'Oublier ce compte',
+    tap_hint:        'Tap pour pré-remplir le code · le PIN reste à saisir',
+    code_label:      'Code (XXX-XXX)',
+    pin_label:       'PIN (4 chiffres)',
+    scope_full:      'Restauration complète : identité, progression, cafés ☕, tous les items débloqués, succès, amis et portfolio.',
+    restore_btn:     'Restaurer',
   },
 
   /* Tutoriel guidé (TutorialOverlay + TutorialBubble) */

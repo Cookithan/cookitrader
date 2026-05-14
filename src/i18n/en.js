@@ -262,6 +262,17 @@ export const EN = {
     admin_label:     'Admin',
     badge_champion:  'Champion Badge',
     player:          'Player',
+    online_n:        '{n} online',
+    players_singular:'{n} player',
+    players_plural:  '{n} players',
+    reset_in:        'Reset in {time}',
+    outside_ranking: 'outside ranking',
+    out_of:          'out of {n}',
+    no_shares:       'no shares',
+    shares_singular: 'share',
+    shares_plural:   'shares',
+    no_players_yet:  'No players yet. Be the first!',
+    no_traders_yet:  'No traders yet.',
   },
 
   market: {
@@ -325,6 +336,70 @@ export const EN = {
     min:          'Min',
     max:          'Max',
     points:       'points',
+  },
+
+  /* LeaderGapWarningModal — top 1 gap cap */
+  gap_warn: {
+    header:       'Anti-gap cap applied',
+    too_far:      'You were going too far!',
+    top2:         'Top 2',
+    you_before:   'You (before)',
+    you_capped:   'You (capped)',
+    lead_kept:    'Lead kept',
+    explanation:  "You had +{pctAhead}% lead on #2. We recapped you to +{pctCapped}% flat ({lost} 🍪 lost) to keep the competition fair.",
+    acknowledge:  "OK, I'll slow down 🐌",
+  },
+
+  /* PrestigeConfirmModal — Rebirth */
+  prestige: {
+    header_n:        'Rebirth · Prestige {n}',
+    about_to_restart:"You're about to start over",
+    lose_label:      'You start from zero',
+    lose_1:          'Level 1, XP, streak and click record reset to 0',
+    lose_2:          'Cookies reset to 0',
+    lose_3:          'Total earned reset to 0',
+    keep_label:      'You keep',
+    keep_1:          'All your unlocked items (shop, badges, themes…)',
+    keep_2:          'All your achievements and secret badges',
+    keep_3:          'Your coffees ☕ and $CKM shares',
+    keep_4:          'Your friends 👥',
+    permanent_bonus: 'Permanent bonus',
+    mult_all_gains:  'x{mult} on all gains 🍪',
+    before_was:      'Was: x{mult}',
+    type_to_confirm_before:'Type',
+    type_to_confirm_after: 'to confirm',
+    rebirth_btn:     'REBIRTH',
+  },
+
+  /* BuyCafesModal — Stripe checkout */
+  buy_cafes: {
+    test_mode_badge: 'Test mode',
+    buy_coffees:     'Buy coffees',
+    choose_bundle:   'Choose your bundle',
+    n_coffees:       '{n} coffees',
+    tagline_taste:   'Just to taste',
+    tagline_popular: 'The popular one',
+    tagline_best_value:'Best ☕/€ ratio',
+    error_status:    'Error ({code})',
+    network_error:   'Network error',
+    test_mode_warn:  'Test mode — no real charge will be processed.',
+    stripe_info:     'Secure payment via Stripe. Your coffees are credited automatically after confirmation.',
+  },
+
+  /* RestoreProfileModal — cross-device account restore */
+  restore: {
+    title:           'Restore your account',
+    intro:           "Enter your unique 6-character code. You'll find it in your profile on the other device.",
+    warning_title:   "You're about to load another profile",
+    warning_desc:    "Your current account stays saved online — you can come back to it anytime by restoring with its code + PIN.",
+    recent_accounts: 'Recent accounts',
+    anonymous:       'Anonymous',
+    forget_account:  'Forget this account',
+    tap_hint:        'Tap to fill the code · PIN still needed',
+    code_label:      'Code (XXX-XXX)',
+    pin_label:       'PIN (4 digits)',
+    scope_full:      'Full restore: identity, progression, coffees ☕, all unlocked items, achievements, friends and portfolio.',
+    restore_btn:     'Restore',
   },
 
   /* Guided tutorial (TutorialOverlay + TutorialBubble) */

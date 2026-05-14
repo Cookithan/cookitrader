@@ -227,10 +227,10 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
                 boxShadow:'0 0 6px rgba(212,160,23,.7)',
                 animation:'pulse-dot 1.6s ease-in-out infinite',
               }} />
-              {online} en ligne
+              {t('leaderboard.online_n', { n: online })}
             </span>
           )}
-          <span>{total !== null ? `${total} joueur${total>1?'s':''}` : '…'}</span>
+          <span>{total !== null ? t(total > 1 ? 'leaderboard.players_plural' : 'leaderboard.players_singular', { n: total }) : '…'}</span>
         </div>
       </div>
 
@@ -257,9 +257,9 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         }}
       >
         <div style={{ fontSize:11, color:C.text, lineHeight:1.4 }}>
-          <strong style={{ color:'#D4A017' }}>Reset dans {countdown}</strong>
+          <strong style={{ color:'#D4A017' }}>{t('leaderboard.reset_in', { time: countdown })}</strong>
           <div style={{ fontSize:9.5, color:C.muted, marginTop:1 }}>
-            Top 3 → cafés ☕ + badge Champion · <span style={{ textDecoration:'underline' }}>Voir détails</span>
+            {t('leaderboard.top3_reward')} · <span style={{ textDecoration:'underline' }}>{t('leaderboard.see_details')}</span>
           </div>
         </div>
         <div style={{ fontSize:22, lineHeight:1 }}>🏆</div>
@@ -287,7 +287,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
       >
         <AvatarFigure value={userAvatar ?? 0} size={48} />
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>Ton rang</div>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>{t('leaderboard.your_rank_label')}</div>
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
@@ -296,14 +296,14 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
                Légende Vivante restent visibles ici (badges signature). */
             ...(getNameStyle(userName, earnedAchievements, null) || {}),
           }}>
-            {userName || 'Joueur'}
+            {userName || t('leaderboard.player')}
           </div>
         </div>
         <div style={{ textAlign:'right' }}>
           {isAdmin ? (
             <>
-              <div style={{ fontSize:14, fontWeight:900, color:'#F0C050', lineHeight:1.1 }}>Admin</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>hors classement</div>
+              <div style={{ fontSize:14, fontWeight:900, color:'#F0C050', lineHeight:1.1 }}>{t('leaderboard.admin_label')}</div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>{t('leaderboard.outside_ranking')}</div>
             </>
           ) : (
             <>
@@ -311,7 +311,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
                 {myRank !== null ? `#${myRank}` : '—'}
               </div>
               {total !== null && myRank !== null && (
-                <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>sur {total}</div>
+                <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>{t('leaderboard.out_of', { n: total })}</div>
               )}
             </>
           )}
@@ -326,7 +326,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
           background:C.card, border:`1px dashed ${C.border}`,
           borderRadius:14, padding:20, textAlign:'center', color:C.muted, fontSize:12,
         }}>
-          Pas encore de joueurs. Sois le premier !
+          {t('leaderboard.no_players_yet')}
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -421,7 +421,7 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, active
       >
         <AvatarFigure value={userAvatar ?? 0} size={48} />
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>Ton rang trader</div>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>{t('leaderboard.your_rank_trader')}</div>
           <div style={{
             fontSize:15, fontWeight:800, color:'#fff',
             whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
@@ -430,24 +430,24 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, active
                Légende Vivante restent visibles ici (badges signature). */
             ...(getNameStyle(userName, earnedAchievements, null) || {}),
           }}>
-            {userName || 'Joueur'}
+            {userName || t('leaderboard.player')}
           </div>
           {!isAdmin && myShares > 0 && (
             <div style={{ fontSize:10, color:'rgba(240,192,80,.85)', fontWeight:700, marginTop:2 }}>
-              {myShares} action{myShares>1?'s':''} · {myValue.toLocaleString('fr-FR')} 🍪
+              {myShares} {t(myShares > 1 ? 'leaderboard.shares_plural' : 'leaderboard.shares_singular')} · {myValue.toLocaleString('fr-FR')} 🍪
             </div>
           )}
         </div>
         <div style={{ textAlign:'right' }}>
           {isAdmin ? (
             <>
-              <div style={{ fontSize:14, fontWeight:900, color:'#F0C050', lineHeight:1.1 }}>Admin</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>hors classement</div>
+              <div style={{ fontSize:14, fontWeight:900, color:'#F0C050', lineHeight:1.1 }}>{t('leaderboard.admin_label')}</div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>{t('leaderboard.outside_ranking')}</div>
             </>
           ) : myRank === null ? (
             <>
               <div style={{ fontSize:14, fontWeight:900, color:'#F0C050', lineHeight:1.1 }}>—</div>
-              <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>aucune action</div>
+              <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>{t('leaderboard.no_shares')}</div>
             </>
           ) : (
             <>
@@ -455,7 +455,7 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, active
                 #{myRank}
               </div>
               {total !== null && (
-                <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>sur {total}</div>
+                <div style={{ fontSize:10, color:'rgba(255,255,255,.55)' }}>{t('leaderboard.out_of', { n: total })}</div>
               )}
             </>
           )}
@@ -470,8 +470,8 @@ function MarketView({ userCode, userName, userAvatar, earnedAchievements, active
           background:C.card, border:`1px dashed ${C.border}`,
           borderRadius:14, padding:20, textAlign:'center', color:C.muted, fontSize:12,
         }}>
-          Aucun trader pour l'instant. <br/>
-          <span style={{ fontSize:11, color:C.muted }}>Va dans l'onglet Marché et achète tes premières actions $CKM.</span>
+          {t('leaderboard.no_traders_yet')} <br/>
+          <span style={{ fontSize:11, color:C.muted }}>{t('leaderboard.no_shares_hint')}</span>
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>

@@ -1,5 +1,6 @@
 import { Crown, AlertCircle } from "lucide-react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    LeaderGapWarningModal — popup recalibrage anti-écart top 1
@@ -24,6 +25,8 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
+  const { t, lang } = useTranslation();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
   const pctAhead = topTwo > 0
     ? Math.round(((myTotal - topTwo) / topTwo) * 100)
     : 0;
@@ -71,14 +74,14 @@ export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
           fontSize:11, fontWeight:900, color:'#C17F3C',
           textTransform:'uppercase', letterSpacing:2, marginBottom:6,
         }}>
-          Cap anti-écart appliqué
+          {t('gap_warn.header')}
         </div>
 
         <div style={{
           fontSize:20, fontWeight:900, color:C.text,
           marginBottom:12, lineHeight:1.25,
         }}>
-          Tu allais trop loin !
+          {t('gap_warn.too_far')}
         </div>
 
         {/* Carte stats — avant / après cap */}
@@ -88,26 +91,26 @@ export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
           color:'#F0E6D3',
         }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8 }}>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700, letterSpacing:.5 }}>🥈 Top 2</span>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700, letterSpacing:.5 }}>🥈 {t('gap_warn.top2')}</span>
             <span style={{ fontSize:14, fontWeight:700, color:'rgba(255,255,255,.85)', fontVariantNumeric:'tabular-nums' }}>
-              {topTwo.toLocaleString('fr-FR')} 🍪
+              {topTwo.toLocaleString(locale)} 🍪
             </span>
           </div>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:8 }}>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,.55)', fontWeight:700, letterSpacing:.5, textDecoration:'line-through' }}>👑 Toi (avant)</span>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,.55)', fontWeight:700, letterSpacing:.5, textDecoration:'line-through' }}>👑 {t('gap_warn.you_before')}</span>
             <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,.55)', fontVariantNumeric:'tabular-nums', textDecoration:'line-through' }}>
-              {myTotal.toLocaleString('fr-FR')} 🍪
+              {myTotal.toLocaleString(locale)} 🍪
             </span>
           </div>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-            <span style={{ fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.5 }}>👑 Toi (recalé)</span>
+            <span style={{ fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.5 }}>👑 {t('gap_warn.you_capped')}</span>
             <span style={{ fontSize:18, fontWeight:900, color:'#FFE5A0', fontVariantNumeric:'tabular-nums' }}>
-              {capped.toLocaleString('fr-FR')} 🍪
+              {capped.toLocaleString(locale)} 🍪
             </span>
           </div>
           <div style={{ height:1, background:'rgba(212,160,23,.3)', margin:'8px 0' }} />
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-            <span style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700, letterSpacing:.5 }}>Avance gardée</span>
+            <span style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700, letterSpacing:.5 }}>{t('gap_warn.lead_kept')}</span>
             <span style={{ fontSize:18, fontWeight:900, color:'#F0C050', fontVariantNumeric:'tabular-nums' }}>
               +{pctCapped}%
             </span>
@@ -124,8 +127,7 @@ export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
         }}>
           <AlertCircle size={16} color="#C17F3C" style={{ flexShrink:0, marginTop:2 }} />
           <div style={{ fontSize:12, color:C.text, lineHeight:1.5 }}>
-            Tu avais <strong style={{ color:'#C17F3C' }}>+{pctAhead}% d'avance</strong> sur le 2<sup>e</sup>.
-            On t'a recalé à <strong style={{ color:'#C17F3C' }}>+{pctCapped} % pile</strong> ({lost.toLocaleString('fr-FR')} 🍪 de perdus) pour préserver la concurrence.
+            {t('gap_warn.explanation', { pctAhead, pctCapped, lost: lost.toLocaleString(locale) })}
           </div>
         </div>
 
@@ -140,7 +142,7 @@ export function LeaderGapWarningModal({ myTotal, topTwo, capped, onClose, C }){
             cursor:'pointer',
           }}
         >
-          OK, je continue plus calme 🐌
+          {t('gap_warn.acknowledge')}
         </button>
       </div>
     </div>
