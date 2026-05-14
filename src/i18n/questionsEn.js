@@ -101,7 +101,6 @@ export const QUESTIONS_EN = [
   { q: 'Which bean is typically blended with Arabica to add body?', choices: ['Liberica', 'Robusta', 'Geisha', 'Catimor'] },
   { q: 'Which Austrian pastry contains apples and phyllo dough?', choices: ['Strudel', 'Sachertorte', 'Linzer', 'Krapfen'] },
   { q: 'Which mini-game lets you earn coffees ☕ with espresso pipes?', choices: ['Cookie Click', 'Flappy Cookies', 'Wheel', 'Quiz'] },
-  { q: 'What is the mean-reversion target of the $CKM price?', choices: ['50', '100', '150', '200'] },
   { q: 'Which Portuguese pastry is oven-caramelized with cream?', choices: ['Pastel de nata', 'Bolo do caco', 'Bola', 'Queijada'] },
 
   // EXPERT
@@ -113,6 +112,5 @@ export const QUESTIONS_EN = [
   { q: 'Ideal milk temperature for latte art?', choices: ['50-55 °C', '60-65 °C', '70-75 °C', '80-85 °C'] },
   { q: 'Which Italian method uses steam pressure to extract (home coffee maker)?', choices: ['Aeropress', 'Moka pot', 'Chemex', 'V60'] },
   { q: 'Daily decay on $CKM shares after 7 days of holding without activity?', choices: ['0.1 %', '0.5 %', '1 %', '2 %'] },
-  { q: 'What percentage of mean reversion per hour toward target 100 ($CKM)?', choices: ['1 %', '5 %', '10 %', '20 %'] },
   { q: 'Maximum price impact percentage on a single $CKM transaction?', choices: ['5 %', '10 %', '15 %', '20 %'] },
 ];

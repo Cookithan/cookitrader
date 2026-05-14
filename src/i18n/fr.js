@@ -635,7 +635,7 @@ export const FR = {
     step2_title:     'Comment ça marche ?',
     step2_text:      "Achète quand tu penses que le prix va monter. Vends quand tu penses qu'il va descendre. Plus le marché bouge, plus c'est rentable !",
     step3_title:     'Stock limité',
-    step3_text:      "Il n'y a que 1 000 actions au total. Plus les gens achètent, plus c'est rare et plus le prix monte. Bon trade !",
+    step3_text:      "Il n'y a que 10 000 actions au total. Plus les gens achètent, plus c'est rare et plus le prix monte. Bon trade !",
     lets_go:         "C'est parti ! 🚀",
   },
 
