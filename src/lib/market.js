@@ -33,10 +33,10 @@ export const MARKET_CONFIG = {
   IMPACT_PER_SHARE: 0.0003,       // +0.03 % par action — impact triplé pour rendre l'offre/demande visible (avant 0.0001 → prix scotché à 100 même avec 2000 actions écoulées). 30 actions/tx = 0.9 % impact (sensible). Range théorique 5-700 (toutes achetées / toutes vendues), bornée par PRICE_MIN/PRICE_MAX et la mean reversion.
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
-  MEAN_REVERSION_TARGET: 100,     // Prix cible vers lequel le marché revient
-  MEAN_REVERSION_RATE: 0.10,      // Reversion modérée — laisse les pumps légitimes durer (50 % corrigé en ~7 h au lieu de 3.5 h). Compromis stabilité vs dynamique trading.
-  MEAN_REVERSION_LOW: 30,         // Plancher dur : sous ce prix, accélération de la reversion
-  MEAN_REVERSION_HIGH: 700,       // Plafond dur : au-dessus, accélération inverse
+  MEAN_REVERSION_TARGET: 100,     // Prix cible (vestigial — reversion désactivée)
+  MEAN_REVERSION_RATE: 0,         // DÉSACTIVÉ (demande user 14/05/2026) — le prix ne revient plus vers 100. Le marché flotte librement, contraint uniquement par PRICE_MIN / PRICE_MAX. Remettre 0.10 pour réactiver.
+  MEAN_REVERSION_LOW: 30,         // (vestigial — non utilisé)
+  MEAN_REVERSION_HIGH: 700,       // (vestigial — non utilisé)
   /* Circuit breaker auto : si le prix bouge de plus de
      CIRCUIT_BREAKER_THRESHOLD en CIRCUIT_BREAKER_WINDOW_MS, le marché
      se ferme automatiquement pendant CIRCUIT_BREAKER_PAUSE_MS.
@@ -1038,13 +1038,16 @@ export async function maintenanceTick() {
   const daysSince = hoursSince / 24;
   newPrice = newPrice * (1 + MARKET_CONFIG.DAILY_INFLATION * daysSince);
 
-  /* 2. Mean reversion vers TARGET (100) — active TOUT LE TEMPS pour
-     empêcher les prix bloqués loin de la moyenne. Rate calibré pour
-     ~50 % de l'écart corrigé en 12 h (assez doux pour permettre du
-     trading mais bloque les anomalies persistantes). */
-  const target   = MARKET_CONFIG.MEAN_REVERSION_TARGET;
-  const distance = target - newPrice;  // signé : positif si en-dessous, négatif si au-dessus
-  newPrice += distance * MARKET_CONFIG.MEAN_REVERSION_RATE * hoursSince;
+  /* 2. Mean reversion vers TARGET (100) — DÉSACTIVÉE (rate=0).
+     Le marché flotte librement, contraint uniquement par PRICE_MIN
+     et PRICE_MAX. Si MEAN_REVERSION_RATE > 0, on retombe sur l'ancien
+     comportement (correction ~50 % en 12 h vers 100).
+     Le calcul reste en place pour ne pas casser un futur revert. */
+  if (MARKET_CONFIG.MEAN_REVERSION_RATE > 0) {
+    const target   = MARKET_CONFIG.MEAN_REVERSION_TARGET;
+    const distance = target - newPrice;
+    newPrice += distance * MARKET_CONFIG.MEAN_REVERSION_RATE * hoursSince;
+  }
 
   newPrice = Math.max(MARKET_CONFIG.PRICE_MIN, Math.min(MARKET_CONFIG.PRICE_MAX, newPrice));
 
