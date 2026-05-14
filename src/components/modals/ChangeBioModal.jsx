@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { GOLD } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ChangeBioModal — modale d'édition de la bio (PHASE 5)
@@ -18,6 +19,7 @@ import { GOLD } from "../../data/themes.js";
 const MAX = 80;
 
 export function ChangeBioModal({ currentBio = '', onSave, onClose, C }){
+  const { t } = useTranslation();
   const [text, setText] = useState(currentBio);
   const trimmed = text.trim();
   const changed = trimmed !== (currentBio || '').trim();
@@ -33,9 +35,9 @@ export function ChangeBioModal({ currentBio = '', onSave, onClose, C }){
 
         <div style={{ textAlign:'center', marginBottom:18 }}>
           <div style={{ fontSize:34, marginBottom:6 }}>✍️</div>
-          <div style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:4 }}>{currentBio ? 'Modifier ma bio' : 'Ajouter une bio'}</div>
+          <div style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:4 }}>{currentBio ? t('modal.edit_bio') : t('modal.add_bio')}</div>
           <div style={{ fontSize:11, color:C.muted }}>
-            Une courte phrase pour te présenter
+            {t('modal.bio_tagline')}
           </div>
         </div>
 
@@ -46,7 +48,7 @@ export function ChangeBioModal({ currentBio = '', onSave, onClose, C }){
             maxLength={MAX}
             autoFocus
             rows={3}
-            placeholder="Mon café préféré, mon style…"
+            placeholder={t('modal.bio_placeholder')}
             style={{
               width:'100%', padding:'12px 14px', borderRadius:13,
               border:`2px solid ${C.border}`, background:C.bg, color:C.text,
@@ -57,7 +59,7 @@ export function ChangeBioModal({ currentBio = '', onSave, onClose, C }){
           />
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:6 }}>
             <span style={{ fontSize:10, color:C.muted, fontStyle:'italic' }}>
-              Gratuit · modifiable à tout moment
+              {t('modal.bio_free_anytime')}
             </span>
             <span style={{ fontSize:11, color: text.length > MAX*0.85 ? '#C17F3C' : C.muted, fontWeight:600 }}>
               {text.length}/{MAX}
@@ -67,7 +69,7 @@ export function ChangeBioModal({ currentBio = '', onSave, onClose, C }){
 
         <div style={{ display:'flex', gap:10 }}>
           <button onClick={onClose} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-            Annuler
+            {t('common.cancel')}
           </button>
           <button
             onClick={submit}
@@ -82,7 +84,7 @@ export function ChangeBioModal({ currentBio = '', onSave, onClose, C }){
               letterSpacing:.3,
             }}
           >
-            Enregistrer
+            {t('common.save')}
           </button>
         </div>
       </div>
