@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    BoxOpenAnimation — animation cinéma d'ouverture de boîte
@@ -23,6 +24,7 @@ const PHASE_SHAKE_MS  = 1000;
 const PHASE_BURST_MS  = 500;
 
 export function BoxOpenAnimation({ boxName, boxEmoji, reward, onCollect }) {
+  const { t } = useTranslation();
   const [phase, setPhase] = useState(0); /* 0:intro 1:shake 2:burst 3:reveal */
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export function BoxOpenAnimation({ boxName, boxEmoji, reward, onCollect }) {
     ? `+${reward.cafes} ☕`
     : reward.cookies
       ? `+${reward.cookies} 🍪`
-      : '+ surprise';
+      : t('box.surprise_label');
 
   return (
     <div
@@ -174,7 +176,7 @@ export function BoxOpenAnimation({ boxName, boxEmoji, reward, onCollect }) {
                 animation: 'boxRewardReveal 700ms cubic-bezier(.36,.07,.19,.97) 250ms both',
               }}
             >
-              Récolter 🎉
+              {t('box.open_collect')}
             </button>
           </>
         )}

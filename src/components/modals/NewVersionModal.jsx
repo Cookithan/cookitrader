@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { APP_INFO, CHANGELOG } from "../../lib/appInfo.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    NewVersionModal — popup "Nouvelle version disponible"
@@ -23,6 +24,7 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function NewVersionModal({ onClose, onOpenAbout, C }){
+  const { t, localizedField } = useTranslation();
   const [closing, setClosing] = useState(false);
   const release = CHANGELOG[0] || null;
 
@@ -79,7 +81,7 @@ export function NewVersionModal({ onClose, onOpenAbout, C }){
             fontSize:10, fontWeight:900, letterSpacing:3,
             textTransform:'uppercase', opacity:.85, marginBottom:3,
           }}>
-            Nouvelle version
+            {t('modal.new_version')}
           </div>
           <div style={{ fontSize:20, fontWeight:900, letterSpacing:.4 }}>
             v{APP_INFO.version}
@@ -92,7 +94,7 @@ export function NewVersionModal({ onClose, onOpenAbout, C }){
             fontSize:14, fontWeight:800, color:C.text,
             textAlign:'center', marginBottom:14, lineHeight:1.35,
           }}>
-            {release.title}
+            {localizedField(release, 'title')}
           </div>
 
           <div style={{
@@ -103,15 +105,15 @@ export function NewVersionModal({ onClose, onOpenAbout, C }){
               fontSize:10, fontWeight:800, color:C.muted,
               textTransform:'uppercase', letterSpacing:2, marginBottom:8,
             }}>
-              ✨ Au programme
+              ✨ {t('modal.on_program')}
             </div>
             <ul style={{ margin:0, paddingLeft:18, fontSize:12.5, color:C.text, lineHeight:1.55 }}>
-              {release.changes.slice(0, 3).map((c, i) => (
+              {(localizedField(release, 'changes') || release.changes).slice(0, 3).map((c, i) => (
                 <li key={i} style={{ marginBottom:4 }}>{c}</li>
               ))}
               {release.changes.length > 3 && (
                 <li style={{ marginTop:6, fontStyle:'italic', color:C.muted, listStyle:'none', marginLeft:-12 }}>
-                  + {release.changes.length - 3} autre{release.changes.length - 3 > 1 ? 's' : ''} nouveauté{release.changes.length - 3 > 1 ? 's' : ''}…
+                  {t(release.changes.length - 3 > 1 ? 'modal.more_news_plural' : 'modal.more_news_singular', { n: release.changes.length - 3 })}
                 </li>
               )}
             </ul>
@@ -121,7 +123,7 @@ export function NewVersionModal({ onClose, onOpenAbout, C }){
             fontSize:11, color:C.muted, textAlign:'center',
             fontStyle:'italic', marginBottom:14,
           }}>
-            Le détail complet et le changelog des versions précédentes sont dans <strong>À propos</strong>.
+            {t('modal.see_full_changelog')}
           </div>
         </div>
 
@@ -137,7 +139,7 @@ export function NewVersionModal({ onClose, onOpenAbout, C }){
               cursor:'pointer',
             }}
           >
-            Voir toutes les nouveautés →
+            {t('modal.see_all_news')}
           </button>
           <button
             onClick={handleClose}
@@ -148,7 +150,7 @@ export function NewVersionModal({ onClose, onOpenAbout, C }){
               cursor:'pointer',
             }}
           >
-            Plus tard
+            {t('modal.later')}
           </button>
         </div>
       </div>
