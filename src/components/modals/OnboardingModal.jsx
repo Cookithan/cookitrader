@@ -4,6 +4,7 @@ import { ONBOARDING_AVATARS, getVisibleOnboardingAvatars } from "../../data/avat
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isNameTaken } from "../../lib/supabaseSync.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    OnboardingModal — premier lancement
@@ -14,6 +15,7 @@ import { isNameTaken } from "../../lib/supabaseSync.js";
 ═══════════════════════════════════════════════════════ */
 
 export function OnboardingModal({ onComplete, onRestore, install, C }) {
+  const { t } = useTranslation();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState(null);
@@ -44,7 +46,7 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
     const { taken, error } = await isNameTaken(trimmed);
     setCheckingName(false);
     if(error){ setNameError(error); return; }
-    if(taken){ setNameError('Ce pseudo est déjà pris. Essaie-en un autre.'); return; }
+    if(taken){ setNameError(t('modal.name_taken')); return; }
     setStep(1);
   };
 
@@ -67,14 +69,14 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
         {step === 0 && (
           <div className="su" style={{ textAlign:'center' }}>
             <div className="float-anim" style={{ fontSize:64, marginBottom:14, display:'inline-block' }}>☕</div>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>Bienvenue dans CookiMiner !</div>
-            <div style={{ fontSize:13, color:C.muted, marginBottom:22, lineHeight:1.5 }}>L'app qui récompense ta passion pour le café et les cookies</div>
+            <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>{t('modal.onboarding_welcome_long')}</div>
+            <div style={{ fontSize:13, color:C.muted, marginBottom:22, lineHeight:1.5 }}>{t('modal.onboarding_tagline')}</div>
             <div style={{ textAlign:'left', marginBottom:18 }}>
-              <label style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5 }}>Choisis ton pseudo</label>
+              <label style={{ fontSize:11, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5 }}>{t('modal.choose_name')}</label>
               <input
                 value={name}
                 onChange={onNameChange}
-                placeholder="Ton pseudo..."
+                placeholder={t('modal.your_name_placeholder')}
                 maxLength={20}
                 autoFocus
                 style={{
@@ -92,7 +94,7 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
               )}
             </div>
             <button onClick={goToAvatar} disabled={!trimmed || checkingName} style={goldBtn(!trimmed || checkingName)}>
-              {checkingName ? 'Vérification…' : 'Suivant →'}
+              {checkingName ? t('modal.checking') : t('common.next') + ' →'}
             </button>
 
             {/* Carte d'installation PWA — Android/Desktop = bouton natif,
@@ -109,10 +111,10 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
                 {install.canInstall ? (
                   <>
                     <div style={{ fontSize:12.5, fontWeight:800, color:C.text, marginBottom:3 }}>
-                      📲 Installer CookiMiner
+                      📲 {t('modal.install_app_title')}
                     </div>
                     <div style={{ fontSize:11, color:C.muted, lineHeight:1.45, marginBottom:10 }}>
-                      Ajoute l'app à ton écran d'accueil — plein écran, pas d'onglet.
+                      {t('modal.install_app_desc')}
                     </div>
                     <button
                       onClick={() => install.install()}
@@ -124,7 +126,7 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
                         cursor:'pointer',
                       }}
                     >
-                      Installer maintenant
+                      {t('modal.install_now')}
                     </button>
                   </>
                 ) : (
@@ -150,7 +152,7 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
                   textDecoration:'underline', cursor:'pointer', padding:6,
                 }}
               >
-                J'ai déjà un compte
+                {t('modal.already_have_account')}
               </button>
             )}
           </div>
@@ -158,8 +160,8 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
 
         {step === 1 && (
           <div className="su" style={{ textAlign:'center' }}>
-            <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>Choisis ton avatar</div>
-            <div style={{ fontSize:12, color:C.muted, marginBottom:18 }}>Tu pourras le changer plus tard</div>
+            <div style={{ fontSize:22, fontWeight:900, color:C.text, marginBottom:6 }}>{t('modal.onboarding_avatar_q')}</div>
+            <div style={{ fontSize:12, color:C.muted, marginBottom:18 }}>{t('modal.change_later')}</div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginBottom:22, justifyItems:'center' }}>
               {getVisibleOnboardingAvatars().map((av) => {
                 const i = av.id;
@@ -192,7 +194,7 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
               disabled={avatar===null}
               style={goldBtn(avatar===null)}
             >
-              Suivant →
+              {t('common.next')} →
             </button>
           </div>
         )}
@@ -201,14 +203,14 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
           <div className="su" style={{ textAlign:'center' }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:18 }}>
               <AvatarFigure value={avatar} size={48} />
-              <div style={{ fontSize:22, fontWeight:900, color:C.text }}>Bien joué, {trimmed} !</div>
+              <div style={{ fontSize:22, fontWeight:900, color:C.text }}>{t('modal.well_played_name', { name: trimmed })}</div>
             </div>
-            <div style={{ fontSize:11, color:C.muted, marginBottom:10, fontStyle:'italic' }}>Tape une carte pour en savoir plus 👇</div>
+            <div style={{ fontSize:11, color:C.muted, marginBottom:10, fontStyle:'italic' }}>{t('modal.tap_card_more')}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:22, textAlign:'left' }}>
               {[
-                { id:'play',   ico:'🎮', t:'Joue chaque jour',     d:'Check-in, Quiz, Roue, Défi de clics',                tip:'Le check-in se renouvelle chaque jour — la série de 7 jours débloque un jackpot. Le quiz revient toutes les 5h, et chaque difficulté a sa récompense.' },
-                { id:'earn',   ico:'🍪', t:'Gagne des cookies',     d:'Et monte de niveau pour débloquer la boutique',      tip:'Chaque cookie gagné te donne aussi de l\'XP. À chaque palier, tu changes de titre (Barista → Légende) et tu débloques de nouveaux items dans la boutique.' },
-                { id:'invest', ico:'📈', t:'Investis sur le marché', d:'Fais fructifier tes cookies en $CKM',                tip:'Le marché s\'ouvre au niveau 3. Le cours $CKM bouge en temps réel — achète bas, revends haut. Attention, il peut chuter aussi vite qu\'il monte.' },
+                { id:'play',   ico:'🎮', t: t('modal.tip_play_title'),   d: t('modal.tip_play_desc'),   tip: t('modal.tip_play_long') },
+                { id:'earn',   ico:'🍪', t: t('modal.tip_earn_title'),   d: t('modal.tip_earn_desc'),   tip: t('modal.tip_earn_long') },
+                { id:'invest', ico:'📈', t: t('modal.tip_invest_title'), d: t('modal.tip_invest_desc'), tip: t('modal.tip_invest_long') },
               ].map(c=>{
                 const open = openTip === c.id;
                 return (
@@ -240,7 +242,7 @@ export function OnboardingModal({ onComplete, onRestore, install, C }) {
               })}
             </div>
             <button onClick={()=>onComplete(trimmed, avatar)} className="glow-anim" style={goldBtn(false)}>
-              C'est parti ! 🍪
+              {t('modal.lets_go')}
             </button>
           </div>
         )}
