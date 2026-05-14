@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    TutorialBubble — bulle d'aide (TUTORIEL)
@@ -24,6 +25,7 @@ import { useEffect, useState } from "react";
 ═══════════════════════════════════════════════════════ */
 
 export function TutorialBubble({ text, position, actionRequired, onNext, onSkip, stepCount, totalSteps }){
+  const { t } = useTranslation();
   const [shouldShow, setShouldShow] = useState(false);
 
   /* Reset à chaque changement de texte → l'animation pop se rejoue */
@@ -63,7 +65,7 @@ export function TutorialBubble({ text, position, actionRequired, onNext, onSkip,
           fontSize:10, color:'rgba(255,255,255,.6)',
           textTransform:'uppercase', letterSpacing:2, marginBottom:6,
         }}>
-          Étape {stepCount} / {totalSteps}
+          {t('tutorial.step_count', { n: stepCount, total: totalSteps })}
         </div>
 
         <div style={{ fontSize:14, fontWeight:600, lineHeight:1.45, marginBottom:14 }}>
@@ -80,7 +82,7 @@ export function TutorialBubble({ text, position, actionRequired, onNext, onSkip,
                 textDecoration:'underline', padding:0,
               }}
             >
-              Passer le tutoriel
+              {t('tutorial.skip_tutorial')}
             </button>
           ) : <div />}
 
@@ -95,11 +97,11 @@ export function TutorialBubble({ text, position, actionRequired, onNext, onSkip,
                 boxShadow:'0 4px 12px rgba(212,160,23,.4)',
               }}
             >
-              Suivant →
+              {t('common.next')} →
             </button>
           ) : (
             <div style={{ fontSize:11, color:'#D4A017', fontWeight:700, letterSpacing:.3 }}>
-              👇 Clique pour continuer
+              👇 {t('tutorial.click_to_continue')}
             </div>
           )}
         </div>

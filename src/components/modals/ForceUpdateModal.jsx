@@ -2,6 +2,7 @@ import { useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { GOLD } from "../../data/themes.js";
 import { APP_INFO } from "../../lib/appInfo.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ForceUpdateModal — popup "Nouvelle version disponible" déclenché
@@ -23,6 +24,7 @@ import { APP_INFO } from "../../lib/appInfo.js";
 ═══════════════════════════════════════════════════════ */
 
 export default function ForceUpdateModal({ targetVersion, onDismiss }){
+  const { t } = useTranslation();
   const [reloading, setReloading] = useState(false);
 
   const handleReload = async () => {
@@ -75,23 +77,23 @@ export default function ForceUpdateModal({ targetVersion, onDismiss }){
             fontWeight:800, color:'#D4A017', marginBottom:6,
           }}
         >
-          Mise à jour disponible
+          {t('modal.update_available')}
         </div>
 
         <div style={{
           fontSize:22, fontWeight:900, color:'#FFE8A8',
           marginBottom:10, letterSpacing:.2, lineHeight:1.2,
         }}>
-          Une nouvelle version est dispo
+          {t('modal.new_version_avail')}
         </div>
 
         <div style={{
           fontSize:13, color:'#A88B70', lineHeight:1.55,
           marginBottom:18,
         }}>
-          Tu as la <strong style={{ color:'#FFE8A8' }}>v{APP_INFO.version}</strong>
-          {targetVersion ? <> · dispo : <strong style={{ color:'#FFE8A8' }}>v{targetVersion}</strong></> : null}
-          <br />Relance l'app pour récupérer la dernière version.
+          {t('modal.you_have')} <strong style={{ color:'#FFE8A8' }}>v{APP_INFO.version}</strong>
+          {targetVersion ? <> · {t('modal.avail_lc')} <strong style={{ color:'#FFE8A8' }}>v{targetVersion}</strong></> : null}
+          <br />{t('modal.reload_app')}
         </div>
 
         <button
@@ -115,7 +117,7 @@ export default function ForceUpdateModal({ targetVersion, onDismiss }){
           <RefreshCw size={18} strokeWidth={2.6} style={{
             animation: reloading ? 'spin360 1s linear infinite' : 'none',
           }} />
-          {reloading ? 'Relancement…' : 'Relancer maintenant'}
+          {reloading ? t('modal.reloading') : t('modal.reload_now')}
         </button>
 
         <button
@@ -129,7 +131,7 @@ export default function ForceUpdateModal({ targetVersion, onDismiss }){
             touchAction:'manipulation',
           }}
         >
-          Plus tard
+          {t('modal.later')}
         </button>
       </div>
     </div>

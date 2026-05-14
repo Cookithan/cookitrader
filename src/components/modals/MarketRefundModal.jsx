@@ -1,4 +1,5 @@
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    MarketRefundModal — excuses + compensation marché
@@ -16,6 +17,8 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function MarketRefundModal({ amount, onClose, C }){
+  const { t, lang } = useTranslation();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
   return (
     <div
       onClick={onClose}
@@ -47,20 +50,17 @@ export function MarketRefundModal({ amount, onClose, C }){
             fontSize:11, fontWeight:900, letterSpacing:3,
             textTransform:'uppercase', opacity:.85, marginBottom:4,
           }}>
-            Toutes nos excuses
+            {t('refund.apologies')}
           </div>
           <div style={{ fontSize:18, fontWeight:900, color:'#fff', letterSpacing:.3 }}>
-            Compensation marché 📈
+            {t('refund.compensation_title')}
           </div>
         </div>
 
         {/* Body */}
         <div style={{ padding:'18px 22px 4px' }}>
           <p style={{ fontSize:13, color:C.text, lineHeight:1.6, margin:0, marginBottom:14 }}>
-            Désolé pour la gêne occasionnée 🙏 Un joueur a exploité le marché
-            avec un <strong>pump-and-dump</strong> qui a fait chuter brutalement
-            le prix de l'action ($CKM) de <strong>123 → 80 🍪</strong>, te faisant perdre
-            ton investissement.
+            {t('refund.explanation')}
           </p>
 
           {/* Refund highlighted */}
@@ -72,13 +72,13 @@ export function MarketRefundModal({ amount, onClose, C }){
             boxShadow:'0 4px 14px rgba(212,160,23,.3)',
           }}>
             <div style={{ fontSize:10, fontWeight:900, color:'#3D2010', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>
-              Tu récupères
+              {t('refund.you_get_back')}
             </div>
             <div style={{ fontSize:32, fontWeight:900, color:'#3D2010', lineHeight:1 }}>
-              +{(amount || 0).toLocaleString('fr-FR')} 🍪
+              +{(amount || 0).toLocaleString(locale)} 🍪
             </div>
             <div style={{ fontSize:11, fontWeight:600, color:'#5D3A1F', marginTop:4, fontStyle:'italic' }}>
-              (l'intégralité de ton ancien investissement)
+              {t('refund.full_investment')}
             </div>
           </div>
 
@@ -87,14 +87,14 @@ export function MarketRefundModal({ amount, onClose, C }){
             border:`1px solid ${C.border}`, marginBottom:14,
           }}>
             <div style={{ fontSize:10, fontWeight:800, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginBottom:8 }}>
-              Ce qui a changé pour la suite
+              {t('refund.what_changed')}
             </div>
             <ul style={{ fontSize:12, color:C.text, lineHeight:1.6, paddingLeft:18, margin:0 }}>
-              <li><strong>Cap 20 actions</strong> par transaction (vs illimité avant)</li>
-              <li><strong>Cooldown 60 s</strong> entre achats / ventes</li>
-              <li><strong>Bonus de hold</strong> : +10/30/100 % selon durée</li>
-              <li><strong>Circuit breaker</strong> auto si variation &gt; 15 %</li>
-              <li><strong>Marché élargi</strong> à 10 000 actions</li>
+              <li>{t('refund.change_cap_20')}</li>
+              <li>{t('refund.change_cooldown')}</li>
+              <li>{t('refund.change_hold_bonus')}</li>
+              <li>{t('refund.change_circuit_breaker')}</li>
+              <li>{t('refund.change_market_size')}</li>
             </ul>
           </div>
 
@@ -102,7 +102,7 @@ export function MarketRefundModal({ amount, onClose, C }){
             fontSize:11, color:C.muted, textAlign:'center',
             fontStyle:'italic', marginBottom:14, lineHeight:1.5,
           }}>
-            Le pump-and-dump est désormais quasi impossible. Bon trading ! ☕
+            {t('refund.pump_dump_safe')}
           </div>
 
           <div style={{
@@ -112,7 +112,7 @@ export function MarketRefundModal({ amount, onClose, C }){
             borderRadius:10, padding:'8px 12px', marginBottom:18,
             lineHeight:1.5,
           }}>
-            ℹ️ Plus de détails sur les changements dans <strong>Paramètres → À propos</strong> (v1.12.0).
+            ℹ️ {t('refund.see_about_details')}
           </div>
         </div>
 
@@ -129,7 +129,7 @@ export function MarketRefundModal({ amount, onClose, C }){
               boxShadow:'0 6px 18px rgba(212,160,23,.45)',
             }}
           >
-            🍪 Merci, j'ai compris
+            🍪 {t('refund.thanks_btn')}
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { getHoldBonus, MARKET_CONFIG } from '../../lib/market';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    PortfolioCard — Mes actions + PnL + hold bonus actif
@@ -29,6 +30,7 @@ function fmtDuration(ms) {
 }
 
 export function PortfolioCard({ portfolio, currentPrice, C }) {
+  const { t } = useTranslation();
   if (!portfolio || portfolio.shares === 0) {
     return (
       <div style={{
@@ -40,9 +42,9 @@ export function PortfolioCard({ portfolio, currentPrice, C }) {
         textAlign: 'center',
       }}>
         <div style={{ fontSize: 32, marginBottom: 6 }}>💼</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Aucune action</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{t('portfolio.no_shares_title')}</div>
         <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-          Achète tes premières $CKM pour commencer !
+          {t('portfolio.no_shares_hint')}
         </div>
       </div>
     );
@@ -78,11 +80,11 @@ export function PortfolioCard({ portfolio, currentPrice, C }) {
       border: `1.5px solid ${C.border}`,
     }}>
       <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10 }}>
-        💼 Mes actions
+        💼 {t('portfolio.my_shares')}
       </div>
 
       <div style={{ fontSize: 14, color: C.text, lineHeight: 1.4 }}>
-        Tu as <strong style={{ color: '#D4A017', fontSize: 16 }}>{portfolio.shares}</strong> action(s) qui valent maintenant <strong style={{ color: '#D4A017', fontSize: 16 }}>{currentValue} 🍪</strong>
+        {t('portfolio.you_own_intro')} <strong style={{ color: '#D4A017', fontSize: 16 }}>{portfolio.shares}</strong> {t('portfolio.shares_now_worth')} <strong style={{ color: '#D4A017', fontSize: 16 }}>{currentValue} 🍪</strong>
       </div>
 
       <div style={{
@@ -97,7 +99,7 @@ export function PortfolioCard({ portfolio, currentPrice, C }) {
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <span>{profitIcon} {profit > 0 ? 'Gain actuel' : profit < 0 ? 'Perte actuelle' : "À l'équilibre"}</span>
+        <span>{profitIcon} {profit > 0 ? t('portfolio.current_gain') : profit < 0 ? t('portfolio.current_loss') : t('portfolio.even')}</span>
         <span>{profit > 0 ? '+' : ''}{profit} 🍪</span>
       </div>
 
@@ -120,10 +122,10 @@ export function PortfolioCard({ portfolio, currentPrice, C }) {
             fontWeight: 700,
           }}>
             <span style={{ color: C.muted, fontWeight: 600 }}>
-              ⏳ Hold depuis <span style={{ color: C.text, fontWeight: 700 }}>{fmtDuration(hb.holdMs)}</span>
+              ⏳ {t('portfolio.hold_since')} <span style={{ color: C.text, fontWeight: 700 }}>{fmtDuration(hb.holdMs)}</span>
             </span>
             <span style={{ color: hb.pct > 0 ? '#D4A017' : C.muted }}>
-              {hb.pct > 0 ? `Bonus +${Math.round(hb.pct * 100)}%` : 'Pas de bonus'}
+              {hb.pct > 0 ? t('portfolio.bonus_pct', { n: Math.round(hb.pct * 100) }) : t('portfolio.no_bonus')}
             </span>
           </div>
 
@@ -143,7 +145,7 @@ export function PortfolioCard({ portfolio, currentPrice, C }) {
                 }} />
               </div>
               <div style={{ fontSize: 9, color: C.muted, marginTop: 3, textAlign: 'right' }}>
-                prochain palier : +{Math.round(nextTier.bonus * 100)}% à {nextTier.label}
+                {t('portfolio.next_tier', { n: Math.round(nextTier.bonus * 100), at: nextTier.label })}
               </div>
             </div>
           )}

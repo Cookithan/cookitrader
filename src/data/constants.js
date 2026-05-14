@@ -302,7 +302,7 @@ export const ACHIEVEMENTS = [
 ];
 
 /* Pool Quiz du jour — questions sur CookiMiner et le thème café/cookie.
-   95 questions (30 Facile · 30 Moyen · 35 Expert) tirées 3 par session
+   93 questions (30 Facile · 29 Moyen · 34 Expert) tirées 3 par session
    (cf QUIZ_QUESTIONS_PER_SESSION). Mix ~50 % mécaniques de l'app,
    ~50 % culture café/pâtisserie.
    3 niveaux : Facile (20 🍪), Moyen (35 🍪), Expert (60 🍪). */
@@ -400,7 +400,6 @@ export const QUESTIONS = [
   { q:"Quel grain est généralement mélangé avec l'Arabica pour ajouter du corps ?", choices:["Liberica","Robusta","Geisha","Catimor"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Quelle pâtisserie autrichienne contient pommes et pâte filo ?", choices:["Strudel","Sachertorte","Linzer","Krapfen"], answer:0, reward:35, difficulty:'Moyen' },
   { q:"Quel mini-jeu permet de gagner des cafés ☕ avec des tuyaux espresso ?", choices:["Cookie Click","Flappy Cookies","Roue","Quiz"], answer:1, reward:35, difficulty:'Moyen' },
-  { q:"Quelle est la cible de la régression vers la moyenne du prix $CKM ?", choices:["50","100","150","200"], answer:1, reward:35, difficulty:'Moyen' },
   { q:"Quelle pâtisserie portugaise est caramélisée au four à la crème ?", choices:["Pastel de nata","Bolo do caco","Bola","Queijada"], answer:0, reward:35, difficulty:'Moyen' },
 
   // EXPERT
@@ -412,7 +411,6 @@ export const QUESTIONS = [
   { q:"Quelle température idéale du lait pour le latte art ?", choices:["50-55 °C","60-65 °C","70-75 °C","80-85 °C"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quelle méthode italienne utilise la pression de la vapeur pour extraire (cafetière maison) ?", choices:["Aeropress","Moka pot","Chemex","V60"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel décay quotidien sur les actions $CKM après 7 j de hold sans activité ?", choices:["0.1 %","0.5 %","1 %","2 %"], answer:1, reward:60, difficulty:'Expert' },
-  { q:"Quel pourcentage de mean reversion par heure vers la target 100 ($CKM) ?", choices:["1 %","5 %","10 %","20 %"], answer:2, reward:60, difficulty:'Expert' },
   { q:"Quel pourcentage maximum d'impact prix sur une seule transaction $CKM ?", choices:["5 %","10 %","15 %","20 %"], answer:1, reward:60, difficulty:'Expert' },
 ];
 

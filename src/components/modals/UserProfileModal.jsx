@@ -5,6 +5,7 @@ import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
 import { getNameStyle } from "../../utils/legend.js";
 import { formatPlayTime } from "../../utils/formatPlayTime.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    UserProfileModal — vue résumée d'un ami / du top 1 (BRIEF_PROFIL_VISIBLE)
@@ -170,8 +171,9 @@ export function UserProfileModal({ userCode, isCrown = false, currentUserCode, f
 }
 
 function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, onCopy, C }){
+  const { t, localizedLevelName } = useTranslation();
   const joinDate = formatJoinDate(profile.join_date);
-  const levelTitle = LEVEL_NAMES[profile.level] || `Niveau ${profile.level ?? 1}`;
+  const levelTitle = (localizedLevelName(profile.level) || LEVEL_NAMES[profile.level]) || t('modal.level_n', { n: profile.level ?? 1 });
   const cookies     = Number(profile.cookies)      || 0;
   const totalEarned = Number(profile.total_earned) || 0;
   const streak      = Number(profile.streak)       || 0;

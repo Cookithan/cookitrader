@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { GOLD } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    WeeklyChampModal — récompense top 3 du classement hebdo
@@ -16,13 +17,13 @@ import { GOLD } from "../../data/themes.js";
    - C         : palette
 ═══════════════════════════════════════════════════════ */
 
-const RANK_COLORS = {
-  1: { from:'#FFE066', to:'#D4A017', border:'#FFE066', emoji:'🥇', label:'Champion' },
-  2: { from:'#E8DFCD', to:'#B8A58A', border:'#D4C4A4', emoji:'🥈', label:'Vice-champion' },
-  3: { from:'#E8B57A', to:'#A87858', border:'#C99607', emoji:'🥉', label:'3e place' },
-};
-
 export function WeeklyChampModal({ rank, cafes, weekNum, onClose, C }){
+  const { t } = useTranslation();
+  const RANK_COLORS = {
+    1: { from:'#FFE066', to:'#D4A017', border:'#FFE066', emoji:'🥇', label: t('weekly.champion') },
+    2: { from:'#E8DFCD', to:'#B8A58A', border:'#D4C4A4', emoji:'🥈', label: t('weekly.vice_champion') },
+    3: { from:'#E8B57A', to:'#A87858', border:'#C99607', emoji:'🥉', label: t('weekly.third_place') },
+  };
   const [counter, setCounter] = useState(0);
   const palette = RANK_COLORS[rank] || RANK_COLORS[3];
 
@@ -96,17 +97,17 @@ export function WeeklyChampModal({ rank, cafes, weekNum, onClose, C }){
             padding:'4px 12px', borderRadius:10,
             marginBottom:10,
           }}>
-            Semaine {weekNum} — Top {rank}
+            {t('weekly.week_top', { n: weekNum, rank })}
           </div>
 
           <div style={{ fontSize:13, color:'#5D3A1F', marginBottom:4, fontWeight:700 }}>
-            {palette.label} de la semaine !
+            {t('weekly.of_the_week', { label: palette.label })}
           </div>
           <div style={{ fontSize:42, fontWeight:900, color:'#3D2010', lineHeight:1, marginBottom:6 }}>
             +{counter} ☕
           </div>
           <div style={{ fontSize:11.5, color:'#5D3A1F', fontStyle:'italic', marginBottom:12, opacity:.85 }}>
-            + Badge "Champion S{weekNum}" 🏅
+            + {t('weekly.champion_badge', { n: weekNum })}
           </div>
 
           <div style={{
@@ -118,8 +119,7 @@ export function WeeklyChampModal({ rank, cafes, weekNum, onClose, C }){
             marginBottom:18,
             lineHeight:1.5,
           }}>
-            Le compteur de la semaine vient de reset.<br/>
-            Bonne chance pour le prochain cycle ! ☕
+            {t('weekly.counter_reset')}
           </div>
 
           <button
@@ -133,7 +133,7 @@ export function WeeklyChampModal({ rank, cafes, weekNum, onClose, C }){
               cursor:'pointer',
             }}
           >
-            Continuer
+            {t('common.continue')}
           </button>
         </div>
       </div>

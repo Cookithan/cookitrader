@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { playSound } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ReflexGame — Réflexes café (PHASE 6D)
@@ -47,6 +48,7 @@ function rewardFor(score){
 }
 
 export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', C }){
+  const { t } = useTranslation();
   /* Skin cookie : si l'user a un skin custom équipé, on remplace le SVG
      hardcodé par <SkinnedCookie> pour rester cohérent avec ClickGame +
      ProfileOverlay. Sinon on garde le SVG ci-dessous (calibré 70x70). */
@@ -262,21 +264,21 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
   const urgentTime = phase === 'playing' && timeLeft <= 5;
 
   const btnLabel =
-      phase === 'idle'      ? `Commencer (${REFLEX_COST} 🍪)`
+      phase === 'idle'      ? t('games.start_btn', { cost: REFLEX_COST })
     : phase === 'countdown' ? '...'
     : phase === 'playing'   ? '🍪'
-    :                         `Rejouer (${REFLEX_COST} 🍪)`;
+    :                         t('games.replay_btn', { cost: REFLEX_COST });
 
   /* Bannière de fin */
   const earnedFinal = rewardFor(score);
   const banner = phase === 'done'
     ? (score >= 20
-        ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:`🏆 ${score} cookies !` }
+        ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title: t('game_reflex.end_top', { n: score }) }
         : score >= 10
-          ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`Bien joué ! ${score} cookies` }
+          ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title: t('game_reflex.end_good', { n: score }) }
           : score >= 5
-            ? { bg:'linear-gradient(135deg,#FBEFD4,#E5CDA8)', col:'#5D3A1F', border:'#C8A878', title:`${score} cookies` }
-            : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title:`${score} cookies — pas de récompense` })
+            ? { bg:'linear-gradient(135deg,#FBEFD4,#E5CDA8)', col:'#5D3A1F', border:'#C8A878', title: t('game_reflex.end_ok', { n: score }) }
+            : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title: t('game_reflex.end_zero', { n: score }) })
     : null;
 
   return (
@@ -438,10 +440,10 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
         fontSize:13, fontWeight:800,
         color:'#D4A017', textTransform:'uppercase', letterSpacing:2,
       }}>
-        {phase === 'idle'      && 'Prêt à tester tes réflexes ?'}
-        {phase === 'countdown' && 'Prépare-toi…'}
-        {phase === 'playing'   && (shaking ? 'Loupé !' : 'Tape ! Tape ! Tape !')}
-        {phase === 'done'      && (score >= 5 ? 'Bien joué !' : 'Tu peux mieux faire')}
+        {phase === 'idle'      && t('game_reflex.idle')}
+        {phase === 'countdown' && t('game_reflex.countdown')}
+        {phase === 'playing'   && (shaking ? t('game_reflex.missed') : t('game_reflex.tap_tap_tap'))}
+        {phase === 'done'      && (score >= 5 ? t('game_reflex.well_done') : t('game_reflex.try_better'))}
       </div>
 
       {/* Bannière résultat */}

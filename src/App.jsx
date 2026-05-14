@@ -18,7 +18,7 @@ import { useSwipe } from "./hooks/useSwipe.js";
 import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
-import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
+import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, isPatchApplied, markPatchApplied, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
 import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
@@ -67,6 +67,7 @@ import { CommunityMilestoneModal } from "./components/modals/CommunityMilestoneM
 import { BoxOpenAnimation } from "./components/modals/BoxOpenAnimation.jsx";
 import { ChestOpenAnimation } from "./components/modals/ChestOpenAnimation.jsx";
 import { CHEST_TIERS, rollChest } from "./data/chests.js";
+import { useTranslation } from "./i18n/index.js";
 import MaintenanceWarningModal from "./components/modals/MaintenanceWarningModal.jsx";
 import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
 
@@ -129,6 +130,8 @@ function fmtCompact(n){
 }
 
 export default function CookiMiner() {
+  /* i18n — hook au top pour pouvoir t() partout dans le composant. */
+  const { t, localizedField, localizedLevelName } = useTranslation();
   /* ──────────────────────────────────────────────────────────
      MAINTENANCE MODE — short-circuit AVANT tout hook React.
      Lit le userCode directement depuis localStorage (pas via
@@ -1010,6 +1013,13 @@ export default function CookiMiner() {
        - knownFriendCodes (LS)   : codes amis déjà connus localement ;
          tout nouveau code → notif "X t'a accepté". Mis à jour APRÈS
          détection pour ne plus la repopulariser.
+
+     Cross-device (applyPatchOnce friendNotifsBootstrap_v1) : sur un nouveau
+     device, les caches LS sont vides → tous les amis acceptés et toutes
+     les demandes pending réapparaîtraient en notif. Si le patch a déjà
+     été marqué côté Supabase (autre device a déjà vu les notifs), on
+     initialise les caches LS silently sans rien afficher.
+
      Tourne 1 fois quand userCode + showOnboarding=false (sinon la
      modale onboarding cache la nôtre). */
   useEffect(() => {
@@ -1027,6 +1037,33 @@ export default function CookiMiner() {
       let notifiedIds = [];
       try { notifiedIds = JSON.parse(window.localStorage.getItem('cookiminer:notifiedRequestIds') || '[]'); }
       catch { notifiedIds = []; }
+
+      /* Bootstrap cross-device : caches LS vides ET patch déjà appliqué
+         sur un autre device → init silently, pas de notif (l'user a déjà
+         vu les acceptations/demandes ailleurs). */
+      const isFreshOnThisDevice = knownCodes.length === 0 && notifiedIds.length === 0;
+      let bootstrapAlready = false;
+      if(isFreshOnThisDevice){
+        bootstrapAlready = await isPatchApplied(userCode, 'friendNotifsBootstrap_v1');
+      }
+      if(!alive) return;
+
+      if(bootstrapAlready){
+        try {
+          const ids = received.map(r => r.request_id);
+          window.localStorage.setItem('cookiminer:notifiedRequestIds', JSON.stringify(ids));
+        } catch {}
+        try {
+          const allFriends = await getFriends(userCode);
+          if(alive){
+            window.localStorage.setItem(
+              'cookiminer:knownFriendCodes',
+              JSON.stringify(allFriends.map(f => f.user_code)),
+            );
+          }
+        } catch {}
+        return;
+      }
 
       const newRequests = received.filter(r => !notifiedIds.includes(r.request_id));
       const newlyAccepted = await getNewlyAcceptedFriends(userCode, knownCodes);
@@ -1060,6 +1097,11 @@ export default function CookiMiner() {
           );
         }
       } catch {}
+
+      /* Marque le bootstrap côté Supabase : tout autre device qui se
+         connecte ensuite verra ce flag et n'affichera plus les anciennes
+         notifs. */
+      markPatchApplied(userCode, 'friendNotifsBootstrap_v1').catch(()=>{});
 
       if(alive && queue.length > 0) setPendingFriendNotifs(queue);
     })();
@@ -2656,21 +2698,28 @@ export default function CookiMiner() {
   /* Migration one-shot : reset des cafés à 0 pour tous les utilisateurs
      (mai 2026, refonte économie premium → café devient rare). Ancien
      stock = trop d'avantage vs nouvelle distribution réduite (-45%).
-     Flag LS pour idempotence ; au prochain upsert (5s), la valeur 0 est
-     poussée vers Supabase. Les paiements Stripe futurs partent de 0.
-     Affiche une notice (CafesResetNoticeModal) pour expliquer. On évite
-     de pop la notice pour les fresh installs (pas d'utilisateur encore
-     connecté, ou stock déjà = 0). */
+     Idempotence cross-device via applyPatchOnce (applied_patches) — un
+     ancien flag LS pré-migration est automatiquement migré en serveur.
+     Au prochain upsert (5s), la valeur 0 est poussée vers Supabase.
+     Affiche une notice (CafesResetNoticeModal) pour expliquer le reset
+     une seule fois par compte. */
   useEffect(() => {
-    try {
-      if (window.localStorage.getItem('cookiminer:cafesResetMay10') === '1') return;
-      const hadCafes = (cafesRef.current ?? 0) > 0;
-      setCafes(0);
-      window.localStorage.setItem('cookiminer:cafesResetMay10', '1');
-      if (hadCafes) setShowCafesResetNotice(true);
-    } catch {}
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:cafesResetMay10',
+      patchKey: 'cafesResetMay10',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        const hadCafes = (cafesRef.current ?? 0) > 0;
+        setCafes(0);
+        if (hadCafes) setShowCafesResetNotice(true);
+      },
+    });
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [userCode, pullDone]);
 
   const checkinReward = DAILY_REWARDS[streak % 7];
   const resetProgress = () => {
@@ -2930,7 +2979,7 @@ export default function CookiMiner() {
       if(reward.cafes)   setCafes(c => (c || 0) + reward.cafes);
       if(reward.cookies) addCoins(reward.cookies, reward.cookies);
       /* Lance l'animation. onCollect ferme juste la modale. */
-      setOpeningBox({ name: r.name, emoji: r.emoji, reward });
+      setOpeningBox({ name: localizedField(r, 'name', 'REWARDS'), emoji: r.emoji, reward });
       playSound('purchase');
       haptic('medium');
       return;
@@ -3099,17 +3148,17 @@ export default function CookiMiner() {
      - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
        le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title:'Série du jour',       desc:'Plus tu reviens, plus tu gagnes', reward:`+${checkinReward} 🍪 aujourd'hui`, avail:canCheckin, color:'#C17F3C', levelRequired:1 },
-    { id:'quiz',    Icon:Star,              title:'Quiz du jour',         desc:'Toutes les 5h', reward:'20 à 60 cookies', avail:canQuiz, color:'#D4A017', levelRequired:1 },
-    { id:'spin',    Icon:CircleDot,         title:'Roue de la chance',    desc:`${spinsLeft}/${spinsCap} tours/jour`,       reward:`-100 à +200 cookies (coût ${level>=8?20:10}🍪)`, avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
-    { id:'click',   Icon:MousePointerClick, title:'Cookie Click',         desc:'Tapotez le cookie !',       reward:'1 cookie / clic · cap 25/50',  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
-    { id:'pour',    Icon:Coffee,            title:'Stop le café',         desc:'Relâche au bon moment',     reward:'0 à 15 cookies',      avail:true,        color:'#5A3520', levelRequired:1 },
-    { id:'memory',  Icon:LayoutGrid,        title:'Memory Café',          desc:'Trouve les paires',         reward:'5 à 50 cookies (coût 10🍪)', avail:coins>=10, color:'#A0784E', levelRequired:2 },
-    { id:'guess',   Icon:HelpCircle,        title:'Devine la commande',   desc: level >= 10 ? '7 questions café' : '5 questions café', reward:'0 à 100 cookies (coût 10🍪)', avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
-    { id:'reflex',  Icon:Timer,             title:'Réflexes cookies',     desc:'Tape avant que ça disparaisse', reward:'0 à 50 cookies (coût 5🍪)', avail:coins>=5, color:'#D4A017', levelRequired:6 },
-    { id:'pyramid', Icon:Coffee,            title:'Pile de Tasses',       desc:'Empile sans rater',         reward:'5 à 70 cookies (coût 10🍪)', avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
-    { id:'slot',    Icon:Dice5,             title:'Machine à Sous',       desc:'3 rouleaux, gros lots',     reward:'+25 à +750 cookies (coût 20🍪)', avail:coins>=20, color:'#5C3614', levelRequired:10 },
-    { id:'flappy',  Icon:Coffee,            title:'Flappy Cookie',        desc:'Esquive les tuyaux, bondis !', reward:'+3 à +5 🍪 / tuyau · cap 200 (coût 10🍪)', avail:coins>=10, color:'#C8945A', levelRequired:12 },
+    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: t('games_list.checkin_reward', { n: checkinReward }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'quiz',    Icon:Star,              title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
+    { id:'spin',    Icon:CircleDot,         title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
+    { id:'click',   Icon:MousePointerClick, title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
+    { id:'pour',    Icon:Coffee,            title: t('games_list.pour_title'),         desc: t('games_list.pour_desc'),     reward: t('games_list.pour_reward'),      avail:true,        color:'#5A3520', levelRequired:1 },
+    { id:'memory',  Icon:LayoutGrid,        title: t('games_list.memory_title'),       desc: t('games_list.memory_desc'),         reward: t('games_list.memory_reward'), avail:coins>=10, color:'#A0784E', levelRequired:2 },
+    { id:'guess',   Icon:HelpCircle,        title: t('games_list.guess_title'),        desc: level >= 10 ? t('games_list.guess_desc_7') : t('games_list.guess_desc_5'), reward: t('games_list.guess_reward'), avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
+    { id:'reflex',  Icon:Timer,             title: t('games_list.reflex_title'),       desc: t('games_list.reflex_desc'), reward: t('games_list.reflex_reward'), avail:coins>=5, color:'#D4A017', levelRequired:6 },
+    { id:'pyramid', Icon:Coffee,            title: t('games_list.pyramid_title'),      desc: t('games_list.pyramid_desc'),         reward: t('games_list.pyramid_reward'), avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
+    { id:'slot',    Icon:Dice5,             title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
+    { id:'flappy',  Icon:Coffee,            title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
   ];
 
   const s = {
@@ -3298,27 +3347,27 @@ export default function CookiMiner() {
                 </div>
               )}
               <div style={{ position:'absolute', top:14, right:16, fontSize:10, color:'rgba(255,255,255,.45)', display:'flex', alignItems:'center', gap:3, fontWeight:600 }}>
-                Voir tous <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
+                {t('home.see_all')} <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12, marginTop:14 }}>
                 <div>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:2, display:'flex', alignItems:'center', gap:6 }}>
-                    NIVEAU {level}
+                    {t('home.level_uppercase')} {level}
                     {prestigeLevel > 0 && (
                       <span title={`Prestige ${prestigeLevel} · multiplicateur x${(1 + prestigeLevel * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:'#FFE066', letterSpacing:.5 }}>
                         {prestigeLevel <= 5 ? '👑'.repeat(prestigeLevel) : `👑×${prestigeLevel}`}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{LEVEL_NAMES[level]}</div>
+                  <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{localizedLevelName(level) || LEVEL_NAMES[level]}</div>
                 </div>
                 <div style={{ textAlign:'right' }}>
-                  <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>Total gagné</div>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>{t('profile.stat_total')}</div>
                   <div style={{ fontSize:20, fontWeight:800, color:'#fff' }}>{totalEarned} 🍪</div>
                 </div>
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,.6)', marginBottom:5 }}>
-                <span>Expérience</span><span>{xp}/{xpReq}</span>
+                <span>{t('home.experience')}</span><span>{xp}/{xpReq}</span>
               </div>
               <div style={{ height:8, borderRadius:4, background:'rgba(255,255,255,.18)', overflow:'hidden', position:'relative' }}>
                 <div style={{ height:'100%', borderRadius:4, width:`${xpPct}%`, background:'rgba(255,255,255,.85)', transition:'width .8s cubic-bezier(.36,.07,.19,.97)', position:'relative', overflow:'hidden' }}>
@@ -3440,7 +3489,7 @@ export default function CookiMiner() {
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2 }}>
                       <span style={{ fontWeight:700, fontSize:14 }}>{g.title}</span>
-                      {g.avail && <span className="pulse-ring" style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:10, background:GOLD, color:'#fff' }}>Dispo</span>}
+                      {g.avail && <span className="pulse-ring" style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:10, background:GOLD, color:'#fff' }}>{t('games_list.available')}</span>}
                     </div>
                     <div style={{ fontSize:11, color:C.muted }}>{g.desc} · {g.reward}</div>
                   </div>
@@ -3796,7 +3845,7 @@ export default function CookiMiner() {
       {/* NAV */}
       <nav style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, padding:'0 16px 16px', zIndex:40 }}>
         <div style={{ background:isDark?'rgba(30,16,10,.95)':'rgba(253,250,246,.95)', backdropFilter:'blur(12px)', borderRadius:24, border:`1px solid ${C.border}`, boxShadow:'0 8px 32px rgba(0,0,0,.12)', display:'flex', padding:8 }}>
-          {[{id:'accueil',Icon:Home,label:'Accueil'},{id:'jeux',Icon:Gamepad2,label:'Jeux'},{id:'classement',Icon:Trophy,label:'Classement'},{id:'marche',Icon:TrendingUp,label:'Marché'},{id:'boutique',Icon:ShoppingBag,label:'Boutique'}].map(item=>{
+          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
             const showDot = item.id==='accueil' && (canCheckin || canQuiz);
             return (
               <button key={item.id} id={`nav-${item.id}`} onClick={()=>goToTab(item.id)} style={s.pill(tab===item.id)}>

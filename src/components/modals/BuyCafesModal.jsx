@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Coffee, ChevronLeft, Loader } from "lucide-react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    BuyCafesModal — sélection d'un bundle de cafés ☕
@@ -19,13 +20,13 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
    - C        : palette
 ═══════════════════════════════════════════════════════ */
 
-const BUNDLES = [
-  { id:'cf10',  cafes:15,  price:'0,99 €',  pricePerCafe:'~0,07 €/☕', tagline:'Pour goûter' },
-  { id:'cf50',  cafes:50,  price:'3,99 €',  pricePerCafe:'~0,08 €/☕', tagline:'Le populaire' },
-  { id:'cf200', cafes:200, price:'9,99 €',  pricePerCafe:'~0,05 €/☕', tagline:'Meilleur rapport ☕/€' },
-];
-
 export function BuyCafesModal({ userCode, onClose, C }){
+  const { t } = useTranslation();
+  const BUNDLES = [
+    { id:'cf10',  cafes:15,  price:'0,99 €',  pricePerCafe:'~0,07 €/☕', tagline: t('buy_cafes.tagline_taste') },
+    { id:'cf50',  cafes:50,  price:'3,99 €',  pricePerCafe:'~0,08 €/☕', tagline: t('buy_cafes.tagline_popular') },
+    { id:'cf200', cafes:200, price:'9,99 €',  pricePerCafe:'~0,05 €/☕', tagline: t('buy_cafes.tagline_best_value') },
+  ];
   const [loadingId, setLoadingId] = useState(null);
   const [error, setError] = useState('');
 
@@ -40,7 +41,7 @@ export function BuyCafesModal({ userCode, onClose, C }){
       });
       const data = await res.json().catch(() => ({}));
       if(!res.ok || !data.url){
-        setError(data.error || `Erreur (${res.status})`);
+        setError(data.error || t('buy_cafes.error_status', { code: res.status }));
         setLoadingId(null);
         return;
       }
@@ -49,7 +50,7 @@ export function BuyCafesModal({ userCode, onClose, C }){
          cafés crédités côté serveur via le pull-on-mount. */
       window.location.href = data.url;
     }catch(err){
-      setError('Erreur réseau');
+      setError(t('buy_cafes.network_error'));
       setLoadingId(null);
     }
   };
@@ -89,14 +90,14 @@ export function BuyCafesModal({ userCode, onClose, C }){
             border:'1px solid rgba(255,232,154,.4)',
             textTransform:'uppercase',
           }}>
-            ⚠ Mode test
+            ⚠ {t('buy_cafes.test_mode_badge')}
           </div>
           <div style={{ fontSize:36, lineHeight:1, marginBottom:4 }}>☕</div>
           <div style={{ fontSize:11, fontWeight:900, letterSpacing:3, textTransform:'uppercase', opacity:.85 }}>
-            Achat de cafés
+            {t('buy_cafes.buy_coffees')}
           </div>
           <div style={{ fontSize:18, fontWeight:900, marginTop:4 }}>
-            Choisis ton bundle
+            {t('buy_cafes.choose_bundle')}
           </div>
         </div>
 
@@ -124,7 +125,7 @@ export function BuyCafesModal({ userCode, onClose, C }){
                 <div style={{ fontSize:34, lineHeight:1 }}>☕</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:15, fontWeight:900, marginBottom:2 }}>
-                    {b.cafes} cafés
+                    {t('buy_cafes.n_coffees', { n: b.cafes })}
                   </div>
                   <div style={{ fontSize:10.5, color: loading ? 'rgba(255,255,255,.85)' : C.muted, fontStyle:'italic' }}>
                     {b.tagline} · {b.pricePerCafe}
@@ -166,11 +167,10 @@ export function BuyCafesModal({ userCode, onClose, C }){
             background:'rgba(125,78,31,.12)',
             border:'1px dashed rgba(125,78,31,.4)',
           }}>
-            ⚠ Mode test — aucun débit réel ne sera effectué.
+            ⚠ {t('buy_cafes.test_mode_warn')}
           </div>
           <div style={{ fontSize:10.5, color:C.muted, lineHeight:1.5, marginBottom:10, textAlign:'center' }}>
-            Paiement sécurisé via Stripe. Tes cafés sont crédités automatiquement
-            après confirmation.
+            {t('buy_cafes.stripe_info')}
           </div>
           <button
             onClick={onClose}
@@ -184,7 +184,7 @@ export function BuyCafesModal({ userCode, onClose, C }){
               display:'flex', alignItems:'center', justifyContent:'center', gap:6,
             }}
           >
-            <ChevronLeft size={14} /> Retour
+            <ChevronLeft size={14} /> {t('common.back')}
           </button>
         </div>
       </div>

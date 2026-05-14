@@ -17,7 +17,10 @@
      onAck : () → ferme la modale + persiste l'acquittement
 ═══════════════════════════════════════════════════════ */
 
+import { useTranslation } from "../../i18n/index.js";
+
 export function UpgradeNoticeModal({ onAck }){
+  const { t } = useTranslation();
   return (
     <div
       role="alertdialog"
@@ -49,23 +52,21 @@ export function UpgradeNoticeModal({ onAck }){
             fontWeight:800, marginBottom:8,
           }}
         >
-          Avis admin
+          {t('upgrade.admin_notice')}
         </div>
 
         <div style={{
           fontSize:22, fontWeight:900, color:'#2C1810',
           marginBottom:14, letterSpacing:.2,
         }}>
-          Phase d'amélioration
+          {t('upgrade.improvement_phase')}
         </div>
 
         <div style={{
           fontSize:14, color:'#2C1810', lineHeight:1.5,
           marginBottom:22,
         }}>
-          L'application est en cours d'évolution. Pour éviter toute perte
-          de progression ou incohérence sur ton compte, <strong>merci de ne
-          pas jouer pendant cette période</strong>.
+          {t('upgrade.dont_play_warning')}
         </div>
 
         <button
@@ -79,7 +80,7 @@ export function UpgradeNoticeModal({ onAck }){
             boxShadow:'0 6px 16px rgba(178,34,34,.4)',
           }}
         >
-          ✓ Oui, j'ai compris
+          ✓ {t('upgrade.yes_understood')}
         </button>
       </div>
     </div>

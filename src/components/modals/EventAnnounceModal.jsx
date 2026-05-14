@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { formatTimeLeft, MAX_ATTEMPTS, SPECIAL_EVENTS } from "../../data/events.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    EventAnnounceModal — annonce d'événement spécial (PHASE 6E)
@@ -42,6 +43,7 @@ function fallbackTease(seed){
 }
 
 export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoToChallenge, C }){
+  const { t, localizedField } = useTranslation();
   const [now, setNow] = useState(()=>Date.now());
 
   /* Tick de countdown chaque seconde — rafraîchit le timer uniquement
@@ -93,7 +95,7 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
             fontSize:11, fontWeight:900, color:'#D4A017',
             letterSpacing:3, textTransform:'uppercase', marginBottom:8,
           }}>
-            {isWaiting ? 'Prochain événement' : 'Événement spécial !'}
+            {isWaiting ? t('event_announce.next_event') : t('event_announce.special_event')}
           </div>
 
           {isWaiting ? (
@@ -105,16 +107,16 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
                 fontSize:11, fontWeight:800, letterSpacing:1.2, textTransform:'uppercase',
                 color:'#F5DC8A', marginBottom:16,
               }}>
-                ✨ Une récompense exclusive + 1 ☕
+                ✨ {t('event_announce.exclusive_reward')}
               </div>
             </>
           ) : (
             <>
               <div style={{ fontSize:20, fontWeight:900, color:'#F0E0C0', marginBottom:10, lineHeight:1.25 }}>
-                {event.title}
+                {localizedField(event, 'title')}
               </div>
               <div style={{ fontSize:13, color:'rgba(240,224,192,.85)', lineHeight:1.5, marginBottom:12, padding:'0 4px' }}>
-                {event.description}
+                {localizedField(event, 'description')}
               </div>
               {event.reward?.cafeBonus > 0 && (
                 <div style={{
@@ -124,7 +126,7 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
                   padding:'5px 12px', borderRadius:11, marginBottom:18,
                   boxShadow:'0 3px 10px rgba(212,160,23,.35)',
                 }}>
-                  🎁 Bonus : +{event.reward.cafeBonus} ☕
+                  {t('event_announce.bonus_n_coffees', { n: event.reward.cafeBonus })}
                 </div>
               )}
             </>
@@ -149,7 +151,7 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
                 background:'rgba(15,8,4,.55)', border:'1px solid rgba(212,160,23,.4)',
                 color:'#F5DC8A', fontWeight:800, fontSize:12,
               }}>
-                🎯 essais illimités
+                🎯 {t('event_announce.unlimited_attempts')}
               </span>
             )}
           </div>
@@ -160,29 +162,31 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
               borderTop:'1px solid rgba(212,160,23,.2)', paddingTop:14, marginBottom:18,
             }}>
               <div style={{ fontSize:10, fontWeight:800, letterSpacing:2, textTransform:'uppercase', color:'#D4A017', marginBottom:10 }}>
-                🏆 Trophées déjà gagnés
+                🏆 {t('event_announce.trophies_won')}
               </div>
               {wonTrophies.length === 0 ? (
                 <div style={{ fontSize:12, color:'rgba(240,224,192,.55)', fontStyle:'italic', padding:'4px 0' }}>
-                  Aucun pour l'instant — joue bien le prochain !
+                  {t('event_announce.none_yet')}
                 </div>
               ) : (
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  {wonTrophies.map(t => (
-                    <div key={t.id} style={{
+                  {/* Variable de boucle renommée en `ev` pour ne pas masquer
+                      le hook t() de useTranslation. */}
+                  {wonTrophies.map(ev => (
+                    <div key={ev.id} style={{
                       display:'flex', alignItems:'center', gap:10,
                       padding:'8px 12px', borderRadius:11,
                       background:'rgba(15,8,4,.45)',
                       border:'1px solid rgba(212,160,23,.25)',
                       textAlign:'left',
                     }}>
-                      <span style={{ fontSize:18 }}>{t.title.match(/\p{Emoji}/u)?.[0] ?? '🏆'}</span>
+                      <span style={{ fontSize:18 }}>{ev.title.match(/\p{Emoji}/u)?.[0] ?? '🏆'}</span>
                       <div style={{ minWidth:0, flex:1 }}>
                         <div style={{ fontSize:12, fontWeight:800, color:'#F5DC8A', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                          {t.reward.name}
+                          {localizedField(ev.reward, 'name', 'REWARDS')}
                         </div>
                         <div style={{ fontSize:10, color:'rgba(240,224,192,.6)' }}>
-                          via {t.title}
+                          {t('event_announce.via')} {localizedField(ev, 'title')}
                         </div>
                       </div>
                       <span style={{ fontSize:14, color:'#D4A017' }}>✓</span>
@@ -209,7 +213,7 @@ export function EventAnnounceModal({ event, completedEvents = [], onClose, onGoT
               cursor:'pointer',
             }}
           >
-            {isWaiting ? 'Fermer' : 'C\'est parti ! 🚀'}
+            {isWaiting ? t('common.close') : t('event_announce.lets_go')}
           </button>
         </div>
       </div>

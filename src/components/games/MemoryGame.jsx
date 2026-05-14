@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    MemoryGame — jeu de paires (PHASE 6B)
@@ -48,6 +49,7 @@ function rewardFor(moves){
 const PEEK_DURATION_MS = 500;
 
 export function MemoryGame({ coins, onEarn, onSpend, C }){
+  const { t } = useTranslation();
   const [phase,    setPhase]    = useState('idle');     // idle | playing | done
   const [deck,     setDeck]     = useState(()=>shuffledDeck());
   const [flipped,  setFlipped]  = useState([]);          // ids actuellement face visible (max 2)
@@ -144,17 +146,17 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
   const canPlay     = coins >= MEMORY_COST;
 
   const btnLabel =
-      phase === 'idle'    ? `Commencer (${MEMORY_COST} 🍪)`
+      phase === 'idle'    ? t('games.start_btn', { cost: MEMORY_COST })
     : phase === 'playing' ? '…'
-    :                       `Rejouer (${MEMORY_COST} 🍪)`;
+    :                       t('games.replay_btn', { cost: MEMORY_COST });
 
   /* Bannière de fin */
   const banner = phase === 'done'
     ? (completed
         ? (isPerfect
-            ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:'🏆 Partie parfaite !' }
-            : { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`Bien joué ! ${moves} coups` })
-        : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title:'Partie abandonnée' }
+            ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title: t('game_memory.perfect_game') }
+            : { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title: t('game_memory.well_done_n', { n: moves }) })
+        : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title: t('game_memory.abandoned') }
       )
     : null;
 
@@ -166,12 +168,12 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
         <div style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${phase==='playing'?'#D4A017':C.border}`, textAlign:'center', boxShadow:'0 2px 8px rgba(0,0,0,.04)' }}>
           <div style={{ fontSize:11 }}>🎯</div>
           <div style={{ fontSize:22, fontWeight:900, color: phase==='playing'?'#D4A017':C.text, lineHeight:1.1 }}>{moves}</div>
-          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Coups</div>
+          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>{t('game_memory.moves_label')}</div>
         </div>
         <div style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${C.border}`, textAlign:'center', boxShadow:'0 2px 8px rgba(0,0,0,.04)' }}>
           <div style={{ fontSize:11 }}>✨</div>
           <div style={{ fontSize:22, fontWeight:900, color:C.text, lineHeight:1.1 }}>{matched.length/2}<span style={{ fontSize:13, color:C.muted, fontWeight:700 }}>/6</span></div>
-          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Paires</div>
+          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>{t('game_memory.pairs_label')}</div>
         </div>
       </div>
 
@@ -254,9 +256,9 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
 
       {/* Texte d'instruction */}
       <div style={{ minHeight:18, fontSize:13, fontWeight:600, color: phase==='playing' ? '#D4A017' : C.muted, fontStyle: phase==='playing'?'normal':'italic', textAlign:'center' }}>
-        {phase === 'idle'    && 'Trouve les 6 paires en un minimum de coups'}
-        {phase === 'playing' && (peek ? '👀 Mémorise vite…' : 'Mémorise et associe !')}
-        {phase === 'done'    && (completed ? 'Bien joué !' : 'Tu peux mieux faire')}
+        {phase === 'idle'    && t('game_memory.instruction_idle')}
+        {phase === 'playing' && (peek ? t('game_memory.peek') : t('game_memory.play'))}
+        {phase === 'done'    && (completed ? t('game_memory.well_done') : t('game_memory.try_better'))}
       </div>
 
       {/* Bannière résultat */}

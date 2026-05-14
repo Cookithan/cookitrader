@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { lookupPromoCode } from "../../data/promoCodes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    PromoCodeModal — saisie d'un code promo
@@ -18,6 +19,7 @@ import { lookupPromoCode } from "../../data/promoCodes.js";
      C
 ═══════════════════════════════════════════════════════ */
 export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCodes = [], C }){
+  const { t } = useTranslation();
   const [input,    setInput]    = useState('');
   const [feedback, setFeedback] = useState(null);  // { type: 'ok'|'err', msg }
   const [shake,    setShake]    = useState(false);
@@ -33,13 +35,13 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
     if(loading) return;
     const promo = lookupPromoCode(input, revealedCodes);
     if(!promo){
-      setFeedback({ type:'err', msg:'Code invalide' });
+      setFeedback({ type:'err', msg: t('modal.promo_invalid') });
       setShake(true);
       setTimeout(() => setShake(false), 450);
       return;
     }
     if(usedCodes.includes(promo.code)){
-      setFeedback({ type:'err', msg:'Code déjà utilisé sur ce compte' });
+      setFeedback({ type:'err', msg: t('modal.promo_already_used') });
       setShake(true);
       setTimeout(() => setShake(false), 450);
       return;
@@ -87,11 +89,10 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
         <div style={{ textAlign:'center', marginBottom:14 }}>
           <div style={{ fontSize:46, lineHeight:1 }}>🎟️</div>
           <div style={{ fontSize:18, fontWeight:900, color:C.text, marginTop:8 }}>
-            Code promo
+            {t('modal.promo_title_no_emoji')}
           </div>
           <div style={{ fontSize:12, color:C.muted, marginTop:6, lineHeight:1.5 }}>
-            Saisis un code distribué par Cookithan pour gagner des cookies
-            ou cafés.
+            {t('modal.promo_desc_full')}
           </div>
         </div>
 
@@ -104,7 +105,7 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
           value={input}
           onChange={(e) => { setInput(e.target.value.toUpperCase()); if(feedback) setFeedback(null); }}
           onKeyDown={(e) => { if(e.key === 'Enter') submit(); }}
-          placeholder="EX : TOP1"
+          placeholder={t('modal.promo_placeholder_example')}
           maxLength={20}
           style={{
             width:'100%', padding:'12px 14px',
@@ -140,7 +141,7 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
               color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer',
             }}
           >
-            Annuler
+            {t('common.cancel')}
           </button>
           <button
             onClick={submit}
@@ -154,7 +155,7 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
               boxShadow: input.trim() && !loading ? '0 6px 18px rgba(212,160,23,.4)' : 'none',
             }}
           >
-            {loading ? '…' : 'Valider'}
+            {loading ? '…' : t('modal.promo_redeem')}
           </button>
         </div>
       </div>

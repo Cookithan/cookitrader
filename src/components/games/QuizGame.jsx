@@ -3,6 +3,8 @@ import { Cookie } from "lucide-react";
 import { QUESTIONS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
+import { QUESTIONS_EN } from "../../i18n/questionsEn.js";
 
 /* ════════════════════════════════════════════════════
    QuizGame — 3 questions tirées dans la difficulté choisie
@@ -18,6 +20,7 @@ export const QUIZ_HINT_COST = 10;
 export const QUIZ_HINT_DELAY_MS = 8000;
 
 export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onClose, onEventChallenge, C }) {
+  const { t, localizedField, lang } = useTranslation();
   const [chosenDifficulty, setChosenDifficulty] = useState(null);
   const [qIndices,         setQIndices]         = useState([]);
 
@@ -71,10 +74,10 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     return (
       <div style={{ textAlign:'center', paddingTop:60 }}>
         <div style={{ fontSize:48, marginBottom:14 }}>⏳</div>
-        <div style={{ fontSize:20, fontWeight:800, color:C.text }}>Prochain quiz disponible dans</div>
+        <div style={{ fontSize:20, fontWeight:800, color:C.text }}>{t('game_quiz.next_in')}</div>
         <div style={{ fontSize:30, fontWeight:900, color:'#D4A017', marginTop:10, fontVariantNumeric:'tabular-nums' }}>{label}</div>
         <div style={{ fontSize:13, color:C.muted, marginTop:14, lineHeight:1.55, maxWidth:280, margin:'14px auto 0' }}>
-          Un nouveau quiz s'ouvre toutes les 5 heures. Reviens plus tard !
+          {t('game_quiz.opens_every')}
         </div>
       </div>
     );
@@ -84,9 +87,13 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     <div className="su" style={{ textAlign:'center', paddingTop:50 }}>
       <div className="bi" style={{ fontSize:56, marginBottom:14 }}>{correctCount===QUIZ_QUESTIONS_PER_SESSION?'🏆':correctCount>0?'☕':'😢'}</div>
       <div style={{ fontSize:22, fontWeight:800, color:C.text, marginBottom:6 }}>
-        {correctCount===QUIZ_QUESTIONS_PER_SESSION?'Sans-faute !':correctCount>0?`${correctCount} bonne${correctCount>1?'s':''} réponse${correctCount>1?'s':''}`:'Aucune bonne réponse'}
+        {correctCount===QUIZ_QUESTIONS_PER_SESSION
+          ? t('game_quiz.perfect')
+          : correctCount>0
+            ? t(correctCount > 1 ? 'game_quiz.good_n_plural' : 'game_quiz.good_n_singular', { n: correctCount })
+            : t('game_quiz.zero')}
       </div>
-      <div style={{ fontSize:14, color:C.muted, marginBottom:24 }}>{correctCount}/{QUIZ_QUESTIONS_PER_SESSION} questions</div>
+      <div style={{ fontSize:14, color:C.muted, marginBottom:24 }}>{correctCount}/{QUIZ_QUESTIONS_PER_SESSION} {t('game_quiz.questions_label')}</div>
 
       <button
         onClick={()=>{ playSound(score>0 ? 'coin' : 'toggle'); onClose(); }}
@@ -101,26 +108,26 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
         }}
       >
         <Cookie size={20} color={score>0?'#fff':C.muted} />
-        <span style={{ fontSize:20, fontWeight:800, color:score>0?'#fff':C.muted }}>Récupérer +{score} 🍪</span>
+        <span style={{ fontSize:20, fontWeight:800, color:score>0?'#fff':C.muted }}>{t('game_quiz.collect', { n: score })}</span>
       </button>
 
-      <div style={{ fontSize:12, color:C.muted, marginTop:18 }}>Reviens dans 5h pour un nouveau quiz</div>
+      <div style={{ fontSize:12, color:C.muted, marginTop:18 }}>{t('game_quiz.come_back_5h')}</div>
     </div>
   );
 
   if(chosenDifficulty === null) {
     const LEVELS = [
-      { id:'Facile', emoji:'🌱', reward:20, bg:'#E5B040', desc:'Questions abordables' },
-      { id:'Moyen',  emoji:'☕', reward:35, bg:'#C17F3C', desc:'Pour les amateurs avertis' },
-      { id:'Expert', emoji:'🔥', reward:60, bg:'#4A2C17', desc:'Réservé aux puristes' },
+      { id:'Facile', label: t('game_quiz.difficulty_easy'),   emoji:'🌱', reward:20, bg:'#E5B040', desc: t('game_quiz.diff_easy_desc') },
+      { id:'Moyen',  label: t('game_quiz.difficulty_medium'), emoji:'☕', reward:35, bg:'#C17F3C', desc: t('game_quiz.diff_medium_desc') },
+      { id:'Expert', label: t('game_quiz.difficulty_expert'), emoji:'🔥', reward:60, bg:'#4A2C17', desc: t('game_quiz.diff_expert_desc') },
     ];
     return (
       <div className="su" style={{ paddingTop:14 }}>
         <div style={{ textAlign:'center', marginBottom:22 }}>
           <div style={{ fontSize:44, marginBottom:8 }}>📚</div>
-          <div style={{ fontSize:22, fontWeight:800, color:C.text, marginBottom:6 }}>Choisis ta difficulté</div>
+          <div style={{ fontSize:22, fontWeight:800, color:C.text, marginBottom:6 }}>{t('game_quiz.choose_difficulty')}</div>
           <div style={{ fontSize:13, color:C.muted, lineHeight:1.5, maxWidth:280, margin:'0 auto' }}>
-            3 questions seront tirées. Plus c'est dur, plus tu gagnes.
+            {t('game_quiz.three_questions')}
           </div>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
@@ -138,7 +145,7 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
             >
               <div style={{ fontSize:32 }}>{lv.emoji}</div>
               <div style={{ flex:1 }}>
-                <div style={{ fontSize:16, fontWeight:800, letterSpacing:.3 }}>{lv.id}</div>
+                <div style={{ fontSize:16, fontWeight:800, letterSpacing:.3 }}>{lv.label}</div>
                 <div style={{ fontSize:12, opacity:.85, marginTop:2 }}>{lv.desc}</div>
               </div>
               <div style={{ fontSize:14, fontWeight:800, padding:'6px 12px', borderRadius:12, background:'rgba(255,255,255,.18)' }}>+{lv.reward} 🍪</div>
@@ -149,7 +156,13 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     );
   }
 
-  const q = QUESTIONS[qIndices[step]];
+  const qIdx = qIndices[step];
+  const q = QUESTIONS[qIdx];
+  /* Helper : retourne la version traduite (EN) si disponible, sinon
+     le champ FR original. lookup par index pour rester aligné. */
+  const qTrans = lang === 'en' && QUESTIONS_EN[qIdx] ? QUESTIONS_EN[qIdx] : null;
+  const qText = qTrans?.q || q.q;
+  const qChoices = qTrans?.choices || q.choices;
 
   const goNext = (lastWasCorrect = false) => {
     if(step + 1 >= qIndices.length){
@@ -213,17 +226,17 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
 
       <div style={{ borderRadius:20, padding:22, background:ESPRESSO, marginBottom:16 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-          <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2 }}>QUESTION {step+1}/{qIndices.length}</div>
+          <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2 }}>{t('game_quiz.question_label')} {step+1}/{qIndices.length}</div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, padding:'4px 10px', borderRadius:10, color:'#fff', background: q.difficulty==='Facile' ? '#E5B040' : q.difficulty==='Moyen' ? '#C17F3C' : '#4A2C17' }}>{q.difficulty}</span>
+            <span style={{ fontSize:10, fontWeight:800, textTransform:'uppercase', letterSpacing:1, padding:'4px 10px', borderRadius:10, color:'#fff', background: q.difficulty==='Facile' ? '#E5B040' : q.difficulty==='Moyen' ? '#C17F3C' : '#4A2C17' }}>{t(`game_quiz.difficulty_${q.difficulty==='Facile'?'easy':q.difficulty==='Moyen'?'medium':'expert'}`)}</span>
             <div style={{ fontSize:11, color:'rgba(255,255,255,.7)', fontWeight:700 }}>+{q.reward} 🍪</div>
           </div>
         </div>
-        <div style={{ fontSize:17, fontWeight:700, color:'#fff', lineHeight:1.45 }}>{q.q}</div>
+        <div style={{ fontSize:17, fontWeight:700, color:'#fff', lineHeight:1.45 }}>{qText}</div>
       </div>
 
       <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:14 }}>
-        {q.choices.map((ch,i)=>{
+        {qChoices.map((ch,i)=>{
           const isHidden = hiddenChoices.includes(i);
           let bg=C.card, border=C.border, col=C.text, opacity=1;
           if(isHidden){ bg=C.card2; border=C.border; col=C.muted; opacity=.35; }
@@ -256,11 +269,11 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
               cursor: canAffordHint ? 'pointer' : 'not-allowed'
             }}
           >
-            💡 Aide — éliminer 2 mauvaises réponses · −{QUIZ_HINT_COST} 🍪
+            {t('game_quiz.hint_btn', { cost: QUIZ_HINT_COST })}
           </button>
         )}
         {hintUsed && sel===null && (
-          <div style={{ fontSize:12, color:C.muted, fontStyle:'italic' }}>Aide utilisée · {QUIZ_HINT_COST} 🍪 dépensés</div>
+          <div style={{ fontSize:12, color:C.muted, fontStyle:'italic' }}>{t('game_quiz.hint_used', { cost: QUIZ_HINT_COST })}</div>
         )}
       </div>
     </div>

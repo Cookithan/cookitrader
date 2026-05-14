@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { buyShares, sellShares, MAX_SHARES_PER_USER, MARKET_CONFIG } from '../../lib/market';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    TradePanel — onglets Acheter / Vendre + sélecteur quantité
@@ -26,6 +27,7 @@ function fmtHM(date) {
 }
 
 export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, marketStatus, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
+  const { t } = useTranslation();
   const [quantity, setQuantity] = useState(1);
   const [mode, setMode] = useState('buy');
   const [loading, setLoading] = useState(false);
@@ -111,8 +113,8 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
       setFeedback({
         type: 'success',
         msg: mode === 'buy'
-          ? `✓ Acheté ${quantity} action(s) pour ${result.cost} 🍪`
-          : `✓ Vendu ${quantity} action(s) pour ${result.gained} 🍪`
+          ? t('trade.bought_n', { n: quantity, cost: result.cost })
+          : t('trade.sold_n', { n: quantity, gained: result.gained })
       });
       onTradeSuccess(result);
       if (bulkArmed) {
@@ -144,7 +146,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
           color: '#7D4E1F', fontSize: 12, fontWeight: 700,
           textAlign: 'center', lineHeight: 1.4,
         }}>
-          🔒 Marché fermé — réouverture à {fmtHM(marketStatus?.nextChange)}
+          🔒 {t('trade.market_closed_at', { time: fmtHM(marketStatus?.nextChange) })}
         </div>
       )}
 
@@ -157,7 +159,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
           color: '#7D4E1F', fontSize: 12, fontWeight: 700,
           textAlign: 'center', lineHeight: 1.4,
         }}>
-          🛠️ Mode admin — trading désactivé
+          🛠️ {t('trade.admin_trading_disabled')}
         </div>
       )}
 
@@ -177,7 +179,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
             cursor: 'pointer',
           }}
         >
-          📈 Acheter
+          📈 {t('market.buy')}
         </button>
         <button
           onClick={() => { setMode('sell'); updateQuantity(1); setFeedback(null); setBulkArmed(false); }}
@@ -193,16 +195,16 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
             cursor: 'pointer',
           }}
         >
-          📉 Vendre
+          📉 {t('market.sell')}
         </button>
       </div>
 
       {/* Quantity selector */}
       <div style={{ marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: C.muted, marginBottom: 8 }}>
-          <span>Quantité</span>
+          <span>{t('trade.quantity')}</span>
           <span style={{ color: bulkArmed ? '#FFE89A' : '#D4A017', fontWeight: 700 }}>
-            {bulkArmed ? `📦 Tout : ${maxTheoretical}` : `Max : ${max}`}
+            {bulkArmed ? `📦 ${t('trade.all_n', { n: maxTheoretical })}` : `${t('trade.max')} : ${max}`}
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -277,8 +279,8 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
             }}
           >
             📦 {bulkArmed
-              ? `Trade Express : ${maxTheoretical} action${maxTheoretical > 1 ? 's' : ''} (-1 charge à la confirmation)`
-              : `Tout ${mode === 'buy' ? 'acheter' : 'vendre'} (${maxTheoretical}) · stock ${bulkTradePasses} 📦`}
+              ? t('trade.express_armed', { n: maxTheoretical })
+              : t(mode === 'buy' ? 'trade.all_buy' : 'trade.all_sell', { n: maxTheoretical, stock: bulkTradePasses })}
           </button>
         )}
       </div>
@@ -294,7 +296,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
         alignItems: 'center',
       }}>
         <span style={{ fontSize: 12, color: C.muted }}>
-          {mode === 'buy' ? 'Coût total' : 'Tu recevras'}
+          {mode === 'buy' ? t('trade.total_cost') : t('trade.you_receive')}
         </span>
         <span style={{ fontSize: 18, fontWeight: 900, color: '#D4A017' }}>
           {mode === 'buy' ? totalCost : totalGain} 🍪
@@ -321,8 +323,8 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
         }}
       >
         {loading ? '...' : (mode === 'buy'
-          ? `Acheter pour ${totalCost} 🍪`
-          : `Vendre pour ${totalGain} 🍪`)}
+          ? t('trade.buy_for', { n: totalCost })
+          : t('trade.sell_for', { n: totalGain }))}
       </button>
 
       {/* Feedback */}

@@ -3,6 +3,7 @@ import { GOLD } from "../../data/themes.js";
 import { COMMANDES } from "../../data/commandes.js";
 import { CafeScene, CUSTOMERS, LEGENDARY_BARISTAS } from "./CafeScene.jsx";
 import { playSound } from "../../lib/audio.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* Question fictive utilisée quand le slot tombe sur le barista
    légendaire (drop 0.5% par partie). Texte = bulle qui révèle le code
@@ -144,6 +145,7 @@ function pickCustomerIndices(n, max){
 }
 
 export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, C }){
+  const { t, localizedField } = useTranslation();
   /* Niveau 10+ : 7 questions par partie au lieu de 5, pour le même
      palier de récompense (= plus exigeant, pas plus rentable). */
   const NB_QUESTIONS = level >= 10 ? 7 : 5;
@@ -307,16 +309,16 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
   const earnedFinal = rewardFor(score, NB_QUESTIONS);
   const banner = phase === 'done'
     ? (score === NB_QUESTIONS
-        ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title:'🏆 Sans-faute !' }
+        ? { bg:'linear-gradient(135deg,#F5DC8A,#D4A017)', col:'#5D3A1F', border:'#D4A017', title: t('game_guess.perfect') }
         : earnedFinal > 0
-          ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title:`Bien joué ! ${score}/${NB_QUESTIONS}` }
-          : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title:`${score}/${NB_QUESTIONS} — pas de récompense` })
+          ? { bg:'linear-gradient(135deg,#FBEFD4,#F0C050)', col:'#5D3A1F', border:'#D4A017', title: t('game_guess.end_good', { n: score, total: NB_QUESTIONS }) }
+          : { bg:'linear-gradient(135deg,#5A3520,#3D2010)', col:'#F0E0C0', border:'#3D2010', title: t('game_guess.end_zero', { n: score, total: NB_QUESTIONS }) })
     : null;
 
   const btnLabel =
-      phase === 'idle'    ? `Commencer (${GUESS_COST} 🍪)`
+      phase === 'idle'    ? t('games.start_btn', { cost: GUESS_COST })
     : phase === 'playing' ? '…'
-    :                       `Rejouer (${GUESS_COST} 🍪)`;
+    :                       t('games.replay_btn', { cost: GUESS_COST });
 
   /* Couleur d'un bouton selon état. Absurd : pas de "bonne" option à
      surligner — on highlight uniquement le clic du joueur en ✗. */
@@ -480,8 +482,8 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
       {/* Texte d'instruction */}
       {phase !== 'done' && (
         <div style={{ minHeight:18, fontSize:13, fontWeight:600, color: phase==='playing' ? (isAnswered ? (isRight ? '#D4A017' : '#8B5A2B') : C.muted) : C.muted, fontStyle: phase==='playing' && !isAnswered ?'italic':'normal', textAlign:'center' }}>
-          {phase === 'idle'    && 'Devine ce que veut le client !'}
-          {phase === 'playing' && !isAnswered && 'Choisis la bonne réponse'}
+          {phase === 'idle'    && t('game_guess.idle_intro')}
+          {phase === 'playing' && !isAnswered && t('game_guess.choose')}
           {phase === 'playing' && isAnswered && (isRight ? '✓ Bien vu !' : '✗ Raté')}
         </div>
       )}

@@ -1,4 +1,5 @@
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    SanctionAppliedModal — popup d'avertissement (sanction)
@@ -16,6 +17,8 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function SanctionAppliedModal({ amount, sharesDebit = 0, reason, onClose, C }){
+  const { t, lang } = useTranslation();
+  const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
   const hasCookies = (amount || 0) > 0;
   const hasShares  = (sharesDebit || 0) > 0;
   return (
@@ -50,17 +53,16 @@ export function SanctionAppliedModal({ amount, sharesDebit = 0, reason, onClose,
             fontSize:11, fontWeight:900, letterSpacing:3,
             textTransform:'uppercase', opacity:.85, marginBottom:4,
           }}>
-            Sanction appliquée
+            {t('sanction.header')}
           </div>
           <div style={{ fontSize:18, fontWeight:900, color:'#FFE066', letterSpacing:.3 }}>
-            Recalibrage administratif
+            {t('sanction.title')}
           </div>
         </div>
 
         <div style={{ padding:'18px 22px 4px' }}>
           <p style={{ fontSize:13, color:C.text, lineHeight:1.6, margin:0, marginBottom:14 }}>
-            Suite à <strong>{reason}</strong>, ton compte a été ajusté
-            pour compenser les gains issus de l'incident.
+            {t('sanction.because_intro')} <strong>{reason}</strong>{t('sanction.because_outro')}
           </p>
 
           {/* Détail du débit shares (si présent) */}
@@ -72,13 +74,13 @@ export function SanctionAppliedModal({ amount, sharesDebit = 0, reason, onClose,
               border:'1.5px solid #C17F3C',
             }}>
               <div style={{ fontSize:10, fontWeight:900, color:'#FFB060', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>
-                Actions $CKM retirées
+                {t('sanction.shares_removed')}
               </div>
               <div style={{ fontSize:30, fontWeight:900, color:'#FFE066', lineHeight:1 }}>
-                -{(sharesDebit || 0).toLocaleString('fr-FR')} 📈
+                -{(sharesDebit || 0).toLocaleString(locale)} 📈
               </div>
               <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,232,154,.7)', marginTop:4, fontStyle:'italic' }}>
-                (actions générées via un bug désormais corrigé)
+                {t('sanction.shares_bug_note')}
               </div>
             </div>
           )}
@@ -92,13 +94,13 @@ export function SanctionAppliedModal({ amount, sharesDebit = 0, reason, onClose,
               border:'1.5px solid #C17F3C',
             }}>
               <div style={{ fontSize:10, fontWeight:900, color:'#FFB060', letterSpacing:2, textTransform:'uppercase', marginBottom:4 }}>
-                Total earned ajusté
+                {t('sanction.total_adjusted')}
               </div>
               <div style={{ fontSize:30, fontWeight:900, color:'#FFE066', lineHeight:1 }}>
-                -{(amount || 0).toLocaleString('fr-FR')} 🍪
+                -{(amount || 0).toLocaleString(locale)} 🍪
               </div>
               <div style={{ fontSize:11, fontWeight:600, color:'rgba(255,232,154,.7)', marginTop:4, fontStyle:'italic' }}>
-                (ton solde de cookies n'est pas touché)
+                {t('sanction.balance_untouched')}
               </div>
             </div>
           )}
@@ -108,9 +110,7 @@ export function SanctionAppliedModal({ amount, sharesDebit = 0, reason, onClose,
             border:`1px solid ${C.border}`, marginBottom:18,
             fontSize:11.5, color:C.muted, lineHeight:1.5,
           }}>
-            🤝 Tu peux continuer à jouer normalement. Cette sanction
-            est ponctuelle et vise à maintenir l'équilibre du jeu pour
-            tous les autres joueurs.
+            🤝 {t('sanction.continue_normal')}
           </div>
         </div>
 
@@ -125,7 +125,7 @@ export function SanctionAppliedModal({ amount, sharesDebit = 0, reason, onClose,
               boxShadow:'0 6px 18px rgba(0,0,0,.3)',
             }}
           >
-            Compris
+            {t('common.understood_short')}
           </button>
         </div>
       </div>

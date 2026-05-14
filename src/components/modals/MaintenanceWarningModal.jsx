@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Wrench } from "lucide-react";
 import { GOLD } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    MaintenanceWarningModal — alerte 30s avant bascule maintenance
@@ -24,6 +25,7 @@ export default function MaintenanceWarningModal({
   seconds = 30,
   onDone,
 }){
+  const { t } = useTranslation();
   const [remaining, setRemaining] = useState(seconds);
 
   useEffect(() => {
@@ -82,21 +84,21 @@ export default function MaintenanceWarningModal({
             fontWeight:800, color:'#D4A017', marginBottom:6,
           }}
         >
-          Avis maintenance
+          {t('modal.maintenance_notice')}
         </div>
 
         <div style={{
           fontSize:22, fontWeight:900, color:'#FFE8A8',
           marginBottom:12, letterSpacing:.2, lineHeight:1.2,
         }}>
-          {title || 'Maintenance imminente'}
+          {title || t('modal.maintenance_imminent')}
         </div>
 
         <div style={{
           fontSize:14, color:C.muted, lineHeight:1.55,
           marginBottom:20, whiteSpace:'pre-line',
         }}>
-          {subtitle || 'L\'app va passer en maintenance dans quelques secondes.\nSauvegarde ta progression et patiente un instant.'}
+          {subtitle || t('modal.maintenance_save_progress')}
         </div>
 
         {/* Compte à rebours géant */}
@@ -137,7 +139,7 @@ export default function MaintenanceWarningModal({
             touchAction:'manipulation',
           }}
         >
-          OK, j'ai compris
+          {t('modal.ok_understood')}
         </button>
       </div>
     </div>

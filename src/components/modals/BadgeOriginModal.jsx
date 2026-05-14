@@ -1,4 +1,5 @@
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    BadgeOriginModal — détails "comment on a débloqué ce badge"
@@ -15,13 +16,13 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
    - C       : palette
 ═══════════════════════════════════════════════════════ */
 
-const SOURCE_META = {
-  shop:   { ribbon: 'BOUTIQUE',         emoji: '🛍️' },
-  event:  { ribbon: 'ÉVÉNEMENT',        emoji: '🎯' },
-  secret: { ribbon: 'BADGE SECRET',     emoji: '🔒' },
-};
-
 export function BadgeOriginModal({ badge, origin, onClose, C }){
+  const { t, localizedField } = useTranslation();
+  const SOURCE_META = {
+    shop:   { ribbonKey: 'badge_origin.ribbon_shop',   emoji: '🛍️' },
+    event:  { ribbonKey: 'badge_origin.ribbon_event',  emoji: '🎯' },
+    secret: { ribbonKey: 'badge_origin.ribbon_secret', emoji: '🔒' },
+  };
   if(!badge || !origin) return null;
   const meta = SOURCE_META[origin.source] || SOURCE_META.shop;
   const icon = badge.icon || badge.emoji || '🏅';
@@ -65,15 +66,15 @@ export function BadgeOriginModal({ badge, origin, onClose, C }){
             marginBottom:14,
           }}>
             <span>{meta.emoji}</span>
-            <span>{meta.ribbon}</span>
+            <span>{t(meta.ribbonKey)}</span>
           </div>
           <div style={{ fontSize:54, lineHeight:1, marginBottom:8 }}>{icon}</div>
           <div style={{ fontSize:17, fontWeight:900, lineHeight:1.25 }}>
-            {badge.name}
+            {localizedField(badge, 'name', 'REWARDS')}
           </div>
           {desc && (
             <div style={{ fontSize:11.5, opacity:.85, marginTop:6, fontStyle:'italic', lineHeight:1.4 }}>
-              {desc}
+              {localizedField(badge, badge.description ? 'description' : 'desc', 'REWARDS') || desc}
             </div>
           )}
         </div>
@@ -84,7 +85,7 @@ export function BadgeOriginModal({ badge, origin, onClose, C }){
             fontSize:9, fontWeight:800, color:C.muted,
             textTransform:'uppercase', letterSpacing:2, marginBottom:6,
           }}>
-            Comment je l'ai débloqué
+            {t('badge_origin.how_unlocked')}
           </div>
           <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:4, lineHeight:1.35 }}>
             {origin.label}
@@ -105,7 +106,7 @@ export function BadgeOriginModal({ badge, origin, onClose, C }){
               cursor:'pointer', letterSpacing:.3,
             }}
           >
-            Fermer
+            {t('common.close')}
           </button>
         </div>
       </div>

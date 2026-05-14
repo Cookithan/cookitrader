@@ -1,3 +1,5 @@
+import { useTranslation } from "../../i18n/index.js";
+
 /* ════════════════════════════════════════════════════
    SkipConfirmModal — confirmation pour passer le tutoriel
    ────────────────────────────────────────────────────
@@ -11,6 +13,7 @@
    - C         : palette
 ═══════════════════════════════════════════════════════ */
 export function SkipConfirmModal({ onCancel, onConfirm, C }){
+  const { t } = useTranslation();
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.85)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:220, backdropFilter:'blur(6px)', padding:16 }}>
       <div className="bi" style={{
@@ -22,10 +25,10 @@ export function SkipConfirmModal({ onCancel, onConfirm, C }){
       }}>
         <div style={{ fontSize:36, marginBottom:8 }}>⚠️</div>
         <div style={{ fontSize:16, fontWeight:900, color:C.text, marginBottom:8 }}>
-          Passer le tutoriel ?
+          {t('modal.skip_tutorial_title')}
         </div>
         <div style={{ fontSize:12, color:C.muted, lineHeight:1.5, marginBottom:18 }}>
-          Tu peux le manquer si tu débutes — mais tu peux toujours explorer librement.
+          {t('modal.skip_tutorial_desc')}
         </div>
         <div style={{ display:'flex', gap:10 }}>
           <button
@@ -37,7 +40,7 @@ export function SkipConfirmModal({ onCancel, onConfirm, C }){
               fontSize:13, fontWeight:700, cursor:'pointer',
             }}
           >
-            Annuler
+            {t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
@@ -48,7 +51,7 @@ export function SkipConfirmModal({ onCancel, onConfirm, C }){
               fontSize:13, fontWeight:800, cursor:'pointer',
             }}
           >
-            Confirmer
+            {t('common.confirm')}
           </button>
         </div>
       </div>

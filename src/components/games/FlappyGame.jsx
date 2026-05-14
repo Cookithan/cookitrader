@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "../../i18n/index.js";
 import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
@@ -79,6 +80,7 @@ const MODES = {
 };
 
 export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }){
+  const { t } = useTranslation();
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
   const [phase, setPhase] = useState('idle');           // idle | countdown | playing | done
@@ -375,10 +377,10 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
 
   const canPlay = coins >= FLAPPY_COST;
   const btnLabel =
-      phase === 'idle' ? `Commencer (${FLAPPY_COST} 🍪)`
+      phase === 'idle' ? t('games.start_btn', { cost: FLAPPY_COST })
     : phase === 'countdown' ? '…'
-    : phase === 'playing'   ? '👇 Tape pour voler'
-    :                         `Rejouer (${FLAPPY_COST} 🍪)`;
+    : phase === 'playing'   ? t('game_flappy.tap_to_fly')
+    :                         t('games.replay_btn', { cost: FLAPPY_COST });
 
   /* Rotation du cookie selon la vélocité (effet plongeon / remontée) */
   const cookieRot = Math.max(-25, Math.min(70, cookieVRef.current * 0.12));
@@ -394,7 +396,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
             textTransform:'uppercase', letterSpacing:1.5,
             textAlign:'left',
           }}>
-            Mode
+            {t('games.select_mode_short')}
           </div>
           <div style={{
             display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:6,
@@ -626,7 +628,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
             textShadow:'0 4px 18px rgba(212,160,23,.5)',
             pointerEvents:'none',
           }}>
-            {countdownVal === 'GO' ? 'GO !' : countdownVal}
+            {countdownVal === 'GO' ? t('games.go') : countdownVal}
           </div>
         )}
 
@@ -653,7 +655,9 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
               }}
             >
               <div style={{ fontSize:16, fontWeight:900, marginBottom:6, letterSpacing:.3 }}>
-                {score === 0 ? '💥 Aïe...' : `🏆 ${score} tuyau${score>1?'x':''} !`}
+                {score === 0
+                  ? t('game_flappy.end_zero')
+                  : t(score > 1 ? 'game_flappy.end_normal' : 'game_flappy.end_singular', { n: score })}
               </div>
               <div style={{ fontSize:13, fontWeight:800, color:'#5D3A1F' }}>+{Math.min(earned, REWARD_CAP)} 🍪</div>
             </div>
@@ -667,7 +671,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
             fontSize:13, fontWeight:700, color:'#5A3520', fontStyle:'italic',
             pointerEvents:'none',
           }}>
-            Tape pour faire bondir le cookie
+            {t('game_flappy.tap_to_flap_long')}
           </div>
         )}
       </div>

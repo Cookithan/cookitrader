@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { activityToFeedItem, formatRelativeTime } from '../../lib/marketFeed';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    MarketFeed — Petit flux d'activité joueurs sous la courbe
@@ -18,7 +19,7 @@ import { activityToFeedItem, formatRelativeTime } from '../../lib/marketFeed';
 
 const SENTIMENT_COLOR = { up: '#D4A017', down: '#7D4E1F' };
 
-function FeedLine({ item, C, now }) {
+function FeedLine({ item, C, now, t }) {
   const fg = SENTIMENT_COLOR[item.sentiment];
   return (
     <div style={{
@@ -34,10 +35,10 @@ function FeedLine({ item, C, now }) {
       <span style={{ flex: 1, minWidth: 0, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         <span style={{ color: fg, fontWeight: 700 }}>{item.user_name}</span>
         {' '}
-        {item.type === 'buy' ? 'a acheté' : 'a vendu'}
+        {item.type === 'buy' ? t('feed.bought') : t('feed.sold')}
         {' '}
         <span style={{ fontWeight: 700 }}>{item.shares}</span>
-        {' '}à {item.price_per_share.toFixed(0)} 🍪
+        {' '}{t('feed.at')} {item.price_per_share.toFixed(0)} 🍪
       </span>
       <span style={{ fontSize: 9, color: C.muted, flexShrink: 0 }}>
         {formatRelativeTime(item.timestampMs, now)}
@@ -47,6 +48,7 @@ function FeedLine({ item, C, now }) {
 }
 
 export function MarketFeed({ activity, C }) {
+  const { t } = useTranslation();
   /* Force re-render toutes les 30s pour rafraîchir les "il y a X min". */
   const [, forceRender] = useState(0);
   useEffect(() => {
@@ -76,11 +78,11 @@ export function MarketFeed({ activity, C }) {
         letterSpacing: 1.5,
         padding: '2px 4px 4px',
       }}>
-        Activité récente
+        {t('feed.recent_activity')}
       </div>
       <div>
         {items.map(item => (
-          <FeedLine key={item.id} item={item} C={C} now={now} />
+          <FeedLine key={item.id} item={item} C={C} now={now} t={t} />
         ))}
       </div>
     </div>

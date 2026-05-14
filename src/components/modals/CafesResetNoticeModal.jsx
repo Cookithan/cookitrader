@@ -1,5 +1,6 @@
 import { Coffee } from "lucide-react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    CafesResetNoticeModal — annonce de la refonte économie café
@@ -16,6 +17,7 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function CafesResetNoticeModal({ onClose, C }){
+  const { t } = useTranslation();
   return (
     <div
       onClick={onClose}
@@ -47,19 +49,17 @@ export function CafesResetNoticeModal({ onClose, C }){
             fontSize:11, fontWeight:900, letterSpacing:3,
             textTransform:'uppercase', opacity:.85, marginBottom:4,
           }}>
-            Refonte économie premium
+            {t('cafes_reset.header')}
           </div>
           <div style={{ fontSize:18, fontWeight:900, color:'#fff', letterSpacing:.3 }}>
-            Le café devient rare
+            {t('cafes_reset.title')}
           </div>
         </div>
 
         {/* Body */}
         <div style={{ padding:'18px 22px 4px' }}>
           <p style={{ fontSize:13, color:C.text, lineHeight:1.6, margin:0, marginBottom:14 }}>
-            Pour rendre le café plus précieux et donner du sens aux items
-            premium, ton stock <strong>repart de zéro</strong> aujourd'hui.
-            Tout le monde est dans la même situation.
+            {t('cafes_reset.intro')}
           </p>
 
           <div style={{
@@ -67,12 +67,12 @@ export function CafesResetNoticeModal({ onClose, C }){
             border:`1px solid ${C.border}`, marginBottom:14,
           }}>
             <div style={{ fontSize:10, fontWeight:800, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginBottom:8 }}>
-              Ce qui change
+              {t('cafes_reset.what_changes')}
             </div>
             <ul style={{ fontSize:12, color:C.text, lineHeight:1.7, paddingLeft:18, margin:0 }}>
-              <li>Sources réduites de <strong>~45 %</strong> (achievements, level-ups, events)</li>
-              <li>Nouveaux items consommables : booster ×2, skip quiz, doubler gain…</li>
-              <li>Possibilité d'acheter du café pour soutenir le développeur</li>
+              <li>{t('cafes_reset.change_1')}</li>
+              <li>{t('cafes_reset.change_2')}</li>
+              <li>{t('cafes_reset.change_3')}</li>
             </ul>
           </div>
 
@@ -81,7 +81,7 @@ export function CafesResetNoticeModal({ onClose, C }){
             border:'1px solid rgba(212,160,23,.4)', marginBottom:18,
             fontSize:11.5, color:C.text, lineHeight:1.5, textAlign:'center',
           }}>
-            🎯 Tu gardes <strong>tout le reste</strong> : niveau, cookies, items débloqués, succès, badges.
+            🎯 {t('cafes_reset.you_keep_rest')}
           </div>
         </div>
 
@@ -98,7 +98,7 @@ export function CafesResetNoticeModal({ onClose, C }){
               boxShadow:'0 6px 18px rgba(212,160,23,.45)',
             }}
           >
-            ☕ J'ai compris
+            ☕ {t('common.understood_short')}
           </button>
         </div>
       </div>

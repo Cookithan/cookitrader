@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    PrestigeConfirmModal — confirmation de la renaissance
@@ -14,9 +15,11 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
    - C             : palette
 ═══════════════════════════════════════════════════════ */
 
-const CONFIRM_WORD = 'RENAITRE';
-
 export function PrestigeConfirmModal({ prestigeLevel = 0, onConfirm, onCancel, C }){
+  const { t, lang } = useTranslation();
+  /* Mot de confirmation adapté à la langue active. La validation reste
+     stricte (uppercase, trimmed) sur ce mot précis. */
+  const CONFIRM_WORD = lang === 'en' ? 'REBIRTH' : 'RENAITRE';
   const [input, setInput] = useState('');
   const inputRef = useRef(null);
 
@@ -57,10 +60,10 @@ export function PrestigeConfirmModal({ prestigeLevel = 0, onConfirm, onCancel, C
         }}>
           <div style={{ fontSize:46, lineHeight:1, marginBottom:6 }}>🌟</div>
           <div style={{ fontSize:11, fontWeight:900, letterSpacing:3, textTransform:'uppercase' }}>
-            Renaissance · Prestige {prestigeLevel + 1}
+            {t('prestige.header_n', { n: prestigeLevel + 1 })}
           </div>
           <div style={{ fontSize:18, fontWeight:900, marginTop:4 }}>
-            Tu vas tout recommencer
+            {t('prestige.about_to_restart')}
           </div>
         </div>
 
@@ -68,24 +71,24 @@ export function PrestigeConfirmModal({ prestigeLevel = 0, onConfirm, onCancel, C
           {/* Récap */}
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:10, fontWeight:800, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginBottom:8 }}>
-              Tu repars de zéro
+              {t('prestige.lose_label')}
             </div>
             <ul style={{ fontSize:12.5, color:C.text, lineHeight:1.7, paddingLeft:18, margin:0 }}>
-              <li>Niveau <strong>1</strong>, XP, streak et record clic à 0</li>
-              <li>Cookies remis à <strong>0</strong></li>
-              <li>Total cumulé remis à 0</li>
+              <li>{t('prestige.lose_1')}</li>
+              <li>{t('prestige.lose_2')}</li>
+              <li>{t('prestige.lose_3')}</li>
             </ul>
           </div>
 
           <div style={{ marginBottom:16 }}>
             <div style={{ fontSize:10, fontWeight:800, color:C.muted, letterSpacing:2, textTransform:'uppercase', marginBottom:8 }}>
-              Tu gardes
+              {t('prestige.keep_label')}
             </div>
             <ul style={{ fontSize:12.5, color:C.text, lineHeight:1.7, paddingLeft:18, margin:0 }}>
-              <li>Tous tes <strong>items</strong> débloqués (boutique, badges, thèmes…)</li>
-              <li>Tous tes <strong>succès</strong> et badges secrets</li>
-              <li>Tes <strong>cafés ☕</strong> et tes <strong>actions $CKM</strong></li>
-              <li>Tes amis 👥</li>
+              <li>{t('prestige.keep_1')}</li>
+              <li>{t('prestige.keep_2')}</li>
+              <li>{t('prestige.keep_3')}</li>
+              <li>{t('prestige.keep_4')}</li>
             </ul>
           </div>
 
@@ -97,14 +100,14 @@ export function PrestigeConfirmModal({ prestigeLevel = 0, onConfirm, onCancel, C
             textAlign:'center',
           }}>
             <div style={{ fontSize:10, letterSpacing:2, textTransform:'uppercase', fontWeight:800, opacity:.85, marginBottom:4 }}>
-              Bonus permanent
+              {t('prestige.permanent_bonus')}
             </div>
             <div style={{ fontSize:22, fontWeight:900, color:'#FFE066' }}>
-              x{nextMult.toFixed(1)} sur tous les gains 🍪
+              {t('prestige.mult_all_gains', { mult: nextMult.toFixed(1) })}
             </div>
             {prestigeLevel > 0 && (
               <div style={{ fontSize:10.5, color:'rgba(255,255,255,.65)', marginTop:4, fontStyle:'italic' }}>
-                Avant : x{(1 + prestigeLevel * 0.1).toFixed(1)}
+                {t('prestige.before_was', { mult: (1 + prestigeLevel * 0.1).toFixed(1) })}
               </div>
             )}
           </div>
@@ -112,7 +115,7 @@ export function PrestigeConfirmModal({ prestigeLevel = 0, onConfirm, onCancel, C
           {/* Input de confirmation */}
           <div style={{ marginBottom:14 }}>
             <div style={{ fontSize:11, fontWeight:700, color:C.muted, marginBottom:6 }}>
-              Tape <strong style={{ color:C.text, letterSpacing:2 }}>{CONFIRM_WORD}</strong> pour confirmer
+              {t('prestige.type_to_confirm_before')} <strong style={{ color:C.text, letterSpacing:2 }}>{CONFIRM_WORD}</strong> {t('prestige.type_to_confirm_after')}
             </div>
             <input
               ref={inputRef}
@@ -146,7 +149,7 @@ export function PrestigeConfirmModal({ prestigeLevel = 0, onConfirm, onCancel, C
                 fontSize:13, fontWeight:700, cursor:'pointer',
               }}
             >
-              Annuler
+              {t('common.cancel')}
             </button>
             <button
               onClick={()=>{ if(valid){ onConfirm(); } }}
@@ -160,7 +163,7 @@ export function PrestigeConfirmModal({ prestigeLevel = 0, onConfirm, onCancel, C
                 boxShadow: valid ? '0 6px 18px rgba(212,160,23,.45)' : 'none',
               }}
             >
-              🌟 RENAÎTRE
+              🌟 {t('prestige.rebirth_btn')}
             </button>
           </div>
         </div>

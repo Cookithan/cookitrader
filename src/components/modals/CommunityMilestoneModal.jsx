@@ -1,4 +1,5 @@
 import { Sparkles, PartyPopper } from 'lucide-react';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    CommunityMilestoneModal — popup festif palier communautaire
@@ -20,6 +21,7 @@ import { Sparkles, PartyPopper } from 'lucide-react';
 ═══════════════════════════════════════════════════════ */
 
 export function CommunityMilestoneModal({ threshold, cookieReward, cafeReward, onClose, C }) {
+  const { t, lang } = useTranslation();
   return (
     <div
       onClick={onClose}
@@ -94,7 +96,7 @@ export function CommunityMilestoneModal({ threshold, cookieReward, cafeReward, o
           textTransform: 'uppercase', letterSpacing: 3, marginBottom: 6,
           position: 'relative', zIndex: 1,
         }}>
-          Palier communautaire
+          {t('modal.community_milestone')}
         </div>
 
         {/* Titre principal */}
@@ -104,7 +106,7 @@ export function CommunityMilestoneModal({ threshold, cookieReward, cafeReward, o
           textShadow: '0 2px 12px rgba(212,160,23,.5)',
           position: 'relative', zIndex: 1,
         }}>
-          Bravo !
+          {t('modal.bravo')}
         </div>
 
         <div style={{
@@ -112,9 +114,7 @@ export function CommunityMilestoneModal({ threshold, cookieReward, cafeReward, o
           marginBottom: 18, padding: '0 4px',
           position: 'relative', zIndex: 1,
         }}>
-          La communauté a miné <strong style={{ color: '#FFE066', fontWeight: 900 }}>
-            {threshold.toLocaleString('fr-FR')} cookies
-          </strong> au total !
+          {t('modal.community_mined', { n: threshold.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US') })}
         </div>
 
         {/* Carte cadeau */}
@@ -132,7 +132,7 @@ export function CommunityMilestoneModal({ threshold, cookieReward, cafeReward, o
             textTransform: 'uppercase', letterSpacing: 2,
             marginBottom: 8,
           }}>
-            🎁 Cadeau offert
+            🎁 {t('modal.gift_offered')}
           </div>
           <div style={{
             display: 'flex', justifyContent: 'center', gap: 18,
@@ -172,7 +172,7 @@ export function CommunityMilestoneModal({ threshold, cookieReward, cafeReward, o
             position: 'relative', zIndex: 1,
           }}
         >
-          Merci la communauté ! 🎉
+          {t('modal.thanks_community')}
         </button>
       </div>
     </div>

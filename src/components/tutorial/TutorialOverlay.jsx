@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { SpotlightOverlay } from "./SpotlightOverlay.jsx";
 import { TutorialBubble } from "./TutorialBubble.jsx";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    TutorialOverlay — orchestrateur du tutoriel guidé
@@ -22,17 +23,20 @@ import { TutorialBubble } from "./TutorialBubble.jsx";
    Textes courts (1 phrase). Couvre toutes les sections principales.
    `goToTab` (optionnel) navigue automatiquement vers le tab — l'user
    voit ainsi le contenu réel de la page pendant qu'il lit la bulle. */
+/* Tuto : chaque étape déclare un `textKey` plutôt qu'un texte FR
+   hardcodé. Le composant résout la clé via t() au moment du render. */
 export const TUTORIAL_STEPS = [
-  { target:'card-niveau',    goToTab:'accueil',    text:'Ton niveau et ta progression. Joue pour monter ! 🚀',         actionRequired:false },
-  { target:'cookie-counter', goToTab:'accueil',    text:'Les cookies 🍪 — ta monnaie principale.',                     actionRequired:false },
-  { target:'card-checkin',   goToTab:'accueil',    text:'Ton bonus quotidien à récupérer chaque jour. ☕',             actionRequired:false },
-  { target:'nav-jeux',       goToTab:'jeux',       text:"Les mini-jeux pour gagner des cookies. 🎮",                   actionRequired:false },
-  { target:'nav-classement', goToTab:'classement', text:'Le classement face aux autres joueurs. 🏆',                   actionRequired:false },
-  { target:'nav-marche',     goToTab:'marche',     text:'Le marché $CKM — achète/revends pour faire fructifier (niv 3+). 📈', actionRequired:false },
-  { target:'nav-boutique',   goToTab:'boutique',   text:'La boutique pour débloquer thèmes, badges, items premium ☕.', actionRequired:false },
+  { target:'card-niveau',    goToTab:'accueil',    textKey:'tutorial.step1', actionRequired:false },
+  { target:'cookie-counter', goToTab:'accueil',    textKey:'tutorial.step2', actionRequired:false },
+  { target:'card-checkin',   goToTab:'accueil',    textKey:'tutorial.step3', actionRequired:false },
+  { target:'nav-jeux',       goToTab:'jeux',       textKey:'tutorial.step4', actionRequired:false },
+  { target:'nav-classement', goToTab:'classement', textKey:'tutorial.step5', actionRequired:false },
+  { target:'nav-marche',     goToTab:'marche',     textKey:'tutorial.step6', actionRequired:false },
+  { target:'nav-boutique',   goToTab:'boutique',   textKey:'tutorial.step7', actionRequired:false },
 ];
 
 export function TutorialOverlay({ step, onNext, onSkip, onNavigate }){
+  const { t } = useTranslation();
   const config = TUTORIAL_STEPS[step - 1];
 
   /* Auto-avance pour les étapes flaguées avec autoNext */
@@ -54,7 +58,7 @@ export function TutorialOverlay({ step, onNext, onSkip, onNavigate }){
     <>
       <SpotlightOverlay target={config.target} />
       <TutorialBubble
-        text={config.text}
+        text={t(config.textKey)}
         actionRequired={config.actionRequired}
         onNext={onNext}
         onSkip={step === 1 ? onSkip : null}

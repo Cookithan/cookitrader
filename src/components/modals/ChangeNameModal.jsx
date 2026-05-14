@@ -3,6 +3,7 @@ import { Cookie } from "lucide-react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { NAME_CHANGE_PRICES, getNameChangePrice } from "../../data/constants.js";
 import { isNameTaken } from "../../lib/supabaseSync.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ChangeNameModal — modale payante pour changer le prénom
@@ -22,6 +23,7 @@ import { isNameTaken } from "../../lib/supabaseSync.js";
    - C                  : palette active (light/dark/thème)
 ═══════════════════════════════════════════════════════ */
 export function ChangeNameModal({ currentName, coins, nameChangeCount, userCode, onConfirm, onClose, C }){
+  const { t } = useTranslation();
   const [name, setName] = useState(currentName || '');
   const [checking, setChecking] = useState(false);
   const [takenError, setTakenError] = useState('');
@@ -38,7 +40,7 @@ export function ChangeNameModal({ currentName, coins, nameChangeCount, userCode,
     const { taken, error } = await isNameTaken(trimmed, userCode);
     setChecking(false);
     if(error){ setTakenError(error); return; }
-    if(taken){ setTakenError('Ce pseudo est déjà pris. Essaie-en un autre.'); return; }
+    if(taken){ setTakenError(t('modal.name_taken')); return; }
     onConfirm(trimmed, price);
   };
 
@@ -55,20 +57,20 @@ export function ChangeNameModal({ currentName, coins, nameChangeCount, userCode,
 
         <div style={{ textAlign:'center', marginBottom:18 }}>
           <div style={{ fontSize:34, marginBottom:6 }}>✏️</div>
-          <div style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:4 }}>Changer mon pseudo</div>
+          <div style={{ fontSize:18, fontWeight:900, color:C.text, marginBottom:4 }}>{t('modal.change_name')}</div>
           <div style={{ fontSize:11, color:C.muted }}>
-            Pseudo actuel : <span style={{ fontWeight:700, color:C.text }}>{currentName || '—'}</span>
+            {t('modal.current_name')}: <span style={{ fontWeight:700, color:C.text }}>{currentName || '—'}</span>
           </div>
         </div>
 
         <div style={{ marginBottom:14 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:6 }}>NOUVEAU PSEUDO</div>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:6 }}>{t('modal.new_name')}</div>
           <input
             value={name}
             onChange={onNameChange}
             maxLength={20}
             autoFocus
-            placeholder="Ton pseudo…"
+            placeholder={t('modal.your_name_placeholder')}
             style={{ width:'100%', padding:'13px 15px', borderRadius:13, border:`2px solid ${takenError ? '#A87858' : C.border}`, background:C.bg, color:C.text, fontSize:15, fontWeight:600, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}
           />
           <div style={{ fontSize:10, color:C.muted, marginTop:5, textAlign:'right' }}>{trimmed.length}/20</div>
@@ -83,14 +85,14 @@ export function ChangeNameModal({ currentName, coins, nameChangeCount, userCode,
         <div style={{ background:ESPRESSO, borderRadius:16, padding:'14px 16px', marginBottom:14, border:'1px solid rgba(212,160,23,.35)', boxShadow:'0 6px 18px rgba(74,44,23,.25)' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
             <div>
-              <div style={{ fontSize:9, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>Coût</div>
+              <div style={{ fontSize:9, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:2, fontWeight:700 }}>{t('modal.cost')}</div>
               <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
                 <span style={{ fontSize:24, fontWeight:900, color:'#F0C050' }}>{price}</span>
                 <Cookie size={18} color="#F0C050" />
               </div>
             </div>
             <div style={{ textAlign:'right' }}>
-              <div style={{ fontSize:9, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:1.5, fontWeight:700 }}>Solde</div>
+              <div style={{ fontSize:9, color:'rgba(255,255,255,.55)', textTransform:'uppercase', letterSpacing:1.5, fontWeight:700 }}>{t('modal.balance')}</div>
               <div style={{ fontSize:14, fontWeight:800, color: enough ? '#fff' : '#A87858', marginTop:2 }}>
                 {coins} 🍪
               </div>
@@ -98,25 +100,25 @@ export function ChangeNameModal({ currentName, coins, nameChangeCount, userCode,
           </div>
           {nameChangeCount > 0 && nextPrice !== price && (
             <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', marginTop:8, fontStyle:'italic' }}>
-              💡 Prochain changement : {nextPrice} 🍪
+              💡 {t('modal.next_change', { n: nextPrice })}
             </div>
           )}
           {nameChangeCount > 0 && nextPrice === price && (
             <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', marginTop:8, fontStyle:'italic' }}>
-              💡 Tarif maximum atteint
+              💡 {t('modal.max_price_reached')}
             </div>
           )}
         </div>
 
         {!enough && (
           <div style={{ fontSize:11, color:'#A87858', textAlign:'center', marginBottom:12, fontWeight:600 }}>
-            Pas assez de cookies. Reviens jouer un peu !
+            {t('modal.not_enough_cookies_play')}
           </div>
         )}
 
         <div style={{ display:'flex', gap:10 }}>
           <button onClick={onClose} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer' }}>
-            Annuler
+            {t('common.cancel')}
           </button>
           <button
             onClick={submit}
@@ -131,7 +133,7 @@ export function ChangeNameModal({ currentName, coins, nameChangeCount, userCode,
               letterSpacing:.3,
             }}
           >
-            {checking ? 'Vérification…' : `Confirmer pour ${price} 🍪`}
+            {checking ? t('modal.checking') : t('modal.confirm_for', { n: price })}
           </button>
         </div>
       </div>

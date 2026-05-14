@@ -4,6 +4,7 @@ import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
 import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
+import { useTranslation } from "../../i18n/index.js";
 
 /* Achat de cafés via Stripe — masqué tant qu'on est en mode test (pas de
    live keys, pas de mentions légales). Flip à `true` pour réafficher la
@@ -24,6 +25,7 @@ const STRIPE_ENABLED = false;
 ═══════════════════════════════════════════════════════ */
 
 export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {}, C }) {
+  const { t, localizedField } = useTranslation();
   const [filter, setFilter] = useState('Tous');
   /* Filtre dédié au mode premium 'main' — sépare visuellement Avatars/Skins/
      Thèmes/Musiques/Packs/Spécial (Coup de Grâce + bannière). Mappé par
@@ -40,6 +42,18 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      pendant cette session restent visibles jusqu'au prochain mount. */
   const [initialUnlocked] = useState(unlocked);
   const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack'];
+  /* Labels d'affichage des filtres — traduit via i18n. Les IDs restent
+     en FR car utilisés en état interne (r.type === 'Badge'). */
+  const FILTER_LABEL = {
+    'Tous':    t('shop.filter_all'),
+    'Badge':   t('shop.filter_badge'),
+    'Thème':   t('shop.filter_theme'),
+    'Avatar':  t('shop.filter_avatar'),
+    'Skin':    t('shop.filter_skin'),
+    'Titre':   t('shop.filter_title'),
+    'Musique': t('shop.filter_music'),
+    'Pack':    t('shop.filter_pack'),
+  };
   /* Filtres premium — basés sur applyAs pour la robustesse. Ordre :
      Tous → cosmétiques (Avatar, Skin, Thème, Musique) → Packs → Spécial. */
   /* Filtres premium — basés sur applyAs pour la robustesse. Catégorie
@@ -191,7 +205,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     <div className="su" style={{ position:'relative' }}>
 
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, paddingTop:4 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>BOUTIQUE</div>
+        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>{t('shop.title')}</div>
         <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:13, fontWeight:700, color:C.text }}>
           <span style={{ display:'flex', alignItems:'center', gap:4 }}><Coffee size={13} color="#F0C050" /> {cafes}</span>
           <span style={{ display:'flex', alignItems:'center', gap:4 }}><Cookie size={14} color="#D4A017" /> {coins}</span>
@@ -211,7 +225,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           }}
         >
           <Cookie size={14} color={mode==='shop' ? '#fff' : C.muted} />
-          BOUTIQUE
+          {t('shop.tab_shop')}
         </button>
         <button
           onClick={()=>{ if(mode!=='premium'){ playSound('tab'); setMode('premium'); setPremiumView('main'); } }}
@@ -225,7 +239,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           }}
         >
           <Coffee size={14} color={mode==='premium' ? '#F0C050' : C.muted} />
-          PREMIUM
+          {t('shop.tab_premium')}
         </button>
       </div>
 
@@ -241,7 +255,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
             fontSize:13, fontWeight:700, cursor:'pointer',
           }}
         >
-          <ChevronLeft size={16} /> Retour Premium
+          <ChevronLeft size={16} /> {t('shop.back_premium')}
         </button>
       )}
 
@@ -256,11 +270,10 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
             fontSize:13, fontWeight:900, color:'#D4A017',
             letterSpacing:.4, marginBottom:4,
           }}>
-            🎁 Coffres Mystères
+            {t('shop.chests_view_title')}
           </div>
           <div style={{ fontSize:11.5, color:C.muted, lineHeight:1.5 }}>
-            Chaque coffre s'ouvre <strong style={{ color:'#D4A017' }}>une seule fois</strong> et révèle
-            3 cosmétiques cachés que tu ne possèdes pas encore.
+            {t('shop.chests_view_intro', { once: t('shop.chests_view_once') })}
           </div>
         </div>
       )}
@@ -488,8 +501,8 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               )}
               {isUnlocked && !r.limited && <span className="sparkle-anim" style={{ position:'absolute', top:8, right:10, fontSize:14, animationDelay:`${i*0.3}s` }}>✨</span>}
               <div className={isUnlocked ? 'float-anim' : ''} style={{ fontSize:30, marginBottom:8, display:'inline-block', filter:lvLocked?'grayscale(.7)':'none' }}>{lvLocked ? '🔒' : r.emoji}</div>
-              <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:3 }}>{r.name}</div>
-              <div style={{ fontSize:11, color:C.muted, marginBottom: (r.savingsLabel || r.applyAs === 'unlock_all_shop') ? 6 : 12 }}>{r.desc}</div>
+              <div style={{ fontWeight:700, fontSize:13, color:C.text, marginBottom:3 }}>{localizedField(r, 'name', 'REWARDS')}</div>
+              <div style={{ fontSize:11, color:C.muted, marginBottom: (r.savingsLabel || r.applyAs === 'unlock_all_shop') ? 6 : 12 }}>{localizedField(r, 'desc', 'REWARDS')}</div>
               {/* Badge "économies" — sur les packs pour justifier le prix.
                   (Calcul dynamique unlock_all_shop retiré, item supprimé.) */}
               {(() => {

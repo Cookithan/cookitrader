@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { restoreProfile } from "../../lib/supabaseSync.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    RestoreProfileModal — saisie code + appel restoreProfile
@@ -27,6 +28,7 @@ export function RestoreProfileModal({
   onForgetAccount,
   C,
 }){
+  const { t } = useTranslation();
   const [code,    setCode]    = useState('');
   const [pin,     setPin]     = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,10 +118,10 @@ export function RestoreProfileModal({
         <div style={{ textAlign:'center', marginBottom:16 }}>
           <div style={{ fontSize:54, lineHeight:1 }}>🔄</div>
           <div style={{ fontSize:20, fontWeight:900, color:C.text, marginTop:8 }}>
-            Restaure ton compte
+            {t('restore.title')}
           </div>
           <div style={{ fontSize:12.5, color:C.muted, marginTop:8, lineHeight:1.5, padding:'0 4px' }}>
-            Saisis ton code unique (6 caractères). Tu le trouves dans ton profil sur l'autre appareil.
+            {t('restore.intro')}
           </div>
         </div>
 
@@ -134,10 +136,9 @@ export function RestoreProfileModal({
             marginBottom:12, lineHeight:1.5,
           }}>
             <div style={{ color:'#C8960C', fontWeight:800, marginBottom:3 }}>
-              🔄 Tu vas charger un autre profil
+              🔄 {t('restore.warning_title')}
             </div>
-            Ton compte actuel reste sauvegardé en ligne — tu pourras y revenir
-            en restaurant à nouveau avec son code + PIN.
+            {t('restore.warning_desc')}
           </div>
         )}
 
@@ -145,7 +146,7 @@ export function RestoreProfileModal({
         {switchableAccounts.length > 0 && (
           <div style={{ marginBottom:14 }}>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:6 }}>
-              Comptes récents
+              {t('restore.recent_accounts')}
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
               {switchableAccounts.map(acc => {
@@ -184,7 +185,7 @@ export function RestoreProfileModal({
                           fontSize:13, fontWeight:800, color:C.text,
                           whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
                         }}>
-                          {acc.userName || 'Anonyme'}
+                          {acc.userName || t('restore.anonymous')}
                         </div>
                         <div style={{
                           fontSize:10, color:'#D4A017', fontWeight:700, marginTop:1,
@@ -198,8 +199,8 @@ export function RestoreProfileModal({
                     {onForgetAccount && (
                       <button
                         onClick={(e) => { e.stopPropagation(); onForgetAccount(acc.userCode); }}
-                        aria-label="Oublier ce compte"
-                        title="Oublier ce compte"
+                        aria-label={t('restore.forget_account')}
+                        title={t('restore.forget_account')}
                         style={{
                           width:26, height:26, borderRadius:8,
                           background:'transparent', border:`1px solid ${C.border}`,
@@ -216,7 +217,7 @@ export function RestoreProfileModal({
               })}
             </div>
             <div style={{ fontSize:10, color:C.muted, fontStyle:'italic', marginTop:6, textAlign:'center' }}>
-              Tap pour pré-remplir le code · le PIN reste à saisir
+              {t('restore.tap_hint')}
             </div>
           </div>
         )}
@@ -224,7 +225,7 @@ export function RestoreProfileModal({
         {/* Input code */}
         <div style={{ marginBottom:8 }}>
           <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:5, textAlign:'center' }}>
-            Code (XXX-XXX)
+            {t('restore.code_label')}
           </div>
           <input
             ref={inputRef}
@@ -259,7 +260,7 @@ export function RestoreProfileModal({
         {/* Input PIN (4 chiffres) */}
         <div style={{ marginBottom:4 }}>
           <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:1.5, marginBottom:5, textAlign:'center' }}>
-            🔒 PIN (4 chiffres)
+            🔒 {t('restore.pin_label')}
           </div>
           <input
             ref={pinInputRef}
@@ -303,8 +304,7 @@ export function RestoreProfileModal({
           fontSize:10, color:C.muted, fontStyle:'italic',
           marginTop:10, lineHeight:1.5, textAlign:'center', padding:'0 6px',
         }}>
-          Restauration complète : identité, progression, cafés ☕,<br/>
-          tous les items débloqués, succès, amis et portfolio.
+          {t('restore.scope_full')}
         </div>
 
         {/* Boutons */}
@@ -317,7 +317,7 @@ export function RestoreProfileModal({
               color:C.muted, fontSize:13, fontWeight:700, cursor:'pointer',
             }}
           >
-            Annuler
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleRestore}
@@ -331,7 +331,7 @@ export function RestoreProfileModal({
               boxShadow: !isValid || loading ? 'none' : '0 6px 18px rgba(212,160,23,.4)',
             }}
           >
-            {loading ? '…' : 'Restaurer'}
+            {loading ? '…' : t('restore.restore_btn')}
           </button>
         </div>
       </div>

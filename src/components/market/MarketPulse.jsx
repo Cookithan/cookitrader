@@ -14,7 +14,10 @@
    - C     : thème
 ═══════════════════════════════════════════════════════ */
 
+import { useTranslation } from '../../i18n/index.js';
+
 export function MarketPulse({ pulse, C }) {
+  const { t, lang } = useTranslation();
   if (!pulse) return null;
   const { activeTraders, buyVolume, sellVolume, totalVolume } = pulse;
   if (activeTraders === 0 && totalVolume === 0) return null;
@@ -37,13 +40,13 @@ export function MarketPulse({ pulse, C }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.muted }}>
         <span style={{ fontSize: 13 }}>👥</span>
         <b style={{ color: C.text, fontWeight: 800 }}>{activeTraders}</b>
-        trader{activeTraders > 1 ? 's' : ''} 24 h
+        {t(activeTraders > 1 ? 'pulse.traders_24h_plural' : 'pulse.traders_24h_singular')}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.muted }}>
         <span style={{ fontSize: 13 }}>📊</span>
-        <b style={{ color: C.text, fontWeight: 800 }}>{totalVolume.toLocaleString('fr-FR')}</b>
-        action{totalVolume > 1 ? 's' : ''}
+        <b style={{ color: C.text, fontWeight: 800 }}>{totalVolume.toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US')}</b>
+        {t(totalVolume > 1 ? 'pulse.shares_plural' : 'pulse.shares_singular')}
       </div>
 
       {/* Baromètre buy/sell : barre proportionnelle or/moka */}

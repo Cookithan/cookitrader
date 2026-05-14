@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Megaphone, AlertTriangle, Sparkles } from 'lucide-react';
+import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
    AnnouncementModal — popup piloté par Supabase
@@ -29,7 +30,7 @@ const VARIANTS = {
     accent: '#F0E6D3',
     accentSoft: 'rgba(240,230,211,.7)',
     btnBg: 'linear-gradient(135deg, #7D4E1F, #5C3317)',
-    label: 'Info',
+    labelKey: 'modal.severity_info',
   },
   warning: {
     Icon: AlertTriangle,
@@ -37,7 +38,7 @@ const VARIANTS = {
     accent: '#FFE066',
     accentSoft: 'rgba(255,224,102,.75)',
     btnBg: 'linear-gradient(135deg, #D4A017, #C17F3C)',
-    label: 'Important',
+    labelKey: 'modal.severity_warning',
   },
   success: {
     Icon: Sparkles,
@@ -45,7 +46,7 @@ const VARIANTS = {
     accent: '#FFE066',
     accentSoft: 'rgba(255,224,102,.85)',
     btnBg: 'linear-gradient(135deg, #FFE066, #D4A017)',
-    label: 'Nouveau',
+    labelKey: 'modal.severity_new',
   },
 };
 
@@ -59,6 +60,7 @@ function hashMessage(s) {
 }
 
 export function AnnouncementModal({ message, severity = 'info' }) {
+  const { t } = useTranslation();
   const [dismissed, setDismissed] = useState(false);
 
   /* Recalcule dismiss à chaque changement de message — si l'admin met
@@ -141,7 +143,7 @@ export function AnnouncementModal({ message, severity = 'info' }) {
           fontSize: 10, fontWeight: 900, color: v.accentSoft,
           textTransform: 'uppercase', letterSpacing: 3, marginBottom: 6,
         }}>
-          {v.label}
+          {t(v.labelKey)}
         </div>
 
         {/* Titre (1re ligne du message) */}
@@ -182,7 +184,7 @@ export function AnnouncementModal({ message, severity = 'info' }) {
             touchAction: 'manipulation',
           }}
         >
-          J'ai compris ✓
+          {t('modal.understood')}
         </button>
       </div>
     </div>
