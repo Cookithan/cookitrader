@@ -160,6 +160,7 @@ function ModeToggle({ mode, setMode, C }){
    Vue Cookies — total_earned (existante)
 ═══════════════════════════════════════════════════════ */
 function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activeTitle, isAdmin, onOpenProfile, onOpenUserProfile, C }){
+  const { t } = useTranslation();
   const cached = loadCache(CACHE_KEY_COOKIES);
   const [list,    setList]    = useState(cached?.list  ?? []);
   const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
@@ -350,6 +351,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
    Vue Marché — tri par shares (BRIEF_CLASSEMENT_MARCHE)
 ═══════════════════════════════════════════════════════ */
 function MarketView({ userCode, userName, userAvatar, earnedAchievements, activeTitle, isAdmin, onOpenProfile, onOpenUserProfile, C }){
+  const { t } = useTranslation();
   const cached = loadCache(CACHE_KEY_MARKET);
   const [list,    setList]    = useState(cached?.list  ?? []);
   const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
