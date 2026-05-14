@@ -52,6 +52,7 @@ export const EN = {
     level_required: 'Level {n} required',
     insufficient:   'Not enough',
     coming_soon:    'Coming soon',
+    understood_short:'Got it',
     new:           'New',
     secret:        'Secret',
     cookies:       'cookies',
@@ -336,6 +337,90 @@ export const EN = {
     min:          'Min',
     max:          'Max',
     points:       'points',
+  },
+
+  /* SecretBadgeUnlockModal — secret badge discovery */
+  secret_badge: {
+    discovered:  'Secret badge discovered',
+    bonus_n:     'Bonus: +{n} 🍪',
+    awesome:     'Awesome! ✨',
+  },
+
+  /* UpgradeNoticeModal — admin only */
+  upgrade: {
+    admin_notice:      'Admin notice',
+    improvement_phase: 'Improvement phase',
+    dont_play_warning: 'The app is being upgraded. To avoid any progression loss or data inconsistency on your account, please refrain from playing during this period.',
+    yes_understood:    'Yes, got it',
+  },
+
+  /* PaymentSuccessModal — Stripe success popup */
+  payment: {
+    received_label:  'Payment received',
+    you_received:    'You received',
+    thanks_support:  'Thanks for your support! 💛',
+  },
+
+  /* WeeklyChampModal — weekly top 3 */
+  weekly: {
+    champion:        'Champion',
+    vice_champion:   'Vice-champion',
+    third_place:     '3rd place',
+    week_top:        'Week {n} — Top {rank}',
+    of_the_week:     '{label} of the week!',
+    champion_badge:  'Badge "Champion W{n}" 🏅',
+    counter_reset:   'The weekly counter has just reset. Good luck for the next cycle! ☕',
+  },
+
+  /* SanctionAppliedModal — admin sanction */
+  sanction: {
+    header:           'Sanction applied',
+    title:            'Administrative recalibration',
+    because_intro:    'Following',
+    because_outro:    ", your account was adjusted to offset gains from the incident.",
+    shares_removed:   '$CKM shares removed',
+    shares_bug_note:  '(shares generated via a now-fixed bug)',
+    total_adjusted:   'Total earned adjusted',
+    balance_untouched:'(your cookie balance is untouched)',
+    continue_normal:  'You can keep playing normally. This sanction is a one-off to maintain game balance for everyone.',
+  },
+
+  /* MarketRefundModal — pump-and-dump compensation */
+  refund: {
+    apologies:        'Our sincere apologies',
+    compensation_title:'Market compensation 📈',
+    explanation:      "Sorry for the inconvenience 🙏 A player exploited the market with a pump-and-dump that brutally crashed the share price ($CKM) from 123 → 80 🍪, making you lose your investment.",
+    you_get_back:     'You get back',
+    full_investment:  '(the full amount of your prior investment)',
+    what_changed:     'What changed going forward',
+    change_cap_20:    'Cap 20 shares per transaction (vs unlimited before)',
+    change_cooldown:  'Cooldown 60s between buys / sells',
+    change_hold_bonus:'Hold bonus: +10/30/100% depending on duration',
+    change_circuit_breaker:'Auto circuit breaker if variation > 15%',
+    change_market_size:'Market expanded to 10,000 shares',
+    pump_dump_safe:   'Pump-and-dump is now nearly impossible. Happy trading! ☕',
+    see_about_details:'More details on changes in Settings → About.',
+    thanks_btn:       'Thanks, got it',
+  },
+
+  /* CafesResetNoticeModal — coffee economy rework May 2026 */
+  cafes_reset: {
+    header:         'Premium economy rework',
+    title:          'Coffee becomes rare',
+    intro:          'To make coffee more valuable and give meaning to premium items, your stock resets to zero today. Everyone is in the same boat.',
+    what_changes:   'What changes',
+    change_1:       'Sources reduced by ~45% (achievements, level-ups, events)',
+    change_2:       'New consumables: x2 booster, skip quiz, double gain…',
+    change_3:       'Option to buy coffee to support the dev',
+    you_keep_rest:  'You keep everything else: level, cookies, unlocked items, achievements, badges.',
+  },
+
+  /* BadgeOriginModal — how I unlocked this badge */
+  badge_origin: {
+    ribbon_shop:   'SHOP',
+    ribbon_event:  'EVENT',
+    ribbon_secret: 'SECRET BADGE',
+    how_unlocked:  'How I unlocked it',
   },
 
   /* LeaderGapWarningModal — top 1 gap cap */

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Coffee } from "lucide-react";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    PaymentSuccessModal — popup festif post-achat Stripe
@@ -19,6 +20,7 @@ import { GOLD, ESPRESSO } from "../../data/themes.js";
 ═══════════════════════════════════════════════════════ */
 
 export function PaymentSuccessModal({ cafesReceived, onClose, C }){
+  const { t } = useTranslation();
   const [counter, setCounter] = useState(0);
 
   /* Compteur animé 0 → cafesReceived sur 1500ms (ease-out). */
@@ -96,12 +98,12 @@ export function PaymentSuccessModal({ cafesReceived, onClose, C }){
             padding:'4px 12px', borderRadius:10,
             marginBottom:10,
           }}>
-            Paiement reçu
+            {t('payment.received_label')}
           </div>
 
           {/* Compteur animé */}
           <div style={{ fontSize:13, color:'#5D3A1F', marginBottom:4, fontWeight:700 }}>
-            Tu as reçu
+            {t('payment.you_received')}
           </div>
           <div style={{
             fontSize:48, fontWeight:900, color:'#3D2010',
@@ -113,7 +115,7 @@ export function PaymentSuccessModal({ cafesReceived, onClose, C }){
             <span style={{ fontSize:38 }}>☕</span>
           </div>
           <div style={{ fontSize:12, color:'#5D3A1F', fontStyle:'italic', marginBottom:22, opacity:.85 }}>
-            Merci pour ton soutien ! 💛
+            {t('payment.thanks_support')}
           </div>
 
           {/* Bouton */}
@@ -128,7 +130,7 @@ export function PaymentSuccessModal({ cafesReceived, onClose, C }){
               cursor:'pointer',
             }}
           >
-            Continuer
+            {t('common.continue')}
           </button>
         </div>
       </div>

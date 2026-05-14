@@ -59,6 +59,7 @@ export const FR = {
     level_required: 'Niveau {n} requis',
     insufficient:   'Pas assez',
     coming_soon:    'Bientôt disponible',
+    understood_short:"J'ai compris",
     new:           'Nouveau',
     secret:        'Secret',
     cookies:       'cookies',
@@ -352,6 +353,90 @@ export const FR = {
     min:          'Min',
     max:          'Max',
     points:       'points',
+  },
+
+  /* SecretBadgeUnlockModal — découverte d'un badge secret */
+  secret_badge: {
+    discovered:  'Badge secret découvert',
+    bonus_n:     'Bonus : +{n} 🍪',
+    awesome:     'Génial ! ✨',
+  },
+
+  /* UpgradeNoticeModal — admin only */
+  upgrade: {
+    admin_notice:      'Avis admin',
+    improvement_phase: "Phase d'amélioration",
+    dont_play_warning: "L'application est en cours d'évolution. Pour éviter toute perte de progression ou incohérence sur ton compte, merci de ne pas jouer pendant cette période.",
+    yes_understood:    "Oui, j'ai compris",
+  },
+
+  /* PaymentSuccessModal — popup festif Stripe */
+  payment: {
+    received_label:  'Paiement reçu',
+    you_received:    'Tu as reçu',
+    thanks_support:  'Merci pour ton soutien ! 💛',
+  },
+
+  /* WeeklyChampModal — top 3 hebdo */
+  weekly: {
+    champion:        'Champion',
+    vice_champion:   'Vice-champion',
+    third_place:     '3e place',
+    week_top:        'Semaine {n} — Top {rank}',
+    of_the_week:     '{label} de la semaine !',
+    champion_badge:  'Badge "Champion S{n}" 🏅',
+    counter_reset:   'Le compteur de la semaine vient de reset. Bonne chance pour le prochain cycle ! ☕',
+  },
+
+  /* SanctionAppliedModal — sanction admin */
+  sanction: {
+    header:           'Sanction appliquée',
+    title:            'Recalibrage administratif',
+    because_intro:    'Suite à',
+    because_outro:    ", ton compte a été ajusté pour compenser les gains issus de l'incident.",
+    shares_removed:   'Actions $CKM retirées',
+    shares_bug_note:  '(actions générées via un bug désormais corrigé)',
+    total_adjusted:   'Total earned ajusté',
+    balance_untouched:"(ton solde de cookies n'est pas touché)",
+    continue_normal:  "Tu peux continuer à jouer normalement. Cette sanction est ponctuelle et vise à maintenir l'équilibre du jeu pour tous les autres joueurs.",
+  },
+
+  /* MarketRefundModal — compensation pump-and-dump */
+  refund: {
+    apologies:        'Toutes nos excuses',
+    compensation_title:'Compensation marché 📈',
+    explanation:      "Désolé pour la gêne occasionnée 🙏 Un joueur a exploité le marché avec un pump-and-dump qui a fait chuter brutalement le prix de l'action ($CKM) de 123 → 80 🍪, te faisant perdre ton investissement.",
+    you_get_back:     'Tu récupères',
+    full_investment:  "(l'intégralité de ton ancien investissement)",
+    what_changed:     'Ce qui a changé pour la suite',
+    change_cap_20:    'Cap 20 actions par transaction (vs illimité avant)',
+    change_cooldown:  'Cooldown 60 s entre achats / ventes',
+    change_hold_bonus:'Bonus de hold : +10/30/100 % selon durée',
+    change_circuit_breaker:'Circuit breaker auto si variation > 15 %',
+    change_market_size:'Marché élargi à 10 000 actions',
+    pump_dump_safe:   'Le pump-and-dump est désormais quasi impossible. Bon trading ! ☕',
+    see_about_details:'Plus de détails sur les changements dans Paramètres → À propos.',
+    thanks_btn:       "Merci, j'ai compris",
+  },
+
+  /* CafesResetNoticeModal — refonte café mai 2026 */
+  cafes_reset: {
+    header:         'Refonte économie premium',
+    title:          'Le café devient rare',
+    intro:          "Pour rendre le café plus précieux et donner du sens aux items premium, ton stock repart de zéro aujourd'hui. Tout le monde est dans la même situation.",
+    what_changes:   'Ce qui change',
+    change_1:       'Sources réduites de ~45 % (achievements, level-ups, events)',
+    change_2:       'Nouveaux items consommables : booster ×2, skip quiz, doubler gain…',
+    change_3:       "Possibilité d'acheter du café pour soutenir le développeur",
+    you_keep_rest:  'Tu gardes tout le reste : niveau, cookies, items débloqués, succès, badges.',
+  },
+
+  /* BadgeOriginModal — comment j'ai débloqué ce badge */
+  badge_origin: {
+    ribbon_shop:   'BOUTIQUE',
+    ribbon_event:  'ÉVÉNEMENT',
+    ribbon_secret: 'BADGE SECRET',
+    how_unlocked:  "Comment je l'ai débloqué",
   },
 
   /* LeaderGapWarningModal — cap anti-écart top 1 */

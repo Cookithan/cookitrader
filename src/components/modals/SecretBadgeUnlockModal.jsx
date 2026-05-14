@@ -16,7 +16,10 @@
      onClose — () : ferme la modale
 ═══════════════════════════════════════════════════════ */
 
+import { useTranslation } from "../../i18n/index.js";
+
 export function SecretBadgeUnlockModal({ badge, bonus = 100, onClose }){
+  const { t } = useTranslation();
   if(!badge) return null;
 
   return (
@@ -52,7 +55,7 @@ export function SecretBadgeUnlockModal({ badge, bonus = 100, onClose }){
           letterSpacing:4, fontWeight:800,
           marginBottom:6,
         }}>
-          ✨ Badge secret découvert
+          ✨ {t('secret_badge.discovered')}
         </div>
 
         <div
@@ -84,7 +87,7 @@ export function SecretBadgeUnlockModal({ badge, bonus = 100, onClose }){
           marginTop:20,
           fontSize:13, fontWeight:800,
         }}>
-          🎁 Bonus : +{bonus} 🍪
+          🎁 {t('secret_badge.bonus_n', { n: bonus })}
         </div>
 
         <button
@@ -99,7 +102,7 @@ export function SecretBadgeUnlockModal({ badge, bonus = 100, onClose }){
             cursor:'pointer',
           }}
         >
-          Génial ! ✨
+          {t('secret_badge.awesome')}
         </button>
       </div>
     </div>
