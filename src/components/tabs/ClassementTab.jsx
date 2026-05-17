@@ -191,8 +191,14 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
               semaine fait passer DEVANT tous ceux encore à 0)
            2. à égalité (typiquement tout le monde à 0 juste après le
               reset) → départage par NIVEAU décroissant
-           3. ultime stabilisateur → total cumulé décroissant
+           3. ultime stabilisateur → ACTIVITÉ RÉCENTE (last_active).
+              ⚠️ surtout PAS total_earned ici : ça reproduirait à
+              l'identique l'ancien classement all-time juste après un
+              reset (mêmes gros joueurs en tête → "le classement
+              d'avant est revenu"). Le total reste affiché en
+              sous-ligne (info) mais ne pilote PLUS l'ordre.
          Ainsi le classement n'est jamais vide et "reset" chaque vendredi. */
+      const lastActiveMs = p => { const t = p.last_active ? new Date(p.last_active).getTime() : 0; return Number.isFinite(t) ? t : 0; };
       const ranked = (leaderboard || [])
         .map(p => ({
           ...p,
@@ -201,7 +207,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         .sort((a, b) =>
           b._wk - a._wk
           || (Number(b.level) || 0) - (Number(a.level) || 0)
-          || (Number(b.total_earned) || 0) - (Number(a.total_earned) || 0)
+          || lastActiveMs(b) - lastActiveMs(a)
         );
       /* Carte "ton rang" cohérente avec ce tri : si je suis dans le top
          récupéré, mon rang = ma position dans la liste triée (donc basé

@@ -91,7 +91,7 @@ export async function getLeaderboard(limit = 50, weekId = null){ // eslint-disab
         .select('user_code, user_name, user_avatar, level, total_earned, weekly_earned, weekly_week_id, streak, last_active, earned_achievements, active_title, prestige_level')
     )
       .order('weekly_earned', { ascending:false })
-      .order('total_earned',  { ascending:false })
+      .order('last_active',   { ascending:false })
       .limit(limit);
     if(error){
       // eslint-disable-next-line no-console
