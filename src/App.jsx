@@ -19,7 +19,7 @@ import { useBackToClose } from "./hooks/useBackToClose.js";
 import SplashScreen from "./components/SplashScreen.jsx";
 import { isSupabaseEnabled } from "./lib/supabase.js";
 import { upsertProfile, deleteMyProfile, sendGift, getTopTwoTotalEarned, getCommunityCookieTotal, pullProfile, syncDailyCounters, closeWeek, getWeeklyWinners, pingPresence, applyPatchOnce, isPatchApplied, markPatchApplied, listAppliedPatchesByPrefix, getSystemStatus, subscribeSystemStatus, DEFAULT_SYSTEM_STATUS } from "./lib/supabaseSync.js";
-import { getCurrentWeekId, getWeekNumberDisplay } from "./lib/weeklyCycle.js";
+import { getCurrentWeekId, getWeekNumberDisplay, MANUAL_RESET_WEEK_ID } from "./lib/weeklyCycle.js";
 import { WeeklyChampModal } from "./components/modals/WeeklyChampModal.jsx";
 import { NetworkErrorToast } from "./components/NetworkErrorToast.jsx";
 import { GLOBAL_CSS } from "./styles/globalStyles.js";
@@ -2199,6 +2199,10 @@ export default function CookiMiner() {
       const prevDate = new Date(currentWeekId);
       prevDate.setUTCDate(prevDate.getUTCDate() - 7);
       const prevWeekId = prevDate.toISOString().slice(0, 10);
+      /* Reset manuel 17/05/2026 : on ne distribue PAS de podium pour les
+         semaines antérieures au plancher (scores hérités purgés, pas de
+         récompense rétroactive aux anciens leaders >10 000). */
+      if(prevWeekId < MANUAL_RESET_WEEK_ID) return;
       /* Clôture si pas encore faite (atomique côté Supabase) */
       let winners = await getWeeklyWinners(prevWeekId);
       if(!winners){

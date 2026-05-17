@@ -283,11 +283,38 @@ export const FR = {
     reset_in:        'Reset dans {time}',
     outside_ranking: 'hors classement',
     out_of:          'sur {n}',
+    earned_week:     '🍪 cette semaine',
+    earned_total:    '🍪 au total',
     no_shares:       'aucune action',
     shares_singular: 'action',
     shares_plural:   'actions',
     no_players_yet:  'Pas encore de joueurs. Sois le premier !',
     no_traders_yet:  "Aucun trader pour l'instant.",
+  },
+
+  /* ── Modale récompenses hebdo / explication classement ── */
+  weekly_rewards: {
+    header:       'Récompenses hebdo',
+    subtitle:     'Le classement repart à zéro chaque vendredi 18 h UTC. À ce moment-là, le top 3 reçoit ses cafés.',
+    r1:           '🥇 1er',
+    r2:           '🥈 2e',
+    r3:           '🥉 3e',
+    note1:        'Champion de la semaine',
+    note2:        'Vice-champion',
+    note3:        'Sur le podium',
+    badge_strong: 'Badge Champion',
+    badge_rest:   'unique pour le top 3 (apparaît dans ton profil après le reset).',
+    footnote:     'Le classement compte les cookies gagnés depuis le dernier reset (vendredi 18 h UTC). Tout le monde repart de zéro chaque semaine.',
+    cta:          'Compris',
+  },
+
+  /* ── Popup d'annonce : remise à zéro du classement ── */
+  weekly_reset: {
+    title:    'Le classement repart à zéro',
+    intro:    'Une toute nouvelle course commence ! 🏁',
+    kept:     "Tu n'as RIEN perdu : tes cookies, ton niveau et tes récompenses sont parfaitement intacts.",
+    why:      "Seul le classement de la semaine a été remis à zéro — pour que tout le monde reparte à égalité et que chacun ait sa chance d'atteindre la 1re place.",
+    cta:      "C'est parti !",
   },
 
   /* ── Tab Marché ───────────────────────────────── */
@@ -769,6 +796,19 @@ export const FR = {
     correct:         'Bien joué ! +{n} 🍪',
     wrong:           'Mauvaise réponse',
     streak:          'Série : {n}',
+    question_label:  'Question',
+    score_label:     'Score',
+    cookies_label:   'Cookies',
+    legendary_btn:   '🎁 Recevoir le code',
+    legendary_received:'✓ Code reçu !',
+    patience:        '🧘 Patience récompensée — +1',
+    challenge7:      '🎯 Défi 7 questions (niv 10+)',
+    good_eye:        '✓ Bien vu !',
+    missed:          '✗ Raté',
+    tip5_hl:         '5/5 = +100 🍪',
+    tip5_rest:       ' · 4/5 = +60 · 3/5 = +25 · moins = 0',
+    tip7_hl:         '7/7 = +100 🍪',
+    tip7_rest:       ' · 6/7 = +80 · 5/7 = +45 · 4/7 = +25 · moins = 0',
   },
 
   game_quiz: {

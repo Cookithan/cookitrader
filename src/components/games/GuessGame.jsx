@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { COMMANDES } from "../../data/commandes.js";
+import { COMMANDES_EN } from "../../i18n/commandesEn.js";
 import { CafeScene, CUSTOMERS, LEGENDARY_BARISTAS } from "./CafeScene.jsx";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
@@ -16,6 +17,25 @@ const LEGENDARY_QUESTION = {
   answer: 0,
   legendary: true,
 };
+/* Version EN du slot légendaire (même code BARISTA05). Choisi selon
+   `lang` dans startGame. */
+const LEGENDARY_QUESTION_EN = {
+  desc: "🌟 You look like a true coffee lover... Here's a rare code just for you: BARISTA05. Enter it in Settings → Promo code to unlock an exclusive theme!",
+  choices: [],
+  answer: 0,
+  legendary: true,
+};
+
+/* Retourne la commande localisée selon la langue. COMMANDES_EN est
+   indexé À L'IDENTIQUE de COMMANDES (même ordre, mêmes positions de
+   choices → `answer` reste valide). Fallback FR si EN absent. */
+function localizedCommande(i, lang){
+  const fr = COMMANDES[i];
+  if(lang === 'en' && COMMANDES_EN[i]){
+    return { ...fr, desc: COMMANDES_EN[i].desc, choices: COMMANDES_EN[i].choices };
+  }
+  return fr;
+}
 const LEGENDARY_DROP_RATE       = 0.05;  // 5 % par partie en mode normal
 const LEGENDARY_DROP_RATE_ADMIN = 0.50;  // 50 % pour les comptes admin (test/QA)
 const ABSURD_TIMEOUT_MS   = 7_000; // 7s sans cliquer = +1 (absurde uniquement). Cliquer = ✗.
@@ -81,22 +101,25 @@ function shuffleChoices(q){
    partie (rate ABSURD_SESSION_RATE). Approche : pioche depuis le pool
    normal d'abord, puis avec ABSURD_SESSION_RATE de chance, on remplace
    une question random par une absurde tirée au hasard. */
-function pickQuestions(nbQuestions){
-  const normal = COMMANDES.filter(c => !c.absurd);
-  const absurd = COMMANDES.filter(c =>  c.absurd);
+function pickQuestions(nbQuestions, lang){
+  /* On travaille sur les INDICES d'origine de COMMANDES (pas des
+     sous-tableaux filtrés) pour pouvoir retrouver la traduction EN
+     alignée par index dans COMMANDES_EN. */
+  const normalIdx = COMMANDES.map((_, i) => i).filter(i => !COMMANDES[i].absurd);
+  const absurdIdx = COMMANDES.map((_, i) => i).filter(i =>  COMMANDES[i].absurd);
 
-  const indices = [];
-  while(indices.length < Math.min(nbQuestions, normal.length)){
-    const idx = Math.floor(Math.random() * normal.length);
-    if(!indices.includes(idx)) indices.push(idx);
+  const chosen = [];
+  while(chosen.length < Math.min(nbQuestions, normalIdx.length)){
+    const i = normalIdx[Math.floor(Math.random() * normalIdx.length)];
+    if(!chosen.includes(i)) chosen.push(i);
   }
-  let qs = indices.map(i => normal[i]);
+  let qs = chosen.map(i => localizedCommande(i, lang));
 
   /* Inject UNE seule absurde si proba OK et pool non vide */
-  if(absurd.length > 0 && Math.random() < ABSURD_SESSION_RATE){
-    const absurdQ = absurd[Math.floor(Math.random() * absurd.length)];
-    const slot    = Math.floor(Math.random() * qs.length);
-    qs[slot] = absurdQ;
+  if(absurdIdx.length > 0 && Math.random() < ABSURD_SESSION_RATE){
+    const ai   = absurdIdx[Math.floor(Math.random() * absurdIdx.length)];
+    const slot = Math.floor(Math.random() * qs.length);
+    qs[slot] = localizedCommande(ai, lang);
   }
 
   return qs.map(shuffleChoices);
@@ -145,7 +168,7 @@ function pickCustomerIndices(n, max){
 }
 
 export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, C }){
-  const { t, localizedField } = useTranslation();
+  const { t, lang } = useTranslation();
   /* Niveau 10+ : 7 questions par partie au lieu de 5, pour le même
      palier de récompense (= plus exigeant, pas plus rentable). */
   const NB_QUESTIONS = level >= 10 ? 7 : 5;
@@ -218,7 +241,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     if(coins < GUESS_COST) return;
     playSound('modal');
     onSpend(GUESS_COST);
-    const qs = pickQuestions(NB_QUESTIONS);
+    const qs = pickQuestions(NB_QUESTIONS, lang);
     const ci = pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length);
     /* 5 % par partie ET le légendaire n'a pas déjà été vu (flag
        persistent legendaryBaristaSeen). On injecte un barista légendaire
@@ -232,7 +255,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     if(!legendarySeen && Math.random() < dropRate){
       const slot     = Math.floor(Math.random() * NB_QUESTIONS);
       const variant  = Math.floor(Math.random() * LEGENDARY_BARISTAS.length);
-      qs[slot] = LEGENDARY_QUESTION;
+      qs[slot] = lang === 'en' ? LEGENDARY_QUESTION_EN : LEGENDARY_QUESTION;
       ci[slot] = -1 - variant;
     }
     setQuestions(qs);
@@ -367,12 +390,12 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
           <div style={{ fontSize:22, fontWeight:900, color: phase==='playing'?'#D4A017':C.text, lineHeight:1.1 }}>
             {phase==='playing' ? qIndex+1 : phase==='done' ? NB_QUESTIONS : 0}<span style={{ fontSize:13, color:C.muted, fontWeight:700 }}>/{NB_QUESTIONS}</span>
           </div>
-          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Question</div>
+          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>{t('game_guess.question_label')}</div>
         </div>
         <div style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${C.border}`, textAlign:'center' }}>
           <div style={{ fontSize:11 }}>✨</div>
           <div style={{ fontSize:22, fontWeight:900, color:C.text, lineHeight:1.1 }}>{score}<span style={{ fontSize:13, color:C.muted, fontWeight:700 }}>/{NB_QUESTIONS}</span></div>
-          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Score</div>
+          <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>{t('game_guess.score_label')}</div>
         </div>
       </div>
 
@@ -423,7 +446,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
             transition:'opacity .3s',
           }}
         >
-          {isAnswered ? '✓ Code reçu !' : '🎁 Recevoir le code'}
+          {isAnswered ? t('game_guess.legendary_received') : t('game_guess.legendary_btn')}
         </button>
       )}
 
@@ -462,7 +485,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
           border:'1.5px solid #D4A017', color:'#5D3A1F',
           fontSize:13, fontWeight:800, textAlign:'center', letterSpacing:.3,
         }}>
-          🧘 Patience récompensée — +1
+          {t('game_guess.patience')}
         </div>
       )}
 
@@ -475,7 +498,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
           border:'1.5px solid rgba(212,160,23,.5)',
           boxShadow:'0 3px 10px rgba(74,44,23,.35)',
         }}>
-          🎯 Défi 7 questions (niv 10+)
+          {t('game_guess.challenge7')}
         </div>
       )}
 
@@ -484,7 +507,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
         <div style={{ minHeight:18, fontSize:13, fontWeight:600, color: phase==='playing' ? (isAnswered ? (isRight ? '#D4A017' : '#8B5A2B') : C.muted) : C.muted, fontStyle: phase==='playing' && !isAnswered ?'italic':'normal', textAlign:'center' }}>
           {phase === 'idle'    && t('game_guess.idle_intro')}
           {phase === 'playing' && !isAnswered && t('game_guess.choose')}
-          {phase === 'playing' && isAnswered && (isRight ? '✓ Bien vu !' : '✗ Raté')}
+          {phase === 'playing' && isAnswered && (isRight ? t('game_guess.good_eye') : t('game_guess.missed'))}
         </div>
       )}
 
@@ -502,12 +525,12 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
           <div style={{ display:'flex', gap:14, justifyContent:'center' }}>
             <div>
               <div style={{ fontSize:18, fontWeight:900 }}>{score}/{NB_QUESTIONS}</div>
-              <div style={{ fontSize:9, opacity:.75, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Score</div>
+              <div style={{ fontSize:9, opacity:.75, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>{t('game_guess.score_label')}</div>
             </div>
             <div style={{ width:1, background:'rgba(0,0,0,.15)' }} />
             <div>
               <div style={{ fontSize:18, fontWeight:900 }}>+{earnedFinal}</div>
-              <div style={{ fontSize:9, opacity:.75, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>Cookies</div>
+              <div style={{ fontSize:9, opacity:.75, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>{t('game_guess.cookies_label')}</div>
             </div>
           </div>
         </div>
@@ -536,9 +559,9 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
       {/* Tip card — paliers selon le mode (5 ou 7 questions) */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
         {NB_QUESTIONS === 7 ? (
-          <>💡 <strong style={{ color:'#D4A017' }}>7/7 = +100 🍪</strong> · 6/7 = +80 · 5/7 = +45 · 4/7 = +25 · moins = 0</>
+          <>💡 <strong style={{ color:'#D4A017' }}>{t('game_guess.tip7_hl')}</strong>{t('game_guess.tip7_rest')}</>
         ) : (
-          <>💡 <strong style={{ color:'#D4A017' }}>5/5 = +100 🍪</strong> · 4/5 = +60 · 3/5 = +25 · moins = 0</>
+          <>💡 <strong style={{ color:'#D4A017' }}>{t('game_guess.tip5_hl')}</strong>{t('game_guess.tip5_rest')}</>
         )}
       </div>
     </div>

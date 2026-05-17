@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { SEGMENTS } from "../../data/constants.js";
+import { getSegmentsForLevel } from "../../data/constants.js";
 import { ROUE_PALETTES, ROUE_GLOWS, GOLD } from "../../data/themes.js";
 import { SEG_A, SEG_C, wRandom } from "../../utils/spin.js";
 import { playSound } from "../../lib/audio.js";
@@ -26,6 +26,10 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
      quand inactif. */
   const [superJackpot, setSuperJackpot] = useState(null);
   const COST = level >= 8 ? 20 : 10;
+  /* Roue adaptée au niveau (1-5 / 6-15 / 16-25). Mêmes poids/ordre sur
+     les 3 tiers → la géométrie (SEG_A/SEG_C/wRandom) reste valable,
+     l'index renvoyé par wRandom mappe directement dans WHEEL. */
+  const WHEEL = getSegmentsForLevel(level);
 
   /* 🥚 EASTER EGG : 0.3% par spin → segment caché "+500 🍪". L'aiguille
      atterrit visuellement sur le +200 (jackpot natif) mais le popup et
@@ -54,7 +58,7 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
     const sz = cssSize, cx = sz/2, cy = sz/2, r = cx - 6;
     ctx.clearRect(0, 0, sz, sz);
     let startRad = (deg*Math.PI)/180;
-    SEGMENTS.forEach((sg,i)=>{
+    WHEEL.forEach((sg,i)=>{
       const sweep=(SEG_A[i]*Math.PI)/180;
       const segColor = (palette && palette[i]) || sg.color;
       ctx.beginPath(); ctx.moveTo(cx,cy);
@@ -97,7 +101,7 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
     const easterEgg500 = Math.random() < EASTER_EGG_500_CHANCE;
     let idx;
     if(easterEgg500){
-      idx = SEGMENTS.findIndex(s => s.value === 200);
+      idx = WHEEL.findIndex(s => s.value === 200);
       if(idx === -1) idx = wRandom();
     } else {
       idx = wRandom();
@@ -119,9 +123,9 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
       if(t<1){ requestAnimationFrame(animate); }
       else {
         angleRef.current=final; setSpinning(false);
-        const baseValue  = SEGMENTS[idx].value;
+        const baseValue  = WHEEL[idx].value;
         const finalValue = easterEgg500 ? 500 : baseValue;
-        setResult({ ...SEGMENTS[idx], value: finalValue });
+        setResult({ ...WHEEL[idx], value: finalValue });
         /* Son adapté : jackpot pour +200 (et easter egg +500), success
            pour gains, error pour pertes. */
         if(baseValue === 200) playSound('jackpot');

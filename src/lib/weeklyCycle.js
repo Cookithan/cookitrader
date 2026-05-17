@@ -14,7 +14,21 @@
             "2026-05-08" (vendredi précédent à 18 h).
 ═══════════════════════════════════════════════════════ */
 
-/* Retourne le week_id de la semaine courante (dernier vendredi 18 h UTC). */
+/* ── Reset MANUEL ponctuel (17/05/2026) ──────────────
+   Le cycle naturel partait du dernier vendredi 18 h UTC, mais des
+   scores hebdo "hérités" (> 10 000 🍪) traînaient encore dans le
+   classement. On pose un PLANCHER : l'id de semaine ne peut jamais
+   être antérieur à cette date. Effet immédiat = tout weekly_earned
+   dont le week_id est < ce plancher est neutralisé à 0 côté client
+   (cf. CookiesView), donc le classement repart vraiment de zéro tout
+   de suite. Le cycle naturel reprend dès que le vendredi suivant
+   (2026-05-22) dépasse ce plancher — le countdown reste celui du
+   prochain vendredi 18 h UTC (inchangé). Comparaison lexicographique
+   sûre car format "YYYY-MM-DD". */
+export const MANUAL_RESET_WEEK_ID = '2026-05-17';
+
+/* Retourne le week_id de la semaine courante (dernier vendredi 18 h UTC),
+   borné au plancher de reset manuel. */
 export function getCurrentWeekId(now = new Date()){
   const d = new Date(now);
   const day = d.getUTCDay();              // 0 = dim, 5 = ven
@@ -30,7 +44,8 @@ export function getCurrentWeekId(now = new Date()){
   }
   d.setUTCDate(d.getUTCDate() - daysBack);
   d.setUTCHours(18, 0, 0, 0);
-  return d.toISOString().slice(0, 10);     // "2026-05-08"
+  const id = d.toISOString().slice(0, 10); // "2026-05-08"
+  return id < MANUAL_RESET_WEEK_ID ? MANUAL_RESET_WEEK_ID : id;
 }
 
 /* Retourne le timestamp (Date) du prochain reset (= vendredi 18 h UTC suivant). */
