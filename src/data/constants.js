@@ -81,12 +81,14 @@ export function getNameChangePrice(count){
   return NAME_CHANGE_PRICES[Math.min(count, NAME_CHANGE_PRICES.length - 1)];
 }
 
-/* Roue 100% café & cookie (rééquilibrage 17/05/2026) :
+/* Roue 100% café & cookie (rééquilibrage 17/05/2026 #2 — adouci
+   suite retour prod : "trop de -, +200 trop fréquent") :
    - 11 segments (5 gains / 6 pertes), visuel rayé clair/foncé
-   - 60/40 : 60 de poids en gains, 40 en pertes → ~60 % de tours
-     gagnants
-   - En face du jackpot +200 : une grosse sanction -100 (idx 9),
-     les deux rares (poids 3) — risque/récompense symétrique
+   - 72/28 : 72 de poids en gains, 28 en pertes → ~72 % de tours
+     gagnants (moins punitif que le 60/40 précédent)
+   - Jackpot +200 (idx 8) et grosse sanction -100 (idx 9) rendus
+     RARES : poids 1 chacun (~1 % par tour) — risque/récompense
+     symétrique mais le jackpot redevient un vrai événement
    - Montants croissants par tranche de niveau (3 roues, cf. tiers)
    - Reste rentable sur la durée mais plus serrée qu'en 75/25
    - Jackpot conservé à +200 EXACT (détection `value === 200` en dur
@@ -96,7 +98,7 @@ export function getNameChangePrice(count){
 /* 3 ROUES par tranche de niveau (1-5 / 6-15 / 16-25).
    ── INVARIANT CAPITAL ──
    Les 3 tiers ont EXACTEMENT les mêmes `weight`, le même `color` et
-   le même ORDRE (10 segments alternés gain/perte). Seuls `value` et
+   le même ORDRE (11 segments). Seuls `value` et
    `label` changent. Conséquence : la géométrie (utils/spin.js : TW,
    SEG_A, SEG_C, wRandom) reste identique quelle que soit la roue —
    wRandom() renvoie un index, et SpinGame mappe cet index dans le
@@ -113,7 +115,11 @@ export function getNameChangePrice(count){
    Le -100 (idx 9) accompagne toujours le +200 (idx 8) : gros
    jackpot ⇒ grosse sanction, tous deux rares (poids 3). */
 const SEG_COLORS = ['#E8C588','#7A5232','#D4A017','#5A3520','#E5B040','#4A2A14','#F0C050','#3D2010','#FFD700','#1F0E04','#2A1810'];
-const SEG_WEIGHTS = [20, 12, 16, 9, 13, 7, 8, 5, 3, 3, 4];
+/* idx :          0   1   2   3   4   5   6   7   8(+200) 9(-100) 10
+   rôle :          G   L   G   L   G   L   G   L   G       L       L
+   gains  idx 0,2,4,6,8 = 26+21+16+8+1 = 72
+   pertes idx 1,3,5,7,9,10 = 10+8+5+2+1+2 = 28  (total 100) */
+const SEG_WEIGHTS = [26, 10, 21, 8, 16, 5, 8, 2, 1, 1, 2];
 function buildTier(values){
   return values.map((value, i) => ({
     value,
