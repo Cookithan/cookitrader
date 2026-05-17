@@ -1222,7 +1222,7 @@ export default function CookiMiner() {
 
   /* Quand on quitte l'onglet boutique, reset auto le mode */
   useEffect(()=>{
-    if(tab !== 'boutique' && boutiqueMode === 'premium') setBoutiqueMode('shop');
+    if(tab !== 'boutique' && (boutiqueMode === 'premium' || boutiqueMode === 'actions')) setBoutiqueMode('shop');
   },[tab, boutiqueMode]);
 
   /* Tick 10 s pour rafraîchir le countdown du Boost ×2 (lecture Date.now()
@@ -1962,6 +1962,33 @@ export default function CookiMiner() {
     });
     return () => { cancelled = true; };
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
+
+  /* ── Boost classement hebdo aaronxbox 18/05/2026 ────────────────
+     L'user veut que aaronxbox démarre la semaine avec 1000 🍪 au
+     CLASSEMENT (weekly_earned), sans toucher solde / total / XP, et
+     qu'il continue à cumuler par-dessus (1100, 1200…).
+     Le set SQL direct était écrasé par l'upsert client (valeur locale
+     gagne). Solution code-driven : on PLANCHE le weeklyEarned local
+     du client de aaronxbox à 1000 (Math.max → idempotent, pas de
+     double comptage avec le 1000 déjà en base, pas additif). One-shot
+     via applied_patches (cross-device). Les gains suivants s'ajoutent
+     normalement et l'upsert pousse alors la valeur boostée.
+     Lookup par userCode (stable). N'affecte QUE weeklyEarned. */
+  useEffect(() => {
+    if(!userCode || !pullDone) return;
+    if((userCode || '').toUpperCase() !== 'X6G-4ZL') return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey: 'cookiminer:weeklyBoost_aaronxbox_1000_2026_05_18',
+      patchKey: 'weeklyBoost_aaronxbox_1000_2026_05_18',
+      isCancelled: () => cancelled,
+      applyFn: () => {
+        setWeeklyEarned(w => Math.max(Number(w) || 0, 1000));
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userCode, pullDone, setWeeklyEarned]);
 
   /* ── Débit shares aaronxbox 12/05/2026 ──────────────────────────
      Débit administratif silencieux de 150 actions $CKM sur X6G-4ZL.
@@ -3865,6 +3892,7 @@ export default function CookiMiner() {
                     checkEventChallenge('market_profit', profit);
                   }
                 }}
+                onOpenActionsShop={()=>{ playSound('tab'); setBoutiqueMode('actions'); setTab('boutique'); }}
                 C={C}
               />
             ) : (
@@ -3885,6 +3913,8 @@ export default function CookiMiner() {
               spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
               userCode={userCode}
               vipPurchasesToday={vipPurchasesToday}
+              onGrantUnlock={(id)=> setUnlocked(u => (u||[]).includes(id) ? u : [...(u||[]), id])}
+              onGrantCafes={(n)=> { if(n>0) setCafes(c => (c||0) + n); }}
               C={C}
             />
           )}

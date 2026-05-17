@@ -98,6 +98,10 @@ export const THEMES = {
      dense). Distinct de theme_creme (crème uniforme rosé) et de
      theme_espresso (noir pur sans transition). */
   theme_grains:          { dark:true, bg:'linear-gradient(180deg,#FAEAD0 0%,#E8B57A 22%,#A05820 45%,#3D1808 70%,#0A0402 100%)', card:'#2A1408', card2:'#3D1E0E', text:'#F5D8A8', muted:'#B8906A', border:'#7D4818' },
+  /* ── Boutique Actions ($CKM) — exclusifs payés en actions ──
+     Palette café/or only (jamais vert/rouge — règle non négociable). */
+  as_theme_parquet:      { dark:true,  bg:'linear-gradient(160deg,#0A0402 0%,#1F0E04 38%,#5C3A0A 68%,#8B5A14 84%,#0A0402 100%)', card:'#1F0E04', card2:'#3D2410', text:'#FFE8A8', muted:'#B8905A', border:'#7D5A20', sparkles:true },
+  as_theme_lingot:       { dark:false, bg:'linear-gradient(160deg,#FFF4D0 0%,#F0C84A 42%,#C99A2E 72%,#8B5A14 100%)', card:'#FFF8E8', card2:'#F5DCA0', text:'#4A2E08', muted:'#9B7A2A', border:'#D4A017' },
 };
 
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';

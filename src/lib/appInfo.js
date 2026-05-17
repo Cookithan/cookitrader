@@ -13,14 +13,32 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.21.0',
-  releaseDate: '2026-05-17',
+  version: '1.22.0',
+  releaseDate: '2026-05-18',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.22.0',
+    date: '2026-05-18',
+    title: '🏦 Boutique Actions + roue ajustée',
+    title_en: '🏦 Shares Shop + tuned wheel',
+    changes: [
+      "🏦 Nouvelle Boutique Actions : accumule des actions $CKM et débloque-la pour échanger tes actions contre des récompenses exclusives (thèmes, avatars, cafés…)",
+      "📈 Un repère dans le Marché t'indique ta progression vers son déblocage",
+      "🎡 Roue : les petits gains du palier intermédiaire ont été revalorisés",
+      "🛒 Correctif : un pack d'actions $CKM acheté ne reste plus affiché à tort dans la boutique",
+    ],
+    changes_en: [
+      "🏦 New Shares Shop: stack up $CKM shares and unlock it to trade your shares for exclusive rewards (themes, avatars, coffees…)",
+      "📈 A marker in the Market shows your progress toward unlocking it",
+      "🎡 Wheel: the mid-tier small wins have been bumped up",
+      "🛒 Fix: a purchased $CKM shares pack no longer wrongly stays shown in the shop",
+    ],
+  },
   {
     version: '1.21.0',
     date: '2026-05-17',
@@ -95,24 +113,6 @@ export const CHANGELOG = [
       "📲 The app can now install like a real native app — offline mode, properly handled updates, no longer just a browser shortcut",
       "🎁 New \"Mystery Chests\" section in the premium shop — each chest opens once and reveals 3 hidden cosmetics",
       "🥉 3 tiers to unlock by level: Bronze, Gold and Legendary — rarity climbs with price",
-    ],
-  },
-  {
-    version: '1.19.1',
-    date: '2026-05-13',
-    title: '🎉 Palier communautaire 500 000 🍪 + polish marché',
-    title_en: '🎉 500,000 🍪 community milestone + market polish',
-    changes: [
-      "🎉 Palier communautaire : la communauté a miné 500 000 cookies — un cadeau pour tous les joueurs",
-      "⚡ Renommage : « Ordre Bulk $CKM » devient « Trade Express $CKM » (plus clair pour les nouveaux)",
-      "🎁 De nouveaux codes promo à dénicher sur les réseaux",
-      "✨ De nouvelles surprises planquées dans la boutique…",
-    ],
-    changes_en: [
-      "🎉 Community milestone: the community has mined 500,000 cookies — a gift for all players",
-      "⚡ Rename: \"$CKM Bulk Order\" becomes \"$CKM Express Trade\" (clearer for newcomers)",
-      "🎁 New promo codes to dig up on social media",
-      "✨ New surprises tucked away in the shop…",
     ],
   },
 ];

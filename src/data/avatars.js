@@ -63,6 +63,10 @@ export const AVATAR_PREMIUM_LIST = [
      de la grille "À débloquer"), mais doit être présent ici sinon
      les détenteurs ne peuvent pas le sélectionner. */
   { id:'avatar_grain_legende', art:'grainLegende', name:'Grain Légendaire', bg:'radial-gradient(circle at 35% 30%, #FFE89A 0%, #D4A017 50%, #5C3614 100%)', glow:true, limited:true },
+  /* Boutique Actions ($CKM) — exclusifs payés en actions. Réutilisent
+     un art SVG existant (pas de nouvel artwork) → rendu garanti. */
+  { id:'as_avatar_wolf', art:'avLoup', name:'Loup du Marché', bg:'radial-gradient(circle at 50% 40%, #3D2A0A 0%, #1F0E04 60%, #0A0402 100%)' },
+  { id:'as_avatar_gold', art:'avOr',   name:'Trader Doré',    bg:'linear-gradient(140deg,#C99A2E,#FFE89A)', glow:true },
 ];
 
 export const AVATAR_PREMIUM = AVATAR_PREMIUM_LIST.reduce((acc, a) => { acc[a.id] = a; return acc; }, {});

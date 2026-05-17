@@ -82,11 +82,13 @@ export const PROMO_CODES = {
   'GRINDER':     { coins: 50,  cafes: 0, label: '⚙️ Grinder — 50 🍪' },
   'ROAST':       { coins: 120, cafes: 0, label: '🔥 Roast — 120 🍪' },
 
-  /* Starter Pack — gros pack de bienvenue distribué via réseaux.
-     +1000 🍪 + 10 ☕ + déblocage immédiat du mini-jeu Flappy Cookie
-     (qui demande normalement le niveau 12). noXp:true pour que les
-     1000 cookies ne fassent pas exploser le niveau d'un coup. */
-  'YUZUKAWAI':   { coins: 1000, noXp: true, cafes: 10, unlockGame: 'flappy', label: '🎁 Starter Pack — 1000 🍪 + 10 ☕ + Flappy Cookie' },
+  /* Café bonus — distribution ponctuelle. */
+  'DIO456':      { coins: 0, cafes: 4, label: '☕ 4 cafés offerts' },
+
+  /* Starter Pack de bienvenue (distribuable réseaux) — 3 récompenses :
+     500 🍪 (noXp:true → pas d'explosion de niveau) + 3 ☕ + déblocage
+     immédiat du mini-jeu Flappy Cookie (normalement niveau 12). */
+  'STARTER':     { coins: 500, noXp: true, cafes: 3, unlockGame: 'flappy', label: '🎁 Starter Pack — 500 🍪 + 3 ☕ + Flappy Cookie' },
 };
 
 /* IDs des codes secrets — utilisé par l'item premium pour révéler. */
