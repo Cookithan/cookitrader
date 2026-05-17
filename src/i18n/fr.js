@@ -142,6 +142,7 @@ export const FR = {
     title:                'BOUTIQUE',
     tab_shop:             'BOUTIQUE',
     tab_premium:          'PREMIUM',
+    tab_actions:          'ACTIONS',
     filter_all:           'Tous',
     filter_badge:         'Badge',
     filter_title:         'Titre',
@@ -317,6 +318,29 @@ export const FR = {
     cta:      "C'est parti !",
   },
 
+  /* ── Boutique Actions ($CKM) ──────────────────── */
+  actions_shop: {
+    title:         'Boutique Actions',
+    offline:       'Hors ligne',
+    offline_desc:  'La Boutique Actions nécessite une connexion. Réessaie plus tard.',
+    gate:          'Solde : {have} / {need} actions. Atteins {need} actions $CKM pour débloquer la Boutique Actions.',
+    locked:        'Tu as déjà fait ton achat de ce cycle. Reviens quand ton solde d\'actions atteindra de nouveau 500 (il faut en regagner).',
+    one_per_cycle: '1 seul achat par palier de 500 actions atteint.',
+    not_enough:    'Il te faut {n} actions pour cet item.',
+    error:         'Achat impossible — réessaie.',
+    bought:        '🎉 {name} débloqué !',
+    bought_cafe:   '☕ +{n} cafés crédités !',
+    closed_title:  'Boutique Actions fermée',
+    closed_locked: 'Tu as fait ton achat de ce cycle. Le solde doit redescendre puis remonter à 500 actions $CKM pour qu\'elle rouvre.',
+    closed_gate:   'Solde insuffisant : {have} / {need} actions. Regagne des actions $CKM pour la rouvrir.',
+    closed_popup:  'Achat effectué ! La Boutique Actions se referme : il te faut de nouveau {need} actions $CKM pour qu\'elle réapparaisse. À toi de regrinder ! 📈',
+    closed_cta:    'Compris',
+    owned:         'Débloqué',
+    activate:      'Activer',
+    activated:     'Activé',
+    footnote:      'Cosmétiques exclusifs payés en actions $CKM. 1 achat par palier de 500 ; il faut ensuite regagner 500 actions pour que la boutique réapparaisse.',
+  },
+
   /* ── Tab Marché ───────────────────────────────── */
   market: {
     title:           'MARCHÉ $CKM',
@@ -342,6 +366,9 @@ export const FR = {
     no_activity:     'Pas d\'activité récente',
     quick_stats:     'Pouls du marché',
     shared_subtitle: 'Partagé entre tous les joueurs',
+    actions_shop_title:    '🏦 Boutique Actions',
+    actions_shop_ready:    'Dépense tes actions $CKM en cosmétiques exclusifs — ouverte !',
+    actions_shop_progress: 'Cosmétiques exclusifs payés en actions $CKM. Atteins 500 actions pour la débloquer ({have}/{need}).',
     offline_title:   'Marché hors ligne',
     offline_desc:    "La connexion au serveur n'est pas disponible. Reviens un peu plus tard !",
     pause_label:     'Pause · Pause · Pause',

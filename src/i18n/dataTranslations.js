@@ -17,6 +17,14 @@
 
 /* ── REWARDS (constants.js → REWARDS) ──────────────── */
 export const REWARDS_EN = {
+  // Boutique Actions ($CKM)
+  as_badge_diamond:  { name: 'Diamond Hands',      desc: 'You never panic-sell' },
+  as_badge_whale:    { name: 'Market Whale',       desc: 'Your orders move $CKM' },
+  as_theme_parquet:  { name: 'Trading Floor Theme', desc: 'Trading pit — espresso & gold' },
+  as_theme_lingot:   { name: 'Gold Bar Theme',     desc: 'Solid-gold luxury — the tycoons\' theme' },
+  as_avatar_wolf:    { name: 'Market Wolf',        desc: 'The predator of the $CKM pit' },
+  as_avatar_gold:    { name: 'Golden Trader',      desc: 'Gold-haloed — for investors only' },
+  as_cafe_pouch:     { name: 'Coffee Pouch',       desc: 'Trade your shares for 4 ☕' },
   // Badges
   badge_debutant:    { name: 'Beginner Badge',     desc: 'First steps in CookiMiner' },
   badge_barista:     { name: 'Barista Badge',      desc: 'Basic coffee mastery' },

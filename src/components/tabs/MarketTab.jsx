@@ -26,7 +26,7 @@ import { useTranslation } from '../../i18n/index.js';
    - Mode dégradé : si Supabase off → message clair, pas de crash.
 ═══════════════════════════════════════════════════════ */
 
-export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
+export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, onOpenActionsShop, C }) {
   const { t } = useTranslation();
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
@@ -204,6 +204,43 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
       <MarketFeed activity={activity} C={C} />
       <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
+
+      {/* Accroche Boutique Actions — découvrabilité : un joueur dans le
+          Marché doit savoir qu'il peut dépenser ses actions $CKM en
+          cosmétiques exclusifs. Clic → onglet Boutique, sous-vue Actions. */}
+      {onOpenActionsShop && (() => {
+        const sh = Number(portfolio?.shares) || 0;
+        const ready = sh >= 500;
+        return (
+          <button
+            onClick={ready ? onOpenActionsShop : undefined}
+            disabled={!ready}
+            style={{
+              width:'100%', textAlign:'left', cursor: ready ? 'pointer' : 'default',
+              background:'linear-gradient(135deg, rgba(201,154,46,.16), rgba(139,90,43,.22))',
+              border:`1.5px solid ${ready ? '#C99A2E' : 'rgba(201,154,46,.45)'}`,
+              borderRadius:16, padding:'14px 16px', margin:'14px 0',
+              display:'flex', alignItems:'center', gap:14,
+              boxShadow: ready ? '0 4px 16px rgba(201,154,46,.28)' : 'none',
+              opacity: ready ? 1 : .85,
+            }}
+          >
+            <div style={{ fontSize:30, lineHeight:1, filter: ready ? 'none' : 'grayscale(.4)' }}>{ready ? '🏦' : '🔒'}</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:13, fontWeight:800, color:C.text, marginBottom:2 }}>
+                {t('market.actions_shop_title')}
+              </div>
+              <div style={{ fontSize:11, color:C.muted, lineHeight:1.45 }}>
+                {ready
+                  ? t('market.actions_shop_ready')
+                  : t('market.actions_shop_progress', { have: sh, need: 500 })}
+              </div>
+            </div>
+            {ready && <div style={{ fontSize:18, color:'#C99A2E', fontWeight:900, lineHeight:1 }}>›</div>}
+          </button>
+        );
+      })()}
+
       <TradePanel
         state={state}
         portfolio={portfolio}

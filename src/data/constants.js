@@ -129,16 +129,16 @@ function buildTier(values){
   }));
 }
 
-/* Niveaux 1-5 (coût 10 🍪) — petits montants. EV ≈ +14/tour
-   (net ≈ +4). 60 % gagnant, -100 rare en face du +200. */
+/* Niveaux 1-5 (coût 10 🍪) — petits montants. 72 % gagnant.
+   EV ≈ +16/tour (net ≈ +6). -100 rare en face du +200. */
 export const SEGMENTS_LOW  = buildTier([ 15, -5,  20, -10,  35, -15,  60, -25, 200, -100, -30]);
 
 /* Niveaux 6-15 (coût 10 puis 20 dès le niv 8) — montants moyens.
-   EV ≈ +23/tour (net ≈ +3 à +13). */
-export const SEGMENTS_MID  = buildTier([ 25, -10, 30, -15,  70, -25, 120, -40, 200, -100, -50]);
+   72 % gagnant. EV ≈ +33/tour (net ≈ +13 à +23). */
+export const SEGMENTS_MID  = buildTier([ 30, -10, 40, -15,  70, -25, 120, -40, 200, -100, -50]);
 
 /* Niveaux 16-25 (coût 20 🍪) — endgame, économie plus large.
-   EV ≈ +35/tour (net ≈ +15). */
+   72 % gagnant. EV ≈ +46/tour (net ≈ +26). */
 export const SEGMENTS_HIGH = buildTier([ 40, -15, 60, -25, 100, -40, 180, -60, 200, -100, -75]);
 
 /* Retourne la roue correspondant au niveau du joueur. */
@@ -333,6 +333,22 @@ export const REWARDS = [
   { id:'streak_save',        currency:'cafe', applyAs:'streak_save',        name:'Streak Save',         desc:'Sauve ta série de check-ins si tu rates 1 jour',     cost:4, type:'Premium', emoji:'🛡️', levelRequired:2 },
   { id:'theme_forge',        currency:'cafe', applyAs:'theme',              name:'Thème Forge Caféinée',desc:'Palette volcanique sombre · bordeaux brûlé + or saturé', cost:12, type:'Premium', emoji:'🌋', levelRequired:3 },
   { id:'bulk_trade_pass',    currency:'cafe', applyAs:'bulk_trade_pass',    name:'Trade Express $CKM',  desc:'1 charge : achète ou vends tout ton portefeuille d\'un seul coup, sans limite de quantité',          cost:3, type:'Premium', emoji:'📦', levelRequired:3 },
+
+  /* ─── BOUTIQUE ACTIONS (17/05/2026) ─────────────────────────────
+     Cosmétiques EXCLUSIFs payés en actions $CKM (`currency:'shares'`,
+     flag `inActionsShop:true`). Accessibles uniquement via la sous-vue
+     dédiée quand le solde d'actions ≥ 500 ; 1 achat par cycle puis il
+     faut regagner 500 actions (cf. ActionsShopView). Exclus de la
+     boutique 🍪 et Premium ☕ (filtres `inActionsShop`). Titres : l'id
+     DOIT matcher une clé TITLE_STYLES (titles.js). One-shot (unlocked).
+     Coûts 120-500 actions. */
+  { id:'as_badge_diamond', inActionsShop:true, currency:'shares', name:'Mains de Diamant',  desc:'Tu ne vends jamais dans la panique',         cost:300, type:'Badge',  emoji:'💎', levelRequired:3 },
+  { id:'as_badge_whale',   inActionsShop:true, currency:'shares', name:'Baleine du Marché', desc:'Tes ordres font bouger le $CKM',             cost:500, type:'Badge',  emoji:'🐋', levelRequired:3 },
+  { id:'as_theme_parquet', inActionsShop:true, currency:'shares', applyAs:'theme',  name:'Thème Parquet',     desc:'Salle des marchés — espresso & or',  cost:250, type:'Thème',  emoji:'📊', levelRequired:3 },
+  { id:'as_theme_lingot',  inActionsShop:true, currency:'shares', applyAs:'theme',  name:'Thème Lingot d\'Or', desc:'Or massif luxe — le thème des magnats', cost:450, type:'Thème',  emoji:'🥇', levelRequired:3 },
+  { id:'as_avatar_wolf',   inActionsShop:true, currency:'shares', applyAs:'avatar', name:'Loup du Marché',    desc:'Le prédateur de la corbeille $CKM',  cost:300, type:'Avatar', emoji:'🐺', levelRequired:3 },
+  { id:'as_avatar_gold',   inActionsShop:true, currency:'shares', applyAs:'avatar', name:'Trader Doré',       desc:'Auréolé d\'or — réservé aux investisseurs', cost:400, type:'Avatar', emoji:'🪙', levelRequired:3 },
+  { id:'as_cafe_pouch',    inActionsShop:true, currency:'shares', applyAs:'as_cafe', cafeReward:4, name:'Sachet de Cafés', desc:'Échange tes actions contre 4 ☕',  cost:400, type:'Café',   emoji:'☕', levelRequired:3 },
 ];
 
 /* Achievements (succès surprises) */
