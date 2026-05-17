@@ -4,7 +4,8 @@ import { ESPRESSO, GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
 import { getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount, ONLINE_WINDOW_MS } from "../../lib/supabaseSync.js";
-import { getCurrentWeekId, getNextResetAt, formatTimeUntil } from "../../lib/weeklyCycle.js";
+import { getCurrentWeekId, getNextResetAt, formatTimeUntil, MANUAL_RESET_WEEK_ID } from "../../lib/weeklyCycle.js";
+import { WeeklyResetNoticeModal } from "../modals/WeeklyResetNoticeModal.jsx";
 import { isSanctionPublic } from "../../data/sanctions.js";
 import {
   getMarketLeaderboard, getMyMarketRank, getMarketTraderCount, getMarketState,
@@ -13,6 +14,7 @@ import { getNameStyle } from "../../utils/legend.js";
 import { isAdminName } from "../../utils/admin.js";
 import SkeletonRow from "../SkeletonRow.jsx";
 import { useTranslation } from "../../i18n/index.js";
+import { useLocalStorage } from "../../hooks/useLocalStorage.js";
 
 /* ════════════════════════════════════════════════════
    ClassementTab — 2 classements en un seul onglet
@@ -20,7 +22,8 @@ import { useTranslation } from "../../i18n/index.js";
    Toggle 🍪 Cookies / 📈 Marché en haut. Les 2 vues partagent
    la même structure : carte sticky "ton rang" + liste top N.
 
-   Vue Cookies (existante) : tri par total_earned décroissant.
+   Vue Cookies (existante) : classement HEBDO — tri par weekly_earned
+   décroissant, filtré sur le week_id courant (reset chaque vendredi).
    Vue Marché (BRIEF_CLASSEMENT_MARCHE) : tri par nombre d'actions $CKM
    détenues. Affiche le nombre d'actions + leur valeur estimée au prix
    courant. Admin exclu des 2 vues.
@@ -40,11 +43,11 @@ import { useTranslation } from "../../i18n/index.js";
 ═══════════════════════════════════════════════════════ */
 
 const REFRESH_MS = 30_000;
-/* Bump v2 : on est revenu sur un classement par total_earned au lieu
-   de weekly_earned. Le cache v1 contenait des `weekly_earned`/myRank
-   weekly qui ne correspondent plus à ce qui est rendu — invalidation
-   forcée en changeant la clé. */
-const CACHE_KEY_COOKIES = 'leaderboard:cache:v2';
+/* Bump v3 : retour à un classement HEBDOMADAIRE (weekly_earned filtré
+   sur le week_id courant). Le classement visible se réinitialise donc
+   chaque vendredi. Le cache v2 contenait des `total_earned`/myRank
+   lifetime qui ne correspondent plus — invalidation forcée par la clé. */
+const CACHE_KEY_COOKIES = 'leaderboard:cache:v4';
 const CACHE_KEY_MARKET  = 'leaderboard:market:cache';
 
 function loadCache(key){
@@ -157,7 +160,7 @@ function ModeToggle({ mode, setMode, C }){
 }
 
 /* ════════════════════════════════════════════════════
-   Vue Cookies — total_earned (existante)
+   Vue Cookies — classement hebdo (weekly_earned, semaine courante)
 ═══════════════════════════════════════════════════════ */
 function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activeTitle, isAdmin, onOpenProfile, onOpenUserProfile, C }){
   const { t } = useTranslation();
@@ -181,12 +184,37 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         getOnlineCount(),
       ]);
       if(!aliveRef.current) return;
-      setList(leaderboard);
-      setMyRank(rank);
+      /* Le serveur renvoie le top par weekly_earned brut. On neutralise
+         à 0 le score des joueurs dont le weekly_week_id ≠ semaine
+         courante (= pas rejoué depuis le reset) puis on re-trie :
+           1. score hebdo décroissant (gagner ne serait-ce qu'1 🍪 cette
+              semaine fait passer DEVANT tous ceux encore à 0)
+           2. à égalité (typiquement tout le monde à 0 juste après le
+              reset) → départage par NIVEAU décroissant
+           3. ultime stabilisateur → total cumulé décroissant
+         Ainsi le classement n'est jamais vide et "reset" chaque vendredi. */
+      const ranked = (leaderboard || [])
+        .map(p => ({
+          ...p,
+          _wk: p.weekly_week_id === weekId ? Number(p.weekly_earned) || 0 : 0,
+        }))
+        .sort((a, b) =>
+          b._wk - a._wk
+          || (Number(b.level) || 0) - (Number(a.level) || 0)
+          || (Number(b.total_earned) || 0) - (Number(a.total_earned) || 0)
+        );
+      /* Carte "ton rang" cohérente avec ce tri : si je suis dans le top
+         récupéré, mon rang = ma position dans la liste triée (donc basé
+         sur le niveau quand tout le monde est à 0, et je grimpe dès mon
+         1er cookie de la semaine). Sinon, fallback sur le rang serveur. */
+      const myIdx = userCode ? ranked.findIndex(p => p.user_code === userCode) : -1;
+      const effectiveRank = myIdx >= 0 ? myIdx + 1 : rank;
+      setList(ranked);
+      setMyRank(effectiveRank);
       setTotal(count);
       setOnline(onlineN);
       setLoading(false);
-      saveCache(CACHE_KEY_COOKIES, { list:leaderboard, myRank:rank, total:count, online:onlineN });
+      saveCache(CACHE_KEY_COOKIES, { list:ranked, myRank:effectiveRank, total:count, online:onlineN });
     };
 
     fetchAll();
@@ -201,8 +229,16 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
     return () => clearInterval(id);
   }, []);
 
-  /* Modale "détails récompenses hebdo" — ouverte au clic sur le bandeau */
+  /* Modale "détails récompenses hebdo" — ouverte uniquement au clic
+     sur le bandeau countdown. */
   const [showWeeklyRewards, setShowWeeklyRewards] = useState(false);
+
+  /* Popup d'annonce "classement remis à zéro" — affiché UNE seule fois
+     par reset manuel. On mémorise en LS le dernier MANUAL_RESET_WEEK_ID
+     acquitté : si un nouveau reset est posé plus tard (nouvelle date),
+     le popup re-pop automatiquement pour tout le monde. */
+  const [ackReset, setAckReset] = useLocalStorage('weeklyResetAck', '');
+  const [showResetNotice, setShowResetNotice] = useState(ackReset !== MANUAL_RESET_WEEK_ID);
 
   return (
     <>
@@ -270,6 +306,16 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         <WeeklyRewardsModal
           countdown={countdown}
           onClose={() => setShowWeeklyRewards(false)}
+          C={C}
+        />
+      )}
+
+      {showResetNotice && (
+        <WeeklyResetNoticeModal
+          onClose={() => {
+            setShowResetNotice(false);
+            setAckReset(MANUAL_RESET_WEEK_ID);
+          }}
           C={C}
         />
       )}
@@ -543,6 +589,7 @@ function getRankBannerStyle(rank){
    bordure dorée et un ✦ après le nom. Top 1 (s'il n'est pas moi)
    → cliquable. */
 function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
+  const { t } = useTranslation();
   const isFirst = rank === 1;
   const banner  = getRankBannerStyle(rank);   // null si rank > 3
   const clickable = isFirst && !isMe && !!onOpenUserProfile;
@@ -639,9 +686,14 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
         <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
-          {(p.total_earned ?? 0).toLocaleString('fr-FR')}
+          {(p._wk ?? p.weekly_earned ?? 0).toLocaleString('fr-FR')}
         </div>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>🍪 au total</div>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>{t('leaderboard.earned_week')}</div>
+        {/* Total cumulé en sous-info : ne compte PAS pour le rang hebdo
+            mais reste visible (le joueur garde tout). */}
+        <div style={{ fontSize:9, fontWeight:600, color: banner ? banner.metaColor : C.muted, opacity:.75, marginTop:3 }}>
+          {(Number(p.total_earned) || 0).toLocaleString('fr-FR')} {t('leaderboard.earned_total')}
+        </div>
       </div>
       {clickable && (
         <span aria-hidden style={{ fontSize:14, color: banner?.valueColor || '#D4A017', opacity:.8, lineHeight:1, marginLeft:2 }}>
@@ -777,6 +829,7 @@ function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
    viewport-relative et la modale tombe en bas du scroll.
 ═══════════════════════════════════════════════════════ */
 function WeeklyRewardsModal({ countdown, onClose, C }){
+  const { t } = useTranslation();
   const [closing, setClosing] = useState(false);
   const handleClose = () => {
     if(closing) return;
@@ -784,9 +837,9 @@ function WeeklyRewardsModal({ countdown, onClose, C }){
     setTimeout(onClose, 200);
   };
   const PODIUM = [
-    { rank:1, cafes:3, color:"#FFD24D", label:"🥇 1er", note:"Champion de la semaine" },
-    { rank:2, cafes:2, color:"#C0C0C0", label:"🥈 2e",  note:"Vice-champion"          },
-    { rank:3, cafes:1, color:"#C17F3C", label:"🥉 3e",  note:"Sur le podium"          },
+    { rank:1, cafes:3, color:"#FFD24D", label:t('weekly_rewards.r1'), note:t('weekly_rewards.note1') },
+    { rank:2, cafes:2, color:"#C0C0C0", label:t('weekly_rewards.r2'), note:t('weekly_rewards.note2') },
+    { rank:3, cafes:1, color:"#C17F3C", label:t('weekly_rewards.r3'), note:t('weekly_rewards.note3') },
   ];
   if(typeof document === 'undefined') return null;
   return createPortal((
@@ -818,13 +871,13 @@ function WeeklyRewardsModal({ countdown, onClose, C }){
         <div style={{ background:ESPRESSO, padding:"18px 22px 16px", textAlign:"center", color:"#fff" }}>
           <div style={{ fontSize:38, lineHeight:1, marginBottom:6 }}>🏆</div>
           <div style={{ fontSize:10, fontWeight:900, letterSpacing:3, textTransform:"uppercase", opacity:.75, marginBottom:3 }}>
-            Récompenses hebdo
+            {t('weekly_rewards.header')}
           </div>
           <div style={{ fontSize:18, fontWeight:900, color:"#F0C050" }}>
-            Reset dans {countdown}
+            {t('leaderboard.reset_in', { time: countdown })}
           </div>
           <div style={{ fontSize:11, color:"rgba(255,255,255,.7)", marginTop:6, lineHeight:1.4 }}>
-            Vendredi 18 h UTC, le top 3 du classement reçoit ses cafés.
+            {t('weekly_rewards.subtitle')}
           </div>
         </div>
 
@@ -857,10 +910,10 @@ function WeeklyRewardsModal({ countdown, onClose, C }){
             borderRadius:12, padding:"11px 14px",
             fontSize:11.5, color:C.text, lineHeight:1.5, marginBottom:6,
           }}>
-            🏅 <strong>Badge Champion</strong> unique pour le top 3 (apparaît dans ton profil après le reset).
+            🏅 <strong>{t('weekly_rewards.badge_strong')}</strong> {t('weekly_rewards.badge_rest')}
           </div>
           <div style={{ fontSize:10.5, color:C.muted, fontStyle:"italic", textAlign:"center", marginTop:12, padding:"0 10px", lineHeight:1.5 }}>
-            Le classement compte les cookies gagnés depuis le dernier reset (vendredi 18 h UTC).
+            {t('weekly_rewards.footnote')}
           </div>
         </div>
 
@@ -875,7 +928,7 @@ function WeeklyRewardsModal({ countdown, onClose, C }){
               cursor:"pointer",
             }}
           >
-            Compris
+            {t('weekly_rewards.cta')}
           </button>
         </div>
       </div>

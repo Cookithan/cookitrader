@@ -81,27 +81,71 @@ export function getNameChangePrice(count){
   return NAME_CHANGE_PRICES[Math.min(count, NAME_CHANGE_PRICES.length - 1)];
 }
 
-/* Roue 100% café & cookie (refonte 14/05/2026 — 75/25) :
-   - 10 segments ALTERNÉS gain/perte (visuel rayé clair/foncé conservé)
-   - 75/25 : poids gains = 75, poids pertes = 25 (la roue est généreuse,
-     elle reste joueuse mais les pertes mordent moins)
-   - Hiérarchies internes conservées : petit gain/petite perte sont
-     toujours les plus fréquents, jackpot et grosse perte rares
+/* Roue 100% café & cookie (rééquilibrage 17/05/2026) :
+   - 11 segments (5 gains / 6 pertes), visuel rayé clair/foncé
+   - 60/40 : 60 de poids en gains, 40 en pertes → ~60 % de tours
+     gagnants
+   - En face du jackpot +200 : une grosse sanction -100 (idx 9),
+     les deux rares (poids 3) — risque/récompense symétrique
+   - Montants croissants par tranche de niveau (3 roues, cf. tiers)
+   - Reste rentable sur la durée mais plus serrée qu'en 75/25
+   - Jackpot conservé à +200 EXACT (détection `value === 200` en dur
+     dans SpinGame + easter egg secret +500 qui atterrit dessus —
+     NE PAS changer cette valeur)
    - Sparkle/event JACKPOT sur +200 (overlay plein écran 2.5s) */
-export const SEGMENTS = [
-  /* Alternance pos/neg/pos/neg... — l'ordre du tableau = ordre des
-     parts sur la roue (sens horaire) → visuel rayé café/or. */
-  { value:  25, label:'+25',  weight:23, color:'#E8C588' },  // caramel clair (le + fréquent)
-  { value:  -5, label:'-5',   weight: 8, color:'#7A5232' },  // moka clair
-  { value:  10, label:'+10',  weight:21, color:'#D4A017' },  // caramel doré
-  { value: -10, label:'-10',  weight: 7, color:'#5A3520' },  // café au lait foncé
-  { value:  25, label:'+25',  weight:17, color:'#E5B040' },  // ambre miel
-  { value: -25, label:'-25',  weight: 5, color:'#4A2A14' },  // moka foncé
-  { value:  75, label:'+75',  weight:10, color:'#F0C050' },  // miel saturé
-  { value: -75, label:'-75',  weight: 3, color:'#3D2010' },  // espresso
-  { value: 200, label:'+200', weight: 4, color:'#FFD700' },  // OR JACKPOT
-  { value: -50, label:'-50',  weight: 2, color:'#1F0E04' },  // espresso brûlé
-];
+/* 3 ROUES par tranche de niveau (1-5 / 6-15 / 16-25).
+   ── INVARIANT CAPITAL ──
+   Les 3 tiers ont EXACTEMENT les mêmes `weight`, le même `color` et
+   le même ORDRE (10 segments alternés gain/perte). Seuls `value` et
+   `label` changent. Conséquence : la géométrie (utils/spin.js : TW,
+   SEG_A, SEG_C, wRandom) reste identique quelle que soit la roue —
+   wRandom() renvoie un index, et SpinGame mappe cet index dans le
+   tier du joueur (cf. getSegmentsForLevel). NE PAS désaligner les
+   poids/ordre entre tiers.
+   Le segment d'index 8 vaut TOUJOURS 200 (jackpot) : SpinGame le
+   détecte en dur via `value === 200` + easter egg secret +500. */
+/* 11 segments. Rôle par index (FIXE, commun aux 3 tiers) :
+     0 gain  · 1 perte · 2 gain  · 3 perte · 4 gain · 5 perte
+     6 gain  · 7 perte · 8 GAIN +200 (jackpot) · 9 PERTE -100
+     10 perte
+   Split 60/40 : poids gains (idx 0,2,4,6,8) = 60, poids pertes
+   (idx 1,3,5,7,9,10) = 40 → 60 % de tours gagnants.
+   Le -100 (idx 9) accompagne toujours le +200 (idx 8) : gros
+   jackpot ⇒ grosse sanction, tous deux rares (poids 3). */
+const SEG_COLORS = ['#E8C588','#7A5232','#D4A017','#5A3520','#E5B040','#4A2A14','#F0C050','#3D2010','#FFD700','#1F0E04','#2A1810'];
+const SEG_WEIGHTS = [20, 12, 16, 9, 13, 7, 8, 5, 3, 3, 4];
+function buildTier(values){
+  return values.map((value, i) => ({
+    value,
+    label: (value > 0 ? '+' : '') + value,
+    weight: SEG_WEIGHTS[i],
+    color: SEG_COLORS[i],
+  }));
+}
+
+/* Niveaux 1-5 (coût 10 🍪) — petits montants. EV ≈ +14/tour
+   (net ≈ +4). 60 % gagnant, -100 rare en face du +200. */
+export const SEGMENTS_LOW  = buildTier([ 15, -5,  20, -10,  35, -15,  60, -25, 200, -100, -30]);
+
+/* Niveaux 6-15 (coût 10 puis 20 dès le niv 8) — montants moyens.
+   EV ≈ +23/tour (net ≈ +3 à +13). */
+export const SEGMENTS_MID  = buildTier([ 25, -10, 30, -15,  70, -25, 120, -40, 200, -100, -50]);
+
+/* Niveaux 16-25 (coût 20 🍪) — endgame, économie plus large.
+   EV ≈ +35/tour (net ≈ +15). */
+export const SEGMENTS_HIGH = buildTier([ 40, -15, 60, -25, 100, -40, 180, -60, 200, -100, -75]);
+
+/* Retourne la roue correspondant au niveau du joueur. */
+export function getSegmentsForLevel(level){
+  const L = Number(level) || 1;
+  if(L <= 5)  return SEGMENTS_LOW;
+  if(L <= 15) return SEGMENTS_MID;
+  return SEGMENTS_HIGH;
+}
+
+/* Canonique pour la géométrie (utils/spin.js) — poids/ordre communs
+   aux 3 tiers, donc n'importe lequel convient pour les angles. */
+export const SEGMENTS = SEGMENTS_MID;
 
 /* Récompenses check-in : index = jour dans la semaine (0..6). Jour 7 = jackpot. */
 export const DAILY_REWARDS = [15, 20, 30, 40, 55, 75, 200];

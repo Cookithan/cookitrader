@@ -13,14 +13,32 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.20.1',
-  releaseDate: '2026-05-14',
+  version: '1.21.0',
+  releaseDate: '2026-05-17',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.21.0',
+    date: '2026-05-17',
+    title: '🏆 Classement hebdo remis à zéro + roue rééquilibrée',
+    title_en: '🏆 Weekly leaderboard reset + rebalanced wheel',
+    changes: [
+      "🏆 Le classement repart à zéro : une nouvelle course chaque semaine, le podium est à prendre (tes cookies, ton niveau et tes récompenses restent 100 % intacts)",
+      "🎡 La roue est rééquilibrée et adaptée à ton niveau — trois paliers de mises et de gains, plus de suspense",
+      "🌍 Le mini-jeu « Devine la commande » est désormais entièrement traduit en anglais",
+      "📊 Chaque ligne du classement affiche le score de la semaine ET le total cumulé du joueur",
+    ],
+    changes_en: [
+      "🏆 The leaderboard is reset: a fresh race every week, the podium is yours to grab (your cookies, level and rewards stay 100% intact)",
+      "🎡 The wheel is rebalanced and scaled to your level — three tiers of stakes and rewards, more suspense",
+      "🌍 The \"Guess the order\" mini-game is now fully translated to English",
+      "📊 Every leaderboard row shows the weekly score AND the player's all-time total",
+    ],
+  },
   {
     version: '1.20.1',
     date: '2026-05-14',
@@ -95,36 +113,6 @@ export const CHANGELOG = [
       "⚡ Rename: \"$CKM Bulk Order\" becomes \"$CKM Express Trade\" (clearer for newcomers)",
       "🎁 New promo codes to dig up on social media",
       "✨ New surprises tucked away in the shop…",
-    ],
-  },
-  {
-    version: '1.19.0',
-    date: '2026-05-13',
-    title: '📊 Marché vivant + popup système',
-    title_en: '📊 Live market + system popup',
-    changes: [
-      "📰 Activité des autres joueurs visible sous la courbe (3 dernières transactions)",
-      "📊 Pouls du marché : nb de traders 24 h, volume, ratio achats/ventes en un coup d'œil",
-      "✨ Le prix flashe en temps réel à chaque variation (or hausse / moka baisse)",
-      "👆 Glisse ton doigt sur la courbe : prix + heure exacte à chaque instant",
-      "⏳ Carte Mes Actions enrichie : durée de hold + bonus actif + jauge prochain palier",
-      "⚡ Cooldown entre 2 achats $CKM ramené à 15 s (vs 60 s) — réagis enfin en direct",
-      "⚖️ Anti-monopole renforcé : top 1 du classement cookies plafonné automatiquement",
-      "📣 Nouveau : popup d'annonces pilotées en live (maintenance, événements, mises à jour)",
-      "❓ +30 questions au Quiz, +15 commandes au mini-jeu Devine la commande",
-      "🔊 Son du bonus Flappy Cookie atténué",
-    ],
-    changes_en: [
-      "📰 Other players' activity visible under the chart (last 3 transactions)",
-      "📊 Market pulse: 24h traders count, volume, buy/sell ratio at a glance",
-      "✨ The price flashes in real time at every change (gold up / mocha down)",
-      "👆 Drag your finger on the chart: price + exact time at every point",
-      "⏳ Enriched My Shares card: holding duration + active bonus + next tier gauge",
-      "⚡ Cooldown between 2 $CKM buys reduced to 15s (vs 60s) — finally react in real time",
-      "⚖️ Stronger anti-monopoly: top 1 of the cookies leaderboard is auto-capped",
-      "📣 New: live-driven announcement popups (maintenance, events, updates)",
-      "❓ +30 Quiz questions, +15 commands in the Guess the order mini-game",
-      "🔊 Flappy Cookie bonus sound dimmed",
     ],
   },
 ];

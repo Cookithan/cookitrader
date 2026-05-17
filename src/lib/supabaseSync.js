@@ -73,13 +73,16 @@ export async function getFriends(myUserCode){
   }catch{ notifySupabaseError(); return []; }
 }
 
-/* Top N des joueurs par TOTAL_EARNED décroissant (lifetime cumulé).
-   Le compteur weekly_earned est conservé en interne pour la distribution
-   top 3 du vendredi (closeWeek), mais ne pilote plus l'ordre du classement
-   visible. Le compte technique "Admin" est exclu du classement public.
-   `currentWeekId` reste accepté pour compat ascendante mais n'est plus
-   utilisé. */
-export async function getLeaderboard(limit = 50, _currentWeekId = null){
+/* Top N pour le classement HEBDOMADAIRE. On NE filtre PAS la requête
+   par week_id (sinon le tableau serait vide tant que personne n'a
+   rejoué après un reset) : on récupère le top par weekly_earned
+   décroissant et c'est le CLIENT qui neutralise à 0 le score des
+   joueurs dont le weekly_week_id ≠ semaine courante (cf. CookiesView).
+   Résultat : le classement n'est jamais vide ET "reset" quand même
+   chaque vendredi (tout le monde repart à 0, puis remonte). Cohérent
+   avec closeWeek (même métrique weekly_earned). Admin exclu.
+   `weekId` reste accepté pour compat mais n'est plus utilisé ici. */
+export async function getLeaderboard(limit = 50, weekId = null){ // eslint-disable-line no-unused-vars
   if(!isSupabaseEnabled()) return [];
   try{
     const { data, error } = await notInLeaderboard(
@@ -87,7 +90,8 @@ export async function getLeaderboard(limit = 50, _currentWeekId = null){
         .from('users')
         .select('user_code, user_name, user_avatar, level, total_earned, weekly_earned, weekly_week_id, streak, last_active, earned_achievements, active_title, prestige_level')
     )
-      .order('total_earned', { ascending:false })
+      .order('weekly_earned', { ascending:false })
+      .order('total_earned',  { ascending:false })
       .limit(limit);
     if(error){
       // eslint-disable-next-line no-console
@@ -189,23 +193,29 @@ export async function closeWeek(weekId){
   }
 }
 
-/* Mon rang (1-based) parmi les joueurs publics : compte les profils
-   ayant un total_earned strictement supérieur, +1. Cohérent avec
-   getLeaderboard (tri par total_earned). Admin exclu. `currentWeekId`
-   reste accepté pour compat ascendante mais n'est plus utilisé. */
-export async function getMyRank(myUserCode, _currentWeekId = null){
+/* Mon rang HEBDO (1-based) : compte les joueurs publics de la semaine
+   courante (weekly_week_id = weekId) ayant un weekly_earned strictement
+   supérieur au mien, +1. Cohérent avec getLeaderboard (même métrique).
+   Si je n'ai pas (encore) joué cette semaine → null (l'UI affiche "—").
+   Admin exclu. `weekId` = getCurrentWeekId() côté appelant. */
+export async function getMyRank(myUserCode, weekId = null){
   if(!isSupabaseEnabled()) return null;
   try{
     const { data: me } = await supabase
-      .from('users').select('total_earned, user_name').eq('user_code', myUserCode).single();
+      .from('users').select('weekly_earned, weekly_week_id, user_name').eq('user_code', myUserCode).single();
     if(!me) return null;
     if(isAdminName(me.user_name)) return null;
-    const myTotal = Number(me.total_earned) || 0;
-    const { count, error } = await notInLeaderboard(
+    /* Mon score compte uniquement s'il appartient à la semaine courante.
+       Sinon (ancien week_id = pas rejoué depuis le reset) → 0 → non classé. */
+    const myWeekly = (weekId && me.weekly_week_id === weekId) ? Number(me.weekly_earned) || 0 : 0;
+    if(myWeekly <= 0) return null;
+    let q = notInLeaderboard(
       supabase
         .from('users')
         .select('*', { count:'exact', head:true })
-    ).gt('total_earned', myTotal);
+    ).gt('weekly_earned', myWeekly);
+    if(weekId) q = q.eq('weekly_week_id', weekId);
+    const { count, error } = await q;
     if(error) return null;
     return (count ?? 0) + 1;
   }catch{ return null; }
