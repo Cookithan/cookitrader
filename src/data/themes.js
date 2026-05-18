@@ -242,4 +242,14 @@ export const COOKIE_SKINS = {
     glowColor:'rgba(255,213,128,.9)',
     pattern:'stars'
   },
+  /* EXCLUSIF — récompense du boss "Le Gâteau Mangeur de Cookies".
+     Cookie sombre torréfié avec fissures dorées "en fusion" (l'air
+     affamé du monstre) + halo ambré. Café-only (aucun rouge/vert). */
+  skin_mangeur: {
+    body:[{o:'0%',c:'#F4C97E'},{o:'38%',c:'#B5701E'},{o:'74%',c:'#5C3310'},{o:'100%',c:'#1F0E04'}],
+    chip:[{o:'0%',c:'#FFE08A'},{o:'100%',c:'#C9930E'}],
+    ring:'#7D4A14', cracks:'#FFCF5A', icing:false, shine:'rgba(255,235,180,.72)',
+    glowColor:'rgba(255,170,40,.9)',
+    pattern:'sparkles', eyes:true
+  },
 };

@@ -45,6 +45,10 @@ import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
 import { APP_INFO } from "./lib/appInfo.js";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
+import { BossEventOverlay } from "./components/overlays/BossEventOverlay.jsx";
+import { useCommunityBoss } from "./hooks/useCommunityBoss.js";
+import { getMyBossDamage } from "./lib/supabaseSync.js";
+import { BOSS_LEVEL_MIN, BOOST_COST_COOKIES, SUPER_COST_CF, bossRewardFor, bossClaimPatchKey, bossFailPatchKey, FAIL_PENALTY_COOKIES, fourneeNumber, formatBossTimeLeft } from "./data/communityEvents.js";
 import { BoutiqueTab } from "./components/tabs/BoutiqueTab.jsx";
 import { ClassementTab } from "./components/tabs/ClassementTab.jsx";
 import { MarketTab } from "./components/tabs/MarketTab.jsx";
@@ -546,6 +550,18 @@ export default function CookiMiner() {
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
+  const [showBoss,     setShowBoss]     = useState(false);
+  /* Boss communautaire (Le Gâteau Géant). Déclaré tôt : showBoss/
+     bossReward sont lus par useBackToClose & swipeBlocked plus bas. */
+  const {
+    boss: communityBoss, myDamage: bossMyDamage, contributorCount: bossContribCount,
+    activity: bossActivity, attack: bossAttack, attacking: bossAttacking, cooldownLeftMs: bossCooldownMs,
+  } = useCommunityBoss({ userCode, enabled: level >= BOSS_LEVEL_MIN });
+  const [bossReward,   setBossReward]   = useState(null);
+  const [bossPenalty,  setBossPenalty]  = useState(null);
+  /* Boss "en cours" (annonce ou combat, statut serveur 'active') →
+     on suspend les événements du jour tant qu'il n'est pas résolu. */
+  const bossOngoing = !!communityBoss && communityBoss.status === 'active';
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile,  setShowProfile]  = useState(false);
   const [showLevels,   setShowLevels]   = useState(false);
@@ -975,6 +991,7 @@ export default function CookiMiner() {
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
   useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
   useBackToClose(!!secretBadgeReward, () => setSecretBadgeQueue(q => q.slice(1)));
+  useBackToClose(showBoss || !!bossReward || !!bossPenalty, () => { setShowBoss(false); setBossReward(null); setBossPenalty(null); });
 
   /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
      Ne tape Supabase que si activé ; sinon le compteur reste à 0. */
@@ -1134,7 +1151,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement || showBoss || bossReward || bossPenalty);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -2131,6 +2148,136 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCode, pullDone]);
 
+  /* ── Boss communautaire : Le Gâteau Géant ────────────────────────
+     Crédit de la récompense (séparation des responsabilités : le hook
+     useCommunityBoss — instancié plus haut — gère détection/création/
+     Realtime/attaques ; ICI on crédite via le même applyPatchOnce
+     idempotent cross-device que le palier 500k legacy).
+     JAMAIS de ☕ CF — vecteur de triche éco interdit (mémoire projet). */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    if(!communityBoss || communityBoss.status !== 'defeated') return;
+    const milestone = communityBoss.milestone;
+    const claimKey  = bossClaimPatchKey(milestone, communityBoss.startedAt);
+    let cancelled = false;
+    (async () => {
+      /* Le coup fatal a pu être porté par un autre joueur après notre
+         dernière attaque — on relit la source de vérité serveur. */
+      const dmg = await getMyBossDamage(milestone, userCode);
+      if(cancelled) return;
+      const reward = bossRewardFor(dmg);
+      if(!reward) return;                       // participation insuffisante
+      applyPatchOnce({
+        userCode,
+        lsKey:    'cookiminer:' + claimKey,
+        patchKey: claimKey,
+        isCancelled: () => cancelled,
+        applyFn: () => {
+          /* UNIQUEMENT le skin exclusif — aucun cookie, jamais de CF. */
+          setUnlocked(arr => Array.isArray(arr) && !arr.includes(reward.skinId)
+            ? [...arr, reward.skinId] : arr);
+          setBossReward({ fournee: fourneeNumber(milestone) });
+          playSound('levelup');
+          createInboxMessage(
+            userCode,
+            'system',
+            `🍪 Fournée #${fourneeNumber(milestone)} sauvée !`,
+            `La communauté a vaincu Le Gâteau Mangeur de Cookies. Récompense : le skin exclusif « Cookie Mangeur » ! Équipe-le dans Paramètres → Apparence.`,
+            null,
+          ).catch(()=>{});
+        },
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [communityBoss, userCode, pullDone]);
+
+  /* ── Pénalité d'ÉCHEC : si le boss n'est pas vaincu à la fin du
+        chrono (status 'failed'), chaque joueur ayant participé ≥1
+        fois perd 1000 🍪 (puis sur total_earned si solde insuffisant).
+        1 fois par instance via applyPatchOnce. */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    if(!communityBoss || communityBoss.status !== 'failed') return;
+    const milestone = communityBoss.milestone;
+    const failKey   = bossFailPatchKey(milestone, communityBoss.startedAt);
+    let cancelled = false;
+    (async () => {
+      const dmg = await getMyBossDamage(milestone, userCode);
+      if(cancelled) return;
+      if(!dmg || dmg <= 0) return;          // pas participé → pas de pénalité
+      applyPatchOnce({
+        userCode,
+        lsKey:    'cookiminer:' + failKey,
+        patchKey: failKey,
+        isCancelled: () => cancelled,
+        applyFn: () => {
+          const pay   = Math.min(FAIL_PENALTY_COOKIES, coins);
+          const short = FAIL_PENALTY_COOKIES - pay;     // pris sur total gagné
+          setCoins(c => Math.max(0, c - pay));
+          if(short > 0) setTotalEarned(t => Math.max(0, t - short));
+          setBossPenalty({ lost: FAIL_PENALTY_COOKIES, fromEarned: short });
+          playSound('error');
+          showToast(`☠️ Boss non vaincu — −${FAIL_PENALTY_COOKIES} 🍪`);
+          createInboxMessage(
+            userCode,
+            'system',
+            `☠️ Le Gâteau Mangeur de Cookies a gagné…`,
+            `La communauté n'a pas terrassé le boss à temps. Pour avoir participé, tu perds ${FAIL_PENALTY_COOKIES} 🍪${short > 0 ? ` (dont ${short} pris sur ton total gagné, solde insuffisant)` : ''}. Personne ne reçoit le skin cette fois.`,
+            null,
+          ).catch(()=>{});
+        },
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [communityBoss, userCode, pullDone]);
+
+  /* Attaque depuis l'overlay. Le boost coûte des 🍪 : on ne débite
+     QUE si le coup va réellement partir (mêmes garde-fous que le hook),
+     et on rembourse si le serveur ne l'a pas appliqué (cooldown/cap). */
+  const handleBossAttack = useCallback(async (kind = 'free') => {
+    const blocked = bossCooldownMs > 0 || bossAttacking;
+    if(kind === 'boost'){
+      if(blocked || coins < BOOST_COST_COOKIES) return;
+      setCoins(c => Math.max(0, c - BOOST_COST_COOKIES));
+      const res = await bossAttack('boost');
+      if(!res || res.applied === 0) setCoins(c => c + BOOST_COST_COOKIES);
+      return;
+    }
+    if(kind === 'super'){
+      if(blocked || (cafes || 0) < SUPER_COST_CF) return;
+      setCafes(c => Math.max(0, c - SUPER_COST_CF));        // sink CF (voulu)
+      const res = await bossAttack('super');
+      if(!res || res.applied === 0) setCafes(c => c + SUPER_COST_CF);  // refund
+      return;
+    }
+    if(kind === 'admin'){
+      /* One-shot réservé admin (outil de test) — gratuit, ignore le
+         cooldown côté hook. Garde-fou : seulement si compte admin. */
+      if(!isAdminName(userName)) return;
+      await bossAttack('admin');
+      return;
+    }
+    await bossAttack('free');
+  }, [bossCooldownMs, bossAttacking, coins, cafes, bossAttack, setCoins, setCafes, userName]);
+
+  /* ── Pop-up d'annonce : à l'apparition d'un boss en phase
+        "annonce" (avant starts_at), on ouvre l'overlay UNE fois
+        (compte à rebours "arrive dans l'heure"). 1×/palier. */
+  useEffect(() => {
+    if(!communityBoss || level < BOSS_LEVEL_MIN) return;
+    const announcing = communityBoss.startsAt && Date.now() < communityBoss.startsAt;
+    if(!announcing) return;
+    const k = 'cookiminer:bossSeen_' + communityBoss.milestone;
+    let seen = false;
+    try{ seen = localStorage.getItem(k) === '1'; }catch{}
+    if(seen) return;
+    try{ localStorage.setItem(k, '1'); }catch{}
+    playSound('modal');
+    setShowBoss(true);
+  }, [communityBoss, level]);
+
   /* ── Set streak Dokiler à 6 (13/05/2026) ─────────────────────────
      Demande user : forcer le streak à 6 jours sur le compte 7Z4-977.
      Cross-device safe via applyPatchOnce. */
@@ -2652,16 +2799,18 @@ export default function CookiMiner() {
      un waiting. Couvre le cas du 1er passage au niveau 4. */
   useEffect(()=>{
     if(level < EVENT_LEVEL_MIN) return;
+    if(bossOngoing) return;            // boss en cours → pas d'event du jour
     if(activeEvent) return;
     triggerNextEvent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [level]);
+  }, [level, bossOngoing]);
 
   /* Tick périodique (5s) pour gérer les transitions de phase :
      - waiting → active : quand revealAt atteint
      - active  → fail   : quand expiresAt atteint sans succès */
   useEffect(()=>{
     if(level < EVENT_LEVEL_MIN || !activeEvent) return;
+    if(bossOngoing) return;            // boss en cours → cycle d'event gelé
     const tick = () => {
       const now = Date.now();
       if(activeEvent.phase === 'waiting' && now >= activeEvent.revealAt){
@@ -2674,7 +2823,7 @@ export default function CookiMiner() {
     const id = setInterval(tick, 5000);
     return ()=>clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeEvent, level]);
+  }, [activeEvent, level, bossOngoing]);
 
   /* Cleanup one-shot des anciennes clés du marché local v1 (pré-Brief 9).
      Le marché est désormais entièrement online (Supabase) — voir lib/market.js
@@ -3388,11 +3537,54 @@ export default function CookiMiner() {
             {/* Bannière événement spécial (PHASE 6E) — visible en
                 phase 'waiting' (timer mystère) et en phase 'active'
                 (titre + temps restant + essais). */}
-            {activeEvent && (
+            {activeEvent && !bossOngoing && (
               <EventBanner
                 event={activeEvent}
                 onView={()=>setShowEventModal(true)}
               />
+            )}
+            {/* Bannière boss communautaire — visible uniquement quand
+                un Gâteau Géant est ACTIF (≥ niv 3). Discovery UX : on
+                reste vague (menace + temps restant), pas de mécanique
+                détaillée — le détail est dans l'overlay au tap. */}
+            {communityBoss && communityBoss.status === 'active' && level >= BOSS_LEVEL_MIN && (
+              <button
+                onClick={()=>{ playSound('modal'); setShowBoss(true); }}
+                className="boss-banner"
+                style={{
+                  width:'100%', background:'linear-gradient(135deg,#7A4A28,#C17F3C)',
+                  color:'#fff', padding:'12px 14px', borderRadius:14, marginBottom:14,
+                  display:'flex', justifyContent:'space-between', alignItems:'center', gap:10,
+                  border:'none', cursor:'pointer', textAlign:'left',
+                  boxShadow:'0 6px 18px rgba(122,74,40,.4)',
+                }}
+              >
+                {(() => {
+                  const announcing = communityBoss.startsAt && Date.now() < communityBoss.startsAt;
+                  const left = announcing
+                    ? Math.max(0, communityBoss.startsAt - Date.now())
+                    : Math.max(0, (communityBoss.endsAt || 0) - Date.now());
+                  return (
+                    <>
+                      <div style={{ minWidth:0, flex:1 }}>
+                        <div style={{ fontSize:12, fontWeight:800, letterSpacing:.3, marginBottom:2 }}>
+                          {announcing
+                            ? '⚠️ Le Gâteau Mangeur de Cookies arrive !'
+                            : '🍪 Le Gâteau Mangeur de Cookies dévore vos cookies !'}
+                        </div>
+                        <div style={{ fontSize:11, opacity:.92, fontWeight:600 }}>
+                          {announcing
+                            ? `⏳ Attaquable dans ${formatBossTimeLeft(left)}`
+                            : `⏱️ ${formatBossTimeLeft(left)} · tous ensemble`}
+                        </div>
+                      </div>
+                      <span style={{ flexShrink:0, padding:'6px 12px', borderRadius:10, background:'rgba(255,255,255,.22)', color:'#fff', fontSize:11, fontWeight:800, border:'1px solid rgba(255,255,255,.35)' }}>
+                        {announcing ? 'Voir →' : 'Aider →'}
+                      </span>
+                    </>
+                  );
+                })()}
+              </button>
             )}
             {/* Level card */}
             <button id="card-niveau" onClick={()=>{ playSound('modal'); setShowLevels(true); }} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
@@ -3974,6 +4166,28 @@ export default function CookiMiner() {
             });
           }}
           isAdmin={isAdminName(userName)}
+          C={C}
+        />
+      )}
+
+      {/* BOSS COMMUNAUTAIRE — Le Gâteau Géant. S'ouvre au tap sur la
+          bannière (showBoss) OU automatiquement après l'auto-crédit
+          d'une victoire (bossReward) pour montrer l'écran de victoire. */}
+      {(showBoss || bossReward || bossPenalty) && communityBoss && (
+        <BossEventOverlay
+          boss={communityBoss}
+          myDamage={bossMyDamage}
+          contributorCount={bossContribCount}
+          activity={bossActivity}
+          attacking={bossAttacking}
+          cooldownLeftMs={bossCooldownMs}
+          coins={coins}
+          cafes={cafes}
+          bossReward={bossReward}
+          bossPenalty={bossPenalty}
+          isAdmin={isAdminName(userName)}
+          onAttack={handleBossAttack}
+          onClose={()=>{ setShowBoss(false); setBossReward(null); setBossPenalty(null); }}
           C={C}
         />
       )}

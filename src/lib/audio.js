@@ -47,6 +47,12 @@ const UI_SOUNDS = {
   swipe:    '/sounds/swipe.mp3',     // swipe nav onglets
   levelup:  '/sounds/levelup.mp3',   // fanfare festive level-up (universfield CC0)
   wheel:    '/sounds/wheel-loop.mp3',// rotation roue (one-shot, slowdown intégré)
+  /* Coups sur le boss (punching-ball). Déposer 2 fichiers CC0 dans
+     public/sounds/ : punch.mp3 (coup léger) et punch-hard.mp3 (coup
+     lourd). Tant qu'ils manquent, playSound est silencieux (404
+     géré sans crash) — aucune régression. */
+  punch:     '/sounds/punch.mp3',
+  punchHard: '/sounds/punch-hard.mp3',
 };
 
 /* Sons en boucle (start/stop manuel) — typiquement le son du café qui
