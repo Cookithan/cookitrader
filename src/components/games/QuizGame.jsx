@@ -116,8 +116,11 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
   );
 
   if(chosenDifficulty === null) {
+    /* Facile retiré (demande Régis) — le quiz commence à Moyen.
+       Les questions 'Facile' restent dans QUESTIONS pour préserver
+       l'alignement d'index avec QUESTIONS_EN, mais ne sont plus
+       sélectionnables. */
     const LEVELS = [
-      { id:'Facile', label: t('game_quiz.difficulty_easy'),   emoji:'🌱', reward:20, bg:'#E5B040', desc: t('game_quiz.diff_easy_desc') },
       { id:'Moyen',  label: t('game_quiz.difficulty_medium'), emoji:'☕', reward:35, bg:'#C17F3C', desc: t('game_quiz.diff_medium_desc') },
       { id:'Expert', label: t('game_quiz.difficulty_expert'), emoji:'🔥', reward:60, bg:'#4A2C17', desc: t('game_quiz.diff_expert_desc') },
     ];

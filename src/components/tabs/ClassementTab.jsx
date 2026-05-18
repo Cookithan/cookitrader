@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { ESPRESSO, GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { isSupabaseEnabled } from "../../lib/supabase.js";
-import { getLeaderboard, getMyRank, getTotalPlayers, getOnlineCount, ONLINE_WINDOW_MS } from "../../lib/supabaseSync.js";
+import { getLeaderboard, getMyRank, getAllTimeLeaderboard, getMyAllTimeRank, getTotalPlayers, getOnlineCount, ONLINE_WINDOW_MS } from "../../lib/supabaseSync.js";
 import { getCurrentWeekId, getNextResetAt, formatTimeUntil, MANUAL_RESET_WEEK_ID } from "../../lib/weeklyCycle.js";
 import { WeeklyResetNoticeModal } from "../modals/WeeklyResetNoticeModal.jsx";
 import { isSanctionPublic } from "../../data/sanctions.js";
@@ -159,12 +159,51 @@ function ModeToggle({ mode, setMode, C }){
   );
 }
 
+/* Sous-toggle de la vue Cookies : cumul (défaut) / hebdo. */
+function CookiesSubToggle({ view, setView, C }){
+  const segs = [
+    { id:'alltime', label:'🏆 Depuis le début' },
+    { id:'weekly',  label:'📅 Cette semaine'  },
+  ];
+  return (
+    <div style={{
+      display:'flex', gap:4, marginBottom:14,
+      padding:4, borderRadius:14,
+      background:C.card, border:`1px solid ${C.border}`,
+    }}>
+      {segs.map(s => {
+        const active = view === s.id;
+        return (
+          <button
+            key={s.id}
+            onClick={()=>setView(s.id)}
+            style={{
+              flex:1, padding:'9px 8px', borderRadius:10,
+              border:'none', cursor:'pointer',
+              background: active ? ESPRESSO : 'transparent',
+              color: active ? '#F0C050' : C.muted,
+              fontSize:11.5, fontWeight:800, letterSpacing:.3,
+              transition:'background .15s, color .15s',
+              touchAction:'manipulation', userSelect:'none',
+            }}>
+            {s.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════════
-   Vue Cookies — classement hebdo (weekly_earned, semaine courante)
+   Vue Cookies — cumul (défaut) ou hebdo (weekly_earned)
 ═══════════════════════════════════════════════════════ */
 function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activeTitle, isAdmin, onOpenProfile, onOpenUserProfile, C }){
   const { t } = useTranslation();
-  const cached = loadCache(CACHE_KEY_COOKIES);
+  /* Sous-vue : 'alltime' (cumul depuis le début — DÉFAUT) ou
+     'weekly' (classement hebdo + CF podium, inchangé). */
+  const [view, setView] = useLocalStorage('classementCookiesView', 'alltime');
+  const cacheKey = CACHE_KEY_COOKIES + ':' + view;
+  const cached = loadCache(cacheKey);
   const [list,    setList]    = useState(cached?.list  ?? []);
   const [myRank,  setMyRank]  = useState(cached?.myRank ?? null);
   const [total,   setTotal]   = useState(cached?.total ?? null);
@@ -177,13 +216,32 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
 
     const fetchAll = async () => {
       const weekId = getCurrentWeekId();
+      const allTime = view === 'alltime';
       const [leaderboard, rank, count, onlineN] = await Promise.all([
-        getLeaderboard(50, weekId),
-        userCode ? getMyRank(userCode, weekId) : Promise.resolve(null),
+        allTime ? getAllTimeLeaderboard(50) : getLeaderboard(50, weekId),
+        userCode
+          ? (allTime ? getMyAllTimeRank(userCode) : getMyRank(userCode, weekId))
+          : Promise.resolve(null),
         getTotalPlayers(),
         getOnlineCount(),
       ]);
       if(!aliveRef.current) return;
+      if(allTime){
+        /* Cumul : le serveur ordonne déjà par total_earned desc puis
+           last_active. On garde tel quel (rang = position). */
+        const ranked = (leaderboard || []).map(p => ({
+          ...p, _wk: p.weekly_week_id === weekId ? Number(p.weekly_earned) || 0 : 0,
+        }));
+        const myIdx = userCode ? ranked.findIndex(p => p.user_code === userCode) : -1;
+        const effectiveRank = myIdx >= 0 ? myIdx + 1 : rank;
+        setList(ranked);
+        setMyRank(effectiveRank);
+        setTotal(count);
+        setOnline(onlineN);
+        setLoading(false);
+        saveCache(cacheKey, { list:ranked, myRank:effectiveRank, total:count, online:onlineN });
+        return;
+      }
       /* Le serveur renvoie le top par weekly_earned brut. On neutralise
          à 0 le score des joueurs dont le weekly_week_id ≠ semaine
          courante (= pas rejoué depuis le reset) puis on re-trie :
@@ -220,13 +278,25 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
       setTotal(count);
       setOnline(onlineN);
       setLoading(false);
-      saveCache(CACHE_KEY_COOKIES, { list:ranked, myRank:effectiveRank, total:count, online:onlineN });
+      saveCache(cacheKey, { list:ranked, myRank:effectiveRank, total:count, online:onlineN });
     };
 
     fetchAll();
     const id = setInterval(fetchAll, REFRESH_MS);
     return ()=>{ aliveRef.current = false; clearInterval(id); };
-  }, [userCode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCode, view]);
+
+  /* Au changement de sous-vue : bascule instantanément sur le cache
+     de cette vue (ou skeleton) — évite d'afficher les chiffres hebdo
+     sous le libellé cumul (ou l'inverse) le temps du fetch. */
+  useEffect(() => {
+    const c = loadCache(cacheKey);
+    setList(c?.list ?? []);
+    setMyRank(c?.myRank ?? null);
+    setLoading(!c);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
 
   /* Countdown vers le prochain reset (vendredi 18 h UTC) — refresh /min */
   const [countdown, setCountdown] = useState(() => formatTimeUntil(getNextResetAt()));
@@ -253,7 +323,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
           fontSize:10, fontWeight:800, color:C.muted, letterSpacing:1.5,
           textTransform:'uppercase',
         }}>
-          📅 Cycle hebdo
+          {view === 'alltime' ? '🏆 Depuis le début' : '📅 Cycle hebdo'}
         </div>
         <div style={{ fontSize:11, fontWeight:600, color:C.muted, display:'flex', alignItems:'center', gap:8 }}>
           {online != null && online > 0 && (
@@ -277,12 +347,22 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         </div>
       </div>
 
-      {/* Bandeau countdown — cliquable, ouvre WeeklyRewardsModal.
-          Opacités renforcées (.12/.18 → .22/.36) car le fond gold @ 12%
-          était presque invisible sur thèmes clairs (theme_grains, _creme,
-          _caramel…) → impression d'un "cadre transparent" qui dévoile le
-          dégradé du thème sous le bandeau, juste sous le header. Même
-          renforcement que sur le bandeau Discord de l'accueil. */}
+      {/* Sous-toggle : Depuis le début (cumul, défaut) / Cette semaine */}
+      <CookiesSubToggle view={view} setView={setView} C={C} />
+
+      {view === 'alltime' && (
+        <div style={{
+          fontSize:10.5, color:C.muted, lineHeight:1.4,
+          marginBottom:14, padding:'9px 12px', borderRadius:12,
+          background:C.card, border:`1px solid ${C.border}`,
+        }}>
+          🍪 Classement <strong style={{ color:C.text }}>depuis le début</strong> (cookies cumulés). Les ☕ se gagnent sur le podium <strong style={{ color:C.text }}>hebdomadaire</strong> → onglet « Cette semaine ».
+        </div>
+      )}
+
+      {/* Bandeau countdown HEBDO — cliquable, ouvre WeeklyRewardsModal.
+          Affiché seulement en sous-vue 'weekly' (cycle + CF podium). */}
+      {view === 'weekly' && (
       <button
         onClick={() => setShowWeeklyRewards(true)}
         style={{
@@ -307,8 +387,9 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         </div>
         <div style={{ fontSize:22, lineHeight:1 }}>🏆</div>
       </button>
+      )}
 
-      {showWeeklyRewards && (
+      {view === 'weekly' && showWeeklyRewards && (
         <WeeklyRewardsModal
           countdown={countdown}
           onClose={() => setShowWeeklyRewards(false)}
@@ -316,7 +397,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         />
       )}
 
-      {showResetNotice && (
+      {view === 'weekly' && showResetNotice && (
         <WeeklyResetNoticeModal
           onClose={() => {
             setShowResetNotice(false);
@@ -389,6 +470,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
               rank={i + 1}
               p={p}
               isMe={p.user_code === userCode}
+              mode={view}
               onOpenUserProfile={onOpenUserProfile}
               C={C}
             />
@@ -594,7 +676,7 @@ function getRankBannerStyle(rank){
    espresso distincte (cf getRankBannerStyle). Mon profil garde une
    bordure dorée et un ✦ après le nom. Top 1 (s'il n'est pas moi)
    → cliquable. */
-function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
+function CookiesRow({ rank, p, isMe, mode = 'weekly', onOpenUserProfile, C }){
   const { t } = useTranslation();
   const isFirst = rank === 1;
   const banner  = getRankBannerStyle(rank);   // null si rank > 3
@@ -691,15 +773,30 @@ function CookiesRow({ rank, p, isMe, onOpenUserProfile, C }){
         )}
       </div>
       <div style={{ textAlign:'right', flexShrink:0 }}>
-        <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
-          {(p._wk ?? p.weekly_earned ?? 0).toLocaleString('fr-FR')}
-        </div>
-        <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>{t('leaderboard.earned_week')}</div>
-        {/* Total cumulé en sous-info : ne compte PAS pour le rang hebdo
-            mais reste visible (le joueur garde tout). */}
-        <div style={{ fontSize:9, fontWeight:600, color: banner ? banner.metaColor : C.muted, opacity:.75, marginTop:3 }}>
-          {(Number(p.total_earned) || 0).toLocaleString('fr-FR')} {t('leaderboard.earned_total')}
-        </div>
+        {mode === 'alltime' ? (
+          <>
+            {/* Cumul : total = score principal du classement */}
+            <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
+              {(Number(p.total_earned) || 0).toLocaleString('fr-FR')}
+            </div>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>{t('leaderboard.earned_total')}</div>
+            <div style={{ fontSize:9, fontWeight:600, color: banner ? banner.metaColor : C.muted, opacity:.75, marginTop:3 }}>
+              {(p._wk ?? p.weekly_earned ?? 0).toLocaleString('fr-FR')} {t('leaderboard.earned_week')}
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ fontSize:15, fontWeight:900, lineHeight:1, color: banner ? banner.valueColor : '#D4A017' }}>
+              {(p._wk ?? p.weekly_earned ?? 0).toLocaleString('fr-FR')}
+            </div>
+            <div style={{ fontSize:9, fontWeight:700, letterSpacing:.5, color: banner ? banner.metaColor : C.muted }}>{t('leaderboard.earned_week')}</div>
+            {/* Total cumulé en sous-info : ne compte PAS pour le rang hebdo
+                mais reste visible (le joueur garde tout). */}
+            <div style={{ fontSize:9, fontWeight:600, color: banner ? banner.metaColor : C.muted, opacity:.75, marginTop:3 }}>
+              {(Number(p.total_earned) || 0).toLocaleString('fr-FR')} {t('leaderboard.earned_total')}
+            </div>
+          </>
+        )}
       </div>
       {clickable && (
         <span aria-hidden style={{ fontSize:14, color: banner?.valueColor || '#D4A017', opacity:.8, lineHeight:1, marginLeft:2 }}>

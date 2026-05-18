@@ -487,6 +487,30 @@ export const QUESTIONS = [
   { q:"Quelle méthode italienne utilise la pression de la vapeur pour extraire (cafetière maison) ?", choices:["Aeropress","Moka pot","Chemex","V60"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel décay quotidien sur les actions $CKM après 7 j de hold sans activité ?", choices:["0.1 %","0.5 %","1 %","2 %"], answer:1, reward:60, difficulty:'Expert' },
   { q:"Quel pourcentage maximum d'impact prix sur une seule transaction $CKM ?", choices:["5 %","10 %","15 %","20 %"], answer:1, reward:60, difficulty:'Expert' },
+
+  /* ─── +18 questions ajoutées 19/05/2026 (6 Moyen · 12 Expert) ───
+     Difficulté Facile retirée du choix joueur côté QuizGame. */
+  // MOYEN
+  { q:"Quel café est un espresso « taché » d'une pointe de lait chaud ?", choices:["Latte","Macchiato","Americano","Cortado"], answer:1, reward:35, difficulty:'Moyen' },
+  { q:"Quelle céréale est la base de la farine d'un cookie classique ?", choices:["Blé","Maïs","Riz","Seigle"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel ingrédient sucré compose le café « bombón » espagnol ?", choices:["Lait concentré sucré","Miel","Sirop d'érable","Caramel liquide"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Combien de temps infuse idéalement un cold brew ?", choices:["30 min","2 h","12-24 h","3 jours"], answer:2, reward:35, difficulty:'Moyen' },
+  { q:"Quelle pâtisserie est une pâte à choux allongée, fourrée et glacée ?", choices:["Éclair","Mille-feuille","Madeleine","Financier"], answer:0, reward:35, difficulty:'Moyen' },
+  { q:"Quel pays a une très forte consommation de café filtre « à la scandinave » ?", choices:["Finlande","Italie","Turquie","Grèce"], answer:0, reward:35, difficulty:'Moyen' },
+
+  // EXPERT
+  { q:"Quelle réaction chimique donne arômes et brunissement à la torréfaction ?", choices:["Fermentation","Réaction de Maillard","Hydrolyse","Oxydation simple"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"À quelle altitude se cultive majoritairement l'Arabica de qualité ?", choices:["0-200 m","300-600 m","1 000-2 000 m","3 500-4 500 m"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quel procédé de traitement fait sécher la cerise de café entière au soleil ?", choices:["Lavé","Nature (dry process)","Décaféination","Torréfaction"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Le « ristretto » est un espresso…", choices:["plus long","plus court et concentré","plus froid","sans caféine"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quelle espèce de café, rare, est surtout cultivée aux Philippines ?", choices:["Arabica","Robusta","Liberica","Geisha"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Comment nomme-t-on aussi la caféine présente dans le thé ?", choices:["Théobromine","Théine","Tanin","Guaranine"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quelle carafe en verre, méthode douce, utilise un filtre en papier épais ?", choices:["Moka pot","Chemex","Aeropress","French press"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel ratio café/eau est classique en méthode filtre ?", choices:["1:4","1:8","1:16","1:30"], answer:2, reward:60, difficulty:'Expert' },
+  { q:"Quelle pâtisserie viennoise au chocolat porte le nom d'un hôtel autrichien ?", choices:["Linzer","Sachertorte","Strudel","Kouglof"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel pays compte le plus de cafés Starbucks après les États-Unis ?", choices:["France","Chine","Japon","Canada"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quelle machine à crema espresso a été popularisée par Achille Gaggia ?", choices:["Cafetière à filtre","Levier à ressort (1948)","Cold drip","Percolateur"], answer:1, reward:60, difficulty:'Expert' },
+  { q:"Quel composant amer apparaît surtout lors d'une sur-extraction du café ?", choices:["Sucres","Acides désirables","Tanins / amertume","Lipides"], answer:2, reward:60, difficulty:'Expert' },
 ];
 
 /* Quiz : 1 disponible toutes les 5h */

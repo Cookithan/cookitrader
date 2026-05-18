@@ -43,6 +43,9 @@ function rewardFor(moves){
   return 5;
 }
 
+/* Bonus +10 🍪 quand on complète toutes les paires (6/6). */
+const FULL_CLEAR_BONUS = 10;
+
 /* Durée du "peek" initial (toutes les cartes face visible avant de
    commencer). 500 ms — assez bref pour rester un challenge, mais
    permet de balayer les positions une fois. */
@@ -70,7 +73,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
   useEffect(()=>{
     if(phase !== 'playing') return;
     if(matched.length === deck.length){
-      const earned = rewardFor(moves);
+      const earned = rewardFor(moves) + FULL_CLEAR_BONUS;   // 6/6 → +10 🍪
       onEarn(earned);
       playSound('success');
       setTimeout(()=>setPhase('done'), 600);
@@ -140,7 +143,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
     setPhase('done');
   };
 
-  const earnedFinal = phase === 'done' && matched.length === deck.length ? rewardFor(moves) : 0;
+  const earnedFinal = phase === 'done' && matched.length === deck.length ? rewardFor(moves) + FULL_CLEAR_BONUS : 0;
   const isPerfect   = phase === 'done' && moves === 12 && matched.length === deck.length;
   const completed   = phase === 'done' && matched.length === deck.length;
   const canPlay     = coins >= MEMORY_COST;
