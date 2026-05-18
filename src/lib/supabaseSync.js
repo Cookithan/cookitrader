@@ -243,6 +243,56 @@ export async function getTopTwoTotalEarned(){
 }
 
 /* ════════════════════════════════════════════════════
+   CLASSEMENT CUMULÉ (depuis le début) — tri total_earned
+   ────────────────────────────────────────────────────
+   Classement "all-time" (vue par DÉFAUT de l'onglet Cookies).
+   Pas de filtre semaine, pas de CF (le CF reste réservé au
+   podium HEBDO via weekly_winners). Admin/NON_RANKED exclus,
+   mêmes colonnes que getLeaderboard pour réutiliser CookiesRow.
+═══════════════════════════════════════════════════════ */
+export async function getAllTimeLeaderboard(limit = 50){
+  if(!isSupabaseEnabled()) return [];
+  try{
+    const { data, error } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('user_code, user_name, user_avatar, level, total_earned, weekly_earned, weekly_week_id, streak, last_active, earned_achievements, active_title, prestige_level')
+    )
+      .order('total_earned', { ascending:false })
+      .order('last_active',  { ascending:false })
+      .limit(limit);
+    if(error){
+      // eslint-disable-next-line no-console
+      console.warn('[supabase] getAllTimeLeaderboard error:', error);
+      notifySupabaseError();
+      return [];
+    }
+    return data || [];
+  }catch{ notifySupabaseError(); return []; }
+}
+
+/* Mon rang cumulé (1-based) : nb de joueurs publics avec un
+   total_earned strictement supérieur au mien, +1. Admin → null. */
+export async function getMyAllTimeRank(myUserCode){
+  if(!isSupabaseEnabled()) return null;
+  try{
+    const { data: me } = await supabase
+      .from('users').select('total_earned, user_name').eq('user_code', myUserCode).single();
+    if(!me) return null;
+    if(isAdminName(me.user_name)) return null;
+    const myTotal = Number(me.total_earned) || 0;
+    if(myTotal <= 0) return null;
+    const { count, error } = await notInLeaderboard(
+      supabase
+        .from('users')
+        .select('*', { count:'exact', head:true })
+    ).gt('total_earned', myTotal);
+    if(error) return null;
+    return (count ?? 0) + 1;
+  }catch{ return null; }
+}
+
+/* ════════════════════════════════════════════════════
    getCommunityCookieTotal — Total cumulé des cookies miné
    ────────────────────────────────────────────────────
    Somme de `total_earned` de tous les joueurs (admins exclus via

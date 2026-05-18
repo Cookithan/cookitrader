@@ -113,4 +113,27 @@ export const QUESTIONS_EN = [
   { q: 'Which Italian method uses steam pressure to extract (home coffee maker)?', choices: ['Aeropress', 'Moka pot', 'Chemex', 'V60'] },
   { q: 'Daily decay on $CKM shares after 7 days of holding without activity?', choices: ['0.1 %', '0.5 %', '1 %', '2 %'] },
   { q: 'Maximum price impact percentage on a single $CKM transaction?', choices: ['5 %', '10 %', '15 %', '20 %'] },
+
+  /* ─── +18 questions added 2026-05-19 (6 Medium · 12 Expert) ─── */
+  // MEDIUM
+  { q: 'Which coffee is an espresso "stained" with a touch of hot milk?', choices: ['Latte', 'Macchiato', 'Americano', 'Cortado'] },
+  { q: 'Which cereal is the flour base of a classic cookie?', choices: ['Wheat', 'Corn', 'Rice', 'Rye'] },
+  { q: 'Which sweet ingredient makes up the Spanish "bombón" coffee?', choices: ['Sweetened condensed milk', 'Honey', 'Maple syrup', 'Liquid caramel'] },
+  { q: 'How long does a cold brew ideally steep?', choices: ['30 min', '2 h', '12-24 h', '3 days'] },
+  { q: 'Which pastry is an elongated choux dough, filled and glazed?', choices: ['Éclair', 'Mille-feuille', 'Madeleine', 'Financier'] },
+  { q: 'Which country has very high "Scandinavian-style" filter coffee consumption?', choices: ['Finland', 'Italy', 'Turkey', 'Greece'] },
+
+  // EXPERT
+  { q: 'Which chemical reaction gives roasting its aromas and browning?', choices: ['Fermentation', 'Maillard reaction', 'Hydrolysis', 'Simple oxidation'] },
+  { q: 'At what altitude is quality Arabica mostly grown?', choices: ['0-200 m', '300-600 m', '1,000-2,000 m', '3,500-4,500 m'] },
+  { q: 'Which processing method dries the whole coffee cherry in the sun?', choices: ['Washed', 'Natural (dry process)', 'Decaffeination', 'Roasting'] },
+  { q: 'A "ristretto" is an espresso that is…', choices: ['longer', 'shorter and concentrated', 'colder', 'caffeine-free'] },
+  { q: 'Which rare coffee species is mainly grown in the Philippines?', choices: ['Arabica', 'Robusta', 'Liberica', 'Geisha'] },
+  { q: 'What is caffeine in tea also called?', choices: ['Theobromine', 'Theine', 'Tannin', 'Guaranine'] },
+  { q: 'Which glass carafe (gentle method) uses a thick paper filter?', choices: ['Moka pot', 'Chemex', 'Aeropress', 'French press'] },
+  { q: 'Which coffee-to-water ratio is classic for filter brewing?', choices: ['1:4', '1:8', '1:16', '1:30'] },
+  { q: 'Which Viennese chocolate pastry is named after an Austrian hotel?', choices: ['Linzer', 'Sachertorte', 'Strudel', 'Kouglof'] },
+  { q: 'Which country has the most Starbucks cafés after the United States?', choices: ['France', 'China', 'Japan', 'Canada'] },
+  { q: 'Which crema espresso machine was popularized by Achille Gaggia?', choices: ['Filter coffee maker', 'Spring lever (1948)', 'Cold drip', 'Percolator'] },
+  { q: 'Which bitter component appears mostly when coffee is over-extracted?', choices: ['Sugars', 'Desirable acids', 'Tannins / bitterness', 'Lipids'] },
 ];
