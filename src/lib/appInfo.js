@@ -13,14 +13,32 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.22.0',
-  releaseDate: '2026-05-18',
+  version: '1.23.0',
+  releaseDate: '2026-05-19',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.23.0',
+    date: '2026-05-19',
+    title: '🏆 Classement cumulé + quiz corsé',
+    title_en: '🏆 All-time leaderboard + tougher quiz',
+    changes: [
+      "🏆 Nouveau classement « Depuis le début » : les cookies cumulés de toujours, en plus du classement de la semaine",
+      "📚 Quiz : la difficulté Facile laisse place à plus de questions Moyen et Expert",
+      "🍪 Memory : petit bonus en complétant toutes les paires",
+      "✨ …et d'autres surprises à débusquer en jouant 👀",
+    ],
+    changes_en: [
+      "🏆 New \"All-time\" leaderboard: your lifetime cookies, alongside the weekly ranking",
+      "📚 Quiz: the Easy difficulty makes way for more Medium and Expert questions",
+      "🍪 Memory: a small bonus for clearing all the pairs",
+      "✨ …and other surprises to uncover while playing 👀",
+    ],
+  },
   {
     version: '1.22.0',
     date: '2026-05-18',
