@@ -14,6 +14,8 @@
      · pattern     — overlay SVG signature : 'sparkles' | 'flames' | 'stars'
                      (mythique = sparkles dorés, phoenix = pétales de
                       flamme, originel = étoiles 4 branches cosmos)
+     · eyes        — bool : 2 yeux qui clignent (ouverts 1s / fermés 1s)
+                     — skin "Cookie Mangeur" (rappelle le boss gâteau)
 
    ⚠ IDs SVG préfixés par useId() : le sélecteur de skins (ProfileOverlay)
    peut rendre plusieurs SkinnedCookie en même temps. Sans préfixe,
@@ -184,6 +186,33 @@ export function SkinnedCookie({ skin, noShadow = false }){
           <circle cx="118" cy="166" r="1" fill="#B8A0FF" opacity=".7" />
           <circle cx="76" cy="172" r="1.2" fill="#FFE5A0" opacity=".75" />
           <circle cx="186" cy="100" r=".9" fill="#D4A017" opacity=".7" />
+        </g>
+      )}
+
+      {/* Yeux clignotants (skin "Cookie Mangeur") — ouverts ~2.5s,
+          fermés ~2.5s (clignement lent), légèrement transparents
+          pour se fondre dans le cookie. Rappelle le boss gâteau. */}
+      {skin.eyes && (
+        <g opacity="0.82">
+          {/* Yeux OUVERTS — mêmes yeux kawaii que le boss gâteau
+              (gros blancs + iris décalée + 2 reflets) */}
+          <g>
+            <circle cx="72" cy="90" r="16" fill="#F5EFE6" />
+            <circle cx="128" cy="90" r="16" fill="#F5EFE6" />
+            <circle cx="74" cy="95" r="10" fill="#2C1810" />
+            <circle cx="126" cy="95" r="10" fill="#2C1810" />
+            <circle cx="77" cy="91" r="3.5" fill="#fff" />
+            <circle cx="70" cy="98" r="1.8" fill="#fff" />
+            <circle cx="129" cy="91" r="3.5" fill="#fff" />
+            <circle cx="122" cy="98" r="1.8" fill="#fff" />
+            <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.5;0.5;1" dur="5s" repeatCount="indefinite" />
+          </g>
+          {/* Yeux FERMÉS (clignement) — arcs comme le boss KO */}
+          <g>
+            <path d="M 58 90 Q 72 102 86 90" stroke="#2C1810" strokeWidth="5" fill="none" strokeLinecap="round" />
+            <path d="M 114 90 Q 128 102 142 90" stroke="#2C1810" strokeWidth="5" fill="none" strokeLinecap="round" />
+            <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.5;0.5;1" dur="5s" repeatCount="indefinite" />
+          </g>
         </g>
       )}
     </svg>

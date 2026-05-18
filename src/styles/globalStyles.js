@@ -84,6 +84,80 @@ export const GLOBAL_CSS = `
   @keyframes priceFlashUp{0%{color:#D4A017;text-shadow:0 0 0 #F0C050}30%{color:#F0C050;text-shadow:0 0 14px #F0C050;transform:scale(1.05)}100%{color:#D4A017;text-shadow:0 0 0 #F0C050;transform:scale(1)}}
   @keyframes priceFlashDown{0%{color:#D4A017;text-shadow:0 0 0 #A88060}30%{color:#A88060;text-shadow:0 0 14px #7D4E1F;transform:scale(.97)}100%{color:#D4A017;text-shadow:0 0 0 #A88060;transform:scale(1)}}
 
+  /* ── Boss communautaire (Le Gâteau Géant) ────────────── */
+  /* bossIdle : balancement pendulaire gauche↔droite. 0% == 100%
+     (boucle sans à-coup) + ease-in-out → mouvement continu, pas de
+     "reset" visible. transformOrigin:center bottom (sur BossCake)
+     → il se balance sur sa base comme un gâteau vivant. */
+  @keyframes bossIdle{0%{transform:translateY(0) rotate(0deg) scale(1)}25%{transform:translateY(-5px) rotate(2.5deg) scale(1.02)}50%{transform:translateY(0) rotate(0deg) scale(1)}75%{transform:translateY(-5px) rotate(-2.5deg) scale(1.02)}100%{transform:translateY(0) rotate(0deg) scale(1)}}
+  @keyframes bossHit{0%,100%{transform:translate(0,0) rotate(0) scale(1)}20%{transform:translate(-7px,2px) rotate(-3deg) scale(1.05)}45%{transform:translate(6px,-2px) rotate(3deg) scale(.97)}70%{transform:translate(-3px,1px) rotate(-1.5deg) scale(1.02)}}
+  @keyframes bossSteam{0%{opacity:0;transform:translateY(4px) scaleX(.9)}35%{opacity:.75}100%{opacity:0;transform:translateY(-22px) scaleX(1.4)}}
+  .boss-idle{animation:bossIdle 3.2s ease-in-out infinite}
+  .boss-hit{animation:bossHit .42s ease-out}
+  .boss-steam-a{animation:bossSteam 2.6s ease-in-out infinite;transform-origin:center}
+  .boss-steam-b{animation:bossSteam 2.6s ease-in-out .5s infinite;transform-origin:center}
+  .boss-steam-c{animation:bossSteam 2.6s ease-in-out 1s infinite;transform-origin:center}
+  @keyframes bossAura{0%,100%{opacity:.35;transform:translate(-50%,-50%) scale(.92)}50%{opacity:.7;transform:translate(-50%,-50%) scale(1.08)}}
+  @keyframes bossDmgFloat{0%{opacity:0;transform:translate(-50%,0) scale(.6)}18%{opacity:1;transform:translate(-50%,-14px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-78px) scale(.9)}}
+  @keyframes bossBarFlash{0%{opacity:.85}100%{opacity:0}}
+  @keyframes bossBtnPulse{0%,100%{box-shadow:0 8px 22px rgba(212,160,23,.45),0 0 0 0 rgba(212,160,23,.5)}50%{box-shadow:0 8px 26px rgba(212,160,23,.6),0 0 0 10px rgba(212,160,23,0)}}
+  @keyframes bossEyeGlow{0%,100%{opacity:.85}50%{opacity:1}}
+  .boss-aura{animation:bossAura 2.8s ease-in-out infinite}
+  .boss-dmg{animation:bossDmgFloat .7s ease-out forwards;will-change:transform,opacity}
+  .boss-bar-flash{animation:bossBarFlash .55s ease-out forwards}
+  .boss-btn-primary{animation:bossBtnPulse 2.2s ease-in-out infinite}
+  .boss-btn-press{transform:scale(.95)!important;filter:brightness(1.08)}
+  /* ── Animations BRIEF_BOSS_COMMUNAUTAIRE.md (copiées tel quel —
+        adaptées de index.css vers globalStyles.js, CLAUDE.md #8) ── */
+  /* bossAttack : recoil d'impact SANS flash (pas de filter:brightness).
+     Le boss encaisse — squash/stretch + petit recul — puis revient.
+     En !important il coupe le balancement le temps de réagir. */
+  @keyframes bossAttack{0%{transform:translate(0,0) scale(1) rotate(0deg)}22%{transform:translate(0,4px) scale(1.1,0.9) rotate(0deg)}48%{transform:translate(-6px,0) scale(0.95,1.05) rotate(-3deg)}72%{transform:translate(4px,0) scale(1.02,0.98) rotate(2deg)}100%{transform:translate(0,0) scale(1) rotate(0deg)}}
+  .boss-attacked{animation:bossAttack 0.42s ease-out !important}
+  @keyframes bossAuraPulse{0%,100%{opacity:0.4;transform:translate(-50%, -50%) scale(1)}50%{opacity:0.8;transform:translate(-50%, -50%) scale(1.1)}}
+  @keyframes bossFlash{0%{opacity:0}20%{opacity:0.4}100%{opacity:0}}
+  @keyframes bossCrumbFly{0%{opacity:1;transform:translate(0, 0) rotate(0deg)}100%{opacity:0;transform:var(--end-transform)}}
+  @keyframes bossDamageFloat{0%{opacity:0;transform:translate(-50%, 0) scale(0.5)}20%{opacity:1;transform:translate(-50%, -10px) scale(1.4)}100%{opacity:0;transform:translate(-50%, -90px) scale(1)}}
+  @keyframes bossHpShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  @keyframes bossActivitySlide{from{transform:translateX(-10px);opacity:0}to{transform:translateX(0);opacity:1}}
+  /* Impact sur la barre à chaque coup (visible même si la largeur
+     bouge à peine — 25 PV / 60000). Café-only, aucun rouge. */
+  @keyframes bossBarHit{0%{opacity:0}30%{opacity:.85}100%{opacity:0}}
+  .boss-bar-hit{animation:bossBarHit .4s ease-out forwards}
+  /* Frappe ultime (1 ☕) : le gâteau s'effondre, reste au sol (état
+     statique 5s tenu par le state), puis se relève. Chaque anim ≤700ms
+     (esprit CLAUDE.md #8 : pas d'anim longue, le "à terre" est du state). */
+  /* Coup critique : pivot au CENTRE + scale .85 → le gâteau couché
+     reste entièrement visible dans la scène (plus de débordement /
+     rognage par le cadre). */
+  /* Pose couchée commune (bas de la scène : il est par terre) — fin
+     de chute == état KO == début de relevée → aucun saut. KO = STATIQUE
+     (il ne bouge plus pendant les 5 s, il est sonné). */
+  @keyframes bossFall{0%{transform:translateY(0) rotate(0) scale(1)}55%{transform:translateY(74px) rotate(88deg) scale(.78)}74%{transform:translateY(66px) rotate(78deg) scale(.81)}100%{transform:translateY(70px) rotate(82deg) scale(.8)}}
+  @keyframes bossGetUp{0%{transform:translateY(70px) rotate(82deg) scale(.8)}55%{transform:translateY(-4px) rotate(-8deg) scale(1.02)}100%{transform:translateY(0) rotate(0) scale(1)}}
+  .boss-fall{animation:bossFall .6s cubic-bezier(.45,0,.55,1) forwards;transform-origin:center}
+  /* Boost (100 🍪) : le gâteau se fige (plus de balancement) et vibre
+     sur place — buzz rapide, court (~0.9s côté JS). */
+  @keyframes bossStun{0%{transform:translate(0,0)}15%{transform:translate(-2px,1px)}30%{transform:translate(2px,-1px)}45%{transform:translate(-2px,-1px)}60%{transform:translate(2px,1px)}75%{transform:translate(-1px,1px)}100%{transform:translate(0,0)}}
+  /* "zzz" quand le gâteau dort (KO) */
+  @keyframes bossZzz{0%{opacity:0;transform:translate(0,0) scale(.5)}25%{opacity:1}100%{opacity:0;transform:translate(14px,-38px) scale(1.15)}}
+  .boss-zzz{animation:bossZzz 1.8s ease-out infinite}
+  /* Bannière boss accueil : pulse d'attention + press au clic */
+  @keyframes bossBannerAttn{0%,100%{transform:scale(1);box-shadow:0 6px 18px rgba(122,74,40,.4)}50%{transform:scale(1.025);box-shadow:0 10px 26px rgba(212,160,23,.55)}}
+  .boss-banner{animation:bossBannerAttn 1.6s ease-in-out infinite;transition:transform .12s ease}
+  .boss-banner:active{transform:scale(.95)!important}
+  /* Ouverture façon pop-up de l'overlay boss (au clic bannière) —
+     garde translateX(-50%) pour rester centré pendant le zoom. */
+  @keyframes bossPopIn{0%{opacity:.4;transform:translateX(-50%) translateY(100%)}100%{opacity:1;transform:translateX(-50%) translateY(0)}}
+  .boss-pop{animation:bossPopIn .38s cubic-bezier(.22,1,.36,1) both}
+  .boss-down{transform:translateY(70px) rotate(82deg) scale(.8);transform-origin:center}
+  .boss-getup{animation:bossGetUp .55s ease-out forwards;transform-origin:center}
+  /* Halo "tape le gâteau" quand une attaque est dispo */
+  @keyframes bossReadyRing{0%{transform:translate(-50%,-50%) scale(.85);opacity:.55}70%{opacity:.12}100%{transform:translate(-50%,-50%) scale(1.25);opacity:0}}
+  .boss-ready-ring{animation:bossReadyRing 1.6s ease-out infinite}
+  @keyframes bossHintBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  .boss-hint-bob{animation:bossHintBob 1.4s ease-in-out infinite}
+
   /* ── Animations Boîte Mystère (BRIEF_COFFRE) ─────────── */
   @keyframes boxIntro{0%{transform:scale(.6) translateY(20px);opacity:0;filter:drop-shadow(0 0 0 transparent)}60%{transform:scale(1.1) translateY(-4px);opacity:1}100%{transform:scale(1) translateY(0);filter:drop-shadow(0 8px 20px rgba(212,160,23,.4))}}
   @keyframes boxShake{0%,100%{transform:translateX(0) rotate(0)}10%{transform:translateX(-4px) rotate(-2deg)}20%{transform:translateX(5px) rotate(3deg)}30%{transform:translateX(-6px) rotate(-3deg)}40%{transform:translateX(6px) rotate(3deg)}50%{transform:translateX(-7px) rotate(-4deg)}60%{transform:translateX(7px) rotate(4deg)}70%{transform:translateX(-5px) rotate(-3deg)}80%{transform:translateX(5px) rotate(3deg)}90%{transform:translateX(-3px) rotate(-1deg)}}

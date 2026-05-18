@@ -213,6 +213,15 @@ export const REWARDS = [
   { id:'badge_architecte', name:'Badge Architecte', desc:'Édition limitée — 15 étages empilés',    cost:0, type:'Badge', emoji:'🏗️', levelRequired:4, limited:true, event:'event_pyramid_15' },
   { id:'badge_tirelire',   name:'Badge Tirelire',   desc:'Édition limitée — Triple Slot',          cost:0, type:'Badge', emoji:'💰', levelRequired:4, limited:true, event:'event_slot_three' },
   { id:'badge_aigle',      name:'Badge Aigle',      desc:'Édition limitée — Réflexes 20+',         cost:0, type:'Badge', emoji:'🦅', levelRequired:4, limited:true, event:'event_reflex_pro' },
+  /* Badge communautaire — gagné en participant à une victoire contre
+     Le Gâteau Géant (boss commu). `limited:true` → hors boutique,
+     visible en collection une fois débloqué. Octroyé via applyPatchOnce
+     (cf. claim boss dans App.jsx), pas via le système d'events local. */
+  { id:'badge_fournee',    name:'Sauveur de Fournée', desc:'Édition limitée — Le Gâteau Mangeur de Cookies vaincu ensemble', cost:0, type:'Badge', emoji:'🥐', levelRequired:3, limited:true, community:'boss' },
+  /* Skin EXCLUSIF — récompense headline du boss communautaire.
+     applyAs:'skin' (data/themes.js COOKIE_SKINS.skin_mangeur),
+     limited:true → hors boutique, débloqué via le claim boss. */
+  { id:'skin_mangeur',     applyAs:'skin', name:'Cookie Mangeur', desc:'Édition limitée — récompense du Gâteau Mangeur de Cookies', cost:0, type:'Skin', emoji:'🍪', levelRequired:3, limited:true, community:'boss' },
   // AVATARS premium (8 — PHASE 4)
   { id:'avatar_chef',    name:'Avatar Chef étoilé',     desc:'Toque, moustache et étoile',     cost:200,  type:'Avatar', emoji:'👨‍🍳', levelRequired:2 },
   { id:'avatar_robot',   name:'Avatar Robot Barista',   desc:'Robot mignon avec engrenages',   cost:300,  type:'Avatar', emoji:'🤖',   levelRequired:3 },

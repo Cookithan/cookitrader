@@ -1478,3 +1478,261 @@ export function subscribeSystemStatus(onChange){
     return () => {};
   }
 }
+
+/* ════════════════════════════════════════════════════
+   BOSS COMMUNAUTAIRE — Le Gâteau Géant
+   ────────────────────────────────────────────────────
+   Boss à PV partagés déclenché tous les 100 000 🍪 cumulés
+   communauté (cf. getCommunityCookieTotal). Toutes les écritures
+   passent par 2 RPC SECURITY DEFINER (cf. MIGRATION_boss_communautaire.sql)
+   qui imposent PV/durée/cooldown/cap côté serveur — la clé anon
+   publique ne peut donc pas tricher l'état partagé.
+
+   Forme normalisée d'un event (renvoyée par getActiveBossEvent /
+   createBossEvent / attackBoss / subscribeBossEvent) :
+     { milestone, bossHp, bossMaxHp, status, endsAt(ms),
+       startedAt(ms), myDamage? }
+   status ∈ 'active' | 'defeated' | 'failed'
+
+   Tout est best-effort : null / no-op en mode dégradé
+   (Supabase off) — le boss disparaît proprement de l'UI.
+═══════════════════════════════════════════════════════ */
+
+function normalizeBossRow(row){
+  if(!row) return null;
+  return {
+    milestone:  Number(row.milestone) || 0,
+    bossHp:     Number(row.boss_hp) || 0,
+    bossMaxHp:  Number(row.boss_max_hp) || 0,
+    status:     row.status || 'active',
+    startedAt:  row.started_at ? new Date(row.started_at).getTime() : 0,
+    startsAt:   row.starts_at  ? new Date(row.starts_at).getTime()  : 0,
+    endsAt:     row.ends_at    ? new Date(row.ends_at).getTime()    : 0,
+    resolvedAt: row.resolved_at ? new Date(row.resolved_at).getTime() : 0,
+  };
+}
+
+/* Le boss "courant" = la ligne au plus grand milestone. Peut être
+   active, defeated ou failed — le client décide quoi en afficher
+   (overlay si active, popup récompense si defeated & contribué). */
+export async function getActiveBossEvent(){
+  if(!isSupabaseEnabled()) return null;
+  try{
+    const { data } = await supabase
+      .from('community_boss_events')
+      .select('*')
+      .order('milestone', { ascending:false })
+      .limit(1)
+      .maybeSingle();
+    return normalizeBossRow(data);
+  }catch{ return null; }
+}
+
+/* Crée (ou récupère si déjà créé par un autre client) le boss du
+   palier `milestone`. Atomique côté serveur (ON CONFLICT DO NOTHING).
+   `milestone` = multiple de 100000 strictement positif. */
+export async function createBossEvent(milestone){
+  if(!isSupabaseEnabled() || !milestone) return null;
+  try{
+    const { data, error } = await supabase
+      .rpc('create_boss_event', { p_milestone: milestone });
+    if(error){
+      console.warn('[boss] createBossEvent error:', error.message);
+      return null;
+    }
+    /* rpc renvoie la row (objet) — Supabase peut l'emballer en array */
+    return normalizeBossRow(Array.isArray(data) ? data[0] : data);
+  }catch{ return null; }
+}
+
+/* Applique des dégâts. Le serveur clamp/cooldown/cap : `applied`
+   peut être 0 (cooldown actif ou cap atteint) sans que ce soit une
+   erreur. Renvoie l'état courant + myDamage + applied, ou null si
+   réseau KO (le caller garde alors l'état Realtime précédent). */
+export async function attackBoss(milestone, userCode, dmg, kind = 'tap'){
+  if(!isSupabaseEnabled() || !milestone || !userCode) return null;
+  try{
+    const p_dmg = Math.max(0, Math.floor(dmg) || 0);
+    let { data, error } = await supabase.rpc('attack_boss', {
+      p_milestone: milestone, p_user_code: userCode, p_dmg, p_kind: kind,
+    });
+    if(error){
+      /* Fonction 4-args (p_kind) pas encore déployée → on retombe sur
+         l'ancienne signature 3-args pour ne pas casser les attaques. */
+      const retry = await supabase.rpc('attack_boss', {
+        p_milestone: milestone, p_user_code: userCode, p_dmg,
+      });
+      data = retry.data; error = retry.error;
+    }
+    if(error){
+      console.warn('[boss] attackBoss error:', error.message);
+      return null;
+    }
+    if(!data) return null;
+    return {
+      milestone:  Number(data.milestone) || milestone,
+      bossHp:     Number(data.boss_hp) || 0,
+      bossMaxHp:  Number(data.boss_max_hp) || 0,
+      status:     data.status || 'active',
+      myDamage:   Number(data.my_damage) || 0,
+      applied:    Number(data.applied) || 0,
+    };
+  }catch{ return null; }
+}
+
+/* Mes dégâts cumulés sur un palier (pour savoir si j'ai droit à la
+   récompense après une victoire à laquelle j'ai participé même hors
+   ligne au moment de la résolution). 0 si rien / Supabase off. */
+export async function getMyBossDamage(milestone, userCode){
+  if(!isSupabaseEnabled() || !milestone || !userCode) return 0;
+  try{
+    const { data } = await supabase
+      .from('community_boss_contributors')
+      .select('damage')
+      .eq('milestone', milestone)
+      .eq('user_code', userCode)
+      .maybeSingle();
+    return Number(data?.damage) || 0;
+  }catch{ return 0; }
+}
+
+/* Rang 0-based du joueur dans le classement des dégâts d'un boss
+   (0 = 1er). null si pas contributeur / Supabase off. Sert au
+   bonus Top 3 à la résolution. */
+export async function getBossRank(milestone, userCode){
+  if(!isSupabaseEnabled() || !milestone || !userCode) return null;
+  try{
+    const mine = await getMyBossDamage(milestone, userCode);
+    if(mine <= 0) return null;
+    const { count, error } = await supabase
+      .from('community_boss_contributors')
+      .select('*', { count:'exact', head:true })
+      .eq('milestone', milestone)
+      .gt('damage', mine);
+    if(error) return null;
+    return (count ?? 0);          // 0 = personne au-dessus = 1er
+  }catch{ return null; }
+}
+
+/* Nombre de contributeurs distincts (affiché dans l'overlay :
+   "X baristas à la rescousse"). Best-effort, null si indispo. */
+export async function getBossContributorCount(milestone){
+  if(!isSupabaseEnabled() || !milestone) return null;
+  try{
+    const { count, error } = await supabase
+      .from('community_boss_contributors')
+      .select('*', { count:'exact', head:true })
+      .eq('milestone', milestone);
+    if(error) return null;
+    return count ?? 0;
+  }catch{ return null; }
+}
+
+/* Realtime sur community_boss_events → barre de PV live pour tous
+   les clients ouverts. onChange(normalizedEvent) à chaque UPDATE/
+   INSERT. Retourne une fonction unsubscribe. Noop si Supabase off.
+   Mirroir exact de subscribeSystemStatus. */
+export function subscribeBossEvent(onChange){
+  if(!isSupabaseEnabled()) return () => {};
+  try{
+    const channel = supabase
+      .channel('community_boss_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'community_boss_events' },
+        (payload) => {
+          const row = payload.new || payload.old;
+          const n = normalizeBossRow(row);
+          if(n) onChange(n);
+        }
+      )
+      .subscribe();
+    return () => {
+      try{ supabase.removeChannel(channel); }catch{}
+    };
+  }catch{
+    return () => {};
+  }
+}
+
+/* Activité d'un boss : podium (top dégâts) + activité récente
+   (derniers à avoir tapé). Jointure noms/avatars via la table
+   users (lecture publique, comme getFriends). Best-effort :
+   { top:[], recent:[] } si Supabase off / erreur.
+   Forme d'une entrée : { userCode, name, avatar, damage, lastAttackAt(ms) } */
+export async function getBossActivity(milestone){
+  if(!isSupabaseEnabled() || !milestone) return { top:[], recent:[] };
+  try{
+    /* top : cumul par joueur (podium). select('*') tolère l'absence
+       de last_kind tant que la migration n'est pas passée. */
+    const topR = await supabase.from('community_boss_contributors')
+      .select('*').eq('milestone', milestone)
+      .order('damage', { ascending:false }).limit(10);
+    const topRows = topR.data || [];
+
+    /* recent : VRAI journal (1 ligne par coup) si la table existe.
+       - table absente (migration pas passée) → fallback contributors
+       - erreur PASSAGÈRE (réseau) → recent = null → le hook GARDE
+         l'état précédent (sinon clignotement 3↔1). */
+    let recentRaw = [];
+    let recentNull = false;          // true → garder l'ancien recent
+    let recentFromLog = false;
+    const logR = await supabase.from('community_boss_attacks')
+      .select('user_code, kind, created_at').eq('milestone', milestone)
+      .order('created_at', { ascending:false }).limit(8);
+    if(!logR.error && Array.isArray(logR.data)){
+      recentRaw = logR.data.map(r => ({
+        user_code: r.user_code, kind: r.kind || 'tap',
+        at: r.created_at ? new Date(r.created_at).getTime() : 0,
+      }));
+      recentFromLog = true;
+    } else {
+      const code = logR.error?.code || '';
+      const msg  = String(logR.error?.message || '').toLowerCase();
+      const tableMissing = code === '42P01'
+        || msg.includes('does not exist') || msg.includes('schema cache');
+      if(tableMissing){
+        const fb = await supabase.from('community_boss_contributors')
+          .select('*').eq('milestone', milestone)
+          .order('last_attack_at', { ascending:false }).limit(8);
+        recentRaw = (fb.data || []).map(r => ({
+          user_code: r.user_code, kind: r.last_kind || 'tap',
+          at: r.last_attack_at ? new Date(r.last_attack_at).getTime() : 0,
+        }));
+      } else {
+        recentNull = true;           // transitoire → ne pas downgrader
+      }
+    }
+
+    const codes = [...new Set([
+      ...topRows.map(r => r.user_code),
+      ...recentRaw.map(r => r.user_code),
+    ])];
+    const nameMap = {};
+    if(codes.length){
+      const { data: users } = await supabase
+        .from('users')
+        .select('user_code, user_name, user_avatar')
+        .in('user_code', codes);
+      (users || []).forEach(u => { nameMap[u.user_code] = u; });
+    }
+    const nm = (code) => ({
+      name:   nameMap[code]?.user_name || 'Barista',
+      avatar: nameMap[code]?.user_avatar ?? 0,
+    });
+    const top = topRows.map(r => ({
+      userCode: r.user_code, ...nm(r.user_code),
+      damage: Number(r.damage) || 0,
+      kind: r.last_kind || 'tap',
+      lastAttackAt: r.last_attack_at ? new Date(r.last_attack_at).getTime() : 0,
+    }));
+    const recent = recentNull ? null : recentRaw.map((r, i) => ({
+      userCode: r.user_code, ...nm(r.user_code),
+      kind: r.kind, lastAttackAt: r.at,
+      /* clé stable même si plusieurs coups au même ms */
+      _k: recentFromLog ? `${r.user_code}-${r.at}-${i}` : `${r.user_code}-${r.at}`,
+    }));
+    /* top null si erreur transitoire → le hook garde l'ancien */
+    return { top: topR.error ? null : top, recent };
+  }catch{ return { top:null, recent:null }; }
+}

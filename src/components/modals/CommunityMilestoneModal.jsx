@@ -138,19 +138,25 @@ export function CommunityMilestoneModal({ threshold, cookieReward, cafeReward, o
             display: 'flex', justifyContent: 'center', gap: 18,
             alignItems: 'center',
           }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#FFE066' }}>
-                +{cookieReward}
+            {cookieReward > 0 && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 900, color: '#FFE066' }}>
+                  +{cookieReward}
+                </div>
+                <div style={{ fontSize: 16 }}>🍪</div>
               </div>
-              <div style={{ fontSize: 16 }}>🍪</div>
-            </div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,.5)', fontWeight: 700 }}>+</div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 24, fontWeight: 900, color: '#FFE066' }}>
-                +{cafeReward}
+            )}
+            {cookieReward > 0 && cafeReward > 0 && (
+              <div style={{ fontSize: 14, color: 'rgba(255,255,255,.5)', fontWeight: 700 }}>+</div>
+            )}
+            {cafeReward > 0 && (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 900, color: '#FFE066' }}>
+                  +{cafeReward}
+                </div>
+                <div style={{ fontSize: 16 }}>☕</div>
               </div>
-              <div style={{ fontSize: 16 }}>☕</div>
-            </div>
+            )}
           </div>
         </div>
 

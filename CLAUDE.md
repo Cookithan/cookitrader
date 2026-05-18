@@ -64,9 +64,13 @@ Chaque fichier a un bandeau d'en-tête `══════` qui décrit son rôl
 
 ## Design system
 
-Toutes les conventions visuelles (palette café-only, contraintes de contraste, format des thèmes, invariants `GOLD`/`ESPRESSO`/cookie central) et les briefs design en cours vivent dans **`DESIGN.md`** à la racine. Ce fichier est partagé avec **Claude Design** (workflow externe) — c'est la source de vérité pour tout changement de couleur, thème ou refonte visuelle.
+> `DESIGN.md` a été retiré en fin de cycle v1.22.0 (le workflow externe Claude Design n'est plus utilisé). Les conventions visuelles sont désormais **uniquement** celles décrites ici (section *Conventions de code* + glossaire).
 
-Avant toute modification visuelle (palette, thème, ajout d'écran), lis `DESIGN.md`. Pour un nouveau cycle design, on met à jour la section **§3 Demande en cours** ; le reste est stable.
+Conventions visuelles non négociables :
+- **Palette café-only** : aucun rouge ni vert dans l'UI, même pour succès/erreur. Pertes/échecs = tons sombres (espresso/moka) ; gains/succès = tons clairs (caramel/miel/or).
+- Invariants `GOLD` / `ESPRESSO` (data/themes.js) et thèmes au format objet `C` (light/dark) avec clés `bg/card/card2/text/muted/border`.
+- Animations ≤ 700 ms, keyframes **toujours** dans `styles/globalStyles.js`.
+- Mobile-first (max 430px, tactile).
 
 ---
 

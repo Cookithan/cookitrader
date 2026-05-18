@@ -53,6 +53,10 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   const { t } = useTranslation();
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
+  /* Skin exclusif "Cookie Mangeur" → effet de clic spécifique :
+     une morsure ("chomp") plus marquée que le press standard. */
+  const isMangeur = activeSkin === 'skin_mangeur';
+  const pressTf = isMangeur ? 'scale(.78) rotate(-7deg)' : 'scale(.88) rotate(-3deg)';
 
   const [mode,          setMode]          = useState('normal');
   const modeCfg = MODES[mode] || MODES.normal;
@@ -541,8 +545,8 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
             top:  phase === 'playing' && modeCfg.moves ? `${cookiePos.y}%` : undefined,
             left: phase === 'playing' && modeCfg.moves ? `${cookiePos.x}%` : undefined,
             transform: phase === 'playing' && modeCfg.moves
-              ? `translate(-50%, -50%) ${pressed ? 'scale(.88) rotate(-3deg)' : 'scale(1)'}`
-              : (pressed ? 'scale(.88) rotate(-3deg)' : 'scale(1)'),
+              ? `translate(-50%, -50%) ${pressed ? pressTf : 'scale(1)'}`
+              : (pressed ? pressTf : 'scale(1)'),
             width: modeCfg.cookieSize || (modeCfg.moves ? '55%' : '88%'),
             height: modeCfg.cookieSize || (modeCfg.moves ? '55%' : '88%'),
             zIndex:2,
