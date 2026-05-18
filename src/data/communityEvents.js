@@ -104,6 +104,13 @@ export const FAIL_PENALTY_COOKIES = 1000;
 export const bossFailPatchKey = (milestone, startedAt = 0) =>
   `boss_failed_${milestone}_${Math.floor((Number(startedAt) || 0) / 1000)}_v1`;
 
+/* Récompense Top 1 du classement des coups : débloque la musique
+   "boss" en permanence (id MUSICS = 'boss' → unlocked 'music_boss').
+   Octroyée à la résolution (vaincu OU échoué) au plus gros tapeur. */
+export const REWARD_MUSIC_ID = 'music_boss';
+export const bossMusicPatchKey = (milestone, startedAt = 0) =>
+  `boss_top1music_${milestone}_${Math.floor((Number(startedAt) || 0) / 1000)}_v1`;
+
 /* Format compact d'un temps restant : "Xh", "Xh YYmin", "YYmin",
    "<1min". Stable pour les bannières. */
 export function formatBossTimeLeft(ms){

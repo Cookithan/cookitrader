@@ -83,6 +83,11 @@ export const MUSICS = {
   empereur: { id:'empereur', name:'Beat de l\'Empereur',emoji:'👑', file:'/sounds/music-empereur.mp3',         cost:1500, currency:'cookies' },
   veillee:  { id:'veillee',  name:'Veillée Lofi',       emoji:'🌙', file:'/sounds/music-veillee.mp3',          cost:2500, currency:'cookies' },
   cosmique: { id:'cosmique', name:'Nuit Cosmique',      emoji:'🌌', file:'/sounds/music-nuit-cosmique.mp3',    cost:3000, currency:'cookies' },
+  /* Musique du boss communautaire. Ni free ni cost → NON achetable
+     en boutique : débloquée uniquement pour le Top 1 du classement
+     des coups (unlocked contient 'music_boss'). Déposer le fichier
+     CC0 dans public/sounds/music-boss.mp3 (silencieux si absent). */
+  boss:     { id:'boss',     name:'Thème du Boss',      emoji:'👹', file:'/sounds/music-boss.mp3' },
 };
 
 /* Cache des Audio objects pour éviter de recharger un mp3 à chaque play
@@ -310,7 +315,7 @@ export function stopSoundLoop(name){
    Utilise UNE seule instance Audio réutilisée (change .src) — sinon
    le pause+null de l'ancienne Audio + new Audio() peut laisser les
    2 streams se chevaucher pendant un tick (bug observé). */
-export function playMusic(musicId){
+export function playMusic(musicId, { persist = true } = {}){
   const s = getSettings();
   if(!s.musicEnabled) return;
 
@@ -333,10 +338,32 @@ export function playMusic(musicId){
     musicAudio.load();
     musicAudio.play().catch(() => {});
     currentMusicId = musicId;
-    /* Persiste le choix pour que la prochaine session le restaure */
-    s.currentMusicId = musicId;
-    saveSettings(s);
+    /* Persiste le choix pour que la prochaine session le restaure.
+       persist=false pour les musiques TEMPORAIRES (boss) : on ne
+       veut pas écraser la sélection du joueur. */
+    if(persist){
+      s.currentMusicId = musicId;
+      saveSettings(s);
+    }
   }catch{ /* autoplay etc. */ }
+}
+
+/* ── MUSIQUE BOSS — temporaire, scoppée à l'onglet boss ──────
+   playBossMusic() : mémorise la musique en cours puis joue 'boss'
+   SANS persister (la sélection du joueur reste intacte).
+   endBossMusic()  : rejoue la musique d'avant (ou stop). */
+let preBossMusicId = null;
+export function playBossMusic(){
+  if(currentMusicId === 'boss') return;
+  preBossMusicId = getCurrentMusicId();      // sélection persistée du joueur
+  playMusic('boss', { persist:false });
+}
+export function endBossMusic(){
+  const back = preBossMusicId || getSettings().currentMusicId;
+  preBossMusicId = null;
+  if(currentMusicId !== 'boss') return;      // pas en mode boss → rien à faire
+  if(back && MUSICS[back]) playMusic(back);   // restaure le menu
+  else stopMusic();
 }
 
 export function stopMusic(){

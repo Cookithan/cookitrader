@@ -47,8 +47,8 @@ import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { BossEventOverlay } from "./components/overlays/BossEventOverlay.jsx";
 import { useCommunityBoss } from "./hooks/useCommunityBoss.js";
-import { getMyBossDamage } from "./lib/supabaseSync.js";
-import { BOSS_LEVEL_MIN, BOOST_COST_COOKIES, SUPER_COST_CF, bossRewardFor, bossClaimPatchKey, bossFailPatchKey, FAIL_PENALTY_COOKIES, fourneeNumber, formatBossTimeLeft } from "./data/communityEvents.js";
+import { getMyBossDamage, getBossRank } from "./lib/supabaseSync.js";
+import { BOSS_LEVEL_MIN, BOOST_COST_COOKIES, SUPER_COST_CF, bossRewardFor, bossClaimPatchKey, bossFailPatchKey, FAIL_PENALTY_COOKIES, REWARD_MUSIC_ID, bossMusicPatchKey, fourneeNumber, formatBossTimeLeft } from "./data/communityEvents.js";
 import { BoutiqueTab } from "./components/tabs/BoutiqueTab.jsx";
 import { ClassementTab } from "./components/tabs/ClassementTab.jsx";
 import { MarketTab } from "./components/tabs/MarketTab.jsx";
@@ -62,7 +62,7 @@ import { getReceivedFriendRequests, getNewlyAcceptedFriends, getFriends } from "
 import { UserProfileModal } from "./components/modals/UserProfileModal.jsx";
 import { SecretBadgeUnlockModal } from "./components/modals/SecretBadgeUnlockModal.jsx";
 import { SECRET_BADGES, SECRET_BADGE_BONUS } from "./data/secretBadges.js";
-import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound } from "./lib/audio.js";
+import { setupAudioOnFirstInteraction, setupVisibilityHandler, playSound, playBossMusic, endBossMusic } from "./lib/audio.js";
 import { haptic } from "./lib/haptic.js";
 import { MAINTENANCE_MODE, isBypassedFromMaintenance } from "./data/maintenance.js";
 import MaintenanceScreen from "./components/overlays/MaintenanceScreen.jsx";
@@ -562,6 +562,8 @@ export default function CookiMiner() {
   /* Boss "en cours" (annonce ou combat, statut serveur 'active') →
      on suspend les événements du jour tant qu'il n'est pas résolu. */
   const bossOngoing = !!communityBoss && communityBoss.status === 'active';
+  /* Overlay boss ouvert (= "on est dans l'onglet boss") → musique boss. */
+  const bossOverlayOpen = !!communityBoss && (showBoss || !!bossReward || !!bossPenalty);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile,  setShowProfile]  = useState(false);
   const [showLevels,   setShowLevels]   = useState(false);
@@ -2148,6 +2150,33 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCode, pullDone]);
 
+  /* ── Palier communautaire 700 000 🍪 : pop-up + cadeau 1 ☕.
+        Cadeau de PALIER (≠ récompense de combat du boss qui, elle,
+        ne donne jamais de CF). 1 fois par compte, idempotent
+        cross-device via applyPatchOnce. */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    let cancelled = false;
+    (async () => {
+      const total = await getCommunityCookieTotal();
+      if(cancelled) return;
+      const THRESHOLD = 700_000;
+      if(total < THRESHOLD) return;
+      applyPatchOnce({
+        userCode,
+        lsKey:    'cookiminer:communityMilestone_700k_v1',
+        patchKey: 'communityMilestone_700k_v1',
+        isCancelled: () => cancelled,
+        applyFn: () => {
+          setCafes(c => (c || 0) + 1);
+          setMilestoneReward({ threshold: THRESHOLD, cookieReward: 0, cafeReward: 1 });
+        },
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCode, pullDone]);
+
   /* ── Boss communautaire : Le Gâteau Géant ────────────────────────
      Crédit de la récompense (séparation des responsabilités : le hook
      useCommunityBoss — instancié plus haut — gère détection/création/
@@ -2224,6 +2253,49 @@ export default function CookiMiner() {
             'system',
             `☠️ Le Gâteau Mangeur de Cookies a gagné…`,
             `La communauté n'a pas terrassé le boss à temps. Pour avoir participé, tu perds ${FAIL_PENALTY_COOKIES} 🍪${short > 0 ? ` (dont ${short} pris sur ton total gagné, solde insuffisant)` : ''}. Personne ne reçoit le skin cette fois.`,
+            null,
+          ).catch(()=>{});
+        },
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [communityBoss, userCode, pullDone]);
+
+  /* ── Musique du boss : jouée UNIQUEMENT tant que l'overlay boss
+        est ouvert. À la fermeture, restaure la musique du menu
+        d'avant (sélection du joueur, non écrasée). */
+  useEffect(() => {
+    if(!bossOverlayOpen) return;
+    playBossMusic();
+    return () => { endBossMusic(); };
+  }, [bossOverlayOpen]);
+
+  /* ── Top 1 du classement des coups : débloque la musique boss en
+        permanence (à la résolution, vaincu OU échoué). 1×/instance. */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    if(!communityBoss || (communityBoss.status !== 'defeated' && communityBoss.status !== 'failed')) return;
+    const milestone = communityBoss.milestone;
+    const musicKey  = bossMusicPatchKey(milestone, communityBoss.startedAt);
+    let cancelled = false;
+    (async () => {
+      const rank0 = await getBossRank(milestone, userCode);
+      if(cancelled || rank0 !== 0) return;          // seulement le Top 1
+      applyPatchOnce({
+        userCode,
+        lsKey:    'cookiminer:' + musicKey,
+        patchKey: musicKey,
+        isCancelled: () => cancelled,
+        applyFn: () => {
+          setUnlocked(arr => Array.isArray(arr) && !arr.includes(REWARD_MUSIC_ID)
+            ? [...arr, REWARD_MUSIC_ID] : arr);
+          showToast('🎵 Top 1 du boss — musique débloquée !');
+          createInboxMessage(
+            userCode,
+            'system',
+            `🎵 Top 1 du Gâteau Mangeur de Cookies !`,
+            `Tu es le plus gros tapeur de ce boss : la musique exclusive « Thème du Boss » est débloquée en permanence. Active-la dans Paramètres → Audio.`,
             null,
           ).catch(()=>{});
         },
