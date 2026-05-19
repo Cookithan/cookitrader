@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CookiMiner</string>
+    <string name="title_activity_main">CookiMiner</string>
+    <string name="package_name">com.cookithan.cookiminer</string>
+    <string name="custom_url_scheme">com.cookithan.cookiminer</string>
+</resources>

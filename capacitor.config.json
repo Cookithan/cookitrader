@@ -1,0 +1,9 @@
+{
+  "appId": "com.cookithan.cookiminer",
+  "appName": "CookiMiner",
+  "webDir": "dist",
+  "backgroundColor": "#3D2010",
+  "android": {
+    "backgroundColor": "#3D2010"
+  }
+}

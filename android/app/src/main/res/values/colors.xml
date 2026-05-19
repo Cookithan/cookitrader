@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette café-only (cf. CLAUDE.md) — aucun rouge/vert. -->
+    <color name="colorPrimary">#C17F3C</color>      <!-- caramel (theme_color manifest) -->
+    <color name="colorPrimaryDark">#3D2010</color>  <!-- espresso (barre de statut) -->
+    <color name="colorAccent">#D4A017</color>       <!-- or (accents) -->
+</resources>

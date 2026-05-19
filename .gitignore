@@ -15,6 +15,10 @@ dist-ssr
 # Archives locales (assets non versionnés)
 *.zip
 
+# Artefacts de build Android (distribués via GitHub Release, jamais dans git)
+*.apk
+*.aab
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -26,4 +30,8 @@ dist-ssr
 *.sln
 *.sw?
 nouveau_sons/
+# PNG épars de travail ignorés par défaut...
 *.png
+# ...mais les assets versionnés (icônes PWA + icônes/splash Android) DOIVENT être suivis :
+!public/**/*.png
+!android/**/*.png
