@@ -33,6 +33,13 @@ export const MARKET_CONFIG = {
   IMPACT_PER_SHARE: 0.0003,       // +0.03 % par action — impact triplé pour rendre l'offre/demande visible (avant 0.0001 → prix scotché à 100 même avec 2000 actions écoulées). 30 actions/tx = 0.9 % impact (sensible). Range théorique 5-700 (toutes achetées / toutes vendues), bornée par PRICE_MIN/PRICE_MAX et la mean reversion.
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
+  /* Plafond doux : au-dessus de HIGH_PRICE_THRESHOLD, le prix est tiré
+     vers le bas de HIGH_PRICE_DECAY_PER_DAY par jour (proportionnel au
+     temps écoulé). Empêche le prix de rester durablement très haut, sans
+     réintroduire de mean reversion en dessous du seuil — le marché
+     flotte librement tant qu'il ne dépasse pas 170. */
+  HIGH_PRICE_THRESHOLD:     170,
+  HIGH_PRICE_DECAY_PER_DAY: 1,    // -1 / jour quand le prix dépasse le seuil
   MEAN_REVERSION_TARGET: 100,     // Prix cible (vestigial — reversion désactivée)
   MEAN_REVERSION_RATE: 0,         // DÉSACTIVÉ (demande user 14/05/2026) — le prix ne revient plus vers 100. Le marché flotte librement, contraint uniquement par PRICE_MIN / PRICE_MAX. Remettre 0.10 pour réactiver.
   MEAN_REVERSION_LOW: 30,         // (vestigial — non utilisé)
@@ -1037,6 +1044,18 @@ export async function maintenanceTick() {
   /* 1. Inflation par jour (proportionnelle au temps écoulé) */
   const daysSince = hoursSince / 24;
   newPrice = newPrice * (1 + MARKET_CONFIG.DAILY_INFLATION * daysSince);
+
+  /* 1b. Plafond doux : si le prix dépasse HIGH_PRICE_THRESHOLD, on le
+     tire vers le bas de HIGH_PRICE_DECAY_PER_DAY par jour (proportionnel
+     au temps écoulé). Le decay ne fait jamais passer SOUS le seuil — en
+     dessous de 170 le prix reste libre (les trades peuvent toujours l'y
+     emmener). */
+  if (newPrice > MARKET_CONFIG.HIGH_PRICE_THRESHOLD) {
+    newPrice = Math.max(
+      MARKET_CONFIG.HIGH_PRICE_THRESHOLD,
+      newPrice - MARKET_CONFIG.HIGH_PRICE_DECAY_PER_DAY * daysSince
+    );
+  }
 
   /* 2. Mean reversion vers TARGET (100) — DÉSACTIVÉE (rate=0).
      Le marché flotte librement, contraint uniquement par PRICE_MIN

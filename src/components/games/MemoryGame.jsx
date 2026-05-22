@@ -11,8 +11,8 @@ import { useTranslation } from "../../i18n/index.js";
    - Phases : idle → playing → done
    - 6 paires d'icônes : ☕ 🍪 🥐 🍫 🫖 🥛
    - Récompenses (selon nombre de coups) :
-       12 (parfait) → +50 + record
-       13-16        → +30
+       6 (parfait)  → +50   (chaque paire trouvée du 1er coup)
+       7-16         → +30
        17-20        → +15
        21+          → +5
    - Animations : flip 3D (rotateY 180), match → cardMatch (pulse doré
@@ -37,7 +37,10 @@ function shuffledDeck(){
 }
 
 function rewardFor(moves){
-  if(moves <= 12) return 50;
+  /* +50 réservé au jeu parfait : 6 coups pile (chaque paire trouvée du
+     1er coup, soit 12 cartes retournées sans aucune répétition). 6 est
+     le minimum absolu — impossible de faire moins avec 6 paires. */
+  if(moves <= 6)  return 50;
   if(moves <= 16) return 30;
   if(moves <= 20) return 15;
   return 5;
@@ -144,7 +147,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
   };
 
   const earnedFinal = phase === 'done' && matched.length === deck.length ? rewardFor(moves) + FULL_CLEAR_BONUS : 0;
-  const isPerfect   = phase === 'done' && moves === 12 && matched.length === deck.length;
+  const isPerfect   = phase === 'done' && moves === 6 && matched.length === deck.length;
   const completed   = phase === 'done' && matched.length === deck.length;
   const canPlay     = coins >= MEMORY_COST;
 
@@ -331,7 +334,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
 
       {/* Tip card */}
       <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
-        💡 <strong style={{ color:'#D4A017' }}>12 coups = +50 🍪</strong> · 13–16 = +30 · 17–20 = +15 · 21+ = +5
+        💡 <strong style={{ color:'#D4A017' }}>6 coups = +50 🍪</strong> · 7–16 = +30 · 17–20 = +15 · 21+ = +5
       </div>
     </div>
   );
