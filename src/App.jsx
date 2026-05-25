@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5 } from "lucide-react";
 
-import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
+import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
@@ -3018,7 +3018,9 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCode, pullDone]);
 
-  const checkinReward = DAILY_REWARDS[streak % 7];
+  /* Récompense du PROCHAIN check-in — objet {coins, cafes, weekIdx, dayIdx,
+     isJackpot, maxTier}. Cf. getCheckinReward dans data/constants.js. */
+  const checkinReward = getCheckinReward(streak);
   const resetProgress = () => {
     /* Supabase : supprime le profil online en arrière-plan pour qu'il
        disparaisse du classement et des amis qui m'avaient ajouté.
@@ -3094,7 +3096,11 @@ export default function CookiMiner() {
 
   const doCheckin    = ()=>{
     playSound('coin');
-    addCoins(checkinReward);
+    /* Verse cookies ET/OU cafés selon la grille (J7 et J14 sont des
+       jackpots CF purs — 0 🍪). Confirmé explicitement comme sources CF
+       validées : 2 ☕ au J7, 3 ☕ au J14. */
+    if(checkinReward.coins > 0) addCoins(checkinReward.coins);
+    if(checkinReward.cafes > 0) addCafes(checkinReward.cafes);
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 24*60*60*1000).toDateString();
     /* Streak save : si lastCheckin n'est NI hier NI null, l'user a raté
@@ -3445,7 +3451,7 @@ export default function CookiMiner() {
      - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
        le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: t('games_list.checkin_reward', { n: checkinReward }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: checkinReward.isJackpot ? t('games_list.checkin_reward_cf', { n: checkinReward.cafes }) : t('games_list.checkin_reward', { n: checkinReward.coins }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
     { id:'quiz',    Icon:Star,              title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
     { id:'spin',    Icon:CircleDot,         title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
     { id:'click',   Icon:MousePointerClick, title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
