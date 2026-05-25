@@ -13,14 +13,36 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.23.0',
-  releaseDate: '2026-05-19',
+  version: '1.24.0',
+  releaseDate: '2026-05-26',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.24.0',
+    date: '2026-05-26',
+    title: '⚡ Café Express + thèmes de mini-jeu',
+    title_en: '⚡ Café Express + game themes',
+    changes: [
+      "⚡ Nouveau mini-jeu Café Express : glisse ta tasse pour attraper les 🍪 et ☕, évite les 🧊 qui figent la tasse !",
+      "🎨 10 nouveaux thèmes pour personnaliser tes mini-jeux (Café Express, Flappy, Devine la commande, Memory) — disponibles en boutique et activables dans les Paramètres",
+      "🎁 Série du jour étoffée : 2 semaines progressives, jackpot 2 ☕ au J7 et 3 ☕ au J14, palier max maintenu après",
+      "🏆 Classement « Cette semaine » : seuls les joueurs ayant joué cette semaine y apparaissent (plus juste)",
+      "📚 Tutoriel guidé : plus aucune pop-up ne vient le masquer, et tu peux le refaire depuis les Paramètres",
+      "🛒 Boutique : filtres mieux organisés sur 2 lignes avec icônes",
+    ],
+    changes_en: [
+      "⚡ New mini-game Café Express: slide your cup to catch the 🍪 and ☕, avoid the 🧊 that freeze the cup!",
+      "🎨 10 new themes to customize your mini-games (Café Express, Flappy, Guess the order, Memory) — available in the shop and activable from Settings",
+      "🎁 Beefed-up daily streak: 2 progressive weeks, jackpot 2 ☕ on day 7 and 3 ☕ on day 14, max tier maintained after",
+      "🏆 'This week' leaderboard: only players who played this week show up (fairer)",
+      "📚 Guided tutorial: no more pop-ups blocking it, and you can replay it from Settings",
+      "🛒 Shop: filters better organized on 2 rows with icons",
+    ],
+  },
   {
     version: '1.23.0',
     date: '2026-05-19',
@@ -101,36 +123,6 @@ export const CHANGELOG = [
       "🌍 The app is now fully translated to English — switch language from Settings",
       "📈 The market no longer pulls the price back toward 100 — the curve can fly higher or dive longer",
       "🔔 Accepted-friend pop-ups no longer reappear when you log in on another device",
-    ],
-  },
-  {
-    version: '1.19.3',
-    date: '2026-05-14',
-    title: '🎡 Roue plus généreuse + surprises cachées',
-    title_en: '🎡 More generous Wheel + hidden surprises',
-    changes: [
-      "🎡 La roue est rééquilibrée 75/25 : trois fois plus de gains que de pertes (les pertes mordent encore mais beaucoup moins souvent)",
-      "✨ De nouvelles surprises planquées dans certains mini-jeux — très rares à dénicher, gros bonus quand ça tombe",
-    ],
-    changes_en: [
-      "🎡 The wheel is rebalanced 75/25: three times more wins than losses (losses still bite but much less often)",
-      "✨ New surprises tucked away in some mini-games — very rare to find, big bonus when it drops",
-    ],
-  },
-  {
-    version: '1.19.2',
-    date: '2026-05-14',
-    title: '📲 Vraie installation PWA + 🎁 Coffres Mystères',
-    title_en: '📲 Real PWA install + 🎁 Mystery Chests',
-    changes: [
-      "📲 L'app peut maintenant s'installer comme une vraie app — mode offline, mises à jour gérées proprement, plus un raccourci dans le navigateur",
-      "🎁 Nouvelle section « Coffres Mystères » dans la boutique premium — chaque coffre se découvre en une seule ouverture et révèle 3 cosmétiques cachés",
-      "🥉 3 tiers à débloquer selon ton niveau : Bronze, Or et Légendaire — la rareté monte avec le prix",
-    ],
-    changes_en: [
-      "📲 The app can now install like a real native app — offline mode, properly handled updates, no longer just a browser shortcut",
-      "🎁 New \"Mystery Chests\" section in the premium shop — each chest opens once and reveals 3 hidden cosmetics",
-      "🥉 3 tiers to unlock by level: Bronze, Gold and Legendary — rarity climbs with price",
     ],
   },
 ];
