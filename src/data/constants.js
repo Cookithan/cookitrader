@@ -1,3 +1,5 @@
+import { GAME_THEME_REWARDS } from './gameThemes.js';
+
 /* ════════════════════════════════════════════════════
    CONSTANTES GAMEPLAY
    - LEVEL_NAMES : titre de chaque palier (1..15)
@@ -153,6 +155,11 @@ export function getSegmentsForLevel(level){
 /* Canonique pour la géométrie (utils/spin.js) — poids/ordre communs
    aux 3 tiers, donc n'importe lequel convient pour les angles. */
 export const SEGMENTS = SEGMENTS_MID;
+
+/* Note : `GAME_THEME_REWARDS` (skins de mini-jeux) est défini dans
+   data/gameThemes.js et mergé dans REWARDS plus bas pour exposer ces
+   skins à la boutique. Garde la source de vérité (cost/preview/desc)
+   dans gameThemes.js — REWARDS ne les duplique pas, juste les agrège. */
 
 /* Récompenses check-in — 2 semaines progressives (refonte 2026-05-25).
    - Semaine 1 (streak 0→6) : 15, 20, 30, 40, 55, 75, jackpot 2 ☕
@@ -391,6 +398,10 @@ export const REWARDS = [
   { id:'as_avatar_wolf',   inActionsShop:true, currency:'shares', applyAs:'avatar', name:'Loup du Marché',    desc:'Le prédateur de la corbeille $CKM',  cost:300, type:'Avatar', emoji:'🐺', levelRequired:3 },
   { id:'as_avatar_gold',   inActionsShop:true, currency:'shares', applyAs:'avatar', name:'Trader Doré',       desc:'Auréolé d\'or — réservé aux investisseurs', cost:400, type:'Avatar', emoji:'🪙', levelRequired:3 },
   { id:'as_cafe_pouch',    inActionsShop:true, currency:'shares', applyAs:'as_cafe', cafeReward:4, name:'Sachet de Cafés', desc:'Échange tes actions contre 4 ☕',  cost:400, type:'Café',   emoji:'☕', levelRequired:3 },
+  /* SKINS DE JEU — agrégés automatiquement depuis data/gameThemes.js
+     pour exposer les thèmes non-gratuits à la boutique (cookies ET cafés).
+     Cf. GAME_THEME_REWARDS pour la transformation. */
+  ...GAME_THEME_REWARDS,
 ];
 
 /* Achievements (succès surprises) */

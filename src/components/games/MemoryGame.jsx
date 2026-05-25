@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
+import { getActiveTheme } from "../../data/gameThemes.js";
 
 /* ════════════════════════════════════════════════════
    MemoryGame — jeu de paires (PHASE 6B)
@@ -54,8 +55,11 @@ const FULL_CLEAR_BONUS = 10;
    permet de balayer les positions une fois. */
 const PEEK_DURATION_MS = 500;
 
-export function MemoryGame({ coins, onEarn, onSpend, C }){
+export function MemoryGame({ coins, onEarn, onSpend, gameThemes, C }){
   const { t } = useTranslation();
+  /* Thème actif — dos de carte personnalisé selon le skin. */
+  const memoryTheme = getActiveTheme('memory', gameThemes || {});
+  const mtd         = memoryTheme?.data || {};
   const [phase,    setPhase]    = useState('idle');     // idle | playing | done
   const [deck,     setDeck]     = useState(()=>shuffledDeck());
   const [flipped,  setFlipped]  = useState([]);          // ids actuellement face visible (max 2)
@@ -229,7 +233,7 @@ export function MemoryGame({ coins, onEarn, onSpend, C }){
                 <div style={{
                   position:'absolute', inset:0,
                   borderRadius:12,
-                  background:'linear-gradient(135deg,#7D4E1F,#4A2C17)',
+                  background: mtd.cardBack || 'linear-gradient(135deg,#7D4E1F,#4A2C17)',
                   border:'1.5px solid #3D2010',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   fontSize:22, color:'rgba(212,160,23,.55)',

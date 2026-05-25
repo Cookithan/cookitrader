@@ -11,6 +11,7 @@ import { ReflexGame } from "../games/ReflexGame.jsx";
 import { PyramidGame } from "../games/PyramidGame.jsx";
 import { SlotGame } from "../games/SlotGame.jsx";
 import { FlappyGame } from "../games/FlappyGame.jsx";
+import { CatcherGame } from "../games/CatcherGame.jsx";
 
 /* ════════════════════════════════════════════════════
    GameOverlay — wrapper plein écran (z-index 50)
@@ -23,8 +24,8 @@ import { FlappyGame } from "../games/FlappyGame.jsx";
    mais ouverture instantanée et zéro Suspense à gérer.
 ═══════════════════════════════════════════════════════ */
 
-export function GameOverlay({ gameView, onClose, coins, level, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onCafeEarn, onUpdateRecord, onJackpot, onEventChallenge, spinsLeft, spinsCap, consumeSpin, spinRechargeCost, onRechargeSpin, slotPlaysLeft, slotGamesCap, consumeSlotGame, slotRechargeCost, onRechargeSlot, pyramidPlaysLeft, pyramidGamesCap, consumePyramidGame, pyramidRechargeCost, cafes, onRechargePyramid, activeSkin, activeRoue, legendarySeen, onLegendarySeen, isAdmin, C }) {
-  const TITLES = { checkin:'Série du jour', quiz:'Quiz du jour', spin:'Roue de la chance', click:'Cookie Click', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes cookies', pyramid:'Pile de Tasses', slot:'Machine à Sous', flappy:'Flappy Cookie' };
+export function GameOverlay({ gameView, onClose, coins, level, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onCafeEarn, onUpdateRecord, onJackpot, onEventChallenge, spinsLeft, spinsCap, consumeSpin, spinRechargeCost, onRechargeSpin, slotPlaysLeft, slotGamesCap, consumeSlotGame, slotRechargeCost, onRechargeSlot, pyramidPlaysLeft, pyramidGamesCap, consumePyramidGame, pyramidRechargeCost, cafes, onRechargePyramid, activeSkin, activeRoue, gameThemes, onPayContinueCatcher, legendarySeen, onLegendarySeen, isAdmin, C }) {
+  const TITLES = { checkin:'Série du jour', quiz:'Quiz du jour', spin:'Roue de la chance', click:'Cookie Click', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes cookies', pyramid:'Pile de Tasses', slot:'Machine à Sous', flappy:'Flappy Cookie', catcher:'Café Express' };
   return (
     <div style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column' }}>
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
@@ -43,12 +44,13 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
         {gameView==='spin'    && <SpinGame    coins={coins} level={level} onEarn={onSpinEarn} onSpend={onSpend} onJackpot={onJackpot} onEventChallenge={onEventChallenge} activeRoue={activeRoue} spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin} spinRechargeCost={spinRechargeCost} cafes={cafes} onRechargeSpin={onRechargeSpin} C={C} />}
         {gameView==='click'   && <ClickGame   coins={coins} bestScore={clickRecord} onEarn={onClickEarn} onSpend={onSpend} onUpdateRecord={onUpdateRecord} onEventChallenge={onEventChallenge} activeSkin={activeSkin} C={C} />}
         {gameView==='pour'    && <PourGame    onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} C={C} />}
-        {gameView==='memory'  && <MemoryGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} C={C} />}
-        {gameView==='guess'   && <GuessGame   coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} legendarySeen={legendarySeen} onLegendarySeen={onLegendarySeen} isAdmin={isAdmin} C={C} />}
+        {gameView==='memory'  && <MemoryGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} gameThemes={gameThemes} C={C} />}
+        {gameView==='guess'   && <GuessGame   coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} legendarySeen={legendarySeen} onLegendarySeen={onLegendarySeen} isAdmin={isAdmin} gameThemes={gameThemes} C={C} />}
         {gameView==='reflex'  && <ReflexGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} activeSkin={activeSkin} C={C} />}
         {gameView==='pyramid' && <PyramidGame coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} pyramidPlaysLeft={pyramidPlaysLeft} pyramidGamesCap={pyramidGamesCap} consumePyramidGame={consumePyramidGame} pyramidRechargeCost={pyramidRechargeCost} cafes={cafes} onRechargePyramid={onRechargePyramid} C={C} />}
         {gameView==='slot'    && <SlotGame    coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} slotPlaysLeft={slotPlaysLeft} slotGamesCap={slotGamesCap} consumeSlotGame={consumeSlotGame} slotRechargeCost={slotRechargeCost} cafes={cafes} onRechargeSlot={onRechargeSlot} C={C} />}
-        {gameView==='flappy'  && <FlappyGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} activeSkin={activeSkin} C={C} />}
+        {gameView==='flappy'  && <FlappyGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} activeSkin={activeSkin} gameThemes={gameThemes} C={C} />}
+        {gameView==='catcher' && <CatcherGame coins={coins} cafes={cafes} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} onPayContinue={onPayContinueCatcher} gameThemes={gameThemes} C={C} />}
       </div>
     </div>
   );

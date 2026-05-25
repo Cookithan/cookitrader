@@ -66,7 +66,13 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
      pendant cette session restent visibles jusqu'au prochain mount. */
   const [initialUnlocked] = useState(unlocked);
-  const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack'];
+  const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack','Jeux'];
+  /* Icône emoji par filtre — affichée avant le libellé pour rendre les
+     pills plus reconnaissables au scan rapide (mobile-first). */
+  const FILTER_ICONS = {
+    'Tous':'🏆', 'Badge':'🎖️', 'Thème':'🎨', 'Avatar':'👤',
+    'Skin':'🍪', 'Titre':'👑', 'Musique':'🎵', 'Pack':'📦', 'Jeux':'🎮',
+  };
   /* Labels d'affichage des filtres — traduit via i18n. Les IDs restent
      en FR car utilisés en état interne (r.type === 'Badge'). */
   const FILTER_LABEL = {
@@ -86,7 +92,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      Play Store, banner remappée dans Thème par convention UX). */
   /* Filtres de la vue main premium — 'Coffre' retiré car les coffres
      ont maintenant leur sous-vue dédiée 'chests'. */
-  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack'];
+  const PREMIUM_FILTERS = ['Tous','Avatar','Skin','Thème','Musique','Pack','Jeux'];
   const matchPremiumFilter = (r, f) => {
     if(f === 'Tous')     return true;
     if(f === 'Avatar')   return r.applyAs === 'avatar';
@@ -94,6 +100,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
     if(f === 'Thème')    return r.applyAs === 'theme' || r.applyAs === 'banner';
     if(f === 'Musique')  return r.applyAs === 'music';
     if(f === 'Pack')     return r.applyAs === 'pack_shares';
+    if(f === 'Jeux')     return r.applyAs === 'game_theme';
     return true;
   };
 
@@ -135,7 +142,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
      qui peuvent ne jamais être gagnés — sinon on bloque la progression) et
      les items consommables (Pack actions $CKM, jamais ajoutés à unlocked). */
   const isCountable = (r) =>
-    r.currency !== 'cafe' && !r.inPremium && !r.inActionsShop && !r.limited && r.applyAs !== 'pack_shares';
+    r.currency !== 'cafe' && !r.inPremium && !r.inActionsShop && !r.limited && r.applyAs !== 'pack_shares' && r.applyAs !== 'game_theme';
   let revealedLevel = 1;
   for(let n=1; n<=level; n++){
     const itemsAtN = REWARDS.filter(r => r.levelRequired === n && isCountable(r));
@@ -488,32 +495,57 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
         </div>
       )}
 
-      {/* Pills (uniquement en mode shop) */}
+      {/* Pills (uniquement en mode shop) — grille flex sur 2 lignes (wrap)
+          pour tout voir d'un coup sans scroll. Icône emoji devant chaque
+          libellé pour mieux les distinguer au scan rapide. */}
       {mode === 'shop' && (
-        <div style={{ display:'flex', gap:8, marginBottom:16, overflowX:'auto', paddingBottom:2 }}>
+        <div style={{
+          display:'flex', flexWrap:'wrap', gap:8, marginBottom:16,
+          paddingTop:2, paddingBottom:2,
+        }}>
           {FILTERS.map(f=>(
-            <button key={f} onClick={()=>{ if(filter!==f){ playSound('tab'); setFilter(f); } }} style={{ padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:700, whiteSpace:'nowrap', background:filter===f?GOLD:C.card, color:filter===f?'#fff':C.muted, border:`1px solid ${filter===f?'transparent':C.border}`, transition:'all .2s' }}>{f}</button>
+            <button
+              key={f}
+              onClick={()=>{ if(filter!==f){ playSound('tab'); setFilter(f); } }}
+              style={{
+                padding:'7px 14px', borderRadius:20, fontSize:12, fontWeight:700,
+                whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:6,
+                background: filter === f ? GOLD : C.card,
+                color: filter === f ? '#fff' : C.muted,
+                border:`1px solid ${filter === f ? 'transparent' : C.border}`,
+                transition:'all .2s',
+                boxShadow: filter === f ? '0 2px 8px rgba(212,160,23,.3)' : 'none',
+              }}
+            >
+              <span style={{ fontSize:14, lineHeight:1 }}>{FILTER_ICONS[f] || '·'}</span>
+              <span>{f}</span>
+            </button>
           ))}
         </div>
       )}
       {/* Pills mode premium 'main' — filtre par catégorie pour aider l'user
           à trouver vite ce qu'il cherche (Avatar / Skin / Pack / Spécial...). */}
       {mode === 'premium' && premiumView === 'main' && (
-        <div style={{ display:'flex', gap:8, marginBottom:16, overflowX:'auto', paddingBottom:2 }}>
+        <div style={{
+          display:'flex', flexWrap:'wrap', gap:8, marginBottom:16,
+          paddingTop:2, paddingBottom:2,
+        }}>
           {PREMIUM_FILTERS.map(f => (
             <button
               key={f}
               onClick={()=>{ if(premiumFilter !== f){ playSound('tab'); setPremiumFilter(f); } }}
               style={{
-                padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:700,
-                whiteSpace:'nowrap',
+                padding:'7px 14px', borderRadius:20, fontSize:12, fontWeight:700,
+                whiteSpace:'nowrap', display:'inline-flex', alignItems:'center', gap:6,
                 background: premiumFilter === f ? ESPRESSO : C.card,
                 color: premiumFilter === f ? '#F0C050' : C.muted,
                 border: `1px solid ${premiumFilter === f ? 'rgba(212,160,23,.6)' : C.border}`,
                 transition:'all .2s',
+                boxShadow: premiumFilter === f ? '0 2px 8px rgba(74,44,23,.3)' : 'none',
               }}
             >
-              {f}
+              <span style={{ fontSize:14, lineHeight:1 }}>{FILTER_ICONS[f] || '·'}</span>
+              <span>{f}</span>
             </button>
           ))}
         </div>
