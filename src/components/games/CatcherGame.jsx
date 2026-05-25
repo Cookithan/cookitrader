@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
-import { getActiveTheme } from "../../data/gameThemes.js";
+import { getActiveTheme, getThemesForGame, isThemeUnlocked } from "../../data/gameThemes.js";
 
 /* ════════════════════════════════════════════════════
    CatcherGame — « Café Express » (refonte design)
@@ -26,7 +26,9 @@ import { getActiveTheme } from "../../data/gameThemes.js";
 ═══════════════════════════════════════════════════════ */
 
 export const CATCHER_COST     = 10;
-export const CATCHER_DURATION = 60;
+/* Durées sélectionnables avant la partie (en s). Default = 60 (court). */
+export const CATCHER_DURATIONS = [60, 120, 180];
+export const CATCHER_DURATION  = 60;   /* legacy export (rétro-compat) */
 
 const ARENA_W   = 360;
 const ARENA_H   = 460;
@@ -110,24 +112,24 @@ function pickItemType(){
   return 'cookie';
 }
 
-/* Grille calibrée pour 60s + valeurs +1/+5/-1 (refonte 2026-05-26).
-   6 paliers, jackpot 300 🍪 à 240, bonus CF rare à 280+. */
-function rewardFor(score){
-  if(score >= 240) return 300;
-  if(score >= 170) return 150;
-  if(score >= 120) return 80;
-  if(score >= 85)  return 40;
-  if(score >= 55)  return 15;
-  if(score >= 30)  return 5;
+/* Grille calibrée pour 60s — les seuils scalent linéairement avec la
+   durée (×2 à 120s, ×3 à 180s) pour rester atteignables/équilibrés.
+   6 paliers, jackpot 300 🍪 à 240 (60s), bonus CF rare à 280+ (60s). */
+const PALIERS_60S    = [30, 55, 85, 120, 170, 240];
+const REWARDS_PALIER = [5, 15, 40, 80, 150, 300];
+const CF_THRESHOLD_60S = 280;
+
+function rewardFor(score, duration){
+  const m = (duration || 60) / 60;
+  for(let i = PALIERS_60S.length - 1; i >= 0; i--){
+    if(score >= PALIERS_60S[i] * m) return REWARDS_PALIER[i];
+  }
   return 0;
 }
 
-/* Bonus CF rare : +1 ☕ si score ≥ 280. Nouvelle source ☕ validée par
-   l'utilisateur. Difficile : il faut maintenir un combo ×2 quasi-perpétuel
-   sur 60 s, attraper plein de cafés et éviter les glaçons. */
-const CATCHER_CF_THRESHOLD = 280;
-function cafeBonusFor(score){
-  return score >= CATCHER_CF_THRESHOLD ? 1 : 0;
+function cafeBonusFor(score, duration){
+  const m = (duration || 60) / 60;
+  return score >= CF_THRESHOLD_60S * m ? 1 : 0;
 }
 
 /* ── Tasse SVG custom ────────────────────────────────────
@@ -174,7 +176,7 @@ function CupSvg({ dark, frozen, inverted }){
   );
 }
 
-export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, C }){
+export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], C }){
   const { t } = useTranslation();
 
   /* Thème actif — lu une fois au mount, pas live pendant la partie */
@@ -198,7 +200,11 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
 
   const [phase,        setPhase]        = useState('idle');
   const [score,        setScore]        = useState(0);
-  const [timeLeft,     setTimeLeft]     = useState(CATCHER_DURATION);
+  /* Durée sélectionnée pour la prochaine partie (60/120/180). Une fois
+     la partie lancée, on fige dans runningDurationRef pour pas qu'un
+     clic accidentel sur un autre choix ne casse les calculs. */
+  const [duration,     setDuration]     = useState(60);
+  const [timeLeft,     setTimeLeft]     = useState(60);
   const [countdownVal, setCountdownVal] = useState(null);
   const [tasseX,       setTasseX]       = useState(ARENA_W / 2 - TASSE_W / 2);
   const [tilt,         setTilt]         = useState(0);            /* inclinaison de la tasse pendant le swipe */
@@ -228,7 +234,9 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
   const temperatureRef   = useRef(TEMP_INIT);
   const lastTempDisplay  = useRef(TEMP_INIT);
   const pausedAtRef      = useRef(null);   /* timestamp au moment du game over 'iced' */
+  const runningDurationRef = useRef(60);   /* durée figée pour la partie en cours */
   const rafRef           = useRef(null);
+  const lastTickRef      = useRef(null);   /* timestamp du dernier tick — pour le delta-time */
   const lastSpawnRef     = useRef(0);
   const startTimeRef     = useRef(0);
   const phaseRef         = useRef('idle');
@@ -251,7 +259,8 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     setTemperature(TEMP_INIT); temperatureRef.current = TEMP_INIT; lastTempDisplay.current = TEMP_INIT;
     setEndCause(null);
     setContinueUsed(false);   pausedAtRef.current = null;
-    setTimeLeft(CATCHER_DURATION);
+    runningDurationRef.current = duration;
+    setTimeLeft(duration);
     setPhase('countdown');
     setCountdownVal(3);
     setTimeout(()=>setCountdownVal(2),  800);
@@ -262,6 +271,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
       setPhase('playing');
       startTimeRef.current = Date.now();
       lastSpawnRef.current = Date.now();
+      lastTickRef.current  = null;   /* reset delta-time au démarrage */
       rafRef.current = requestAnimationFrame(tick);
     }, 2900);
   };
@@ -295,14 +305,24 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     if(phaseRef.current !== 'playing') return;
 
     const now     = Date.now();
+    /* Delta-time : ratio par rapport à 60 fps (1.0 = 60 fps, 2.0 = 30 fps).
+       Cap à 3 pour éviter les sauts de position si onglet en arrière-plan
+       (où le RAF est throttlé à ~1Hz). Premier tick : dt=1 pour ne pas
+       multiplier par un truc bizarre. */
+    const dt = lastTickRef.current
+      ? Math.min(3, (now - lastTickRef.current) / (1000 / 60))
+      : 1;
+    lastTickRef.current = now;
+
+    const dur     = runningDurationRef.current;
     const elapsed = (now - startTimeRef.current) / 1000;
-    const remain  = Math.max(0, CATCHER_DURATION - elapsed);
+    const remain  = Math.max(0, dur - elapsed);
     setTimeLeft(Math.ceil(remain));
 
     if(remain <= 0){ endGame('timeout'); return; }
 
-    /* Spawn 1000 → 250 ms (accélération marquée) */
-    const elapsedRatio = (CATCHER_DURATION - remain) / CATCHER_DURATION;  // 0 → 1
+    /* Spawn 1000 → 250 ms (accélération marquée — basée sur ratio d'avancée) */
+    const elapsedRatio = (dur - remain) / dur;  // 0 → 1
     const spawnDelay   = Math.max(250, 1000 - elapsedRatio * 750);
     if(now - lastSpawnRef.current > spawnDelay){
       lastSpawnRef.current = now;
@@ -327,7 +347,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
 
     const nextItems = [];
     for(const it of itemsRef.current){
-      const ny = it.y + it.vy * VY_DIR;
+      const ny = it.y + it.vy * VY_DIR * dt;
 
       /* Transformation cookie → glaçon (2 étapes) :
          1. déclenchement aléatoire (TRANSFORM_PROBA) après TRANSFORM_AFTER_PCT
@@ -412,10 +432,12 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
       setScore(scoreRef.current);
     }
 
-    /* Décroissance naturelle de température vers TEMP_REST (50) */
+    /* Décroissance naturelle de température vers TEMP_REST (50) — scalée
+       par dt pour rester constante peu importe le framerate. */
+    const decay = TEMP_DECAY * dt;
     const tCur = temperatureRef.current;
-    if(tCur > TEMP_REST)      temperatureRef.current = Math.max(TEMP_REST, tCur - TEMP_DECAY);
-    else if(tCur < TEMP_REST) temperatureRef.current = Math.min(TEMP_REST, tCur + TEMP_DECAY);
+    if(tCur > TEMP_REST)      temperatureRef.current = Math.max(TEMP_REST, tCur - decay);
+    else if(tCur < TEMP_REST) temperatureRef.current = Math.min(TEMP_REST, tCur + decay);
 
     for(const c of catches){
       spawnParticles(c.x, c.y, c.type);
@@ -494,11 +516,12 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     if(cause === 'iced' && !continueUsed){
       pausedAtRef.current = Date.now();
     }
-    const reward    = rewardFor(scoreRef.current);
-    const cafeBonus = cafeBonusFor(scoreRef.current);
+    const dur       = runningDurationRef.current;
+    const reward    = rewardFor(scoreRef.current, dur);
+    const cafeBonus = cafeBonusFor(scoreRef.current, dur);
     if(reward > 0){
       onEarn(reward);
-      playSound(scoreRef.current >= 240 ? 'jackpot' : 'success');
+      playSound(scoreRef.current >= 240 * (dur/60) ? 'jackpot' : 'success');
     } else if(cause === 'iced'){
       playSound('error');
     }
@@ -507,8 +530,8 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     if(cafeBonus > 0 && typeof onCafeEarn === 'function'){
       onCafeEarn(cafeBonus);
     }
-    /* Jackpot final (240+) → confettis dorés */
-    if(scoreRef.current >= 240){
+    /* Jackpot final (240+ à 60s, scalé sur la durée) → confettis dorés */
+    if(scoreRef.current >= 240 * (dur/60)){
       const now = Date.now();
       const confs = Array.from({ length:24 }, (_, i) => ({
         id: now + i,
@@ -585,7 +608,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
   const hudText  = isDark ? '#fff' : C.text;
 
   /* Timer en pourcentage (pour la barre dégradée) */
-  const timerPct = Math.max(0, Math.min(100, (timeLeft / CATCHER_DURATION) * 100));
+  const timerPct = Math.max(0, Math.min(100, (timeLeft / (runningDurationRef.current || duration)) * 100));
   const timerCol = timeLeft <= 5 ? '#7A4320' : '#D4A017';
 
   /* Fond de l'arène — dynamique selon temperature si le thème le veut. */
@@ -824,6 +847,68 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
             <div style={{ fontSize:13, color:'rgba(255,255,255,.92)', textAlign:'center', lineHeight:1.45, whiteSpace:'pre-line' }}>
               {inverted ? t('game_catcher.rules_inverted') : t('game_catcher.rules')}
             </div>
+
+            {/* Sélecteur de durée — 3 pills 60/120/180 s. Active = bordure
+                dorée + fond GOLD. Changer pendant idle, figé pendant partie. */}
+            <div style={{ display:'flex', gap:6, marginTop:2 }}>
+              {CATCHER_DURATIONS.map(d => {
+                const active = duration === d;
+                return (
+                  <button
+                    key={d}
+                    onClick={() => { playSound('tap'); setDuration(d); }}
+                    style={{
+                      padding:'7px 14px', borderRadius:16, fontSize:11, fontWeight:900,
+                      background: active ? GOLD : 'rgba(60,30,10,.65)',
+                      color: active ? '#fff' : 'rgba(255,232,154,.85)',
+                      border: active ? '1.5px solid #FFE89A' : '1.5px solid rgba(255,232,154,.25)',
+                      cursor:'pointer', letterSpacing:.4,
+                      boxShadow: active ? '0 3px 10px rgba(212,160,23,.4)' : 'none',
+                    }}
+                  >
+                    {d < 60 ? `${d}s` : `${d/60}min`}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Switcher de thème — pastilles des thèmes débloqués pour
+                Catcher (default toujours là). Tap = active immédiatement.
+                Masqué si setGameThemes pas fourni (mode read-only). */}
+            {setGameThemes && (() => {
+              const themes = getThemesForGame('catcher')
+                .filter(th => isThemeUnlocked(th, unlocked));
+              if(themes.length <= 1) return null;
+              return (
+                <div style={{ display:'flex', gap:6, marginTop:-2, flexWrap:'wrap', justifyContent:'center', maxWidth:280 }}>
+                  {themes.map(th => {
+                    const isActive = theme?.id === th.id;
+                    return (
+                      <button
+                        key={th.id}
+                        onClick={() => {
+                          playSound('tap');
+                          setGameThemes({ ...(gameThemes || {}), catcher: th.id });
+                        }}
+                        title={th.name}
+                        style={{
+                          width:34, height:34, borderRadius:'50%',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          fontSize:16,
+                          background: isActive ? 'rgba(212,160,23,.25)' : 'rgba(60,30,10,.65)',
+                          border: isActive ? '2px solid #FFE89A' : '1.5px solid rgba(255,232,154,.3)',
+                          cursor:'pointer',
+                          boxShadow: isActive ? '0 0 10px rgba(212,160,23,.55)' : 'none',
+                        }}
+                      >
+                        {th.preview || '🎨'}
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
             <button
               onClick={startGame}
               disabled={coins < CATCHER_COST}
@@ -897,20 +982,20 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
             <div style={{ fontSize:56, fontWeight:900, color:'#FFE89A', lineHeight:1, animation:'bounceIn .5s ease-out', textShadow:'0 6px 18px rgba(0,0,0,.4)' }}>
               {score}
             </div>
-            {rewardFor(scoreRef.current) > 0 ? (
+            {rewardFor(scoreRef.current, runningDurationRef.current) > 0 ? (
               <div style={{
                 fontSize:15, color:'#fff', fontWeight:800,
                 padding:'6px 16px', borderRadius:16,
                 background:'linear-gradient(135deg, #C17F3C, #D4A017)',
                 boxShadow:'0 4px 12px rgba(212,160,23,.4)',
               }}>
-                +{rewardFor(scoreRef.current)} 🍪
+                +{rewardFor(scoreRef.current, runningDurationRef.current)} 🍪
               </div>
             ) : (
               <div style={{ fontSize:12, color:'rgba(255,255,255,.65)' }}>{t('game_catcher.no_reward')}</div>
             )}
             {/* Bonus CF (rare) — affichage festif violet/or comme le café toast */}
-            {cafeBonusFor(scoreRef.current) > 0 && (
+            {cafeBonusFor(scoreRef.current, runningDurationRef.current) > 0 && (
               <div style={{
                 fontSize:14, color:'#fff', fontWeight:900,
                 padding:'7px 18px', borderRadius:18,
@@ -919,7 +1004,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
                 border:'1.5px solid rgba(212,160,23,.65)',
                 animation:'bounceIn .6s ease-out .15s both',
               }}>
-                ✨ +{cafeBonusFor(scoreRef.current)} ☕ {t('game_catcher.cf_bonus')}
+                ✨ +{cafeBonusFor(scoreRef.current, runningDurationRef.current)} ☕ {t('game_catcher.cf_bonus')}
               </div>
             )}
             {/* Bouton CONTINUE — visible uniquement si défaite glaçons,

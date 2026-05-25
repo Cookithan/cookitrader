@@ -929,7 +929,7 @@ export const EN = {
     flappy_reward:  '+3 to +5 🍪 / pipe · cap 200 (cost 10🍪)',
     catcher_title:  'Café Express',
     catcher_desc:   'Slide the cup, catch the orders',
-    catcher_reward: '60s · up to 300 🍪 · ☕ jackpot at 280 (cost 10🍪)',
+    catcher_reward: '60-180s · up to 300 🍪 · ☕ jackpot (cost 10🍪)',
     available:      'Available',
   },
 

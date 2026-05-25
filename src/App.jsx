@@ -4263,7 +4263,8 @@ export default function CookiMiner() {
           pyramidRechargeCost={pyramidRechargeCost} cafes={cafes}
           onRechargePyramid={rechargePyramid}
           activeSkin={activeSkin}
-          gameThemes={gameThemes}
+          gameThemes={gameThemes} setGameThemes={setGameThemes}
+          unlocked={unlocked}
           /* Continue payant 1× par partie sur Café Express — débite 1 ☕
              côté App pour que le solde + le toast violet/or s'affichent. */
           onPayContinueCatcher={() => {

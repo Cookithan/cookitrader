@@ -948,7 +948,7 @@ export const FR = {
     flappy_reward:  '+3 à +5 🍪 / tuyau · cap 200 (coût 10🍪)',
     catcher_title:  'Café Express',
     catcher_desc:   'Glisse la tasse, attrape les commandes',
-    catcher_reward: '60s · jusqu\'à 300 🍪 · jackpot ☕ à 280 (coût 10🍪)',
+    catcher_reward: '60-180s · jusqu\'à 300 🍪 · jackpot ☕ (coût 10🍪)',
     available:      'Dispo',
   },
 

@@ -24,7 +24,7 @@ import { CatcherGame } from "../games/CatcherGame.jsx";
    mais ouverture instantanée et zéro Suspense à gérer.
 ═══════════════════════════════════════════════════════ */
 
-export function GameOverlay({ gameView, onClose, coins, level, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onCafeEarn, onUpdateRecord, onJackpot, onEventChallenge, spinsLeft, spinsCap, consumeSpin, spinRechargeCost, onRechargeSpin, slotPlaysLeft, slotGamesCap, consumeSlotGame, slotRechargeCost, onRechargeSlot, pyramidPlaysLeft, pyramidGamesCap, consumePyramidGame, pyramidRechargeCost, cafes, onRechargePyramid, activeSkin, activeRoue, gameThemes, onPayContinueCatcher, legendarySeen, onLegendarySeen, isAdmin, C }) {
+export function GameOverlay({ gameView, onClose, coins, level, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onCafeEarn, onUpdateRecord, onJackpot, onEventChallenge, spinsLeft, spinsCap, consumeSpin, spinRechargeCost, onRechargeSpin, slotPlaysLeft, slotGamesCap, consumeSlotGame, slotRechargeCost, onRechargeSlot, pyramidPlaysLeft, pyramidGamesCap, consumePyramidGame, pyramidRechargeCost, cafes, onRechargePyramid, activeSkin, activeRoue, gameThemes, setGameThemes, unlocked, onPayContinueCatcher, legendarySeen, onLegendarySeen, isAdmin, C }) {
   const TITLES = { checkin:'Série du jour', quiz:'Quiz du jour', spin:'Roue de la chance', click:'Cookie Click', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes cookies', pyramid:'Pile de Tasses', slot:'Machine à Sous', flappy:'Flappy Cookie', catcher:'Café Express' };
   return (
     <div style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column' }}>
@@ -50,7 +50,7 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
         {gameView==='pyramid' && <PyramidGame coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} pyramidPlaysLeft={pyramidPlaysLeft} pyramidGamesCap={pyramidGamesCap} consumePyramidGame={consumePyramidGame} pyramidRechargeCost={pyramidRechargeCost} cafes={cafes} onRechargePyramid={onRechargePyramid} C={C} />}
         {gameView==='slot'    && <SlotGame    coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} slotPlaysLeft={slotPlaysLeft} slotGamesCap={slotGamesCap} consumeSlotGame={consumeSlotGame} slotRechargeCost={slotRechargeCost} cafes={cafes} onRechargeSlot={onRechargeSlot} C={C} />}
         {gameView==='flappy'  && <FlappyGame  coins={coins} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} activeSkin={activeSkin} gameThemes={gameThemes} C={C} />}
-        {gameView==='catcher' && <CatcherGame coins={coins} cafes={cafes} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} onPayContinue={onPayContinueCatcher} gameThemes={gameThemes} C={C} />}
+        {gameView==='catcher' && <CatcherGame coins={coins} cafes={cafes} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} onPayContinue={onPayContinueCatcher} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} C={C} />}
       </div>
     </div>
   );
