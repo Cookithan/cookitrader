@@ -4,6 +4,7 @@ import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { playSound } from "../../lib/audio.js";
+import { getActiveTheme } from "../../data/gameThemes.js";
 
 /* ════════════════════════════════════════════════════
    FlappyGame — Flappy Cookie (PHASE 11/05/2026)
@@ -79,7 +80,11 @@ const MODES = {
   difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10, coffeeRate:0.15 },
 };
 
-export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }){
+export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, C }){
+  /* Thème actif (skin cosmétique) — change le sky gradient et le pipeColor.
+     Lu une seule fois au mount, pas live pendant la partie. */
+  const flappyTheme = getActiveTheme('flappy', gameThemes || {});
+  const ftd         = flappyTheme?.data || {};
   const { t } = useTranslation();
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
@@ -454,7 +459,9 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, C }
         style={{
           position:'relative',
           width:ARENA_W, height:ARENA_H,
-          background:'linear-gradient(180deg, #FFE89A 0%, #F0C8A0 60%, #C8945A 100%)',
+          background: ftd.skyTop && ftd.skyBottom
+            ? `linear-gradient(180deg, ${ftd.skyTop} 0%, ${ftd.skyBottom} 100%)`
+            : 'linear-gradient(180deg, #FFE89A 0%, #F0C8A0 60%, #C8945A 100%)',
           borderRadius:18,
           border:'1.5px solid rgba(212,160,23,.45)',
           overflow:'hidden',

@@ -69,6 +69,7 @@ export const EN = {
     section_community:     'COMMUNITY',
     section_about:         'ABOUT',
     section_help:          'HELP',
+    section_game_themes:   'GAME THEMES',
     restart_tutorial_title: 'Replay the tutorial',
     restart_tutorial_sub:   'Walk through the guided introduction again',
     section_danger:        'DANGER ZONE',
@@ -851,6 +852,23 @@ export const EN = {
     difficulty_expert:  'Expert',
   },
 
+  game_catcher: {
+    score_label:        'Score',
+    subtitle:           'Café Express',
+    subtitle_inverted:  'Café Express — Inverted',
+    rules:              'Slide your cup, catch the 🍪 and ☕ falling down.\nAvoid the 🧊 — they freeze the cup!',
+    rules_inverted:     'Reverse service! Cup on top, items rise.\nAvoid the 🧊 — they freeze the cup!',
+    play_btn:           'Play (-{cost} 🍪)',
+    need_more:          'Need {n} more 🍪',
+    combo_active:       'COMBO ×2 ({n} in a row)',
+    final_score:        'Final score',
+    no_reward:          'No reward this time',
+    replay:             'Play again',
+    iced_title:         'Cup frozen!',
+    cf_bonus:           'jackpot',
+    continue_btn:       'Continue (-1 ☕)',
+  },
+
   game_reflex: {
     title:           'Reflexes',
     instruction:     'Tap as soon as the signal appears!',
@@ -909,6 +927,9 @@ export const EN = {
     flappy_title:   'Flappy Cookie',
     flappy_desc:    'Dodge the pipes, flap!',
     flappy_reward:  '+3 to +5 🍪 / pipe · cap 200 (cost 10🍪)',
+    catcher_title:  'Café Express',
+    catcher_desc:   'Slide the cup, catch the orders',
+    catcher_reward: '60s · up to 300 🍪 · ☕ jackpot at 280 (cost 10🍪)',
     available:      'Available',
   },
 

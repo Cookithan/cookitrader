@@ -77,6 +77,7 @@ export const FR = {
     section_community:     'COMMUNAUTÉ',
     section_about:         'À PROPOS',
     section_help:          'AIDE',
+    section_game_themes:   'THÈMES DE JEU',
     restart_tutorial_title: 'Refaire le tutoriel',
     restart_tutorial_sub:   'Revoir les étapes guidées de présentation',
     section_danger:        'ZONE SENSIBLE',
@@ -870,6 +871,23 @@ export const FR = {
     difficulty_expert:  'Expert',
   },
 
+  game_catcher: {
+    score_label:        'Score',
+    subtitle:           'Café Express',
+    subtitle_inverted:  'Café Express — Inversé',
+    rules:              'Glisse ta tasse, attrape les 🍪 et ☕ qui tombent.\nÉvite les 🧊 — ils gèlent la tasse !',
+    rules_inverted:     'Service à l\'envers ! Tasse en haut, les items remontent.\nÉvite les 🧊 — ils gèlent la tasse !',
+    play_btn:           'Jouer (-{cost} 🍪)',
+    need_more:          'Manque {n} 🍪',
+    combo_active:       'COMBO ×2 ({n} d\'affilée)',
+    final_score:        'Score final',
+    no_reward:          'Pas de récompense cette fois',
+    replay:             'Rejouer',
+    iced_title:         'Tasse gelée !',
+    cf_bonus:           'jackpot',
+    continue_btn:       'Continuer (-1 ☕)',
+  },
+
   game_reflex: {
     title:           'Réflexes',
     instruction:     'Tape dès que le signal apparaît !',
@@ -928,6 +946,9 @@ export const FR = {
     flappy_title:   'Flappy Cookie',
     flappy_desc:    'Esquive les tuyaux, bondis !',
     flappy_reward:  '+3 à +5 🍪 / tuyau · cap 200 (coût 10🍪)',
+    catcher_title:  'Café Express',
+    catcher_desc:   'Glisse la tasse, attrape les commandes',
+    catcher_reward: '60s · jusqu\'à 300 🍪 · jackpot ☕ à 280 (coût 10🍪)',
     available:      'Dispo',
   },
 

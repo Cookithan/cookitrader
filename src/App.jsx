@@ -542,6 +542,10 @@ export default function CookiMiner() {
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
   /* Skin du cookie central tappable (cf. COOKIE_SKINS). '' = défaut. */
   const [activeSkin,   setActiveSkin]   = useLocalStorage('activeSkin','');
+  /* Mapping { gameId → themeId } pour les thèmes de mini-jeu (cf. data/gameThemes.js).
+     Vide ({}) = default partout. Fallback automatique via getActiveTheme()
+     si le themeId stocké n'existe plus (sécurité contre LS périmé). */
+  const [gameThemes,   setGameThemes]   = useLocalStorage('gameThemes', {});
   /* (activeTitle est déclaré plus haut — utilisé dans le upsertProfile.) */
   /* Codes promo rares révélés via items premium (cf. promoCodes.js
      PROMO_CODES.<X>.secret). Une fois révélé, le code apparaît dans
@@ -3064,7 +3068,7 @@ export default function CookiMiner() {
     } catch {}
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
     setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
-    setActiveTheme(''); setActiveBanner(''); setActiveSkin(''); setActiveTitle(''); setRevealedPromoCodes([]); setPromoCodesUsed([]);
+    setActiveTheme(''); setActiveBanner(''); setActiveSkin(''); setActiveTitle(''); setGameThemes({}); setRevealedPromoCodes([]); setPromoCodesUsed([]);
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
     /* Tuto : reset complet pour qu'un reset rejoue le tuto au démarrage */
@@ -3476,6 +3480,7 @@ export default function CookiMiner() {
     { id:'pyramid', Icon:Coffee,            title: t('games_list.pyramid_title'),      desc: t('games_list.pyramid_desc'),         reward: t('games_list.pyramid_reward'), avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
     { id:'slot',    Icon:Dice5,             title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
     { id:'flappy',  Icon:Coffee,            title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
+    { id:'catcher', Icon:Coffee,            title: t('games_list.catcher_title'),      desc: t('games_list.catcher_desc'), reward: t('games_list.catcher_reward'), avail:coins>=10, color:'#B5793E', levelRequired:4 },
   ];
 
   const s = {
@@ -4258,6 +4263,16 @@ export default function CookiMiner() {
           pyramidRechargeCost={pyramidRechargeCost} cafes={cafes}
           onRechargePyramid={rechargePyramid}
           activeSkin={activeSkin}
+          gameThemes={gameThemes}
+          /* Continue payant 1× par partie sur Café Express — débite 1 ☕
+             côté App pour que le solde + le toast violet/or s'affichent. */
+          onPayContinueCatcher={() => {
+            if((cafes || 0) < 1) return false;
+            setCafes(c => Math.max(0, (c || 0) - 1));
+            playSound('purchase');
+            haptic('medium');
+            return true;
+          }}
           legendarySeen={legendaryBaristaSeen}
           onLegendarySeen={()=>{
             setLegendaryBaristaSeen(true);
@@ -4340,6 +4355,7 @@ export default function CookiMiner() {
           onClose={()=>setShowSettings(false)}
           unlocked={unlocked}
           activeTheme={activeTheme} setActiveTheme={setActiveTheme}
+          gameThemes={gameThemes} setGameThemes={setGameThemes}
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
           install={installPrompt}
           onOpenAbout={()=>setShowAbout(true)}

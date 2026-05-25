@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle } from "lucide-react";
+import { ChevronLeft, ChevronDown, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, LT, GOLD } from "../../data/themes.js";
+import { THEMABLE_GAMES, getThemesForGame, getActiveTheme, isThemeUnlocked } from "../../data/gameThemes.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 import { useTranslation } from "../../i18n/index.js";
 import {
@@ -23,7 +24,7 @@ import {
    - L'item premium (applyAs:'theme'/'skin') s'affiche aussi dans son onglet
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, userCode, restorePin, C }) {
+export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, gameThemes, setGameThemes, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, userCode, restorePin, C }) {
   const { t, lang, setLang, localizedField } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
@@ -32,6 +33,9 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
   const [codeCopied,       setCodeCopied]       = useState(false);
   /* Carte 'Mes infos de récupération' collapsée par défaut (trop volumineuse) */
   const [recoveryRevealed, setRecoveryRevealed] = useState(false);
+  /* Section "Thèmes de jeu" — un seul jeu déplié à la fois (accordéon).
+     null = tout collapsé. */
+  const [expandedGame, setExpandedGame] = useState(null);
 
   const copyText = async (txt, kind) => {
     try{
@@ -148,6 +152,119 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             )}
           </div>
         </section>
+
+        {/* Thèmes de mini-jeu — accordéon par jeu. Cf. data/gameThemes.js.
+            Le default est toujours débloqué. Les locked apparaissent grisés
+            avec leur prix (achat via la boutique). */}
+        {setGameThemes && (
+          <section>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_game_themes')}</div>
+            <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:8, display:'flex', flexDirection:'column' }}>
+              {THEMABLE_GAMES.map((gameId, idx) => {
+                const themes      = getThemesForGame(gameId);
+                const activeTh    = getActiveTheme(gameId, gameThemes);
+                const isExpanded  = expandedGame === gameId;
+                return (
+                  <div key={gameId}>
+                    {/* Header de jeu — tap pour expand */}
+                    <button
+                      onClick={() => { playSound('tap'); setExpandedGame(isExpanded ? null : gameId); }}
+                      style={{
+                        width:'100%', display:'flex', alignItems:'center', gap:12,
+                        padding:'10px 8px', background:'transparent', border:'none',
+                        cursor:'pointer', textAlign:'left',
+                        borderTop: idx > 0 ? `1px solid ${C.border}` : 'none',
+                      }}
+                    >
+                      <div style={{
+                        width:36, height:36, borderRadius:10,
+                        background:'rgba(212,160,23,.12)',
+                        border:'1px solid rgba(212,160,23,.3)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        fontSize:20, flexShrink:0,
+                      }}>
+                        {activeTh?.preview || '🎮'}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                          {t('games_list.' + gameId + '_title')}
+                        </div>
+                        <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>
+                          {localizedField(activeTh || {}, 'name') || '—'}
+                          {activeTh?.type === 'variant' && (
+                            <span style={{ marginLeft:6, fontSize:9, fontWeight:800, color:'#D4A017' }}>VARIANTE</span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronDown
+                        size={18}
+                        color={C.muted}
+                        style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}
+                      />
+                    </button>
+
+                    {/* Liste dépliée des thèmes du jeu */}
+                    {isExpanded && (
+                      <div style={{ display:'flex', flexDirection:'column', gap:6, padding:'0 4px 10px' }}>
+                        {themes.map(theme => {
+                          const unlocked_ = isThemeUnlocked(theme, unlocked);
+                          const isActive  = activeTh?.id === theme.id;
+                          return (
+                            <button
+                              key={theme.id}
+                              onClick={() => {
+                                if(!unlocked_) return;
+                                playSound('tap');
+                                setGameThemes({ ...gameThemes, [gameId]: theme.id });
+                              }}
+                              disabled={!unlocked_}
+                              style={{
+                                display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12,
+                                background: isActive ? 'rgba(212,160,23,.12)' : 'transparent',
+                                border: `1.5px solid ${isActive ? '#D4A017' : C.border}`,
+                                cursor: unlocked_ ? 'pointer' : 'not-allowed',
+                                opacity: unlocked_ ? 1 : 0.55,
+                                textAlign:'left', width:'100%',
+                              }}
+                            >
+                              <div style={{
+                                width:32, height:32, borderRadius:9,
+                                background:LT.bg, border:`1px solid ${LT.border}`,
+                                display:'flex', alignItems:'center', justifyContent:'center',
+                                fontSize:18, flexShrink:0,
+                              }}>
+                                {theme.preview || '🎨'}
+                              </div>
+                              <div style={{ flex:1, minWidth:0 }}>
+                                <div style={{ fontSize:12, fontWeight:800, color:C.text, display:'flex', alignItems:'center', gap:6 }}>
+                                  {localizedField(theme, 'name')}
+                                  {theme.type === 'variant' && (
+                                    <span style={{ fontSize:8, fontWeight:800, color:'#D4A017', padding:'1px 5px', borderRadius:8, background:'rgba(212,160,23,.15)', border:'1px solid rgba(212,160,23,.4)' }}>VARIANTE</span>
+                                  )}
+                                </div>
+                                <div style={{ fontSize:10, color:C.muted, marginTop:1 }}>
+                                  {localizedField(theme, 'description')}
+                                </div>
+                              </div>
+                              {isActive ? (
+                                <Check size={16} color="#D4A017" />
+                              ) : !unlocked_ ? (
+                                <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, fontWeight:800, color:C.muted }}>
+                                  <Lock size={11} />
+                                  <span>{theme.cost}{theme.currency === 'cafe' ? '☕' : '🍪'}</span>
+                                </div>
+                              ) : null}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* Audio (BRIEF_AUDIO) */}
         <section>

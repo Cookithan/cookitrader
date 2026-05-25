@@ -5,6 +5,7 @@ import { COMMANDES_EN } from "../../i18n/commandesEn.js";
 import { CafeScene, CUSTOMERS, LEGENDARY_BARISTAS } from "./CafeScene.jsx";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
+import { getActiveTheme } from "../../data/gameThemes.js";
 
 /* Question fictive utilisée quand le slot tombe sur le barista
    légendaire (drop 0.5% par partie). Texte = bulle qui révèle le code
@@ -167,8 +168,12 @@ function pickCustomerIndices(n, max){
   return result;
 }
 
-export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, C }){
   const { t, lang } = useTranslation();
+  /* Thème actif — change l'accent color (barre de progression, coche). */
+  const guessTheme  = getActiveTheme('guess', gameThemes || {});
+  const gtd         = guessTheme?.data || {};
+  const accentColor = gtd.accentColor || '#C17F3C';
   /* Niveau 10+ : 7 questions par partie au lieu de 5, pour le même
      palier de récompense (= plus exigeant, pas plus rentable). */
   const NB_QUESTIONS = level >= 10 ? 7 : 5;
@@ -404,7 +409,7 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
         <div style={{
           height:'100%', borderRadius:3,
           width: `${((phase==='playing' ? qIndex : phase==='done' ? NB_QUESTIONS : 0) / NB_QUESTIONS) * 100}%`,
-          background: 'linear-gradient(90deg, #C17F3C, #D4A017)',
+          background: `linear-gradient(90deg, ${accentColor}, #D4A017)`,
           transition: 'width .4s ease',
         }} />
       </div>
