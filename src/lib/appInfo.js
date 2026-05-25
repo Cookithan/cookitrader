@@ -13,7 +13,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.24.0',
+  version: '1.25.0',
   releaseDate: '2026-05-26',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -21,6 +21,22 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.25.0',
+    date: '2026-05-26',
+    title: '⚡ Café Express plus fluide, plus long, plus libre',
+    title_en: '⚡ Café Express smoother, longer, more flexible',
+    changes: [
+      "⚡ Café Express tourne fluide sur tous les téléphones — fix d'un bug où le jeu était trop lent sur certains appareils",
+      "⏱ Choisis la durée de ta partie : 60s, 2 min ou 3 min (paliers de récompense scalés en conséquence)",
+      "🎨 Switche de thème directement depuis l'écran de Café Express, plus besoin d'aller dans les Paramètres",
+    ],
+    changes_en: [
+      "⚡ Café Express now runs smoothly on all phones — fixed a bug where the game was too slow on some devices",
+      "⏱ Choose your match duration: 60s, 2 min or 3 min (reward tiers scale accordingly)",
+      "🎨 Switch theme straight from the Café Express screen — no need to open Settings",
+    ],
+  },
   {
     version: '1.24.0',
     date: '2026-05-26',
@@ -95,34 +111,6 @@ export const CHANGELOG = [
       "🎡 The wheel is rebalanced and scaled to your level — three tiers of stakes and rewards, more suspense",
       "🌍 The \"Guess the order\" mini-game is now fully translated to English",
       "📊 Every leaderboard row shows the weekly score AND the player's all-time total",
-    ],
-  },
-  {
-    version: '1.20.1',
-    date: '2026-05-14',
-    title: '🎟️ Codes promo verrouillés cross-device',
-    title_en: '🎟️ Promo codes locked cross-device',
-    changes: [
-      "🎟️ Les codes promo ne peuvent plus être réutilisés en changeant d'appareil — un code = une seule fois par compte, où que tu te connectes",
-    ],
-    changes_en: [
-      "🎟️ Promo codes can no longer be reused by switching devices — one code = one redemption per account, anywhere you log in",
-    ],
-  },
-  {
-    version: '1.20.0',
-    date: '2026-05-14',
-    title: '🌍 App bilingue FR / EN + marché libéré',
-    title_en: '🌍 Bilingual app FR / EN + market unleashed',
-    changes: [
-      "🌍 L'app est maintenant entièrement traduite en anglais — bascule la langue depuis les Paramètres",
-      "📈 Le marché ne tire plus le prix vers 100 — la courbe peut s'envoler ou plonger plus longtemps",
-      "🔔 Les pops d'amis acceptés ne réapparaissent plus quand tu te connectes sur un autre appareil",
-    ],
-    changes_en: [
-      "🌍 The app is now fully translated to English — switch language from Settings",
-      "📈 The market no longer pulls the price back toward 100 — the curve can fly higher or dive longer",
-      "🔔 Accepted-friend pop-ups no longer reappear when you log in on another device",
     ],
   },
 ];
