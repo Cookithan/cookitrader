@@ -43,11 +43,12 @@ import { useLocalStorage } from "../../hooks/useLocalStorage.js";
 ═══════════════════════════════════════════════════════ */
 
 const REFRESH_MS = 30_000;
-/* Bump v3 : retour à un classement HEBDOMADAIRE (weekly_earned filtré
-   sur le week_id courant). Le classement visible se réinitialise donc
-   chaque vendredi. Le cache v2 contenait des `total_earned`/myRank
-   lifetime qui ne correspondent plus — invalidation forcée par la clé. */
-const CACHE_KEY_COOKIES = 'leaderboard:cache:v4';
+/* Bump v5 (2026-05-25) : la vue weekly filtre strictement les joueurs
+   ayant gagné > 0 cookies cette semaine (au lieu de les afficher à 0
+   départagés par niveau). L'ancien cache contenait ces inactifs — il
+   faut l'invalider pour ne pas montrer un état périmé pendant le 1er
+   fetch après la mise à jour. */
+const CACHE_KEY_COOKIES = 'leaderboard:cache:v5';
 const CACHE_KEY_MARKET  = 'leaderboard:market:cache';
 
 function loadCache(key){
@@ -242,26 +243,25 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         saveCache(cacheKey, { list:ranked, myRank:effectiveRank, total:count, online:onlineN });
         return;
       }
-      /* Le serveur renvoie le top par weekly_earned brut. On neutralise
-         à 0 le score des joueurs dont le weekly_week_id ≠ semaine
-         courante (= pas rejoué depuis le reset) puis on re-trie :
-           1. score hebdo décroissant (gagner ne serait-ce qu'1 🍪 cette
-              semaine fait passer DEVANT tous ceux encore à 0)
-           2. à égalité (typiquement tout le monde à 0 juste après le
-              reset) → départage par NIVEAU décroissant
-           3. ultime stabilisateur → ACTIVITÉ RÉCENTE (last_active).
-              ⚠️ surtout PAS total_earned ici : ça reproduirait à
-              l'identique l'ancien classement all-time juste après un
-              reset (mêmes gros joueurs en tête → "le classement
-              d'avant est revenu"). Le total reste affiché en
-              sous-ligne (info) mais ne pilote PLUS l'ordre.
-         Ainsi le classement n'est jamais vide et "reset" chaque vendredi. */
+      /* Le serveur renvoie le top par weekly_earned brut. Côté client :
+           1. on calcule `_wk` : weekly_earned si la row appartient à la
+              semaine courante, 0 sinon (anciens scores neutralisés)
+           2. on FILTRE pour ne garder que les joueurs ayant gagné > 0
+              cookies cette semaine — un classement de la semaine doit
+              refléter qui a joué CETTE semaine, pas qui était bien placé
+              avant le reset
+           3. tri : score hebdo desc → niveau (départage à égalité) →
+              activité récente (stabilisateur). Surtout PAS total_earned
+              qui reproduirait l'ancien classement all-time.
+         Juste après un reset, la liste est vide jusqu'au 1er gain de la
+         semaine — l'UI affiche le placeholder `no_players_this_week`. */
       const lastActiveMs = p => { const t = p.last_active ? new Date(p.last_active).getTime() : 0; return Number.isFinite(t) ? t : 0; };
       const ranked = (leaderboard || [])
         .map(p => ({
           ...p,
           _wk: p.weekly_week_id === weekId ? Number(p.weekly_earned) || 0 : 0,
         }))
+        .filter(p => p._wk > 0)
         .sort((a, b) =>
           b._wk - a._wk
           || (Number(b.level) || 0) - (Number(a.level) || 0)
@@ -460,7 +460,7 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
           background:C.card, border:`1px dashed ${C.border}`,
           borderRadius:14, padding:20, textAlign:'center', color:C.muted, fontSize:12,
         }}>
-          {t('leaderboard.no_players_yet')}
+          {t(view === 'weekly' ? 'leaderboard.no_players_this_week' : 'leaderboard.no_players_yet')}
         </div>
       ) : (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5 } from "lucide-react";
 
-import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, DAILY_REWARDS, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
+import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
@@ -1227,6 +1227,20 @@ export default function CookiMiner() {
     setTutorialStep(0);
     setTab('accueil');
     try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
+  };
+
+  /* Relance manuelle du tuto depuis les paramètres. Ferme tout overlay
+     pour que le spotlight ne soit pas masqué, recale sur l'accueil, puis
+     démarre à l'étape 1. On ne touche PAS au LS `tutorialCompleted` :
+     setTutorialStep(1) bypass directement le useEffect d'auto-start. */
+  const restartTutorial = () => {
+    setShowSettings(false);
+    setShowProfile(false);
+    setShowLevels(false);
+    setShowAbout(false);
+    setShowInbox(false);
+    setTab('accueil');
+    setTutorialStep(1);
   };
 
   const lvRef = useRef(level); lvRef.current = level;
@@ -3018,7 +3032,9 @@ export default function CookiMiner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCode, pullDone]);
 
-  const checkinReward = DAILY_REWARDS[streak % 7];
+  /* Récompense du PROCHAIN check-in — objet {coins, cafes, weekIdx, dayIdx,
+     isJackpot, maxTier}. Cf. getCheckinReward dans data/constants.js. */
+  const checkinReward = getCheckinReward(streak);
   const resetProgress = () => {
     /* Supabase : supprime le profil online en arrière-plan pour qu'il
        disparaisse du classement et des amis qui m'avaient ajouté.
@@ -3094,7 +3110,11 @@ export default function CookiMiner() {
 
   const doCheckin    = ()=>{
     playSound('coin');
-    addCoins(checkinReward);
+    /* Verse cookies ET/OU cafés selon la grille (J7 et J14 sont des
+       jackpots CF purs — 0 🍪). Confirmé explicitement comme sources CF
+       validées : 2 ☕ au J7, 3 ☕ au J14. */
+    if(checkinReward.coins > 0) addCoins(checkinReward.coins);
+    if(checkinReward.cafes > 0) addCafes(checkinReward.cafes);
     const today = new Date().toDateString();
     const yesterday = new Date(Date.now() - 24*60*60*1000).toDateString();
     /* Streak save : si lastCheckin n'est NI hier NI null, l'user a raté
@@ -3445,7 +3465,7 @@ export default function CookiMiner() {
      - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
        le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: t('games_list.checkin_reward', { n: checkinReward }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: checkinReward.isJackpot ? t('games_list.checkin_reward_cf', { n: checkinReward.cafes }) : t('games_list.checkin_reward', { n: checkinReward.coins }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
     { id:'quiz',    Icon:Star,              title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
     { id:'spin',    Icon:CircleDot,         title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
     { id:'click',   Icon:MousePointerClick, title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
@@ -3476,13 +3496,25 @@ export default function CookiMiner() {
     );
   }
 
+  /* Pendant le tuto, on bloque TOUS les pop-ups auto pour ne pas masquer
+     les bulles. Couvre : NewVersion, Maintenance, ForceUpdate, FriendNotif,
+     Announcement, CommunityMilestone, Event, WeeklyChamp, Sanction, Payment,
+     CafesReset, SecretBadge, LevelUp, Achievement, MarketRefund, BossEvent,
+     coffrets. Les overlays user-triggered (Settings, Profile…) restent
+     ouvrables mais c'est volontaire car ils ne pop pas tout seuls.
+     Les pop-ups bloqués réapparaîtront naturellement à la fin du tuto
+     (les états sont conservés, seul le rendu est gaté). */
+  const inTutorial = tutorialStep > 0;
+
   return (
     <>
-    <AnnouncementModal
-      message={systemStatus.banner_message}
-      severity={systemStatus.banner_severity}
-    />
-    {milestoneReward && (
+    {!inTutorial && (
+      <AnnouncementModal
+        message={systemStatus.banner_message}
+        severity={systemStatus.banner_severity}
+      />
+    )}
+    {!inTutorial && milestoneReward && (
       <CommunityMilestoneModal
         threshold={milestoneReward.threshold}
         cookieReward={milestoneReward.cookieReward}
@@ -3491,7 +3523,7 @@ export default function CookiMiner() {
         C={C}
       />
     )}
-    {openingBox && (
+    {!inTutorial && openingBox && (
       <BoxOpenAnimation
         boxName={openingBox.name}
         boxEmoji={openingBox.emoji}
@@ -3499,7 +3531,7 @@ export default function CookiMiner() {
         onCollect={() => setOpeningBox(null)}
       />
     )}
-    {openingChest && (
+    {!inTutorial && openingChest && (
       <ChestOpenAnimation
         chest={openingChest.chest}
         items={openingChest.items}
@@ -4245,7 +4277,7 @@ export default function CookiMiner() {
       {/* BOSS COMMUNAUTAIRE — Le Gâteau Géant. S'ouvre au tap sur la
           bannière (showBoss) OU automatiquement après l'auto-crédit
           d'une victoire (bossReward) pour montrer l'écran de victoire. */}
-      {(showBoss || bossReward || bossPenalty) && communityBoss && (
+      {!inTutorial && (showBoss || bossReward || bossPenalty) && communityBoss && (
         <BossEventOverlay
           boss={communityBoss}
           myDamage={bossMyDamage}
@@ -4269,7 +4301,7 @@ export default function CookiMiner() {
           - au clic sur la bannière en phase 'waiting' (teasing
             + trophées déjà gagnés)
           - au clic sur la bannière en phase 'active' (rappel) */}
-      {showEventModal && activeEvent && (
+      {!inTutorial && showEventModal && activeEvent && (
         <EventAnnounceModal
           event={activeEvent}
           completedEvents={completedEvents}
@@ -4283,7 +4315,7 @@ export default function CookiMiner() {
           C={C}
         />
       )}
-      {eventReward && (
+      {!inTutorial && eventReward && (
         <EventRewardModal
           reward={eventReward}
           /* La même modale sert pour les events et pour les codes promo
@@ -4314,6 +4346,7 @@ export default function CookiMiner() {
           onOpenRestore={()=>setRestoreMode('replace')}
           onStartNewAccount={handleStartNewAccount}
           onOpenPromoCode={()=>setShowPromoCode(true)}
+          onRestartTutorial={restartTutorial}
           userCode={userCode}
           restorePin={restorePin}
           C={C}
@@ -4342,7 +4375,7 @@ export default function CookiMiner() {
       )}
 
       {/* MARKET REFUND MODAL — excuses + compensation pour ex-investisseurs */}
-      {marketRefundAmount && (
+      {!inTutorial && marketRefundAmount && (
         <MarketRefundModal
           amount={marketRefundAmount}
           onClose={()=>setMarketRefundAmount(null)}
@@ -4351,7 +4384,7 @@ export default function CookiMiner() {
       )}
 
       {/* WEEKLY CHAMP MODAL — récompense top 3 du classement hebdo */}
-      {weeklyChampReward && (
+      {!inTutorial && weeklyChampReward && (
         <WeeklyChampModal
           rank={weeklyChampReward.rank}
           cafes={weeklyChampReward.cafes}
@@ -4362,7 +4395,7 @@ export default function CookiMiner() {
       )}
 
       {/* SANCTION APPLIED MODAL — avertissement post-débit administratif */}
-      {sanctionApplied && (
+      {!inTutorial && sanctionApplied && (
         <SanctionAppliedModal
           amount={sanctionApplied.amount}
           sharesDebit={sanctionApplied.sharesDebit || 0}
@@ -4374,7 +4407,7 @@ export default function CookiMiner() {
 
 
       {/* PAYMENT SUCCESS MODAL — popup festif post-achat Stripe */}
-      {paymentReceived && (
+      {!inTutorial && paymentReceived && (
         <PaymentSuccessModal
           cafesReceived={paymentReceived}
           onClose={()=>setPaymentReceived(null)}
@@ -4383,7 +4416,7 @@ export default function CookiMiner() {
       )}
 
       {/* CAFES RESET NOTICE — annonce 1× de la refonte économie premium */}
-      {showCafesResetNotice && (
+      {!inTutorial && showCafesResetNotice && (
         <CafesResetNoticeModal
           onClose={()=>setShowCafesResetNotice(false)}
           C={C}
@@ -4400,7 +4433,7 @@ export default function CookiMiner() {
 
       {/* NEW VERSION POPUP — pop si lastSeenVersion ≠ APP_INFO.version
           (sauf fresh install). Au close, marque la version comme vue. */}
-      {showNewVersion && (
+      {!inTutorial && showNewVersion && (
         <NewVersionModal
           onClose={() => {
             setShowNewVersion(false);
@@ -4414,7 +4447,7 @@ export default function CookiMiner() {
       {/* MAINTENANCE LIVE WARNING — pop quand system_status.maintenance_mode
           passe à true en cours de session. 30s de grace puis bascule sur
           MaintenanceScreen plein écran. */}
-      {showMaintenanceWarning && (
+      {!inTutorial && showMaintenanceWarning && (
         <MaintenanceWarningModal
           title={systemStatus.maintenance_title}
           subtitle={systemStatus.maintenance_subtitle}
@@ -4427,7 +4460,7 @@ export default function CookiMiner() {
 
       {/* FORCE UPDATE — pop quand system_status.force_version > APP_INFO.version.
           Permet de notifier les clients ouverts qu'un nouveau bundle est dispo. */}
-      {showForceUpdate && (
+      {!inTutorial && showForceUpdate && (
         <ForceUpdateModal
           targetVersion={systemStatus.force_version}
           onDismiss={() => setForceUpdateDismissed(true)}
@@ -4495,7 +4528,7 @@ export default function CookiMiner() {
 
       {/* NOTIF AMIS (au lancement) — file FIFO, on dépile une notif à la fois.
           'Voir' (received) → ferme la modale et ouvre le profil. */}
-      {pendingFriendNotifs.length > 0 && (
+      {!inTutorial && pendingFriendNotifs.length > 0 && (
         <FriendNotificationModal
           notification={pendingFriendNotifs[0]}
           onClose={()=>setPendingFriendNotifs(n => n.slice(1))}
@@ -4522,7 +4555,7 @@ export default function CookiMiner() {
 
       {/* BADGE SECRET DÉBLOQUÉ — modale festive en file FIFO
           (BRIEF_BADGES_SECRETS). Mode Admin enchaîne les 3. */}
-      {secretBadgeReward && (
+      {!inTutorial && secretBadgeReward && (
         <SecretBadgeUnlockModal
           key={secretBadgeReward.id}
           badge={secretBadgeReward}
@@ -4535,11 +4568,11 @@ export default function CookiMiner() {
       {showLevels && <LevelsModal currentLevel={level} xp={xp} xpReq={xpReq} onClose={()=>setShowLevels(false)} C={C} />}
 
       {/* LEVEL UP MODAL */}
-      {pendingLvUp && <LevelUpModal level={pendingLvUp} onCollect={()=>setPendingLvUp(null)} />}
+      {!inTutorial && pendingLvUp && <LevelUpModal level={pendingLvUp} onCollect={()=>setPendingLvUp(null)} />}
 
       {/* CAP ANTI-ÉCART TOP 1 — total_earned déjà recalé silencieusement
           à pile 30 % d'avance, le popup explique juste pourquoi. */}
-      {gapWarning && !pendingLvUp && (
+      {!inTutorial && gapWarning && !pendingLvUp && (
         <LeaderGapWarningModal
           myTotal={gapWarning.myTotal}
           topTwo={gapWarning.topTwo}
@@ -4550,7 +4583,7 @@ export default function CookiMiner() {
       )}
 
       {/* ACHIEVEMENT MODAL */}
-      {pendingAchievement && !pendingLvUp && (
+      {!inTutorial && pendingAchievement && !pendingLvUp && (
         <AchievementModal achievement={pendingAchievement} onCollect={collectAchievement} />
       )}
 

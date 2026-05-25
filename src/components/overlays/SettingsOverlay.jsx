@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe } from "lucide-react";
+import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { THEMES, LT, GOLD } from "../../data/themes.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
@@ -23,7 +23,7 @@ import {
    - L'item premium (applyAs:'theme'/'skin') s'affiche aussi dans son onglet
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, userCode, restorePin, C }) {
+export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, userCode, restorePin, C }) {
   const { t, lang, setLang, localizedField } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
@@ -634,6 +634,44 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>↗</span>
           </a>
         </section>
+
+        {/* Aide — refaire le tutoriel guidé */}
+        {onRestartTutorial && (
+          <section>
+            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_help')}</div>
+            <button
+              onClick={() => { playSound('modal'); onRestartTutorial(); }}
+              style={{
+                width:'100%', borderRadius:16,
+                background:C.card, border:`1px solid ${C.border}`,
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.12)',
+                  border:'1px solid rgba(212,160,23,.3)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0,
+                }}>
+                  <HelpCircle size={18} color="#D4A017" />
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    {t('settings.restart_tutorial_title')}
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    {t('settings.restart_tutorial_sub')}
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
+            </button>
+          </section>
+        )}
 
         {/* À propos — version, changelog, stats communauté */}
         {onOpenAbout && (

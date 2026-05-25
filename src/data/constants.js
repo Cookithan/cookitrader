@@ -5,7 +5,8 @@
                     · 1..5  → level*100+50  (linéaire, montée rapide)
                     · 6..9  → level²*50     (palier durci pour le end-game)
    - SEGMENTS    : 11 segments de la roue (valeur, label, weight, color)
-   - DAILY_REWARDS : check-in J1..J7 (J7 = jackpot hebdo)
+   - DAILY_REWARDS / DAILY_CAFES : check-in 2 semaines (J7=2☕, J14=3☕, J15+=200🍪/jour)
+   - getCheckinReward(streak) : helper qui retourne {coins, cafes, weekIdx, dayIdx, isJackpot, maxTier}
    - REWARDS     : tous les items boutique (Badge / Titre / Thème / Avatar / Skin / Roue / Premium)
    - ACHIEVEMENTS: succès
    - QUESTIONS   : pool quiz, chacune a difficulty + reward + 4 choices
@@ -153,8 +154,40 @@ export function getSegmentsForLevel(level){
    aux 3 tiers, donc n'importe lequel convient pour les angles. */
 export const SEGMENTS = SEGMENTS_MID;
 
-/* Récompenses check-in : index = jour dans la semaine (0..6). Jour 7 = jackpot. */
-export const DAILY_REWARDS = [15, 20, 30, 40, 55, 75, 200];
+/* Récompenses check-in — 2 semaines progressives (refonte 2026-05-25).
+   - Semaine 1 (streak 0→6) : 15, 20, 30, 40, 55, 75, jackpot 2 ☕
+   - Semaine 2 (streak 7→13) : 80, 100, 130, 160, 180, 200, jackpot 3 ☕
+   - Streak ≥ 14 : palier max = 200 🍪/jour (entretien), grille reste pleine S2.
+   Les jackpots J7/J14 versent UNIQUEMENT du ☕ (0 🍪). Validé explicitement
+   comme nouvelles sources CF — ne pas étendre sans confirmation. */
+export const DAILY_REWARDS = [
+  [15,  20,  30,  40,  55,  75,  0],   // S1 cookies (J7=0, jackpot CF)
+  [80, 100, 130, 160, 180, 200,  0],   // S2 cookies (J14=0, jackpot CF)
+];
+export const DAILY_CAFES = [
+  [0, 0, 0, 0, 0, 0, 2],   // S1 — J7 = 2 ☕
+  [0, 0, 0, 0, 0, 0, 3],   // S2 — J14 = 3 ☕
+];
+/* Retourne ce que va donner le PROCHAIN check-in (streak = nombre de
+   check-ins déjà consécutifs avant celui-ci). Streak ≥ 14 = palier max S2.
+   - coins/cafes : montants à verser
+   - weekIdx (0|1) / dayIdx (0..6) : position dans la grille pour l'UI
+   - isJackpot : true au J7 et au J14
+   - maxTier  : true à partir du streak 14 (entretien éternel) */
+export function getCheckinReward(streak){
+  if(streak >= 14){
+    return { coins:200, cafes:0, weekIdx:1, dayIdx:5, isJackpot:false, maxTier:true };
+  }
+  const weekIdx = streak < 7 ? 0 : 1;
+  const dayIdx  = streak % 7;
+  return {
+    coins:     DAILY_REWARDS[weekIdx][dayIdx],
+    cafes:     DAILY_CAFES  [weekIdx][dayIdx],
+    weekIdx, dayIdx,
+    isJackpot: dayIdx === 6,
+    maxTier:   false,
+  };
+}
 
 export const REWARDS = [
   // BADGES
