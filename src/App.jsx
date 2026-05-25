@@ -1229,6 +1229,20 @@ export default function CookiMiner() {
     try{ window.localStorage.setItem('cookiminer:tutorialCompleted', '1'); }catch{}
   };
 
+  /* Relance manuelle du tuto depuis les paramètres. Ferme tout overlay
+     pour que le spotlight ne soit pas masqué, recale sur l'accueil, puis
+     démarre à l'étape 1. On ne touche PAS au LS `tutorialCompleted` :
+     setTutorialStep(1) bypass directement le useEffect d'auto-start. */
+  const restartTutorial = () => {
+    setShowSettings(false);
+    setShowProfile(false);
+    setShowLevels(false);
+    setShowAbout(false);
+    setShowInbox(false);
+    setTab('accueil');
+    setTutorialStep(1);
+  };
+
   const lvRef = useRef(level); lvRef.current = level;
   const xpRef = useRef(xp);    xpRef.current = xp;
 
@@ -3482,13 +3496,25 @@ export default function CookiMiner() {
     );
   }
 
+  /* Pendant le tuto, on bloque TOUS les pop-ups auto pour ne pas masquer
+     les bulles. Couvre : NewVersion, Maintenance, ForceUpdate, FriendNotif,
+     Announcement, CommunityMilestone, Event, WeeklyChamp, Sanction, Payment,
+     CafesReset, SecretBadge, LevelUp, Achievement, MarketRefund, BossEvent,
+     coffrets. Les overlays user-triggered (Settings, Profile…) restent
+     ouvrables mais c'est volontaire car ils ne pop pas tout seuls.
+     Les pop-ups bloqués réapparaîtront naturellement à la fin du tuto
+     (les états sont conservés, seul le rendu est gaté). */
+  const inTutorial = tutorialStep > 0;
+
   return (
     <>
-    <AnnouncementModal
-      message={systemStatus.banner_message}
-      severity={systemStatus.banner_severity}
-    />
-    {milestoneReward && (
+    {!inTutorial && (
+      <AnnouncementModal
+        message={systemStatus.banner_message}
+        severity={systemStatus.banner_severity}
+      />
+    )}
+    {!inTutorial && milestoneReward && (
       <CommunityMilestoneModal
         threshold={milestoneReward.threshold}
         cookieReward={milestoneReward.cookieReward}
@@ -3497,7 +3523,7 @@ export default function CookiMiner() {
         C={C}
       />
     )}
-    {openingBox && (
+    {!inTutorial && openingBox && (
       <BoxOpenAnimation
         boxName={openingBox.name}
         boxEmoji={openingBox.emoji}
@@ -3505,7 +3531,7 @@ export default function CookiMiner() {
         onCollect={() => setOpeningBox(null)}
       />
     )}
-    {openingChest && (
+    {!inTutorial && openingChest && (
       <ChestOpenAnimation
         chest={openingChest.chest}
         items={openingChest.items}
@@ -4251,7 +4277,7 @@ export default function CookiMiner() {
       {/* BOSS COMMUNAUTAIRE — Le Gâteau Géant. S'ouvre au tap sur la
           bannière (showBoss) OU automatiquement après l'auto-crédit
           d'une victoire (bossReward) pour montrer l'écran de victoire. */}
-      {(showBoss || bossReward || bossPenalty) && communityBoss && (
+      {!inTutorial && (showBoss || bossReward || bossPenalty) && communityBoss && (
         <BossEventOverlay
           boss={communityBoss}
           myDamage={bossMyDamage}
@@ -4275,7 +4301,7 @@ export default function CookiMiner() {
           - au clic sur la bannière en phase 'waiting' (teasing
             + trophées déjà gagnés)
           - au clic sur la bannière en phase 'active' (rappel) */}
-      {showEventModal && activeEvent && (
+      {!inTutorial && showEventModal && activeEvent && (
         <EventAnnounceModal
           event={activeEvent}
           completedEvents={completedEvents}
@@ -4289,7 +4315,7 @@ export default function CookiMiner() {
           C={C}
         />
       )}
-      {eventReward && (
+      {!inTutorial && eventReward && (
         <EventRewardModal
           reward={eventReward}
           /* La même modale sert pour les events et pour les codes promo
@@ -4320,6 +4346,7 @@ export default function CookiMiner() {
           onOpenRestore={()=>setRestoreMode('replace')}
           onStartNewAccount={handleStartNewAccount}
           onOpenPromoCode={()=>setShowPromoCode(true)}
+          onRestartTutorial={restartTutorial}
           userCode={userCode}
           restorePin={restorePin}
           C={C}
@@ -4348,7 +4375,7 @@ export default function CookiMiner() {
       )}
 
       {/* MARKET REFUND MODAL — excuses + compensation pour ex-investisseurs */}
-      {marketRefundAmount && (
+      {!inTutorial && marketRefundAmount && (
         <MarketRefundModal
           amount={marketRefundAmount}
           onClose={()=>setMarketRefundAmount(null)}
@@ -4357,7 +4384,7 @@ export default function CookiMiner() {
       )}
 
       {/* WEEKLY CHAMP MODAL — récompense top 3 du classement hebdo */}
-      {weeklyChampReward && (
+      {!inTutorial && weeklyChampReward && (
         <WeeklyChampModal
           rank={weeklyChampReward.rank}
           cafes={weeklyChampReward.cafes}
@@ -4368,7 +4395,7 @@ export default function CookiMiner() {
       )}
 
       {/* SANCTION APPLIED MODAL — avertissement post-débit administratif */}
-      {sanctionApplied && (
+      {!inTutorial && sanctionApplied && (
         <SanctionAppliedModal
           amount={sanctionApplied.amount}
           sharesDebit={sanctionApplied.sharesDebit || 0}
@@ -4380,7 +4407,7 @@ export default function CookiMiner() {
 
 
       {/* PAYMENT SUCCESS MODAL — popup festif post-achat Stripe */}
-      {paymentReceived && (
+      {!inTutorial && paymentReceived && (
         <PaymentSuccessModal
           cafesReceived={paymentReceived}
           onClose={()=>setPaymentReceived(null)}
@@ -4389,7 +4416,7 @@ export default function CookiMiner() {
       )}
 
       {/* CAFES RESET NOTICE — annonce 1× de la refonte économie premium */}
-      {showCafesResetNotice && (
+      {!inTutorial && showCafesResetNotice && (
         <CafesResetNoticeModal
           onClose={()=>setShowCafesResetNotice(false)}
           C={C}
@@ -4406,7 +4433,7 @@ export default function CookiMiner() {
 
       {/* NEW VERSION POPUP — pop si lastSeenVersion ≠ APP_INFO.version
           (sauf fresh install). Au close, marque la version comme vue. */}
-      {showNewVersion && (
+      {!inTutorial && showNewVersion && (
         <NewVersionModal
           onClose={() => {
             setShowNewVersion(false);
@@ -4420,7 +4447,7 @@ export default function CookiMiner() {
       {/* MAINTENANCE LIVE WARNING — pop quand system_status.maintenance_mode
           passe à true en cours de session. 30s de grace puis bascule sur
           MaintenanceScreen plein écran. */}
-      {showMaintenanceWarning && (
+      {!inTutorial && showMaintenanceWarning && (
         <MaintenanceWarningModal
           title={systemStatus.maintenance_title}
           subtitle={systemStatus.maintenance_subtitle}
@@ -4433,7 +4460,7 @@ export default function CookiMiner() {
 
       {/* FORCE UPDATE — pop quand system_status.force_version > APP_INFO.version.
           Permet de notifier les clients ouverts qu'un nouveau bundle est dispo. */}
-      {showForceUpdate && (
+      {!inTutorial && showForceUpdate && (
         <ForceUpdateModal
           targetVersion={systemStatus.force_version}
           onDismiss={() => setForceUpdateDismissed(true)}
@@ -4501,7 +4528,7 @@ export default function CookiMiner() {
 
       {/* NOTIF AMIS (au lancement) — file FIFO, on dépile une notif à la fois.
           'Voir' (received) → ferme la modale et ouvre le profil. */}
-      {pendingFriendNotifs.length > 0 && (
+      {!inTutorial && pendingFriendNotifs.length > 0 && (
         <FriendNotificationModal
           notification={pendingFriendNotifs[0]}
           onClose={()=>setPendingFriendNotifs(n => n.slice(1))}
@@ -4528,7 +4555,7 @@ export default function CookiMiner() {
 
       {/* BADGE SECRET DÉBLOQUÉ — modale festive en file FIFO
           (BRIEF_BADGES_SECRETS). Mode Admin enchaîne les 3. */}
-      {secretBadgeReward && (
+      {!inTutorial && secretBadgeReward && (
         <SecretBadgeUnlockModal
           key={secretBadgeReward.id}
           badge={secretBadgeReward}
@@ -4541,11 +4568,11 @@ export default function CookiMiner() {
       {showLevels && <LevelsModal currentLevel={level} xp={xp} xpReq={xpReq} onClose={()=>setShowLevels(false)} C={C} />}
 
       {/* LEVEL UP MODAL */}
-      {pendingLvUp && <LevelUpModal level={pendingLvUp} onCollect={()=>setPendingLvUp(null)} />}
+      {!inTutorial && pendingLvUp && <LevelUpModal level={pendingLvUp} onCollect={()=>setPendingLvUp(null)} />}
 
       {/* CAP ANTI-ÉCART TOP 1 — total_earned déjà recalé silencieusement
           à pile 30 % d'avance, le popup explique juste pourquoi. */}
-      {gapWarning && !pendingLvUp && (
+      {!inTutorial && gapWarning && !pendingLvUp && (
         <LeaderGapWarningModal
           myTotal={gapWarning.myTotal}
           topTwo={gapWarning.topTwo}
@@ -4556,7 +4583,7 @@ export default function CookiMiner() {
       )}
 
       {/* ACHIEVEMENT MODAL */}
-      {pendingAchievement && !pendingLvUp && (
+      {!inTutorial && pendingAchievement && !pendingLvUp && (
         <AchievementModal achievement={pendingAchievement} onCollect={collectAchievement} />
       )}
 

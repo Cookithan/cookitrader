@@ -68,6 +68,9 @@ export const EN = {
     section_installation:  'INSTALLATION',
     section_community:     'COMMUNITY',
     section_about:         'ABOUT',
+    section_help:          'HELP',
+    restart_tutorial_title: 'Replay the tutorial',
+    restart_tutorial_sub:   'Walk through the guided introduction again',
     section_danger:        'DANGER ZONE',
     theme_default:         'Default',
     theme_default_desc:    'Classic cream',
@@ -276,6 +279,7 @@ export const EN = {
     shares_singular: 'share',
     shares_plural:   'shares',
     no_players_yet:  'No players yet. Be the first!',
+    no_players_this_week:  'Nobody has played this week yet. Start the race!',
     no_traders_yet:  'No traders yet.',
   },
 

@@ -76,6 +76,9 @@ export const FR = {
     section_installation:  'INSTALLATION',
     section_community:     'COMMUNAUTÉ',
     section_about:         'À PROPOS',
+    section_help:          'AIDE',
+    restart_tutorial_title: 'Refaire le tutoriel',
+    restart_tutorial_sub:   'Revoir les étapes guidées de présentation',
     section_danger:        'ZONE SENSIBLE',
     theme_default:         'Défaut',
     theme_default_desc:    'Crème classique',
@@ -290,6 +293,7 @@ export const FR = {
     shares_singular: 'action',
     shares_plural:   'actions',
     no_players_yet:  'Pas encore de joueurs. Sois le premier !',
+    no_players_this_week:  'Personne n\'a encore joué cette semaine. Lance la course !',
     no_traders_yet:  "Aucun trader pour l'instant.",
   },
 
