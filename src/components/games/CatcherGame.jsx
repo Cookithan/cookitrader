@@ -42,8 +42,12 @@ const ICED_LIMIT = 5;
    chance TRANSFORM_PROBA de muter. Calibré pour ressentir la trahison
    sans être unfair (≈ 5-7 % de chance qu'un cookie donné mute avant
    d'atteindre la tasse). */
-const TRANSFORM_PROBA     = 0.0015;
-const TRANSFORM_AFTER_PCT = 0.35;
+const TRANSFORM_PROBA      = 0.0015;
+const TRANSFORM_AFTER_PCT  = 0.35;
+/* Fenêtre d'avertissement avant mutation cookie→glaçon : le cookie
+   VIBRE pendant TRANSFORM_WARNING_MS puis se transforme. Donne au
+   joueur une chance de se rattraper ou de l'esquiver. */
+const TRANSFORM_WARNING_MS = 500;
 
 /* ── TEMPÉRATURE DYNAMIQUE (thème default uniquement) ──────────────
    La tasse a une "température" 0..100 qui module le fond :
@@ -325,19 +329,27 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     for(const it of itemsRef.current){
       const ny = it.y + it.vy * VY_DIR;
 
-      /* Transformation cookie → glaçon en cours de chute (passé ~35 %
-         du chemin). Petite proba par frame pour qu'on ressente la
-         trahison mais que ça reste rare. */
+      /* Transformation cookie → glaçon (2 étapes) :
+         1. déclenchement aléatoire (TRANSFORM_PROBA) après TRANSFORM_AFTER_PCT
+            du chemin → on POSE un `_warning` (timestamp). Le cookie reste
+            un cookie pendant TRANSFORM_WARNING_MS, mais il VIBRE (cf. rendu).
+            Pendant cette fenêtre le joueur peut encore l'attraper en +1.
+         2. à l'expiration du warning, mutation en glaçon + flash blanc-bleu. */
       let curType = it.type;
       let justTransformed = false;
-      if(
-        curType === 'cookie'
-        && !it._transformed
-        && (inverted ? (ny < ARENA_H * (1 - TRANSFORM_AFTER_PCT)) : (ny > ARENA_H * TRANSFORM_AFTER_PCT))
-        && Math.random() < TRANSFORM_PROBA
-      ){
-        curType = 'glacon';
-        justTransformed = true;
+      let warningStart = it._warning || null;
+      if(curType === 'cookie' && !it._transformed){
+        if(warningStart && now - warningStart >= TRANSFORM_WARNING_MS){
+          curType = 'glacon';
+          justTransformed = true;
+          warningStart = null;
+        } else if(
+          !warningStart
+          && (inverted ? (ny < ARENA_H * (1 - TRANSFORM_AFTER_PCT)) : (ny > ARENA_H * TRANSFORM_AFTER_PCT))
+          && Math.random() < TRANSFORM_PROBA
+        ){
+          warningStart = now;
+        }
       }
 
       const itemMidX = it.x + ITEM_SIZE / 2;
@@ -369,6 +381,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
       nextItems.push({
         ...it, y:ny, type:curType,
         wobble: it.wobble + 0.08,
+        _warning: warningStart,
         _transformed: it._transformed || justTransformed,
         _flash: justTransformed ? now : (it._flash && (now - it._flash < 220) ? it._flash : null),
       });
@@ -688,9 +701,12 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
             ajoute un halo blanc-bleuté très visible pour signaler la
             trahison. */}
         {items.map(it => {
-          const wobbleX = Math.sin(it.wobble) * 1.4;
+          const wobbleX  = Math.sin(it.wobble) * 1.4;
           const flashAge = it._flash ? (Date.now() - it._flash) : 999;
           const isFlashing = flashAge < 220;
+          /* Vibration pré-transformation : warning actif tant que pas
+             encore muté (cookie en sursis). Halo bleuté discret + shake. */
+          const isWarning = it._warning && !it._transformed;
           return (
             <div
               key={it.id}
@@ -703,8 +719,11 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
                 display:'flex', alignItems:'center', justifyContent:'center',
                 filter: isFlashing
                   ? 'drop-shadow(0 0 14px rgba(255,255,255,.95)) drop-shadow(0 0 18px rgba(168,200,255,.9))'
-                  : (ITEM_GLOW[it.type] || 'none'),
+                  : isWarning
+                    ? 'drop-shadow(0 0 6px rgba(168,200,255,.7))'
+                    : (ITEM_GLOW[it.type] || 'none'),
                 transform: isFlashing ? `scale(${1.2 - flashAge/1100})` : 'none',
+                animation: isWarning && !isFlashing ? 'shake .12s ease-in-out infinite' : 'none',
                 pointerEvents:'none',
                 transition:'none',
               }}
