@@ -5,6 +5,7 @@ import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { playSound } from "../../lib/audio.js";
 import { getActiveTheme } from "../../data/gameThemes.js";
+import { GameThemeSwitcher } from "./GameThemeSwitcher.jsx";
 
 /* ════════════════════════════════════════════════════
    FlappyGame — Flappy Cookie (PHASE 11/05/2026)
@@ -80,7 +81,7 @@ const MODES = {
   difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10, coffeeRate:0.15 },
 };
 
-export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, C }){
+export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], C }){
   /* Thème actif (skin cosmétique) — change le sky gradient et le pipeColor.
      Lu une seule fois au mount, pas live pendant la partie. */
   const flappyTheme = getActiveTheme('flappy', gameThemes || {});
@@ -435,6 +436,16 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
                 </button>
               );
             })}
+          </div>
+          {/* Switcher de thème — pastilles des skins débloqués (default
+              toujours là). Masqué si rien à changer. */}
+          <div style={{ display:'flex', justifyContent:'center', marginTop:4 }}>
+            <GameThemeSwitcher
+              gameId="flappy"
+              gameThemes={gameThemes}
+              setGameThemes={setGameThemes}
+              unlocked={unlocked}
+            />
           </div>
         </div>
       )}

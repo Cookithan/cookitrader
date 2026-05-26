@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
-import { getActiveTheme, getThemesForGame, isThemeUnlocked } from "../../data/gameThemes.js";
+import { getActiveTheme } from "../../data/gameThemes.js";
+import { GameThemeSwitcher } from "./GameThemeSwitcher.jsx";
 
 /* ════════════════════════════════════════════════════
    CatcherGame — « Café Express » (refonte design)
@@ -220,6 +221,11 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
   const [endCause,     setEndCause]     = useState(null);          /* 'timeout' | 'iced' */
   const [temperature,  setTemperature]  = useState(TEMP_INIT);     /* 0..100, modulé en jeu */
   const [continueUsed, setContinueUsed] = useState(false);          /* continue 1× par partie */
+  /* Scale CSS appliqué au wrapper interne coord-fixed (360×460).
+     Permet aux items d'utiliser `transform: translate3d` en px exacts
+     (GPU-accelerated) plutôt que `top/left` en % (qui force un reflow
+     CPU à chaque frame). Recalculé via ResizeObserver sur l'arena. */
+  const [arenaScale,   setArenaScale]   = useState(1);
 
   const arenaRef         = useRef(null);
   const tasseXRef        = useRef(tasseX);
@@ -245,6 +251,22 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
   const shakeTimeoutRef  = useRef(null);
 
   useEffect(()=>{ phaseRef.current = phase; }, [phase]);
+
+  /* Observe la largeur réelle de l'arena → met à jour arenaScale.
+     Mobile typique : 360px de large → scale=1. Petits écrans (<360px) :
+     scale<1 réduit le wrapper coord-fixed pour fit. */
+  useEffect(()=>{
+    if(!arenaRef.current) return;
+    const update = () => {
+      const w = arenaRef.current?.offsetWidth;
+      if(w && w > 0) setArenaScale(w / ARENA_W);
+    };
+    update();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+    if(ro) ro.observe(arenaRef.current);
+    window.addEventListener('resize', update);
+    return () => { if(ro) ro.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
 
   const startGame = () => {
     if(coins < CATCHER_COST) return;
@@ -327,8 +349,10 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     if(now - lastSpawnRef.current > spawnDelay){
       lastSpawnRef.current = now;
       const type = pickItemType();
-      /* Vitesse de chute initiale 2.0 → ~7.0 en fin de partie (×3.5) */
-      const vy = 2.0 + Math.random() * 1.2 + elapsedRatio * 4.5;
+      /* Vitesse de chute : démarre à 3.5-5 px/frame (~1.3-1.8 s pour
+         traverser l'arena, snappy dès le 1er item), monte à ~8.5 en fin
+         de partie. Avant : 2.0-3.2 (3 s pour tomber = trop mou). */
+      const vy = 3.5 + Math.random() * 1.5 + elapsedRatio * 3.5;
       itemsRef.current = [...itemsRef.current, {
         id: now + Math.random(),
         type,
@@ -678,7 +702,10 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
         )}
       </div>
 
-      {/* ARENA */}
+      {/* ARENA — wrapper externe avec aspectRatio (mesure la largeur
+          réelle via ResizeObserver). Le contenu vit dans un wrapper
+          interne coord-fixed 360×460 scalé en CSS, ce qui permet aux
+          items d'utiliser `transform: translate3d` en px GPU-accelerated. */}
       <div
         ref={arenaRef}
         onTouchStart={e => movePointer(e.touches[0].clientX)}
@@ -698,6 +725,15 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
           transition: tempReactive ? 'background 0.45s ease' : 'none',
         }}
       >
+        {/* Wrapper interne coord-fixed 360×460 — tous les enfants
+            travaillent en px dans ce repère, et le scale CSS gère le
+            fit dans l'arena réelle. */}
+        <div style={{
+          position:'absolute', top:0, left:0,
+          width:ARENA_W, height:ARENA_H,
+          transformOrigin:'top left',
+          transform:`scale(${arenaScale})`,
+        }}>
         {/* Étoiles décoratives (thème nuit) */}
         {showStars && (
           <>
@@ -720,9 +756,9 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
         }} />
 
         {/* Items qui tombent (avec léger wobble horizontal).
-            Si l'item vient de muter cookie→glaçon (_flash < 220 ms), on
-            ajoute un halo blanc-bleuté très visible pour signaler la
-            trahison. */}
+            Positionnement via `transform: translate3d` en px (GPU layer,
+            pas de reflow). Si l'item vient de muter cookie→glaçon
+            (_flash < 220 ms), on ajoute un halo blanc-bleuté. */}
         {items.map(it => {
           const wobbleX  = Math.sin(it.wobble) * 1.4;
           const flashAge = it._flash ? (Date.now() - it._flash) : 999;
@@ -730,14 +766,13 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
           /* Vibration pré-transformation : warning actif tant que pas
              encore muté (cookie en sursis). Halo bleuté discret + shake. */
           const isWarning = it._warning && !it._transformed;
+          const scale = isFlashing ? (1.2 - flashAge/1100) : 1;
           return (
             <div
               key={it.id}
               style={{
-                position:'absolute',
-                left:`calc(${(it.x / ARENA_W) * 100}% + ${wobbleX}px)`,
-                top:`${(it.y / ARENA_H) * 100}%`,
-                width:`${(ITEM_SIZE / ARENA_W) * 100}%`,
+                position:'absolute', left:0, top:0,
+                width:ITEM_SIZE, height:ITEM_SIZE,
                 fontSize:42, lineHeight:1,
                 display:'flex', alignItems:'center', justifyContent:'center',
                 filter: isFlashing
@@ -745,7 +780,8 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
                   : isWarning
                     ? 'drop-shadow(0 0 6px rgba(168,200,255,.7))'
                     : (ITEM_GLOW[it.type] || 'none'),
-                transform: isFlashing ? `scale(${1.2 - flashAge/1100})` : 'none',
+                transform:`translate3d(${it.x + wobbleX}px, ${it.y}px, 0)${isFlashing ? ` scale(${scale})` : ''}`,
+                willChange:'transform',
                 animation: isWarning && !isFlashing ? 'shake .12s ease-in-out infinite' : 'none',
                 pointerEvents:'none',
                 transition:'none',
@@ -761,12 +797,11 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
           <div
             key={p.id}
             style={{
-              position:'absolute',
-              left:`${(p.x / ARENA_W) * 100}%`,
-              top:`${(p.y / ARENA_H) * 100}%`,
+              position:'absolute', left:0, top:0,
               fontSize:p.size, color:p.color,
               opacity: Math.max(0, 1 - (Date.now() - p.born) / p.life),
-              transform:'translate(-50%, -50%)',
+              transform:`translate3d(${p.x}px, ${p.y}px, 0) translate(-50%, -50%)`,
+              willChange:'transform, opacity',
               pointerEvents:'none',
               textShadow:'0 1px 2px rgba(0,0,0,.4)',
               fontWeight:900,
@@ -781,36 +816,30 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
           <div
             key={popFx.id}
             style={{
-              position:'absolute',
-              left:`${(popFx.x / ARENA_W) * 100}%`,
-              top:`${(popFx.y / ARENA_H) * 100}%`,
+              position:'absolute', left:0, top:0,
               fontSize:16, fontWeight:900,
               color: popFx.value > 0 ? '#FFE89A' : '#7A4320',
               animation:'floatUp .7s ease-out both',
               pointerEvents:'none',
               textShadow:'0 1px 3px rgba(0,0,0,.45)',
-              transform:'translate(-50%, 0)',
+              transform:`translate3d(${popFx.x}px, ${popFx.y}px, 0) translate(-50%, 0)`,
             }}
           >
             {popFx.value > 0 ? `+${popFx.value}` : `${popFx.value}`}
           </div>
         )}
 
-        {/* Tasse joueur — SVG custom (sauf si le thème impose un emoji)
-            Position via `left:%` SANS transition (la tasse doit suivre le
-            doigt sans retard). `willChange:transform` hint la compositing
-            GPU pour le tilt. */}
+        {/* Tasse joueur — SVG custom (sauf si le thème impose un emoji).
+            Position via translate3d (GPU). transformOrigin center bottom
+            pour que la rotation pivote sur la base de la tasse. */}
         <div
           style={{
-            position:'absolute',
-            left:`${(tasseX / ARENA_W) * 100}%`,
-            top:`${(TASSE_Y / ARENA_H) * 100}%`,
-            width:`${(TASSE_W / ARENA_W) * 100}%`,
-            height:`${(TASSE_H / ARENA_H) * 100}%`,
-            transform: `rotate(${tilt}deg)`,
-            transformOrigin: 'center bottom',
+            position:'absolute', left:0, top:0,
+            width:TASSE_W, height:TASSE_H,
+            transform:`translate3d(${tasseX}px, ${TASSE_Y}px, 0) rotate(${tilt}deg)`,
+            transformOrigin: `${TASSE_W/2}px ${TASSE_H}px`,
             transition: frozen ? 'none' : 'transform .15s ease-out',
-            willChange: 'transform, left',
+            willChange: 'transform',
             pointerEvents:'none',
           }}
         >
@@ -826,6 +855,9 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
               {tasseEmoji}
             </div>
           )}
+        </div>
+
+        {/* /wrapper interne coord-fixed */}
         </div>
 
         {/* Overlay IDLE — preview de la tasse + règles */}
@@ -872,42 +904,15 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
               })}
             </div>
 
-            {/* Switcher de thème — pastilles des thèmes débloqués pour
-                Catcher (default toujours là). Tap = active immédiatement.
-                Masqué si setGameThemes pas fourni (mode read-only). */}
-            {setGameThemes && (() => {
-              const themes = getThemesForGame('catcher')
-                .filter(th => isThemeUnlocked(th, unlocked));
-              if(themes.length <= 1) return null;
-              return (
-                <div style={{ display:'flex', gap:6, marginTop:-2, flexWrap:'wrap', justifyContent:'center', maxWidth:280 }}>
-                  {themes.map(th => {
-                    const isActive = theme?.id === th.id;
-                    return (
-                      <button
-                        key={th.id}
-                        onClick={() => {
-                          playSound('tap');
-                          setGameThemes({ ...(gameThemes || {}), catcher: th.id });
-                        }}
-                        title={th.name}
-                        style={{
-                          width:34, height:34, borderRadius:'50%',
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          fontSize:16,
-                          background: isActive ? 'rgba(212,160,23,.25)' : 'rgba(60,30,10,.65)',
-                          border: isActive ? '2px solid #FFE89A' : '1.5px solid rgba(255,232,154,.3)',
-                          cursor:'pointer',
-                          boxShadow: isActive ? '0 0 10px rgba(212,160,23,.55)' : 'none',
-                        }}
-                      >
-                        {th.preview || '🎨'}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })()}
+            {/* Switcher de thème — pastilles des thèmes débloqués (default
+                toujours là). Variant 'dark' car on est sur overlay café. */}
+            <GameThemeSwitcher
+              gameId="catcher"
+              gameThemes={gameThemes}
+              setGameThemes={setGameThemes}
+              unlocked={unlocked}
+              variant="dark"
+            />
 
             <button
               onClick={startGame}

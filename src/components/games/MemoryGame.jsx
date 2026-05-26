@@ -3,6 +3,7 @@ import { GOLD } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
 import { getActiveTheme } from "../../data/gameThemes.js";
+import { GameThemeSwitcher } from "./GameThemeSwitcher.jsx";
 
 /* ════════════════════════════════════════════════════
    MemoryGame — jeu de paires (PHASE 6B)
@@ -55,7 +56,7 @@ const FULL_CLEAR_BONUS = 10;
    permet de balayer les positions une fois. */
 const PEEK_DURATION_MS = 500;
 
-export function MemoryGame({ coins, onEarn, onSpend, gameThemes, C }){
+export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, unlocked = [], C }){
   const { t } = useTranslation();
   /* Thème actif — dos de carte personnalisé selon le skin. */
   const memoryTheme = getActiveTheme('memory', gameThemes || {});
@@ -270,6 +271,17 @@ export function MemoryGame({ coins, onEarn, onSpend, gameThemes, C }){
         {phase === 'playing' && (peek ? t('game_memory.peek') : t('game_memory.play'))}
         {phase === 'done'    && (completed ? t('game_memory.well_done') : t('game_memory.try_better'))}
       </div>
+
+      {/* Switcher de thème (idle uniquement) — pastilles des dos de
+          carte débloqués. Masqué si rien à changer. */}
+      {phase === 'idle' && (
+        <GameThemeSwitcher
+          gameId="memory"
+          gameThemes={gameThemes}
+          setGameThemes={setGameThemes}
+          unlocked={unlocked}
+        />
+      )}
 
       {/* Bannière résultat */}
       {banner && (

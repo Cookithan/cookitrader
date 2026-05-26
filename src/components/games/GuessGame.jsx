@@ -6,6 +6,7 @@ import { CafeScene, CUSTOMERS, LEGENDARY_BARISTAS } from "./CafeScene.jsx";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
 import { getActiveTheme } from "../../data/gameThemes.js";
+import { GameThemeSwitcher } from "./GameThemeSwitcher.jsx";
 
 /* Question fictive utilisée quand le slot tombe sur le barista
    légendaire (drop 0.5% par partie). Texte = bulle qui révèle le code
@@ -168,7 +169,7 @@ function pickCustomerIndices(n, max){
   return result;
 }
 
-export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, setGameThemes, unlocked = [], C }){
   const { t, lang } = useTranslation();
   /* Thème actif — change l'accent color (barre de progression, coche). */
   const guessTheme  = getActiveTheme('guess', gameThemes || {});
@@ -492,6 +493,17 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
         }}>
           {t('game_guess.patience')}
         </div>
+      )}
+
+      {/* Switcher de thème (idle uniquement) — pastilles des skins
+          débloqués. Masqué si rien à changer. */}
+      {phase === 'idle' && (
+        <GameThemeSwitcher
+          gameId="guess"
+          gameThemes={gameThemes}
+          setGameThemes={setGameThemes}
+          unlocked={unlocked}
+        />
       )}
 
       {/* Badge "Défi 7 questions" pour les joueurs niv 10+ */}
