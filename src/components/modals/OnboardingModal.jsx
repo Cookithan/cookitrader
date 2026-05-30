@@ -11,7 +11,8 @@ import { useTranslation } from "../../i18n/index.js";
    - 3 étapes : Pseudo → Avatar → Tips
    - z-index 200, fond noir blur
    - onComplete(name, avatarIndex) est appelé à la fin
-   - Le code dev "cookithan" (dans CookiMiner > setShowOnboarding) accorde un bonus
+   - Seuls les pseudos admin (isAdminName) reçoivent une dotation de test
+     dans onComplete (App.jsx). Pas de grant "cookithan" ici.
 ═══════════════════════════════════════════════════════ */
 
 export function OnboardingModal({ onComplete, onRestore, install, C }) {

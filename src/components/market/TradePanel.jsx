@@ -102,8 +102,10 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
     setFeedback(null);
 
     const opts = bulkArmed ? { bypassTxCap: true } : {};
+    /* availableCoins : transmis pour la validation serveur du solde à l'achat
+       (anti sur-débit en cas de désync). Ignoré par sellShares. */
     const result = mode === 'buy'
-      ? await buyShares(userCode, quantity, opts)
+      ? await buyShares(userCode, quantity, { ...opts, availableCoins: coins })
       : await sellShares(userCode, quantity, opts);
 
     setLoading(false);

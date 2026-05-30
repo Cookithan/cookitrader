@@ -33,6 +33,11 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     }
     setQIndices(picks);
     setChosenDifficulty(difficulty);
+    /* Cooldown armé DÈS le début de session (anti-farm) : avant, il n'était
+       posé qu'à la dernière question, donc fermer/rouvrir le quiz après avoir
+       répondu (cookies déjà crédités par question) permettait de re-jouer en
+       boucle. On s'engage maintenant en lançant une difficulté. */
+    onDone();
   };
 
   const [step,           setStep]           = useState(0);
@@ -63,7 +68,11 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
     return () => clearTimeout(id);
   }, [step, sel, canPlay, allDone]);
 
-  if(!canPlay && step === 0 && sel === null && !allDone) {
+  /* Écran "verrouillé / compte à rebours" : on ne l'affiche QUE si aucune
+     session n'est en cours (chosenDifficulty === null). Indispensable depuis
+     que le cooldown est armé au démarrage : sinon canPlay passe à false en
+     plein milieu d'une partie et on éjecterait le joueur vers le timer. */
+  if(!canPlay && chosenDifficulty === null && step === 0 && sel === null && !allDone) {
     const elapsed = Date.now() - mountRef.current;
     const remaining = Math.max(0, baseMsRef.current - elapsed);
     const totalSec = Math.ceil(remaining/1000);
@@ -170,7 +179,7 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
   const goNext = (lastWasCorrect = false) => {
     if(step + 1 >= qIndices.length){
       setAllDone(true);
-      onDone();
+      /* (cooldown déjà armé au démarrage via pickQuestions → onDone) */
       /* Event 'quiz_perfect' : succès uniquement si TOUTES les
          questions (3/3) sont bonnes — peu importe le niveau de
          difficulté choisi. setCorrectCount est asynchrone donc on

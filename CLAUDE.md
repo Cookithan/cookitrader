@@ -136,18 +136,31 @@ Les passages de niveau se font **un par un** (jamais 2 paliers d'un coup, même 
 
 - **2 monnaies** :
   - 🍪 **Cookie** — gagnée partout, dépensée en boutique et roue
-  - ☕ **Café (CF)** — premium, sources **strictement limitées** : 4 achievements (Gros Lot, En Feu, Légende, Maître Des Succès), conversion 1000 🍪 → 1 ☕ depuis le marché, achats Stripe in-app, palier communautaire 500k/700k, level-up niveau 15
-  - **Ne JAMAIS ajouter une source de CF sans confirmation explicite.** Pas de CF par défaut sur les nouveaux achievements.
+  - ☕ **Café (CF)** — premium, sources volontairement limitées. Liste **réelle** des sources actuelles (vérifiée dans le code, mai 2026) :
+    - **Achievements** (`cafesBonus` dans `data/constants.js`) : En Feu (+1), Gros Lot (+1), Légende/niv 6 (+1), Éternel/niv 10 (+2), Cookie Originel/niv 15 (+3), Légende Vivante/`end_game` (+12)
+    - **Level-up** : +1 ☕ aux paliers 6, 10, 15, 20, 25 (`addCoins`, App.jsx ~1537)
+    - **Check-in** : J7 = +2, J14 = +3 (`DAILY_CAFES`, `data/constants.js`)
+    - **Café Express (Catcher)** : +1 si score ≥ 280 (seuil scalé ×durée/60)
+    - **Flappy** : pièce dorée +1, probabilité 5/10/15 % selon le mode
+    - **Événements aléatoires** : 5 des événements versent +1 (`events.js`, champ `cafeBonus`)
+    - **Classement hebdo** : Top1 +3 / Top2 +2 / Top3 +1 (App.jsx ~2492)
+    - **Paliers communautaires** : 500k (+1), 700k (+1)
+    - **Boîte Mystère** : item `box_starter`, 1000 🍪 → +3 ☕ (`open_box`)
+    - **Inbox** : cadeaux entre joueurs, récompenses tournoi, parrainage (montants côté serveur)
+    - **Codes promo** : certains versent du ☕ (`data/promoCodes.js`)
+    - **Achats Stripe** in-app (réconciliation serveur)
+    - ⚠️ La conversion 1000 🍪 → 1 ☕ « depuis le marché » listée dans l'ancienne doc **n'existe pas dans le code** (jamais implémentée).
+  - **Ne JAMAIS ajouter une NOUVELLE source de CF sans confirmation explicite.** Pas de CF par défaut sur les nouveaux achievements.
 
 - **25 niveaux** (cf. `LEVEL_NAMES`). Courbe d'XP rééquilibrée (cf. SMOOTH_XP `data/constants.js`). Niveau 13 débloque la machine à sous, 15 débloque le café loop, 25 = endgame → prestige.
 
 - **Prestige** : reset niveau→1 mais +10 % gains permanent, items/achievements/cafés/$CKM/amis préservés. Affiché par couronne(s) sur le pseudo.
 
-- **Achievement caché Maître Des Succès** : nécessite d'acheter "Dernier Succès Caché" (15 ☕) pour être révélé. Se déclenche uniquement si TOUS les autres sont gagnés. **Ne jamais le mentionner dans les questions du quiz.**
+- **Achievement apex caché `end_game` ("Légende Vivante !")** : se déclenche **automatiquement** (watcher App.jsx ~3409) quand TOUT est complété — niveau ≥ 16, tous les autres succès visibles gagnés, boutique 100 % (items 🍪 hors limited), les 3 badges secrets, et les 10 récompenses événements. Donne +12 ☕. ⚠️ Aucun achat ni « révélation » : le mécanisme `reveal_master` / item « Dernier Succès Caché » (15 ☕) décrit dans d'anciennes notes **n'existe pas dans le code**. **Ne jamais le mentionner dans les questions du quiz.**
 
-- **Code dev "cookithan"** : si l'utilisateur tape `cookithan` (case-insensitive) à l'onboarding → +1000 🍪, +30 ☕ CF, niveau 6, tous achievements + `reveal_master`. Outil de test, laisser intact tant que l'app est en dev.
+- **Pseudo "cookithan"** (créateur) : reçoit le titre CRÉATEUR (`utils/legend.js`, `CREATOR_NAME`), est whitelisté maintenance (userCode `PJ3-56A`), et subit un recalibrage one-shot −4000 🍪 (`App.jsx` ~1797, patché idempotent). ⚠️ L'ancien grant d'onboarding (+1000 🍪 / +30 ☕ / niveau 6 / tous succès / `reveal_master`) **n'existe plus** dans le code — le seul grant d'onboarding actuel est admin-only (cf. ci-dessous).
 
-- **Admins** : `admin123` et `admin558` (via `isAdminName()` de `utils/admin.js`). Sortis du classement, accès aux boutons admin.
+- **Admins** : `admin123` et `admin558` (via `isAdminName()` de `utils/admin.js`). Sortis du classement, accès aux boutons admin. À l'onboarding, un pseudo admin reçoit une dotation de test (App.jsx ~4660 : 50000 🍪, 100 ☕, niveau 15, tous les thèmes, tous les succès marqués gagnés).
 
 - **Mode maintenance** : `data/maintenance.js` → `MAINTENANCE_MODE=true` remplace toute l'app par `<MaintenanceScreen />` sauf pour les userCodes whitelistés. Short-circuit AVANT tout hook React (early return).
 

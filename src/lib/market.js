@@ -648,6 +648,15 @@ export async function buyShares(userCode, shares, options = {}) {
 
   const totalCost = Math.ceil(newPrice * shares);
 
+  /* Validation serveur du solde. Le garde-fou client (computeMaxBuyable)
+     peut être désynchronisé (prop `coins` périmée, 2 devices, race) ; sans
+     ce check l'achat réussissait côté serveur et le sur-débit était masqué
+     localement par Math.max(0, …) → actions quasi-gratuites. L'appelant
+     transmet le solde courant via options.availableCoins. */
+  if (options.availableCoins != null && totalCost > options.availableCoins) {
+    return { error: `Solde insuffisant — il te faut ${totalCost} 🍪 pour ${shares} action(s).` };
+  }
+
   const { error: updateErr } = await supabase
     .from('market_state')
     .update({

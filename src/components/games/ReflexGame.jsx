@@ -11,9 +11,9 @@ import { useTranslation } from "../../i18n/index.js";
    l'aire de jeu). Le joueur doit le tapper avant qu'il disparaisse.
 
    - COST     = 5 cookies
-   - DURATION = 30 secondes
+   - DURATION = 15 secondes (cf. REFLEX_DURATION)
    - TTL du cookie : 1500ms au début → 500ms à la fin (linéaire)
-   - Phases : idle → countdown (3-2-1-GO) → playing (30s) → done
+   - Phases : idle → countdown (3-2-1-GO) → playing (15s) → done
    - Loupé (timeout sans tap) → score -= 1 (jamais négatif), shake bref
      de la zone, puis nouveau cookie 200ms après
    - Tapé → score += 1, explosion de 5-7 mini-cookies, nouveau cookie

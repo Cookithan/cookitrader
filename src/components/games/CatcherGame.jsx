@@ -14,10 +14,12 @@ import { GameThemeSwitcher } from "./GameThemeSwitcher.jsx";
    custom au lieu d'emoji, halos par type d'item, mini-particules au
    catch, screen shake sur glacon, confettis dorés au jackpot final.
 
-   - COST = 10 🍪 · DURATION = 25 s
-   - Items : 🍪 +5 (combo) · ☕ +20 · 🌶️ -5 (fige 500ms + reset combo)
-   - Combo ×2 : 3 cookies d'affilée → ×2 pendant 3 s
-   - Récompenses : 200+ → +100🍪 · 100–199 → +50🍪 · 50–99 → +25🍪
+   - COST = 10 🍪 · DURÉES sélectionnables = 60 / 120 / 180 s (défaut 60)
+   - Items : 🍪 +1 · ☕ +5 · 🧊 glaçon -1 (fige la tasse 500ms)
+   - 5 glaçons catchés (ICED_LIMIT) = défaite instantanée (écran "iced")
+   - Cookies en chute peuvent muter en glaçon (vibration 500ms d'avertissement)
+   - Récompenses 🍪 (paliers scalés ×durée/60) : 240→300 · 170→150 · 120→80 · 85→40 · 55→15 · 30→5
+   - Bonus ☕ : +1 si score ≥ 280 (seuil scalé ×durée/60)
 
    THÈMES (data/gameThemes.js) :
      - skin    : bg, tasseEmoji, itemEmojis, glowColor, darkArena, bgStars

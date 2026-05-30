@@ -5,8 +5,10 @@ import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    LevelUpModal — popup plein écran à chaque montée de niveau
-   - Niveaux 2-5 : bonus cookies = 10 × niveau (versé par addCoins)
-   - Niveaux 6-10 : bonus = +1 ☕ (palier end-game, plus rare)
+   Bonus réellement versés par addCoins (App.jsx ~1532) :
+   - Niveaux 1-5 : bonus cookies = 10 × niveau
+   - Paliers 6/10/15/20/25 : +1 ☕ (milestones, plus rares)
+   - Autres niveaux ≥ 6 : bonus cookies = 50 + 10 × niveau
    - Compte les nouveaux items boutique débloqués (REWARDS où levelRequired === level)
    - z-index 100 — passe devant l'AchievementModal (z-index 90) si les deux se déclenchent
 ════════════════════════════════════════════════════ */

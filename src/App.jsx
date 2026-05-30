@@ -538,7 +538,12 @@ export default function CookiMiner() {
   }, [userCode]);
 
   const [totalInvested,      setTotalInvested]      = useLocalStorage('totalInvested', 0);
-  const [pendingAchievement, setPendingAchievement] = useState(null);
+  /* File d'attente des succès à célébrer (FIFO). Un array (et non un slot
+     unique) pour ne JAMAIS écraser un 2e succès déclenché en même temps. Le
+     bonus est crédité au déclenchement (cf. triggerAchievement), la modale ne
+     fait plus que célébrer — donc même si la file est perdue (reload), aucun
+     🍪/☕ n'est perdu. */
+  const [pendingAchievements, setPendingAchievements] = useState([]);
   const [activeBanner, setActiveBanner] = useLocalStorage('activeBanner','');
   /* Skin du cookie central tappable (cf. COOKIE_SKINS). '' = défaut. */
   const [activeSkin,   setActiveSkin]   = useLocalStorage('activeSkin','');
@@ -1157,7 +1162,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievement || showBoss || bossReward || bossPenalty);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -1432,13 +1437,17 @@ export default function CookiMiner() {
                     Par défaut = amount. Sert pour la vente $CKM : on
                     récupère proceeds en coins mais on ne progresse
                     qu'à hauteur de la plus-value (pnl). */
-  const addCoins = useCallback((amount, gainAmount = amount)=>{
+  const addCoins = useCallback((amount, gainAmount = amount, opts = {})=>{
     /* Multiplicateurs cumulés sur gains positifs uniquement :
        - Prestige     : +10 % par niveau (permanent)
        - Boost ×2 1h  : ×2 si boostUntil > now
        - Doubler      : ×2 sur le prochain gain (one-shot, auto-clear)
-       Pertes (amount<=0) inchangées. */
-    if(amount > 0){
+       Pertes (amount<=0) inchangées.
+       opts.noMult : bypass TOTAL des multiplicateurs (et de la conso du
+       doubler). Utilisé par la VENTE $CKM — on récupère un capital investi,
+       pas un gain de jeu : le multiplier ne doit pas s'appliquer au principal
+       (sinon revendre pendant un boost crée des cookies sur son capital). */
+    if(amount > 0 && !opts.noMult){
       const baseAmount   = amount;
       const prestigeMult = 1 + (prestigeLevel || 0) * 0.1;
       const boostActive  = boostUntil && Date.now() < boostUntil;
@@ -2480,21 +2489,25 @@ export default function CookiMiner() {
       else if(winners.top2_code?.toUpperCase() === codeUpper) myRank = 2;
       else if(winners.top3_code?.toUpperCase() === codeUpper) myRank = 3;
       if(myRank === 0) return;
-      /* Flag LS one-shot par semaine — pas de double crédit même si on
-         re-mount plusieurs fois ou changement de device. */
-      const FLAG_KEY = `cookiminer:weeklyChampReward_${prevWeekId}`;
-      try{
-        if(window.localStorage.getItem(FLAG_KEY) === '1') return;
-        window.localStorage.setItem(FLAG_KEY, '1');
-      }catch{ return; }
-      /* Récompenses : Top1=3☕, Top2=2☕, Top3=1☕ + badge dynamique
-         (rééquilibrage 11/05/2026 — avant 5/3/1, jugé trop généreux). */
+      /* One-shot CROSS-DEVICE via patch Supabase (is_patch_applied). Avant,
+         un simple flag localStorage ne survivait pas à un changement
+         d'appareil → un joueur top-3 pouvait re-réclamer le ☕ (monnaie rare)
+         sur un 2e device. On garde le même lsKey pour bloquer les claims déjà
+         effectués sous l'ancien système. */
       const cafesReward = myRank === 1 ? 3 : myRank === 2 ? 2 : 1;
       const weekNum = getWeekNumberDisplay(prevWeekId);
       const badgeId = `champ_W${weekNum}`;
-      setCafes(c => (c || 0) + cafesReward);
-      setUnlocked(u => (u || []).includes(badgeId) ? u : [...(u || []), badgeId]);
-      setWeeklyChampReward({ rank: myRank, cafes: cafesReward, weekNum });
+      await applyPatchOnce({
+        userCode,
+        lsKey: `cookiminer:weeklyChampReward_${prevWeekId}`,
+        patchKey: `weeklyChamp_${prevWeekId}`,
+        isCancelled: () => !alive,
+        applyFn: () => {
+          setCafes(c => (c || 0) + cafesReward);
+          setUnlocked(u => (u || []).includes(badgeId) ? u : [...(u || []), badgeId]);
+          setWeeklyChampReward({ rank: myRank, cafes: cafesReward, weekNum });
+        },
+      });
     })();
     return () => { alive = false; };
   }, [userCode, pullDone, userName, setCafes, setUnlocked]);
@@ -3058,6 +3071,16 @@ export default function CookiMiner() {
     setFreeRechargesUntil(0); setStreakSaveCount(0);
     setLastCheckin(null); setLastQuiz(null); setDark(false);
     setMarketRealized(0);
+    /* Reset complet : ces states persistés (localStorage) étaient oubliés et
+       survivaient au reset. Conséquences : classement hebdo faussé (ancien
+       weeklyEarned re-poussé sous le nouveau userCode), passes bulk + caps
+       quotidiens hérités, temps de jeu faussé, cap top-1 résiduel. */
+    setWeeklyEarned(0); setWeeklyWeekId(''); weeklyWeekIdRef.current = '';
+    setTotalPlayTime(0); setBulkTradePasses(0);
+    setSpinsToday(0); setSpinsDate(null);
+    setSlotGamesToday(0); setSlotGamesDate(null);
+    setPyramidGamesToday(0); setPyramidGamesDate(null);
+    setTotalEarnedCap(Infinity); totalEarnedCapRef.current = Infinity;
     setLeaderboard(null); setLeaderboardLastBoost(''); setLeaderboardLastHourly(0);
     /* Marché v2 : reset du tutoriel + flag de cleanup pour qu'un éventuel
        re-init redéclenche bien le mini-tutoriel. La portfolio Supabase
@@ -3067,7 +3090,7 @@ export default function CookiMiner() {
       window.localStorage.removeItem('cookiminer:marketV2Cleaned');
     } catch {}
     setUserName(''); setUserAvatar(null); setJoinDate(''); setNameChangeCount(0); setUserCode(''); setUserBio('');
-    setEarnedAchievements([]); setTotalInvested(0); setPendingAchievement(null);
+    setEarnedAchievements([]); setTotalInvested(0); setPendingAchievements([]);
     setActiveTheme(''); setActiveBanner(''); setActiveSkin(''); setActiveTitle(''); setGameThemes({}); setRevealedPromoCodes([]); setPromoCodesUsed([]);
     setActiveEvent(null); setCompletedEvents([]);
     setShowEventModal(false); setEventReward(null);
@@ -3395,11 +3418,18 @@ export default function CookiMiner() {
     if(!a) return;
     earnedRef.current = [...earnedRef.current, id];
     setEarnedAchievements(earnedRef.current);
-    setPendingAchievement(prev => prev || a);
+    /* Bonus crédité IMMÉDIATEMENT (et plus à l'encaissement) : garantit
+       qu'aucun gain (🍪 + ☕) n'est perdu si la modale est écrasée par un 2e
+       succès concurrent ou si l'app recharge avant le clic "Récupérer". Le
+       garde earnedRef ci-dessus assure un seul crédit par succès. */
+    addCoins(a.bonus);
+    if(a.cafesBonus) addCafes(a.cafesBonus);
+    /* File de célébration (dédupe par id) — la modale ne crédite plus rien. */
+    setPendingAchievements(q => q.some(x => x.id === id) ? q : [...q, a]);
     /* Achievement = moment fort, haptic success (3 pulses) pour
        souligner le déblocage. Jackpot a son propre pattern à part. */
     haptic(id === 'jackpot' ? 'jackpot' : 'success');
-  },[]);
+  },[addCoins, addCafes]);
 
   useEffect(()=>{
     if(showOnboarding) return;
@@ -3453,13 +3483,11 @@ export default function CookiMiner() {
   },[totalEarned, streak, clickRecord, unlocked, level, coins, totalInvested, showOnboarding, earnedAchievements, triggerAchievement, userName]);
 
   const collectAchievement = ()=>{
-    const a = pendingAchievement;
-    if(!a) return;
-    /* Gain de cookies cristallin pour l'encaissement de l'achievement */
+    if(pendingAchievements.length === 0) return;
+    /* Le bonus a déjà été crédité au déclenchement (cf. triggerAchievement) —
+       ce bouton ne fait que défiler la file et célébrer. */
     playSound('coin');
-    addCoins(a.bonus);
-    if(a.cafesBonus) addCafes(a.cafesBonus);
-    setPendingAchievement(null);
+    setPendingAchievements(q => q.slice(1));
   };
 
   /* GAMES — `levelRequired` (PHASE 6A) :
@@ -4600,8 +4628,8 @@ export default function CookiMiner() {
       )}
 
       {/* ACHIEVEMENT MODAL */}
-      {!inTutorial && pendingAchievement && !pendingLvUp && (
-        <AchievementModal achievement={pendingAchievement} onCollect={collectAchievement} />
+      {!inTutorial && pendingAchievements.length > 0 && !pendingLvUp && (
+        <AchievementModal achievement={pendingAchievements[0]} onCollect={collectAchievement} />
       )}
 
       {/* BOOST GAIN POPUP — déclenché par addCoins quand boost ×2 ou
@@ -4668,7 +4696,7 @@ export default function CookiMiner() {
               /* Tous les succès marqués gagnés pour qu'aucune modale ne pop
                  si l'admin remplit accidentellement une condition. */
               setEarnedAchievements(ACHIEVEMENTS.map(a => a.id));
-              setPendingAchievement(null);
+              setPendingAchievements([]);
             }
             setShowOnboarding(false);
           }}

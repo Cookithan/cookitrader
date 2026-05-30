@@ -100,10 +100,13 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
       /* Achat : on dépense les cookies, pas de XP gagnée */
       addCoins(-result.cost);
     } else if (result.type === 'sell') {
-      /* Vente : on crédite proceeds, mais on ne compte que la plus-value
-         comme "vrai gain" (XP + totalEarned), via le 2e arg d'addCoins. */
+      /* Vente : on crédite le produit (principal + plus-value), mais on ne
+         compte que la plus-value comme "vrai gain" (XP + totalEarned) via le
+         2e arg. noMult:true → les multiplicateurs (boost/doubler/prestige)
+         ne s'appliquent PAS : un produit de vente n'est pas un gain de jeu,
+         sinon revendre pendant un boost créerait des cookies sur le capital. */
       const profit = Math.max(0, Math.round(result.profit || 0));
-      addCoins(result.gained, profit);
+      addCoins(result.gained, profit, { noMult: true });
     }
     if (onTradeComplete) onTradeComplete(result);
     refresh();
