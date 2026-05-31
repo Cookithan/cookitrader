@@ -2223,6 +2223,13 @@ export default function CookiMiner() {
       if(cancelled) return;
       const reward = bossRewardFor(dmg);
       if(!reward) return;                       // participation insuffisante
+      /* Skin RÉSERVÉ AU TOP 3 des plus gros tapeurs (demande Régis).
+         getBossRank renvoie le rang 0-indexé (0 = 1er, null si 0 dégât) —
+         source de vérité serveur, relue après le coup fatal. rank0 > 2 =
+         hors podium → pas de skin. */
+      const rank0 = await getBossRank(milestone, userCode);
+      if(cancelled) return;
+      if(rank0 === null || rank0 > 2) return;   // hors top 3
       applyPatchOnce({
         userCode,
         lsKey:    'cookiminer:' + claimKey,
@@ -2232,13 +2239,13 @@ export default function CookiMiner() {
           /* UNIQUEMENT le skin exclusif — aucun cookie, jamais de CF. */
           setUnlocked(arr => Array.isArray(arr) && !arr.includes(reward.skinId)
             ? [...arr, reward.skinId] : arr);
-          setBossReward({ fournee: fourneeNumber(milestone) });
+          setBossReward({ fournee: fourneeNumber(milestone), rank: rank0 + 1 });
           playSound('levelup');
           createInboxMessage(
             userCode,
             'system',
             `🍪 Fournée #${fourneeNumber(milestone)} sauvée !`,
-            `La communauté a vaincu Le Gâteau Mangeur de Cookies. Récompense : le skin exclusif « Cookie Mangeur » ! Équipe-le dans Paramètres → Apparence.`,
+            `La communauté a vaincu Le Gâteau Mangeur de Cookies. Tu finis ${rank0 + 1}ᵉ au classement des coups : tu fais partie du TOP 3 et débloques le skin exclusif « Cookie Mangeur » ! Équipe-le dans Paramètres → Apparence.`,
             null,
           ).catch(()=>{});
         },

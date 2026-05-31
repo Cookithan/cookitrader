@@ -33,11 +33,11 @@ export const ANNOUNCE_LEAD_MS = 60 * 60 * 1000;
    serveur ; c'est juste la bannière/overlay qui est gatée. */
 export const BOSS_LEVEL_MIN = 3;
 
-/* PV de départ — (SQL) v_hp dans create_boss_event.
-   Calibré pour être battable en ~24 h par une communauté modeste,
-   sans être trivial : l'échec collectif reste possible (tension
-   assumée, cf. ligne éditoriale "les aléas doivent faire peur"). */
-export const BOSS_BASE_HP = 100_000;
+/* PV de départ — (SQL) v_hp dans create_boss_event ET valeur du boss
+   relancé manuellement (cf. LAUNCH_BOSS_50K.sql). Constante de référence :
+   l'UI lit en réalité boss_max_hp renvoyé par le serveur. 50 000 = relance
+   plus courte que les 100 000 d'origine (tension assumée). */
+export const BOSS_BASE_HP = 50_000;
 
 /* Durée de combat — 3 jours (à partir de starts_at).
    (SQL) ends_at = starts_at + 72h. */

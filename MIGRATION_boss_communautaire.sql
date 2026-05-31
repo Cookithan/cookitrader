@@ -97,7 +97,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  v_hp       BIGINT := 100000;                -- BOSS_BASE_HP (cf. communityEvents.js)
+  v_hp       BIGINT := 50000;                 -- BOSS_BASE_HP (cf. communityEvents.js)
   v_announce INTERVAL := INTERVAL '1 hour';    -- ANNOUNCE_LEAD_MS
   v_duration INTERVAL := INTERVAL '72 hours';  -- EVENT_DURATION (3 jours)
   v_row      public.community_boss_events;
