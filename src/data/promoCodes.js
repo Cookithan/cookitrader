@@ -22,6 +22,11 @@
                  (utilisé pour les codes de RESTAURATION quand on a besoin
                  de raligner total_earned avec le level forcé pour rester
                  cohérent au classement)
+     - totalEarnedOnly : si défini, AJOUTE ce montant à totalEarned UNIQUEMENT
+                 (pas de solde 🍪 dépensable, pas d'XP, pas de level-up). Sert
+                 aux codes "boost de classement cumulé" : le joueur grimpe au
+                 leaderboard total_earned sans recevoir de cookies à dépenser.
+                 Additif (contrairement à totalEarnedFloor qui est un plancher).
      - unlock  : id d'un item REWARDS à ajouter à `unlocked` (typiquement
                  un thème édition limitée). Le toast mentionnera le nom.
      - unlockGame : id d'un mini-jeu (GAMES.id : flappy, slot, etc.) à
@@ -84,6 +89,11 @@ export const PROMO_CODES = {
 
   /* Café bonus — distribution ponctuelle. */
   'DIO456':      { coins: 0, cafes: 4, label: '☕ 4 cafés offerts' },
+
+  /* Boost de classement cumulé — +7000 🍪 sur total_earned UNIQUEMENT
+     (pas de solde dépensable, pas d'XP). Fait grimper au leaderboard
+     cumulé sans déséquilibrer l'économie 🍪. One-shot par compte. */
+  'ASCENSION':   { coins: 0, cafes: 0, totalEarnedOnly: 7000, label: '📈 +7000 🍪 au classement cumulé' },
 
   /* Starter Pack de bienvenue (distribuable réseaux) — 3 récompenses :
      500 🍪 (noXp:true → pas d'explosion de niveau) + 3 ☕ + déblocage

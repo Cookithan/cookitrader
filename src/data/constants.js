@@ -2,7 +2,7 @@ import { GAME_THEME_REWARDS } from './gameThemes.js';
 
 /* ════════════════════════════════════════════════════
    CONSTANTES GAMEPLAY
-   - LEVEL_NAMES : titre de chaque palier (1..15)
+   - LEVEL_NAMES : titre de chaque palier (1..25)
    - xpRequired  : XP nécessaire pour passer au niveau suivant
                     · 1..5  → level*100+50  (linéaire, montée rapide)
                     · 6..9  → level²*50     (palier durci pour le end-game)
@@ -414,9 +414,9 @@ export const ACHIEVEMENTS = [
   { id:'level_3',        name:'En Progression !',   desc:'Tu as atteint le niveau 3',                emoji:'⭐', bonus:25  },
   { id:'level_6',        name:'Légende !',          desc:'Tu as atteint le niveau 6 — Légende',      emoji:'👑', bonus:100, cafesBonus:1 },
   { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau 10 — Éternel',     emoji:'♾️', bonus:200, cafesBonus:2 },
-  { id:'level_15',       name:'Cookie Originel !',  desc:'Tu as atteint le niveau maximum',          emoji:'🌌', bonus:500, cafesBonus:3 },
+  { id:'level_15',       name:'Cookie Originel !',  desc:'Tu as atteint le niveau 15 — Cookie Originel', emoji:'🌌', bonus:500, cafesBonus:3 },
   { id:'trader',         name:'Trader !',           desc:'Tu as investi 500 cookies en $CKM',        emoji:'💹', bonus:40  },
-  /* Apex final : niveau 15 atteint + tous les autres succès visibles débloqués. */
+  /* Apex final : niveau 25 (endgame) atteint + tous les autres succès visibles débloqués. */
   { id:'end_game',       name:'Légende Vivante !',  desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:12 },
 ];
 
@@ -429,7 +429,7 @@ export const QUESTIONS = [
   // FACILE (reward: 20)
   { q:"Quel pays est l'origine historique du café ?", choices:["Italie","Éthiopie","Brésil","Yémen"], answer:1, reward:20, difficulty:'Facile' },
   { q:"Quelle plante produit les grains de café ?", choices:["Théier","Caféier","Cacaoyer","Olivier"], answer:1, reward:20, difficulty:'Facile' },
-  { q:"Combien de niveaux a CookiMiner ?", choices:["10","12","15","20"], answer:2, reward:20, difficulty:'Facile' },
+  { q:"Combien de niveaux a CookiMiner ?", choices:["12","15","20","25"], answer:3, reward:20, difficulty:'Facile' },
   { q:"Quel est le titre du niveau 1 dans CookiMiner ?", choices:["Apprenti","Barista","Maître","Légende"], answer:1, reward:20, difficulty:'Facile' },
   { q:"De quelle couleur est un grain de café AVANT torréfaction ?", choices:["Brun","Noir","Vert","Jaune"], answer:2, reward:20, difficulty:'Facile' },
   { q:"Comment se nomme la mousse dorée à la surface d'un espresso ?", choices:["Mousse","Crema","Schiuma","Latte"], answer:1, reward:20, difficulty:'Facile' },

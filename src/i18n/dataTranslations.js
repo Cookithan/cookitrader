@@ -182,7 +182,7 @@ export const ACHIEVEMENTS_EN = {
   level_3:        { name: 'Progressing!',     desc: 'You reached level 3' },
   level_6:        { name: 'Legendary!',       desc: 'You reached level 6 — Legend' },
   level_10:       { name: 'Eternal!',         desc: 'You reached level 10 — Eternal' },
-  level_15:       { name: 'Primordial Cookie!',desc: 'You reached the maximum level' },
+  level_15:       { name: 'Primordial Cookie!',desc: 'You reached level 15 — Primordial Cookie' },
   trader:         { name: 'Trader!',          desc: 'You invested 500 cookies in $CKM' },
   end_game:       { name: 'Living Legend!',   desc: 'Max level + all other achievements' },
 };

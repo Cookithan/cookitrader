@@ -196,7 +196,7 @@ export default function CookiMiner() {
   const [totalPlayTime, setTotalPlayTime] = useLocalStorage('totalPlayTime', 0);
   const totalPlayTimeRef = useRef(totalPlayTime);
   totalPlayTimeRef.current = totalPlayTime;
-  /* Système Prestige : à chaque renaissance (niveau 15 atteint), le joueur
+  /* Système Prestige : à chaque renaissance (niveau 25 atteint), le joueur
      repart au niveau 1 avec un multiplicateur permanent +10% sur les gains
      🍪. Indicateur visuel par couronne(s) sur le pseudo. Items/achievements/
      cafés/actions $CKM/amis sont préservés. */
@@ -2773,6 +2773,12 @@ export default function CookiMiner() {
     if(promo.totalEarnedFloor && totalEarned < promo.totalEarnedFloor){
       setTotalEarned(promo.totalEarnedFloor);
     }
+    /* Boost classement cumulé : ajoute au total_earned UNIQUEMENT, sans
+       toucher au solde 🍪 dépensable ni à l'XP/level. Le joueur grimpe au
+       leaderboard sans recevoir de cookies à dépenser. */
+    if(promo.totalEarnedOnly){
+      setTotalEarned(t => t + promo.totalEarnedOnly);
+    }
     /* Déblocage d'un item REWARDS (typiquement un thème édition limitée
        comme theme_noir via le code BLACK). Idempotent : pas de doublon
        dans `unlocked`. Si on trouve l'item, on déclenche la modale
@@ -2812,6 +2818,7 @@ export default function CookiMiner() {
        éviter la redondance. */
     const parts = [];
     if(promo.coins)  parts.push(`+${promo.coins} 🍪`);
+    if(promo.totalEarnedOnly) parts.push(`+${promo.totalEarnedOnly} 🍪 (classement)`);
     if(promo.cafes)  parts.push(`+${promo.cafes} ☕`);
     if(promo.shares) parts.push(`+${promo.shares} action${promo.shares > 1 ? 's' : ''} $CKM`);
     if(promo.level)  parts.push(`Niv ${promo.level}`);
@@ -3445,7 +3452,7 @@ export default function CookiMiner() {
 
     /* "end_game" — apex absolu. Conditions très exigeantes pour vraiment
        le mériter :
-       1. Niveau 16 (max après refonte Prestige)
+       1. Niveau 25 (palier endgame final → prestige)
        2. Tous les autres succès visibles gagnés
        3. Boutique 100 % complétée (tous items en 🍪, hors limited)
        4. Les 3 badges secrets débloqués
@@ -3466,7 +3473,7 @@ export default function CookiMiner() {
     const allEventsOwned = eventThemeIds.every(id => unlocked.includes(id));
 
     const endGameReady =
-      level >= 16 &&
+      level >= 25 &&
       allEndGameAchievementsDone &&
       allShopOwned &&
       allSecretsOwned &&
@@ -3943,7 +3950,7 @@ export default function CookiMiner() {
                         const eventList = REWARDS.filter(r => r.limited);
                         const eventDone = eventList.filter(r => unlocked.includes(r.id)).length;
                         endGamePrereqs = {
-                          levelOk:    level >= 16,
+                          levelOk:    level >= 25,
                           succesDone, succesTotal: succesList.length,
                           succesOk:   succesDone === succesList.length,
                           shopDone,   shopTotal:   shopList.length,
@@ -4039,7 +4046,7 @@ export default function CookiMiner() {
                                 fontSize:10, lineHeight:1.65, fontWeight:700,
                               }}>
                                 <div style={{ color: endGamePrereqs.levelOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/16
+                                  {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/25
                                 </div>
                                 <div style={{ color: endGamePrereqs.succesOk ? apexCheckColor : apexUncheckColor }}>
                                   {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès

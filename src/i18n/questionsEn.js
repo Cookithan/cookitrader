@@ -11,7 +11,7 @@ export const QUESTIONS_EN = [
   // FACILE (20 reward)
   { q: 'What country is the historical origin of coffee?', choices: ['Italy', 'Ethiopia', 'Brazil', 'Yemen'] },
   { q: 'Which plant produces coffee beans?', choices: ['Tea plant', 'Coffee tree', 'Cacao tree', 'Olive tree'] },
-  { q: 'How many levels does CookiMiner have?', choices: ['10', '12', '15', '20'] },
+  { q: 'How many levels does CookiMiner have?', choices: ['12', '15', '20', '25'] },
   { q: 'What is the title of level 1 in CookiMiner?', choices: ['Apprentice', 'Barista', 'Master', 'Legend'] },
   { q: 'What color is a coffee bean BEFORE roasting?', choices: ['Brown', 'Black', 'Green', 'Yellow'] },
   { q: 'What is the golden foam on top of an espresso called?', choices: ['Foam', 'Crema', 'Schiuma', 'Latte'] },
