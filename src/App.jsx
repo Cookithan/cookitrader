@@ -47,7 +47,7 @@ import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
 import { MatchmakingOverlay } from "./components/overlays/MatchmakingOverlay.jsx";
-import { getDuelGame, pickRandomDuelGame, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores, settlementFor, listMyDuels } from "./lib/duels.js";
+import { getDuelGame, pickRandomDuelGame, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores, settlementFor, listMyDuels, listOpenDuels, acceptDuel, submitDuelScore, createOpenDuel } from "./lib/duels.js";
 import { BossEventOverlay } from "./components/overlays/BossEventOverlay.jsx";
 import { useCommunityBoss } from "./hooks/useCommunityBoss.js";
 import { getMyBossDamage, getBossRank } from "./lib/supabaseSync.js";
@@ -573,25 +573,55 @@ export default function CookiMiner() {
   const duelPlayerScoreRef = useRef(null);                // score final joueur (split : on attend les 2)
   const duelBotScoreRef    = useRef(null);                // score final bot (split)
   /* Lance la recherche : tire un jeu au hasard + un bot + sa cible fixe. */
-  const startMatchmaking = () => {
-    const game = pickRandomDuelGame();
-    const m = { game, botName: makeBotName(), botAvatar: makeBotAvatar(), botTarget: rollBotTarget(game) };
-    matchmakingRef.current = m;
+  const startMatchmaking = async () => {
+    playSound('modal');
     setDuelResult(null);
     duelMyLiveRef.current = 0;
     duelBotLiveRef.current = 0;
+    /* 1) chercher un VRAI défi ouvert d'un autre joueur */
+    if(isSupabaseEnabled() && userName){
+      let open = [];
+      try { open = await listOpenDuels(userCode, 1); } catch {}
+      const duel  = open && open[0];
+      const oGame = duel && getDuelGame(duel.gameKey);
+      if(duel && oGame){
+        duelBotLiveRef.current = duel.challengerScore;     // son score figé = à battre
+        const m = { kind:'online', duel, game:oGame, botName: duel.challengerName || 'Joueur', botAvatar: 2, botTarget: duel.challengerScore };
+        matchmakingRef.current = m;
+        setMatchmaking(m);
+        return;
+      }
+    }
+    /* 2) sinon → bot (comme avant) */
+    const game = pickRandomDuelGame();
+    const m = { kind:'bot', game, botName: makeBotName(), botAvatar: makeBotAvatar(), botTarget: rollBotTarget(game) };
+    matchmakingRef.current = m;
     setMatchmaking(m);
-    playSound('modal');
   };
-  /* Fin du matchmaking → ouvre le jeu (le useEffect duelMode l'auto-lance). */
-  const launchDuel = () => {
+  /* Fin du matchmaking → ouvre le jeu (le useEffect duelMode l'auto-lance).
+     Online : on ACCEPTE le défi côté serveur + on débite ma mise (escrow)
+     AVANT de lancer la partie. */
+  const launchDuel = async () => {
     const m = matchmakingRef.current;
     if(!m) return;
-    duelSessionRef.current = { kind:'bot', gameKey:m.game.key, higherWins:m.game.higherWins, botName:m.botName, botAvatar:m.botAvatar, botTarget:m.botTarget, autoPlay:!!m.game.autoPlay };
     duelPlayerScoreRef.current = null;
     duelBotScoreRef.current = null;
     duelMyLiveRef.current = 0;
+
+    if(m.kind === 'online'){
+      const res = await acceptDuel({ id: m.duel.id, opponentCode: userCode, opponentName: userName });
+      if(res.error){ showToast(`⚔️ ${res.error}`); matchmakingRef.current = null; setMatchmaking(null); return; }
+      if(m.duel.stakeCookies) spendCoins(m.duel.stakeCookies);                       // escrow : ma mise
+      if(m.duel.stakeCafes)   setCafes(c => Math.max(0, (c || 0) - m.duel.stakeCafes));
+      duelBotLiveRef.current = m.duel.challengerScore;
+      duelSessionRef.current = { kind:'online', duelId:m.duel.id, gameKey:m.game.key, higherWins:m.game.higherWins, botName:m.botName, botAvatar:m.botAvatar, botTarget:m.duel.challengerScore, autoPlay:false };
+      setMatchmaking(null);
+      setDuelSession(duelSessionRef.current);
+      setGameView(m.game.key);
+      return;
+    }
     duelBotLiveRef.current = 0;
+    duelSessionRef.current = { kind:'bot', gameKey:m.game.key, higherWins:m.game.higherWins, botName:m.botName, botAvatar:m.botAvatar, botTarget:m.botTarget, autoPlay:!!m.game.autoPlay };
     setMatchmaking(null);
     setDuelSession(duelSessionRef.current);
     setGameView(m.game.key);
@@ -632,7 +662,15 @@ export default function CookiMiner() {
     duelSessionRef.current = null;
     setGameView(null);
     setDuelSession(null);
-    showDuelResult(sess, score, sess.botTarget);
+    showDuelResult(sess, score, sess.botTarget);   // résultat immédiat (je connais les 2 scores)
+    if(sess.kind === 'online'){
+      /* soumet mon score au serveur (il tranche) puis réconcilie → verse le pot */
+      (async () => {
+        const res = await submitDuelScore({ id: sess.duelId, opponentCode: userCode, opponentScore: score });
+        if(res?.error) showToast(`⚔️ Score non enregistré — ${res.error}`);
+        await reconcileDuels();
+      })();
+    }
   };
   /* Fin de la partie du BOT (split uniquement). */
   const handleBotDuelScore = (score) => {
@@ -684,6 +722,18 @@ export default function CookiMiner() {
     reconcileDuels();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userCode, pullDone]);
+
+  /* 🧪 HARNAIS DE TEST (admin only) : pose un FAUX défi ouvert d'un
+     "TestBot" que je peux relever tout seul pour valider la boucle en ligne
+     sans 2 comptes. NE PAS exposer aux joueurs (gate isAdminName). */
+  const devCreateFakeDuel = async () => {
+    if(!isSupabaseEnabled() || !userCode){ showToast('🧪 Supabase requis (local : .env.local)'); return; }
+    const game   = pickRandomDuelGame();
+    const target = rollBotTarget(game);
+    const res = await createOpenDuel({ gameKey: game.key, higherWins: game.higherWins, stakeCookies: 100, stakeCafes: 0, challengerCode: 'ZZZ-B0T', challengerName: 'TestBot', challengerScore: target });
+    if(res.error){ showToast(`🧪 ${res.error}`); return; }
+    showToast(`🧪 Faux défi posté : ${game.label}, score ${target}, mise 100 🍪 — fais « Trouver un duel »`);
+  };
   const [showBoss,     setShowBoss]     = useState(false);
   /* Boss communautaire (Le Gâteau Géant). Déclaré tôt : showBoss/
      bossReward sont lus par useBackToClose & swipeBlocked plus bas. */
@@ -4267,15 +4317,23 @@ export default function CookiMiner() {
           <div className="su">
             <button
               onClick={startMatchmaking}
-              style={{ width:'100%', marginBottom:16, padding:'15px 16px', borderRadius:18, border:'1px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(212,160,23,.04))', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
+              style={{ width:'100%', marginBottom: isAdminName(userName) ? 8 : 16, padding:'15px 16px', borderRadius:18, border:'1px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(212,160,23,.04))', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
             >
               <span style={{ fontSize:24 }}>⚔️</span>
               <span style={{ flex:1 }}>
                 <span style={{ display:'block', fontSize:14.5, fontWeight:900, color:C.text }}>Trouver un duel</span>
-                <span style={{ display:'block', fontSize:11, color:C.muted, marginTop:2 }}>Jeu tiré au sort · adversaire surprise · sans enjeu (test)</span>
+                <span style={{ display:'block', fontSize:11, color:C.muted, marginTop:2 }}>Un vrai adversaire s'il y en a un, sinon un bot</span>
               </span>
               <span style={{ fontSize:18, color:'#D4A017', fontWeight:900 }}>›</span>
             </button>
+            {isAdminName(userName) && (
+              <button
+                onClick={devCreateFakeDuel}
+                style={{ width:'100%', marginBottom:16, padding:'9px 14px', borderRadius:12, border:`1px dashed ${C.border}`, background:'transparent', color:C.muted, fontSize:11.5, fontWeight:800, cursor:'pointer', textAlign:'left' }}
+              >
+                🧪 [Dev] Poser un faux défi à relever
+              </button>
+            )}
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
             {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))).map(g=>{
               /* Override force-unlock par code promo (cf. unlockedGames).

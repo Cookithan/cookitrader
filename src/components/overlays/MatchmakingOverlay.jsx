@@ -22,6 +22,10 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
   launchRef.current = onLaunch;
   const game = match?.game;
   const botName = match?.botName || 'Barista';
+  const isOnline = match?.kind === 'online';
+  const stakeC = match?.duel?.stakeCookies || 0;
+  const stakeK = match?.duel?.stakeCafes   || 0;
+  const target = match?.duel?.challengerScore;
 
   useEffect(() => {
     if(phase === 'search'){ const t = setTimeout(()=>setPhase('found'),  2200); return ()=>clearTimeout(t); }
@@ -54,7 +58,7 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
             <AvatarFigure value={match?.botAvatar} size={96} />
           </div>
           <div style={{ fontSize:27, fontWeight:900, color:GOLD }}>{botName}</div>
-          <div style={{ fontSize:12, color:dim+'.5)', marginTop:6 }}>Bot d'entraînement · sans enjeu</div>
+          <div style={{ fontSize:12, color:dim+'.5)', marginTop:6 }}>{isOnline ? "Vrai joueur — un défi t'attend" : "Bot d'entraînement · sans enjeu"}</div>
         </div>
       )}
 
@@ -67,6 +71,12 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
           <div style={{ fontSize:11.5, fontWeight:800, color:dim+'.55)', marginTop:8 }}>
             {game.higherWins ? '→ le plus haut score gagne' : '→ le moins de coups gagne'}
           </div>
+          {isOnline && (
+            <div style={{ marginTop:16, padding:'10px 12px', borderRadius:12, background:'rgba(212,160,23,.14)', border:`1px solid ${GOLD}` }}>
+              <div style={{ fontSize:14, fontWeight:900, color:GOLD }}>🎯 Score à battre : {target}</div>
+              <div style={{ fontSize:12.5, fontWeight:800, color:dim+'.85)', marginTop:3 }}>Mise : {stakeC} 🍪{stakeK ? ` + ${stakeK} ☕` : ''}</div>
+            </div>
+          )}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:16 }}>
             <AvatarFigure value={match?.botAvatar} size={30} />
             <span style={{ fontSize:12.5, fontWeight:800, color:dim+'.75)' }}>face à {botName}</span>
@@ -75,7 +85,7 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
             onClick={()=>launchRef.current?.()}
             style={{ marginTop:26, width:'100%', padding:'16px', borderRadius:16, background:GOLD, color:'#fff', fontWeight:900, fontSize:16, border:'none', cursor:'pointer' }}
           >
-            Lancer le duel ⚔️
+            {isOnline ? 'Relever le défi ⚔️' : 'Lancer le duel ⚔️'}
           </button>
           <div style={{ fontSize:10.5, color:dim+'.45)', marginTop:12 }}>Ça démarre tout seul dans un instant…</div>
         </div>
