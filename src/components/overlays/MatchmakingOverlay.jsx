@@ -17,18 +17,21 @@ import { AvatarFigure } from "../AvatarFigure.jsx";
    props : match = { game, botName, botTarget }, onLaunch(), onCancel(), C
 ═══════════════════════════════════════════════════════ */
 export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-disable-line no-unused-vars
-  const [phase, setPhase] = useState('search');   // 'search' → 'found' → 'reveal'
+  const isCreate = match?.kind === 'create';
+  const isOnline = match?.kind === 'online';
+  const [phase, setPhase] = useState(isCreate ? 'reveal' : 'search');   // create → direct à la révélation de l'épreuve
   const launchRef = useRef(onLaunch);
   launchRef.current = onLaunch;
   const game = match?.game;
   const botName = match?.botName || 'Barista';
-  const isOnline = match?.kind === 'online';
-  const stakeC = match?.duel?.stakeCookies || 0;
-  const stakeK = match?.duel?.stakeCafes   || 0;
+  const stakeC = (isCreate ? match?.stakeCookies : match?.duel?.stakeCookies) || 0;
+  const stakeK = (isCreate ? match?.stakeCafes   : match?.duel?.stakeCafes)   || 0;
   const target = match?.duel?.challengerScore;
 
   useEffect(() => {
-    if(phase === 'search'){ const t = setTimeout(()=>setPhase('found'),  2200); return ()=>clearTimeout(t); }
+    if(isCreate) return;   // poser un défi : on reste sur la révélation, lancement au tap
+    /* Recherche plus longue (~5 s) avant de retomber sur un bot. */
+    if(phase === 'search'){ const t = setTimeout(()=>setPhase('found'),  5000); return ()=>clearTimeout(t); }
     if(phase === 'found'){  const t = setTimeout(()=>setPhase('reveal'), 3200); return ()=>clearTimeout(t); }
     if(phase === 'reveal'){ const t = setTimeout(()=>launchRef.current?.(), 5200); return ()=>clearTimeout(t); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,7 +67,7 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
 
       {phase === 'reveal' && game && (
         <div className="su" style={{ textAlign:'center', width:'100%', maxWidth:340 }}>
-          <div style={{ fontSize:12, fontWeight:800, color:dim+'.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>Épreuve</div>
+          <div style={{ fontSize:12, fontWeight:800, color:dim+'.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>{isCreate ? 'Ton défi' : 'Épreuve'}</div>
           <div style={{ fontSize:66, lineHeight:1 }}>{game.icon}</div>
           <div style={{ fontSize:31, fontWeight:900, color:GOLD, marginTop:10 }}>{game.label}</div>
           <div style={{ fontSize:14, color:dim+'.85)', marginTop:12, lineHeight:1.45 }}>{game.rules}</div>
@@ -77,17 +80,25 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
               <div style={{ fontSize:12.5, fontWeight:800, color:dim+'.85)', marginTop:3 }}>Mise : {stakeC} 🍪{stakeK ? ` + ${stakeK} ☕` : ''}</div>
             </div>
           )}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:16 }}>
-            <AvatarFigure value={match?.botAvatar} size={30} />
-            <span style={{ fontSize:12.5, fontWeight:800, color:dim+'.75)' }}>face à {botName}</span>
-          </div>
+          {isCreate && (
+            <div style={{ marginTop:16, padding:'10px 12px', borderRadius:12, background:'rgba(212,160,23,.14)', border:`1px solid ${GOLD}` }}>
+              <div style={{ fontSize:13.5, fontWeight:900, color:GOLD }}>Ta mise : {stakeC} 🍪{stakeK ? ` + ${stakeK} ☕` : ''}</div>
+              <div style={{ fontSize:12, fontWeight:700, color:dim+'.8)', marginTop:3 }}>Joue, pose ton score, et attends un adversaire.</div>
+            </div>
+          )}
+          {!isCreate && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:16 }}>
+              <AvatarFigure value={match?.botAvatar} size={30} />
+              <span style={{ fontSize:12.5, fontWeight:800, color:dim+'.75)' }}>face à {botName}</span>
+            </div>
+          )}
           <button
             onClick={()=>launchRef.current?.()}
             style={{ marginTop:26, width:'100%', padding:'16px', borderRadius:16, background:GOLD, color:'#fff', fontWeight:900, fontSize:16, border:'none', cursor:'pointer' }}
           >
-            {isOnline ? 'Relever le défi ⚔️' : 'Lancer le duel ⚔️'}
+            {isCreate ? 'Jouer & poser mon défi 📢' : isOnline ? 'Relever le défi ⚔️' : 'Lancer le duel ⚔️'}
           </button>
-          <div style={{ fontSize:10.5, color:dim+'.45)', marginTop:12 }}>Ça démarre tout seul dans un instant…</div>
+          {!isCreate && <div style={{ fontSize:10.5, color:dim+'.45)', marginTop:12 }}>Ça démarre tout seul dans un instant…</div>}
         </div>
       )}
     </div>
