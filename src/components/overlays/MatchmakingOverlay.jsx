@@ -1,43 +1,70 @@
 import { useState, useEffect, useRef } from "react";
 import { GOLD } from "../../data/themes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
+import { getDuelGame } from "../../lib/duels.js";
 
 /* ════════════════════════════════════════════════════
-   MatchmakingOverlay — recherche de duel « façon Valorant »
+   MatchmakingOverlay — séquence de duel « façon Valorant »
    ────────────────────────────────────────────────────
-   Séquence plein écran : Recherche d'un adversaire… → Adversaire
-   trouvé (bot) → Épreuve révélée + règles → lancement (auto ou tap).
-   Le jeu est ALÉATOIRE (tu ne sais pas sur quoi tu tombes).
+   ÉTAPE A (vs bot réaliste) :
+     search  → Recherche d'un adversaire… (~5 s, rallongé)
+     found   → Adversaire trouvé (avatar + nom)
+     gamepick→ Choisis ton épreuve parmi 3. L'adversaire choisit aussi.
+               Résolution : même choix → ce jeu ; sinon départage aléatoire
+               entre les 2 jeux choisis.
+     reveal  → L'épreuve tranchée + règles
+     count   → décompte 3·2·1 → onLaunch(gameKey)
 
-   Le tirage (jeu + bot + cible) est fait côté App et passé via `match`
-   pour rester la source de vérité ; l'overlay ne fait que l'animation
-   puis appelle onLaunch(). Palette espresso, anims réutilisées de
-   globalStyles (.spin-anim, .bi, .su).
+   Le tirage (bot, 3 jeux proposés, choix du bot) vient d'App via `match` ;
+   l'overlay pilote l'anim + la résolution puis appelle onLaunch(gameKey).
+   Étape B (vrai live 2 joueurs) se branchera par-dessus ces mêmes phases.
 
-   props : match = { game, botName, botTarget }, onLaunch(), onCancel(), C
+   props : match = { kind, botName, botAvatar, offeredGames:[g], botGamePick },
+           onLaunch(gameKey), onCancel(), C
 ═══════════════════════════════════════════════════════ */
-export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-disable-line no-unused-vars
-  const isCreate = match?.kind === 'create';
-  const isOnline = match?.kind === 'online';
-  const [phase, setPhase] = useState(isCreate ? 'reveal' : 'search');   // create → direct à la révélation de l'épreuve
+export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){
+  const [phase, setPhase]       = useState('search');   // search → found → gamepick → reveal → count
+  const [resolved, setResolved] = useState(null);       // { game, reason, myPick, botPick }
+  const [count, setCount]       = useState(3);
   const launchRef = useRef(onLaunch);
   launchRef.current = onLaunch;
-  const game = match?.game;
-  const botName = match?.botName || 'Barista';
-  const stakeC = (isCreate ? match?.stakeCookies : match?.duel?.stakeCookies) || 0;
-  const stakeK = (isCreate ? match?.stakeCafes   : match?.duel?.stakeCafes)   || 0;
-  const target = match?.duel?.challengerScore;
 
+  const dim     = 'rgba(240,224,192,';
+  const botName = match?.botName || 'Barista';
+  const offered = match?.offeredGames || [];
+
+  /* Transitions auto (search/found/reveal). gamepick attend le tap. */
   useEffect(() => {
-    if(isCreate) return;   // poser un défi : on reste sur la révélation, lancement au tap
-    /* Recherche plus longue (~5 s) avant de retomber sur un bot. */
-    if(phase === 'search'){ const t = setTimeout(()=>setPhase('found'),  5000); return ()=>clearTimeout(t); }
-    if(phase === 'found'){  const t = setTimeout(()=>setPhase('reveal'), 3200); return ()=>clearTimeout(t); }
-    if(phase === 'reveal'){ const t = setTimeout(()=>launchRef.current?.(), 5200); return ()=>clearTimeout(t); }
+    if(phase === 'search'){ const t = setTimeout(()=>setPhase('found'),    5000); return ()=>clearTimeout(t); }
+    if(phase === 'found'){  const t = setTimeout(()=>setPhase('gamepick'), 2000); return ()=>clearTimeout(t); }
+    if(phase === 'reveal'){ const t = setTimeout(()=>setPhase('count'),    2600); return ()=>clearTimeout(t); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
-  const dim = 'rgba(240,224,192,';
+  /* Décompte 3·2·1 → lancement. */
+  useEffect(() => {
+    if(phase !== 'count') return;
+    setCount(3);
+    let n = 3;
+    const id = setInterval(() => {
+      n -= 1;
+      if(n <= 0){ clearInterval(id); launchRef.current?.(resolved?.game?.key); }
+      else setCount(n);
+    }, 800);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  /* Le joueur choisit → on tranche avec le choix du bot. */
+  const pick = (g) => {
+    if(phase !== 'gamepick') return;
+    const botGame = getDuelGame(match?.botGamePick) || g;
+    let game, reason;
+    if(g.key === botGame.key){ game = g; reason = 'same'; }
+    else { game = Math.random() < 0.5 ? g : botGame; reason = 'tie'; }
+    setResolved({ game, reason, myPick: g, botPick: botGame });
+    setPhase('reveal');
+  };
 
   return (
     <div style={{ position:'fixed', inset:0, zIndex:75, background:'linear-gradient(160deg,#2A1508,#160800)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, color:'#F0E0C0' }}>
@@ -50,7 +77,7 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
         <div style={{ textAlign:'center' }}>
           <div className="spin-anim" style={{ width:66, height:66, margin:'0 auto 26px', borderRadius:'50%', border:'4px solid rgba(212,160,23,.22)', borderTopColor:GOLD }} />
           <div style={{ fontSize:21, fontWeight:900 }}>Recherche d'un adversaire…</div>
-          <div style={{ fontSize:12.5, color:dim+'.6)', marginTop:10, lineHeight:1.4 }}>Épreuve tirée au sort<br/>tu ne sais pas sur quoi tu vas tomber</div>
+          <div style={{ fontSize:12.5, color:dim+'.6)', marginTop:10, lineHeight:1.4 }}>On te trouve un joueur.<br/>Personne de dispo ? Un adversaire relèvera le défi.</div>
         </div>
       )}
 
@@ -61,44 +88,59 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){ // eslint-
             <AvatarFigure value={match?.botAvatar} size={96} />
           </div>
           <div style={{ fontSize:27, fontWeight:900, color:GOLD }}>{botName}</div>
-          <div style={{ fontSize:12, color:dim+'.5)', marginTop:6 }}>{isOnline ? "Vrai joueur — un défi t'attend" : "Bot d'entraînement · sans enjeu"}</div>
         </div>
       )}
 
-      {phase === 'reveal' && game && (
-        <div className="su" style={{ textAlign:'center', width:'100%', maxWidth:340 }}>
-          <div style={{ fontSize:12, fontWeight:800, color:dim+'.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:14 }}>{isCreate ? 'Ton défi' : 'Épreuve'}</div>
-          <div style={{ fontSize:66, lineHeight:1 }}>{game.icon}</div>
-          <div style={{ fontSize:31, fontWeight:900, color:GOLD, marginTop:10 }}>{game.label}</div>
-          <div style={{ fontSize:14, color:dim+'.85)', marginTop:12, lineHeight:1.45 }}>{game.rules}</div>
-          <div style={{ fontSize:11.5, fontWeight:800, color:dim+'.55)', marginTop:8 }}>
-            {game.higherWins ? '→ le plus haut score gagne' : '→ le moins de coups gagne'}
+      {phase === 'gamepick' && (
+        <div className="su" style={{ width:'100%', maxWidth:360, textAlign:'center' }}>
+          <div style={{ fontSize:12, fontWeight:800, color:dim+'.6)', textTransform:'uppercase', letterSpacing:2 }}>Choisis ton épreuve</div>
+          <div style={{ fontSize:12.5, color:dim+'.55)', marginTop:6 }}>{botName} choisit de son côté…</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginTop:20 }}>
+            {offered.map(g => (
+              <button
+                key={g.key}
+                onClick={()=>pick(g)}
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, padding:'16px 6px', borderRadius:16, background:'rgba(255,255,255,.06)', border:'1px solid rgba(212,160,23,.35)', color:'#F0E0C0', cursor:'pointer' }}
+              >
+                <span style={{ fontSize:30, lineHeight:1 }}>{g.icon}</span>
+                <span style={{ fontSize:12, fontWeight:800 }}>{g.label}</span>
+              </button>
+            ))}
           </div>
-          {isOnline && (
-            <div style={{ marginTop:16, padding:'10px 12px', borderRadius:12, background:'rgba(212,160,23,.14)', border:`1px solid ${GOLD}` }}>
-              <div style={{ fontSize:14, fontWeight:900, color:GOLD }}>🎯 Score à battre : {target}</div>
-              <div style={{ fontSize:12.5, fontWeight:800, color:dim+'.85)', marginTop:3 }}>Mise : {stakeC} 🍪{stakeK ? ` + ${stakeK} ☕` : ''}</div>
+        </div>
+      )}
+
+      {phase === 'reveal' && resolved && (
+        <div className="su" style={{ textAlign:'center', width:'100%', maxWidth:340 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14, marginBottom:16 }}>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontSize:28 }}>{resolved.myPick.icon}</div>
+              <div style={{ fontSize:10, fontWeight:800, color:dim+'.6)', marginTop:2 }}>TOI</div>
             </div>
-          )}
-          {isCreate && (
-            <div style={{ marginTop:16, padding:'10px 12px', borderRadius:12, background:'rgba(212,160,23,.14)', border:`1px solid ${GOLD}` }}>
-              <div style={{ fontSize:13.5, fontWeight:900, color:GOLD }}>Ta mise : {stakeC} 🍪{stakeK ? ` + ${stakeK} ☕` : ''}</div>
-              <div style={{ fontSize:12, fontWeight:700, color:dim+'.8)', marginTop:3 }}>Joue, pose ton score, et attends un adversaire.</div>
+            <div style={{ fontSize:16, color:dim+'.5)' }}>vs</div>
+            <div style={{ textAlign:'center' }}>
+              <div style={{ fontSize:28 }}>{resolved.botPick.icon}</div>
+              <div style={{ fontSize:10, fontWeight:800, color:dim+'.6)', marginTop:2, maxWidth:70, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{botName}</div>
             </div>
-          )}
-          {!isCreate && (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:16 }}>
-              <AvatarFigure value={match?.botAvatar} size={30} />
-              <span style={{ fontSize:12.5, fontWeight:800, color:dim+'.75)' }}>face à {botName}</span>
-            </div>
-          )}
-          <button
-            onClick={()=>launchRef.current?.()}
-            style={{ marginTop:26, width:'100%', padding:'16px', borderRadius:16, background:GOLD, color:'#fff', fontWeight:900, fontSize:16, border:'none', cursor:'pointer' }}
-          >
-            {isCreate ? 'Jouer & poser mon défi 📢' : isOnline ? 'Relever le défi ⚔️' : 'Lancer le duel ⚔️'}
-          </button>
-          {!isCreate && <div style={{ fontSize:10.5, color:dim+'.45)', marginTop:12 }}>Ça démarre tout seul dans un instant…</div>}
+          </div>
+          <div style={{ fontSize:12.5, fontWeight:800, color:GOLD }}>
+            {resolved.reason === 'same' ? '🎯 Même choix — c\'est parti !' : '🎲 Choix différents → départage !'}
+          </div>
+          <div style={{ fontSize:12, fontWeight:800, color:dim+'.6)', textTransform:'uppercase', letterSpacing:2, margin:'18px 0 6px' }}>Épreuve</div>
+          <div style={{ fontSize:60, lineHeight:1 }}>{resolved.game.icon}</div>
+          <div style={{ fontSize:30, fontWeight:900, color:GOLD, marginTop:8 }}>{resolved.game.label}</div>
+          <div style={{ fontSize:13.5, color:dim+'.8)', marginTop:10, lineHeight:1.4 }}>{resolved.game.rules}</div>
+          <div style={{ fontSize:11.5, fontWeight:800, color:dim+'.5)', marginTop:6 }}>
+            {resolved.game.higherWins ? '→ le plus haut score gagne' : '→ le moins de coups gagne'}
+          </div>
+        </div>
+      )}
+
+      {phase === 'count' && (
+        <div style={{ textAlign:'center' }}>
+          <div style={{ fontSize:14, fontWeight:800, color:dim+'.7)' }}>{resolved?.game?.label}</div>
+          <div key={count} className="bi" style={{ fontSize:100, fontWeight:900, color:GOLD, lineHeight:1, marginTop:8 }}>{count}</div>
+          <div style={{ fontSize:12, color:dim+'.5)', marginTop:8 }}>Prépare-toi…</div>
         </div>
       )}
     </div>

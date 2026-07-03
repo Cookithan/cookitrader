@@ -48,7 +48,7 @@ import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
 import { DuelStakeModal } from "./components/modals/DuelStakeModal.jsx";
 import { MatchmakingOverlay } from "./components/overlays/MatchmakingOverlay.jsx";
-import { getDuelGame, pickRandomDuelGame, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores, settlementFor, listMyDuels, listOpenDuels, acceptDuel, submitDuelScore, createOpenDuel } from "./lib/duels.js";
+import { getDuelGame, pickRandomDuelGame, pickThreeDuelGames, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores, settlementFor, listMyDuels, listOpenDuels, acceptDuel, submitDuelScore, createOpenDuel } from "./lib/duels.js";
 import { BossEventOverlay } from "./components/overlays/BossEventOverlay.jsx";
 import { useCommunityBoss } from "./hooks/useCommunityBoss.js";
 import { getMyBossDamage, getBossRank } from "./lib/supabaseSync.js";
@@ -575,28 +575,18 @@ export default function CookiMiner() {
   const duelPlayerScoreRef = useRef(null);                // score final joueur (split : on attend les 2)
   const duelBotScoreRef    = useRef(null);                // score final bot (split)
   /* Lance la recherche : tire un jeu au hasard + un bot + sa cible fixe. */
-  const startMatchmaking = async () => {
+  const startMatchmaking = () => {
     playSound('modal');
     setDuelResult(null);
     duelMyLiveRef.current = 0;
     duelBotLiveRef.current = 0;
-    /* 1) chercher un VRAI défi ouvert d'un autre joueur */
-    if(isSupabaseEnabled() && userName){
-      let open = [];
-      try { open = await listOpenDuels(userCode, 1); } catch {}
-      const duel  = open && open[0];
-      const oGame = duel && getDuelGame(duel.gameKey);
-      if(duel && oGame){
-        duelBotLiveRef.current = duel.challengerScore;     // son score figé = à battre
-        const m = { kind:'online', duel, game:oGame, botName: duel.challengerName || 'Joueur', botAvatar: 2, botTarget: duel.challengerScore };
-        matchmakingRef.current = m;
-        setMatchmaking(m);
-        return;
-      }
-    }
-    /* 2) sinon → bot (comme avant) */
-    const game = pickRandomDuelGame();
-    const m = { kind:'bot', game, botName: makeBotName(), botAvatar: makeBotAvatar(), botTarget: rollBotTarget(game) };
+    /* Étape A : l'adversaire est un BOT réaliste (il « choisit » son jeu
+       parmi 3 et joue). Le vrai matchmaking live 2 joueurs viendra se
+       brancher par-dessus (étape B) : si un joueur cherche au même moment
+       on l'appaire, sinon ce bot prend le relais. */
+    const games3  = pickThreeDuelGames();
+    const botPick = games3[Math.floor(Math.random() * games3.length)];
+    const m = { kind:'bot', botName: makeBotName(), botAvatar: makeBotAvatar(), offeredGames: games3, botGamePick: botPick.key };
     matchmakingRef.current = m;
     setMatchmaking(m);
   };
@@ -615,38 +605,19 @@ export default function CookiMiner() {
   /* Fin du matchmaking → ouvre le jeu (le useEffect duelMode l'auto-lance).
      Online : on ACCEPTE le défi côté serveur + on débite ma mise (escrow)
      AVANT de lancer la partie. */
-  const launchDuel = async () => {
+  const launchDuel = (gameKey) => {
     const m = matchmakingRef.current;
     if(!m) return;
+    const game = getDuelGame(gameKey) || (m.offeredGames && m.offeredGames[0]);
+    if(!game) return;
     duelPlayerScoreRef.current = null;
     duelBotScoreRef.current = null;
     duelMyLiveRef.current = 0;
-
-    if(m.kind === 'create'){
-      duelBotLiveRef.current = 0;
-      duelSessionRef.current = { kind:'create', gameKey:m.game.key, higherWins:m.game.higherWins, stakeCookies:m.stakeCookies, stakeCafes:m.stakeCafes, botTarget:0, botName:'', botAvatar:2, autoPlay:false };
-      setMatchmaking(null);
-      setDuelSession(duelSessionRef.current);
-      setGameView(m.game.key);
-      return;
-    }
-    if(m.kind === 'online'){
-      const res = await acceptDuel({ id: m.duel.id, opponentCode: userCode, opponentName: userName });
-      if(res.error){ showToast(`⚔️ ${res.error}`); matchmakingRef.current = null; setMatchmaking(null); return; }
-      if(m.duel.stakeCookies) spendCoins(m.duel.stakeCookies);                       // escrow : ma mise
-      if(m.duel.stakeCafes)   setCafes(c => Math.max(0, (c || 0) - m.duel.stakeCafes));
-      duelBotLiveRef.current = m.duel.challengerScore;
-      duelSessionRef.current = { kind:'online', duelId:m.duel.id, gameKey:m.game.key, higherWins:m.game.higherWins, botName:m.botName, botAvatar:m.botAvatar, botTarget:m.duel.challengerScore, autoPlay:false };
-      setMatchmaking(null);
-      setDuelSession(duelSessionRef.current);
-      setGameView(m.game.key);
-      return;
-    }
     duelBotLiveRef.current = 0;
-    duelSessionRef.current = { kind:'bot', gameKey:m.game.key, higherWins:m.game.higherWins, botName:m.botName, botAvatar:m.botAvatar, botTarget:m.botTarget, autoPlay:!!m.game.autoPlay };
+    duelSessionRef.current = { kind:'bot', gameKey: game.key, higherWins: game.higherWins, botName: m.botName, botAvatar: m.botAvatar, botTarget: rollBotTarget(game), autoPlay:false };
     setMatchmaking(null);
     setDuelSession(duelSessionRef.current);
-    setGameView(m.game.key);
+    setGameView(game.key);
   };
   /* Écrivent des REFS, pas du state → la partie tourne sans re-render App. */
   const handleDuelProgress    = (s) => { duelMyLiveRef.current  = Math.max(0, Math.floor(s) || 0); };
@@ -4353,7 +4324,7 @@ export default function CookiMiner() {
           <div className="su">
             <button
               onClick={startMatchmaking}
-              style={{ width:'100%', marginBottom: isAdminName(userName) ? 8 : 16, padding:'15px 16px', borderRadius:18, border:'1px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(212,160,23,.04))', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
+              style={{ width:'100%', marginBottom:16, padding:'15px 16px', borderRadius:18, border:'1px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(212,160,23,.04))', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
             >
               <span style={{ fontSize:24 }}>⚔️</span>
               <span style={{ flex:1 }}>
@@ -4362,25 +4333,6 @@ export default function CookiMiner() {
               </span>
               <span style={{ fontSize:18, color:'#D4A017', fontWeight:900 }}>›</span>
             </button>
-            <button
-              onClick={()=>{ playSound('modal'); setShowStakeModal(true); }}
-              style={{ width:'100%', marginBottom:16, padding:'13px 16px', borderRadius:16, border:`1px solid ${C.border}`, background:C.card, display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
-            >
-              <span style={{ fontSize:22 }}>📢</span>
-              <span style={{ flex:1 }}>
-                <span style={{ display:'block', fontSize:14, fontWeight:900, color:C.text }}>Poser un défi</span>
-                <span style={{ display:'block', fontSize:11, color:C.muted, marginTop:2 }}>Mise tes 🍪, pose ton score, un joueur le relèvera</span>
-              </span>
-              <span style={{ fontSize:18, color:C.muted, fontWeight:900 }}>›</span>
-            </button>
-            {isAdminName(userName) && (
-              <button
-                onClick={devCreateFakeDuel}
-                style={{ width:'100%', marginBottom:16, padding:'9px 14px', borderRadius:12, border:`1px dashed ${C.border}`, background:'transparent', color:C.muted, fontSize:11.5, fontWeight:800, cursor:'pointer', textAlign:'left' }}
-              >
-                🧪 [Dev] Poser un faux défi à relever
-              </button>
-            )}
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
             {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))).map(g=>{
               /* Override force-unlock par code promo (cf. unlockedGames).

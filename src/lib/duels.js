@@ -39,6 +39,18 @@ export const DUELABLE_GAMES = [
   { key:'guess',   label:'Devine',       label_en:'Guess',        icon:'❓', higherWins:true,  metric:'bonnes réponses', rules:'Devine la commande du client.',       botBand:[2,5],    dur:18 },
 ];
 
+/* 3 jeux duelables DISTINCTS au hasard, proposés au choix avant un duel.
+   Les 2 adversaires choisissent parmi ces 3 (même choix → ce jeu ;
+   sinon départage aléatoire entre les 2 choisis). */
+export function pickThreeDuelGames(){
+  const pool = [...DUELABLE_GAMES];
+  for(let i = pool.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, 3);
+}
+
 /* Un jeu duelable au hasard (matchmaking « à l'aveugle »).
    TANT QUE le split-screen n'est pas dispo sur tous les jeux, on ne tire
    QUE les jeux `autoPlay` (Phase 1 : Clic + Réflexe) → chaque duel est
