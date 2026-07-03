@@ -568,6 +568,7 @@ export default function CookiMiner() {
   const [duelResult,  setDuelResult]  = useState(null);   // écran de résultat post-duel
   const [matchmaking, setMatchmaking] = useState(null);   // séquence de recherche { game, botName, botTarget }
   const [showStakeModal, setShowStakeModal] = useState(false);  // sélecteur de mise (poser un défi)
+  const [duelHandoff, setDuelHandoff] = useState(null);         // transition « le bot a joué → à toi » (Option 1)
   const duelMyLiveRef  = useRef(0);                       // ton score live (REF → aucun re-render de l'App)
   const duelBotLiveRef = useRef(0);                       // score bot live (idem) — la barre les poll en 10 fps
   const duelSessionRef = useRef(null);                    // miroir sync (évite closure périmée à la fin de partie)
@@ -610,17 +611,31 @@ export default function CookiMiner() {
     if(!m) return;
     const game = getDuelGame(gameKey) || (m.offeredGames && m.offeredGames[0]);
     if(!game) return;
-    duelPlayerScoreRef.current = null;
-    duelBotScoreRef.current = null;
     duelMyLiveRef.current = 0;
     duelBotLiveRef.current = 0;
-    duelSessionRef.current = { kind:'bot', gameKey: game.key, higherWins: game.higherWins, botName: m.botName, botAvatar: m.botAvatar, botTarget: rollBotTarget(game), autoPlay:false };
+    /* Option 1 : d'abord le TOUR DU BOT (autoPlay, visible) ; son vrai score
+       remplit botTarget en fin de tour, puis TON tour. */
+    const sess = { kind:'bot', gameKey: game.key, higherWins: game.higherWins, botName: m.botName, botAvatar: m.botAvatar, turn:'bot', botTarget: null };
+    duelSessionRef.current = sess;
     setMatchmaking(null);
-    setDuelSession(duelSessionRef.current);
+    setDuelSession(sess);
     setGameView(game.key);
   };
-  /* Écrivent des REFS, pas du state → la partie tourne sans re-render App. */
-  const handleDuelProgress    = (s) => { duelMyLiveRef.current  = Math.max(0, Math.floor(s) || 0); };
+  /* Fin de la transition « à toi » → lance MON tour (interactif). */
+  const startMyTurn = () => {
+    const sess = duelSessionRef.current;
+    setDuelHandoff(null);
+    if(!sess) return;
+    duelMyLiveRef.current = 0;
+    setGameView(sess.gameKey);
+  };
+  /* Écrit des REFS, pas du state (aucun re-render App). Route selon le tour :
+     pendant le tour du bot, c'est SON score qui monte. */
+  const handleDuelProgress = (s) => {
+    const v = Math.max(0, Math.floor(s) || 0);
+    if(duelSessionRef.current?.turn === 'bot') duelBotLiveRef.current = v;
+    else duelMyLiveRef.current = v;
+  };
   const handleBotDuelProgress = (s) => { duelBotLiveRef.current = Math.max(0, Math.floor(s) || 0); };
 
   /* Affiche l'écran de résultat à partir de 2 scores (toi vs adversaire). */
@@ -647,36 +662,23 @@ export default function CookiMiner() {
   const handleDuelScore = (score) => {
     const sess = duelSessionRef.current;
     if(!sess) return;
-    if(sess.autoPlay){
-      duelPlayerScoreRef.current = score;
-      finishSplitDuel();
+    if(sess.turn === 'bot'){
+      /* Le bot a fini SON tour → on garde son VRAI score, transition « à toi ». */
+      const updated = { ...sess, turn:'me', botTarget: score };
+      duelSessionRef.current = updated;
+      duelBotLiveRef.current = score;
+      duelMyLiveRef.current = 0;
+      setGameView(null);
+      setDuelSession(updated);
+      setDuelHandoff({ gameKey: sess.gameKey, botName: sess.botName, botScore: score, higherWins: sess.higherWins, metric: getDuelGame(sess.gameKey)?.metric });
+      playSound('modal');
       return;
     }
+    /* Mon tour fini → résultat (mon score vs le vrai score du bot). */
     duelSessionRef.current = null;
     setGameView(null);
     setDuelSession(null);
-    if(sess.kind === 'create'){
-      /* on POSE le défi (pas de résultat : pas encore d'adversaire) */
-      (async () => {
-        const res = await createOpenDuel({ gameKey: sess.gameKey, higherWins: sess.higherWins, stakeCookies: sess.stakeCookies, stakeCafes: sess.stakeCafes, challengerCode: userCode, challengerName: userName, challengerScore: score });
-        if(res.error){ showToast(`⚔️ ${res.error}`); return; }
-        if(sess.stakeCookies) spendCoins(sess.stakeCookies);                       // escrow : ma mise
-        if(sess.stakeCafes)   setCafes(c => Math.max(0, (c || 0) - sess.stakeCafes));
-        showToast(`📢 Défi posté (score ${score}) — attends qu'on le relève !`);
-        createInboxMessage(userCode, 'system', '📢 Défi posté',
-          `Ton défi sur ${getDuelGame(sess.gameKey)?.label || 'un jeu'} (score ${score}, mise ${sess.stakeCookies} 🍪${sess.stakeCafes ? ` + ${sess.stakeCafes} ☕` : ''}) est en ligne. Tu récupères ta mise + celle de l'adversaire si tu gagnes, ou ta mise si personne ne relève.`, null).catch(()=>{});
-      })();
-      return;
-    }
-    showDuelResult(sess, score, sess.botTarget);   // résultat immédiat (je connais les 2 scores)
-    if(sess.kind === 'online'){
-      /* soumet mon score au serveur (il tranche) puis réconcilie → verse le pot */
-      (async () => {
-        const res = await submitDuelScore({ id: sess.duelId, opponentCode: userCode, opponentScore: score });
-        if(res?.error) showToast(`⚔️ Score non enregistré — ${res.error}`);
-        await reconcileDuels();
-      })();
-    }
+    showDuelResult(sess, score, sess.botTarget);
   };
   /* Fin de la partie du BOT (split uniquement). */
   const handleBotDuelScore = (score) => {
@@ -1177,6 +1179,7 @@ export default function CookiMiner() {
   useBackToClose(!!gameView,        () => setGameView(null));
   useBackToClose(!!matchmaking,     () => { matchmakingRef.current=null; setMatchmaking(null); });
   useBackToClose(showStakeModal,    () => setShowStakeModal(false));
+  useBackToClose(!!duelHandoff,     () => { setDuelHandoff(null); duelSessionRef.current=null; setGameView(null); setDuelSession(null); });
   useBackToClose(!!duelResult,      () => setDuelResult(null));
   useBackToClose(showSettings,      () => setShowSettings(false));
   useBackToClose(showProfile,       () => setShowProfile(false));
@@ -1350,7 +1353,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -4492,7 +4495,7 @@ export default function CookiMiner() {
           gameView={gameView} onClose={()=>{ setGameView(null); duelSessionRef.current=null; duelPlayerScoreRef.current=null; duelBotScoreRef.current=null; setDuelSession(null); }}
           duelMode={!!duelSession} onDuelScore={handleDuelScore} onDuelProgress={handleDuelProgress} myLiveRef={duelMyLiveRef}
           onBotDuelScore={handleBotDuelScore} onBotDuelProgress={handleBotDuelProgress} botLiveRef={duelBotLiveRef}
-          duelInfo={duelSession ? { botTarget:duelSession.botTarget, higherWins:duelSession.higherWins, dur:getDuelGame(duelSession.gameKey)?.dur, gameLabel:getDuelGame(duelSession.gameKey)?.label, botName:duelSession.botName, botAvatar:duelSession.botAvatar, myAvatar:userAvatar, autoPlay:duelSession.autoPlay, metric:getDuelGame(duelSession.gameKey)?.metric } : null}
+          duelInfo={duelSession ? { botTarget:duelSession.botTarget, higherWins:duelSession.higherWins, dur:getDuelGame(duelSession.gameKey)?.dur, gameLabel:getDuelGame(duelSession.gameKey)?.label, botName:duelSession.botName, botAvatar:duelSession.botAvatar, myAvatar:userAvatar, turn:duelSession.turn, metric:getDuelGame(duelSession.gameKey)?.metric } : null}
           coins={coins} level={level} streak={streak} canCheckin={canCheckin} canQuiz={canQuiz} clickRecord={clickRecord}
           onCheckin={doCheckin} checkinReward={checkinReward}
           onQuizEarn={addCoins} onQuizDone={()=>{ const ts = Date.now(); setLastQuiz(ts); syncDailyCounters(userCode, { last_quiz: ts }); }} quizMsLeft={quizMsLeft}
@@ -4539,6 +4542,15 @@ export default function CookiMiner() {
 
       {showStakeModal && <DuelStakeModal coins={coins} cafes={cafes} onConfirm={startCreateDuel} onClose={()=>setShowStakeModal(false)} C={C} />}
       {matchmaking && <MatchmakingOverlay match={matchmaking} onLaunch={launchDuel} onCancel={()=>{ matchmakingRef.current=null; setMatchmaking(null); }} C={C} />}
+      {duelHandoff && (
+        <div style={{ position:'fixed', inset:0, zIndex:75, background:'linear-gradient(160deg,#2A1508,#160800)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, color:'#F0E0C0', textAlign:'center' }}>
+          <div style={{ fontSize:12.5, fontWeight:800, color:'rgba(240,224,192,.6)', textTransform:'uppercase', letterSpacing:2 }}>🤖 {duelHandoff.botName} a joué</div>
+          <div className="bi" style={{ fontSize:70, fontWeight:900, color:'#D4A017', margin:'14px 0 2px', lineHeight:1, textShadow:'0 0 30px rgba(212,160,23,.5)' }}>{duelHandoff.botScore}</div>
+          <div style={{ fontSize:13, color:'rgba(240,224,192,.7)' }}>{duelHandoff.metric}</div>
+          <div style={{ fontSize:18, fontWeight:900, marginTop:22 }}>À toi de faire {duelHandoff.higherWins ? 'MIEUX' : 'MOINS'} ! 💪</div>
+          <button onClick={startMyTurn} style={{ marginTop:26, width:'100%', maxWidth:300, padding:'16px', borderRadius:16, background:'#D4A017', color:'#fff', fontWeight:900, fontSize:16, border:'none', cursor:'pointer' }}>Jouer mon tour ⚔️</button>
+        </div>
+      )}
       {duelResult && <DuelResultModal result={duelResult} onRematch={()=>{ setDuelResult(null); startMatchmaking(); }} onClose={()=>setDuelResult(null)} C={C} />}
 
       {/* BOSS COMMUNAUTAIRE — Le Gâteau Géant. S'ouvre au tap sur la
