@@ -96,7 +96,7 @@ function getMovingCupBottomPosition(stackedCups){
   return STACK_BOTTOM + SAUCER_HEIGHT + h + 60;
 }
 
-export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, C }){
+export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, duelMode = false, onDuelScore, onDuelProgress, C }){
   const { t } = useTranslation();
   const [phase,           setPhase]           = useState('intro');     // intro | playing | gameover
   const [mode,            setMode]            = useState('normal');    // sélectionné dans l'intro, lock pendant playing
@@ -172,12 +172,20 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
   }, [phase]);
 
   /* ── Démarrer une partie ───────────────────────── */
+  /* Duel : lance la partie automatiquement (zéro écran d'intro).
+     setTimeout+cleanup = pattern StrictMode-safe : le double-montage dev
+     annule le 1er timer, seul le dernier survit → UN seul lancement. */
+  useEffect(() => {
+    if(!duelMode) return;
+    const t = setTimeout(() => handleStart(), 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const handleStart = () => {
-    if(coins < COST_TO_PLAY) return;
-    if(pyramidPlaysLeft <= 0) return;   /* quota épuisé → bouton recharge à la place */
+    if(!duelMode && coins < COST_TO_PLAY) return;
+    if(!duelMode && pyramidPlaysLeft <= 0) return;   /* quota épuisé → bouton recharge à la place */
     playSound('modal');
-    onSpend(COST_TO_PLAY);
-    consumePyramidGame?.();
+    if(!duelMode){ onSpend(COST_TO_PLAY); consumePyramidGame?.(); }
 
     /* Base de départ : une tasse posée au centre comme repère visuel.
        Skin par défaut, pas de spécial pour la base. Elle ne compte
@@ -248,6 +256,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
     const newScore = scoreRef.current + 1;
     scoreRef.current = newScore;
     setScore(newScore);
+    if(duelMode) onDuelProgress?.(newScore);
 
     /* Reward de base + multiplicateur de mode. */
     const modeCfg = MODES[modeRef.current] || MODES.normal;
@@ -363,6 +372,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
   /* Crédit cookies au mount du gameover (UNE SEULE FOIS) */
   useEffect(() => {
     if(phase !== 'gameover') return;
+    if(duelMode){ onDuelScore?.(score); return; }   /* duel : score = tasses posées, zéro éco */
     const total = reward + (comboBonus ? COMBO_BONUS_AMOUNT : 0);
     if(total > 0) onEarn?.(total);
     /* Event modéré : 'pyramid_floors' (succès si >= 15) */

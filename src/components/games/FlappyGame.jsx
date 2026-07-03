@@ -81,7 +81,7 @@ const MODES = {
   difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10, coffeeRate:0.15 },
 };
 
-export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], C }){
+export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
   /* Thème actif (skin cosmétique) — change le sky gradient et le pipeColor.
      Lu une seule fois au mount, pas live pendant la partie. */
   const flappyTheme = getActiveTheme('flappy', gameThemes || {});
@@ -151,6 +151,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
     if(phaseRef.current === 'done') return;
     setPhase('done'); phaseRef.current = 'done';
     if(rafRef.current){ cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    if(duelMode){ onDuelScore?.(scoreRef.current); return; }   /* duel : score (tuyaux) seul, zéro éco */
     const reward = Math.min(earnedRef.current, REWARD_CAP);
     if(reward > 0){
       onEarn(reward);
@@ -282,7 +283,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
         const dy = coinY - cookieYRef.current;
         if(Math.abs(dx) < GOLDEN_HITBOX && Math.abs(dy) < GOLDEN_HITBOX){
           goldenCollected = true;
-          onCafeEarn?.();
+          if(!duelMode) onCafeEarn?.();
           playSound('success');
           setCafePop(c => c + 1);
         }
@@ -307,6 +308,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
       const newScore = Math.min(SCORE_CAP, scoreRef.current + scoreInc);
       scoreRef.current = newScore;
       setScore(newScore);
+      if(duelMode) onDuelProgress?.(newScore);
       const newEarned = Math.min(REWARD_CAP, earnedRef.current + earnedInc);
       earnedRef.current = newEarned;
       setEarned(newEarned);
@@ -339,10 +341,19 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
     }
   };
 
+  /* Duel : lance la partie automatiquement (zéro écran d'intro).
+     setTimeout+cleanup = pattern StrictMode-safe : le double-montage dev
+     annule le 1er timer, seul le dernier survit → UN seul lancement. */
+  useEffect(() => {
+    if(!duelMode) return;
+    const t = setTimeout(() => startGame(), 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const startGame = () => {
-    if(coins < FLAPPY_COST) return;
+    if(!duelMode && coins < FLAPPY_COST) return;
     playSound('modal');
-    onSpend(FLAPPY_COST);
+    if(!duelMode) onSpend(FLAPPY_COST);
     reset();
     setPhase('countdown'); phaseRef.current = 'countdown';
     let n = 3;

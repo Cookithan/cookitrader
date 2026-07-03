@@ -179,7 +179,7 @@ function CupSvg({ dark, frozen, inverted }){
   );
 }
 
-export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], C }){
+export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
   const { t } = useTranslation();
 
   /* Thème actif — lu une fois au mount, pas live pendant la partie */
@@ -270,9 +270,18 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     return () => { if(ro) ro.disconnect(); window.removeEventListener('resize', update); };
   }, []);
 
+  /* Duel : lance la partie automatiquement (zéro écran d'intro).
+     setTimeout+cleanup = pattern StrictMode-safe : le double-montage dev
+     annule le 1er timer, seul le dernier survit → UN seul lancement. */
+  useEffect(() => {
+    if(!duelMode) return;
+    const t = setTimeout(() => startGame(), 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const startGame = () => {
-    if(coins < CATCHER_COST) return;
-    onSpend(CATCHER_COST);
+    if(!duelMode && coins < CATCHER_COST) return;
+    if(!duelMode) onSpend(CATCHER_COST);
     playSound('modal');
     setScore(0);             scoreRef.current = 0;
     setCombo(0);             comboRef.current = 0;
@@ -456,6 +465,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     if(scoreDelta !== 0){
       scoreRef.current = Math.max(0, scoreRef.current + scoreDelta);
       setScore(scoreRef.current);
+      if(duelMode) onDuelProgress?.(scoreRef.current);
     }
 
     /* Décroissance naturelle de température vers TEMP_REST (50) — scalée
@@ -537,6 +547,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     if(freezeTimeoutRef.current) clearTimeout(freezeTimeoutRef.current);
     setEndCause(cause);
     setPhase('done');
+    if(duelMode){ onDuelScore?.(scoreRef.current); return; }   /* duel : score (points) seul, pas de continue/éco */
     /* Si défaite par glaçons et continue pas encore utilisé, on capture
        le timestamp pour pouvoir compenser la pause au resume. */
     if(cause === 'iced' && !continueUsed){
@@ -1017,7 +1028,7 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
             {/* Bouton CONTINUE — visible uniquement si défaite glaçons,
                 continue pas encore utilisé, et joueur a 1 ☕. Action :
                 débite 1 ☕ et reprend la partie là où elle s'est arrêtée. */}
-            {endCause === 'iced' && !continueUsed && (
+            {!duelMode && endCause === 'iced' && !continueUsed && (
               <button
                 onClick={handleContinue}
                 disabled={!cafes || cafes < 1}

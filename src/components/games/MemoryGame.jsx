@@ -56,7 +56,7 @@ const FULL_CLEAR_BONUS = 10;
    permet de balayer les positions une fois. */
 const PEEK_DURATION_MS = 500;
 
-export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, unlocked = [], C }){
+export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
   const { t } = useTranslation();
   /* Thème actif — dos de carte personnalisé selon le skin. */
   const memoryTheme = getActiveTheme('memory', gameThemes || {});
@@ -81,17 +81,33 @@ export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, 
   useEffect(()=>{
     if(phase !== 'playing') return;
     if(matched.length === deck.length){
-      const earned = rewardFor(moves) + FULL_CLEAR_BONUS;   // 6/6 → +10 🍪
-      onEarn(earned);
+      if(duelMode){
+        onDuelScore?.(moves);   // duel : score = nb de coups (MOINS = mieux), zéro éco
+      } else {
+        const earned = rewardFor(moves) + FULL_CLEAR_BONUS;   // 6/6 → +10 🍪
+        onEarn(earned);
+      }
       playSound('success');
       setTimeout(()=>setPhase('done'), 600);
     }
-  }, [matched, deck.length, phase, moves, onEarn]);
+  }, [matched, deck.length, phase, moves, onEarn, duelMode, onDuelScore]);
 
+  /* Duel : lance la partie automatiquement (zéro écran d'intro).
+     setTimeout+cleanup = pattern StrictMode-safe : le double-montage dev
+     annule le 1er timer, seul le dernier survit → UN seul lancement
+     (sinon le peek initial ne se refermait jamais). */
+  useEffect(() => {
+    if(!duelMode) return;
+    const t = setTimeout(() => startGame(), 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* Duel : remonte le nb de coups en direct (moins = mieux). */
+  useEffect(() => { if(duelMode) onDuelProgress?.(moves); }, [moves, duelMode, onDuelProgress]);
   const startGame = () => {
-    if(coins < MEMORY_COST) return;
+    if(!duelMode && coins < MEMORY_COST) return;
     playSound('modal');
-    onSpend(MEMORY_COST);
+    if(!duelMode) onSpend(MEMORY_COST);
     setDeck(shuffledDeck());
     setFlipped([]); setMatched([]); setShaking([]);
     setMoves(0);

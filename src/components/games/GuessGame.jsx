@@ -169,7 +169,7 @@ function pickCustomerIndices(n, max){
   return result;
 }
 
-export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, setGameThemes, unlocked = [], C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
   const { t, lang } = useTranslation();
   /* Thème actif — change l'accent color (barre de progression, coche). */
   const guessTheme  = getActiveTheme('guess', gameThemes || {});
@@ -243,10 +243,19 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     if(timeoutRef.current) clearTimeout(timeoutRef.current);
   },[]);
 
+  /* Duel : lance la partie automatiquement (zéro écran d'intro).
+     setTimeout+cleanup = pattern StrictMode-safe : le double-montage dev
+     annule le 1er timer, seul le dernier survit → UN seul lancement. */
+  useEffect(() => {
+    if(!duelMode) return;
+    const t = setTimeout(() => startGame(), 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const startGame = () => {
-    if(coins < GUESS_COST) return;
+    if(!duelMode && coins < GUESS_COST) return;
     playSound('modal');
-    onSpend(GUESS_COST);
+    if(!duelMode) onSpend(GUESS_COST);
     const qs = pickQuestions(NB_QUESTIONS, lang);
     const ci = pickCustomerIndices(NB_QUESTIONS, CUSTOMERS.length);
     /* 5 % par partie ET le légendaire n'a pas déjà été vu (flag
@@ -303,9 +312,10 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
       q.legendary ? true
     : q.absurd    ? fromTimeout
     :               idx === q.answer;
-    if(q.legendary) onLegendarySeen?.();
+    if(q.legendary && !duelMode) onLegendarySeen?.();
     playSound(isRight ? 'success' : 'error');
     if(isRight) setScore(s => s + 1);
+    if(duelMode) onDuelProgress?.(score + (isRight ? 1 : 0));
 
     /* On garde ANSWER_HOLD_MS pour laisser voir ✓/✗, puis on incrémente
        qIndex. Le `key` du customer change → l'anim csCustomerWalkIn se
@@ -314,10 +324,14 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
       const nextIdx = qIndex + 1;
       if(nextIdx >= NB_QUESTIONS){
         const finalScore = score + (isRight ? 1 : 0);
-        const earned = rewardFor(finalScore, NB_QUESTIONS);
-        if(earned > 0) onEarn(earned);
-        /* Event 'guess_perfect' : succès si toutes les questions correctes */
-        if(finalScore === NB_QUESTIONS) onEventChallenge?.('guess_perfect', 1);
+        if(duelMode){
+          onDuelScore?.(finalScore);
+        } else {
+          const earned = rewardFor(finalScore, NB_QUESTIONS);
+          if(earned > 0) onEarn(earned);
+          /* Event 'guess_perfect' : succès si toutes les questions correctes */
+          if(finalScore === NB_QUESTIONS) onEventChallenge?.('guess_perfect', 1);
+        }
         setPhase('done');
       } else {
         setQIndex(nextIdx);
