@@ -169,7 +169,7 @@ function pickCustomerIndices(n, max){
   return result;
 }
 
-export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t, lang } = useTranslation();
   /* Thème actif — change l'accent color (barre de progression, coche). */
   const guessTheme  = getActiveTheme('guess', gameThemes || {});
@@ -252,6 +252,20 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /* Duel auto-play : le bot répond (75 % juste) et attend sur les absurdes. */
+  useEffect(() => {
+    if(!autoPlay || phase !== 'playing' || subPhase !== 'speaking' || picked !== null) return;
+    const q = questions[qIndex];
+    if(!q) return;
+    let idx;
+    if(q.legendary) idx = 0;
+    else if(q.absurd) idx = TIMEOUT_IDX;
+    else if(Math.random() < 0.75) idx = q.answer;
+    else { const wrong = [0, 1, 2, 3].filter(i => i !== q.answer); idx = wrong[Math.floor(Math.random() * wrong.length)]; }
+    const t = setTimeout(() => onPickRef.current?.(idx), 900 + Math.random() * 700);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, phase, subPhase, qIndex, picked]);
   const startGame = () => {
     if(!duelMode && coins < GUESS_COST) return;
     playSound('modal');

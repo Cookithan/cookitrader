@@ -96,7 +96,7 @@ function getMovingCupBottomPosition(stackedCups){
   return STACK_BOTTOM + SAUCER_HEIGHT + h + 60;
 }
 
-export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, duelMode = false, onDuelScore, onDuelProgress, C }){
+export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t } = useTranslation();
   const [phase,           setPhase]           = useState('intro');     // intro | playing | gameover
   const [mode,            setMode]            = useState('normal');    // sélectionné dans l'intro, lock pendant playing
@@ -181,6 +181,20 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /* Duel auto-play : le bot lâche la tasse quand elle s'aligne au sommet. */
+  useEffect(() => {
+    if(!autoPlay || phase !== 'playing') return;
+    let lastTapped = null;
+    const id = setInterval(() => {
+      if(phaseRef.current !== 'playing') return;
+      const m = movingRef.current;
+      if(!m || m === lastTapped) return;
+      const last = stackedRef.current[stackedRef.current.length - 1];
+      if(last && Math.abs(m.x - last.x) <= 6){ handleTap(); lastTapped = m; }
+    }, 16);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, phase]);
   const handleStart = () => {
     if(!duelMode && coins < COST_TO_PLAY) return;
     if(!duelMode && pyramidPlaysLeft <= 0) return;   /* quota épuisé → bouton recharge à la place */

@@ -81,7 +81,7 @@ const MODES = {
   difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10, coffeeRate:0.15 },
 };
 
-export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
+export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   /* Thème actif (skin cosmétique) — change le sky gradient et le pipeColor.
      Lu une seule fois au mount, pas live pendant la partie. */
   const flappyTheme = getActiveTheme('flappy', gameThemes || {});
@@ -350,6 +350,20 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /* Duel auto-play : le bot flappe pour viser le trou du prochain obstacle. */
+  useEffect(() => {
+    if(!autoPlay || phase !== 'playing') return;
+    const AIM = 12;
+    const id = setInterval(() => {
+      if(phaseRef.current !== 'playing' || crashedRef.current) return;
+      const obs = obstaclesRef.current || [];
+      const next = obs.filter(o => !o.passed && o.x + OBSTACLE_W > COOKIE_X).sort((a, b) => a.x - b.x)[0];
+      const targetY = next ? next.gapY - AIM : ARENA_H / 2;
+      if(cookieYRef.current > targetY) handleTap();
+    }, 35);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, phase]);
   const startGame = () => {
     if(!duelMode && coins < FLAPPY_COST) return;
     playSound('modal');

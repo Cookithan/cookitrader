@@ -56,7 +56,7 @@ const FULL_CLEAR_BONUS = 10;
    permet de balayer les positions une fois. */
 const PEEK_DURATION_MS = 500;
 
-export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
+export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t } = useTranslation();
   /* Thème actif — dos de carte personnalisé selon le skin. */
   const memoryTheme = getActiveTheme('memory', gameThemes || {});
@@ -104,6 +104,25 @@ export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, 
   }, []);
   /* Duel : remonte le nb de coups en direct (moins = mieux). */
   useEffect(() => { if(duelMode) onDuelProgress?.(moves); }, [moves, duelMode, onDuelProgress]);
+  /* Duel auto-play : mémoire imparfaite. Retourne une carte, puis son
+     jumeau s'il le « connaît » (70 %), sinon une autre au hasard. */
+  useEffect(() => {
+    if(!autoPlay || phase !== 'playing' || peek || lockRef.current) return;
+    const unmatched = deck.filter(c => !matched.includes(c.id) && !flipped.includes(c.id));
+    let target = null;
+    if(flipped.length === 0){
+      target = unmatched[Math.floor(Math.random() * unmatched.length)];
+    } else if(flipped.length === 1){
+      const first = deck.find(c => c.id === flipped[0]);
+      const twin  = first && deck.find(c => c.icon === first.icon && c.id !== first.id && !matched.includes(c.id));
+      const others = unmatched.filter(c => c.id !== flipped[0]);
+      target = (twin && Math.random() < 0.7) ? twin : (others[Math.floor(Math.random() * Math.max(1, others.length))] || twin);
+    }
+    if(!target) return;
+    const t = setTimeout(() => handleTap(target), 450 + Math.random() * 350);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, phase, peek, flipped, matched, deck]);
   const startGame = () => {
     if(!duelMode && coins < MEMORY_COST) return;
     playSound('modal');

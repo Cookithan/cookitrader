@@ -179,7 +179,7 @@ function CupSvg({ dark, frozen, inverted }){
   );
 }
 
-export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, C }){
+export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t } = useTranslation();
 
   /* Thème actif — lu une fois au mount, pas live pendant la partie */
@@ -279,6 +279,32 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  /* Duel auto-play : le bot déplace la tasse vers le bon item le plus bas
+     et esquive les glaçons. Écrit tasseXRef (que la collision lit). */
+  useEffect(() => {
+    if(!autoPlay || phase !== 'playing') return;
+    const STEP = 13;
+    const id = setInterval(() => {
+      if(phaseRef.current !== 'playing' || frozenRef.current) return;
+      const items = itemsRef.current || [];
+      const cur = tasseXRef.current;
+      const cupMid = cur + TASSE_W / 2;
+      let target = cur;
+      const good = items.filter(it => it.type === 'cookie' || it.type === 'cafe');
+      if(good.length){
+        const it = good.reduce((a, b) => (b.y > a.y ? b : a));   // le plus bas = le plus imminent
+        target = it.x + ITEM_SIZE / 2 - TASSE_W / 2;
+      }
+      const ice = items.filter(it => it.type === 'glacon').find(g => Math.abs((g.x + ITEM_SIZE / 2) - cupMid) < TASSE_W / 2 && g.y > 300);
+      if(ice){ target = cupMid < (ice.x + ITEM_SIZE / 2) ? cur - STEP * 3 : cur + STEP * 3; }
+      target = Math.max(0, Math.min(ARENA_W - TASSE_W, target));
+      const nx = cur + Math.max(-STEP, Math.min(STEP, target - cur));
+      tasseXRef.current = nx;
+      setTasseX(nx);
+    }, 45);
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, phase]);
   const startGame = () => {
     if(!duelMode && coins < CATCHER_COST) return;
     if(!duelMode) onSpend(CATCHER_COST);
