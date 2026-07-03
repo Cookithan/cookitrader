@@ -87,6 +87,60 @@ export function duelPot(duel){
   };
 }
 
+/* ════ CŒUR ÉCONOMIQUE (pur, testable) ════
+   Ce que MOI (myCode) dois recevoir d'un duel donné, à créditer UNE SEULE
+   fois via applyPatchOnce (clé = duel.id). Renvoie { cookies, cafes, kind }
+   avec kind ∈ 'win' | 'lose' | 'draw' | 'refund' | 'none'.
+   Rappel escrow : ma mise a DÉJÀ été débitée à la création/acceptation.
+     · gagnant  → +pot (2× la mise) = je récupère ma mise + celle de l'adverse
+     · égalité  → +ma mise (remboursement, personne ne gagne)
+     · expiré/annulé (défi jamais relevé) → +ma mise (remboursement)
+     · perdant / forfait → 0 (ma mise reste perdue)
+   Transfert pur → NE compte PAS au classement (le bonus Ligue, lui, est
+   séparé et plafonné, appliqué à part). */
+export function settlementFor(duel, myCode){
+  if(!duel || !myCode) return { cookies:0, cafes:0, kind:'none' };
+  const iAmChallenger = duel.challengerCode === myCode;
+  const iAmOpponent   = duel.opponentCode   === myCode;
+  if(!iAmChallenger && !iAmOpponent) return { cookies:0, cafes:0, kind:'none' };
+
+  const stakeC = Math.max(0, duel.stakeCookies || 0);
+  const stakeK = Math.max(0, duel.stakeCafes   || 0);
+
+  if(duel.status === 'resolved'){
+    if(duel.winnerCode == null)        return { cookies:stakeC,     cafes:stakeK,     kind:'draw' };   // égalité → remboursement
+    if(duel.winnerCode === myCode)     return { cookies:stakeC * 2, cafes:stakeK * 2, kind:'win'  };   // pot
+    return { cookies:0, cafes:0, kind:'lose' };
+  }
+  // Défi jamais relevé (expiré) ou retiré (annulé) → le challenger récupère sa mise
+  if((duel.status === 'expired' || duel.status === 'cancelled') && iAmChallenger){
+    return { cookies:stakeC, cafes:stakeK, kind:'refund' };
+  }
+  return { cookies:0, cafes:0, kind:'none' };   // 'open'/'pending' → pas encore réglé
+}
+
+/* Bilan duels de MOI (pour la Ligue) à partir de listMyDuels (desc). */
+export function computeDuelStats(duels, myCode){
+  const stats = { wins:0, losses:0, draws:0, played:0, streak:0, bestStreak:0 };
+  if(!Array.isArray(duels) || !myCode) return stats;
+  const resolved = duels.filter(d => d.status === 'resolved' && (d.challengerCode === myCode || d.opponentCode === myCode));
+  let curLocked = false, run = 0;
+  for(const d of resolved){                     // desc : le plus récent d'abord
+    stats.played++;
+    const win = d.winnerCode === myCode;
+    if(win) stats.wins++;
+    else if(d.winnerCode == null) stats.draws++;
+    else stats.losses++;
+    if(win && !curLocked) stats.streak++;        // série courante = victoires consécutives récentes
+    else curLocked = true;
+  }
+  for(const d of resolved){                      // meilleure série (plus long run de victoires)
+    if(d.winnerCode === myCode){ run++; if(run > stats.bestStreak) stats.bestStreak = run; }
+    else run = 0;
+  }
+  return stats;
+}
+
 /* Résolution PURE (miroir exact de submit_duel_score côté SQL).
    Renvoie 'challenger' | 'opponent' | 'draw'. Sert aussi au bot. */
 export function resolveDuelScores(higherWins, challengerScore, opponentScore){

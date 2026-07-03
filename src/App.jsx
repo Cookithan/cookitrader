@@ -47,7 +47,7 @@ import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
 import { MatchmakingOverlay } from "./components/overlays/MatchmakingOverlay.jsx";
-import { getDuelGame, pickRandomDuelGame, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores } from "./lib/duels.js";
+import { getDuelGame, pickRandomDuelGame, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores, settlementFor, listMyDuels } from "./lib/duels.js";
 import { BossEventOverlay } from "./components/overlays/BossEventOverlay.jsx";
 import { useCommunityBoss } from "./hooks/useCommunityBoss.js";
 import { getMyBossDamage, getBossRank } from "./lib/supabaseSync.js";
@@ -640,6 +640,50 @@ export default function CookiMiner() {
     duelBotScoreRef.current = score;
     finishSplitDuel();
   };
+
+  /* ── DUELS EN LIGNE — RÉCONCILIATION ──────────────────────────────
+     Relit mes duels et applique le règlement UNE SEULE FOIS par duel
+     (applyPatchOnce, clé = duel.id) : verse le pot au gagnant, rembourse
+     l'égalité/expiré/annulé. Gère l'async (le challenger touche son gain
+     au prochain chargement). Le crédit est BRUT (setCoins/setCafes) →
+     transfert pur, ne compte pas au classement. Le bonus Ligue (qui,
+     lui, compte) sera ajouté séparément et plafonné. */
+  const reconcileDuels = async () => {
+    if(!isSupabaseEnabled() || !userCode || !pullDone) return;
+    let mine = [];
+    try { mine = await listMyDuels(userCode); } catch { return; }
+    for(const d of mine){
+      const s = settlementFor(d, userCode);
+      if(s.kind === 'none' || s.kind === 'lose') continue;   // rien à créditer
+      await applyPatchOnce({
+        userCode,
+        lsKey:    'cookiminer:duel_settle_' + d.id,
+        patchKey: 'duel_settle_' + d.id,
+        applyFn: () => {
+          if(s.cookies > 0) setCoins(c => c + s.cookies);
+          if(s.cafes   > 0) setCafes(c => (c || 0) + s.cafes);
+          const label   = getDuelGame(d.gameKey)?.label || 'un duel';
+          const oppName = d.challengerCode === userCode ? (d.opponentName || 'ton adversaire') : (d.challengerName || 'ton adversaire');
+          if(s.kind === 'win'){
+            playSound('levelup');
+            showToast(`🏆 Duel gagné — +${s.cookies} 🍪${s.cafes ? ` +${s.cafes} ☕` : ''}`);
+            createInboxMessage(userCode, 'system', '🏆 Duel remporté !',
+              `Tu as battu ${oppName} sur ${label}. Pot récupéré : ${s.cookies} 🍪${s.cafes ? ` + ${s.cafes} ☕` : ''}.`, null).catch(()=>{});
+          } else if(s.kind === 'draw'){
+            showToast(`🤝 Égalité sur ${label} — mise remboursée`);
+          } else if(s.kind === 'refund'){
+            showToast(`↩️ Défi non relevé — mise remboursée`);
+          }
+        },
+      });
+    }
+  };
+  /* Réconcilie à l'ouverture (une fois le profil chargé). */
+  useEffect(() => {
+    if(!isSupabaseEnabled() || !userCode || !pullDone) return;
+    reconcileDuels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userCode, pullDone]);
   const [showBoss,     setShowBoss]     = useState(false);
   /* Boss communautaire (Le Gâteau Géant). Déclaré tôt : showBoss/
      bossReward sont lus par useBackToClose & swipeBlocked plus bas. */
