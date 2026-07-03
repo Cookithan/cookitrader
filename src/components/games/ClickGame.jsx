@@ -49,7 +49,7 @@ const MODES = {
   frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 1 clic = 1 🍪 · cookie petit + bouge vite (×2 reward)', duration:8, rewardPerClick:1.0, moves:true,  moveIntervalMs:700,  cookieSize:'35%', moveRange:[15,85] },
 };
 
-export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, C }) {
+export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }) {
   const { t } = useTranslation();
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
@@ -136,7 +136,8 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     if(cookieMoveRef.current){ clearInterval(cookieMoveRef.current); cookieMoveRef.current = null; }
 
     /* Score fiable : `clicks` validés via tracker (max 300). */
-    const finalClicks = trackerRef.current ? trackerRef.current.getValidScore() : clickRef.current;
+    const finalClicks = (autoPlay || !trackerRef.current) ? clickRef.current : trackerRef.current.getValidScore();
+    if(duelMode){ onDuelScore?.(finalClicks); return; }   /* duel : score seul, zéro éco/record */
     /* Reward final = floor(rewardRef accumulé). Plus de cap par mode —
        l'anticheat borne naturellement (15 CPS max × durée). */
     const earned = Math.max(0, Math.floor(rewardRef.current));
@@ -158,10 +159,37 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     onEventChallenge?.('click_sprint', finalClicks);
   };
 
+  /* Duel : lance la partie automatiquement (zéro écran d'intro).
+     setTimeout+cleanup = pattern StrictMode-safe : le double-montage dev
+     annule le 1er timer, seul le dernier survit → UN seul lancement. */
+  useEffect(() => {
+    if(!duelMode) return;
+    const t = setTimeout(() => startGame(), 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* Pilote bot (autoPlay) : tape à cadence humaine, sans son ni tracker
+     anti-triche. Le score émerge de la cadence de frappe. */
+  const botTap = () => {
+    const n = clickRef.current + 1;
+    clickRef.current = n;
+    setClicks(n);
+    onDuelProgress?.(n);
+    setPressed(true);
+    setTimeout(() => setPressed(false), 70);
+  };
+  useEffect(() => {
+    if(!autoPlay || phase !== 'playing') return;
+    let id;
+    const loop = () => { botTap(); id = setTimeout(loop, 110 + Math.random() * 70); };   // ~5.5-9 clics/s
+    id = setTimeout(loop, 120);
+    return () => clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, phase]);
   const startGame = () => {
-    if(coins < CLICK_COST) return;
-    playSound('modal');
-    onSpend(CLICK_COST);
+    if(!duelMode && coins < CLICK_COST) return;
+    if(!autoPlay) playSound('modal');
+    if(!duelMode) onSpend(CLICK_COST);
     setPhase('countdown');
     setClicks(0); clickRef.current = 0;
     setRewardScore(0); rewardRef.current = 0;
@@ -233,7 +261,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   };
 
   const handleTap = (e) => {
-    if(phase !== 'playing') return;
+    if(autoPlay || phase !== 'playing') return;   /* le bot ne passe pas par ici */
     if(e && e.preventDefault) e.preventDefault();
     if(!trackerRef.current) return;
 
@@ -258,6 +286,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     const newClickCount = clickRef.current + 1;
     clickRef.current = newClickCount;
     setClicks(newClickCount);
+    if(duelMode) onDuelProgress?.(newClickCount);
     setPressed(true);
     setTimeout(()=>setPressed(false), 80);
 

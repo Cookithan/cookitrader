@@ -47,7 +47,7 @@ function rewardFor(score){
   return 0;
 }
 
-export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', C }){
+export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t } = useTranslation();
   /* Skin cookie : si l'user a un skin custom équipé, on remplace le SVG
      hardcodé par <SkinnedCookie> pour rester cohérent avec ClickGame +
@@ -112,10 +112,11 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
     setCookie(c);
     cookieTORef.current = setTimeout(()=>{
       /* Miss : son d'erreur léger, décrémente le score (min 0), shake bref, reset combo */
-      playSound('error');
+      if(!autoPlay) playSound('error');
       const dropped = Math.max(0, scoreRef.current - 1);
       scoreRef.current = dropped;
       setScore(dropped);
+      if(duelMode) onDuelProgress?.(dropped);
       setCombo(0);
       setShaking(true);
       setTimeout(()=>setShaking(false), 240);
@@ -131,6 +132,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
     setCookie(null);
     setPhase('done');
     const finalScore = scoreRef.current;
+    if(duelMode){ onDuelScore?.(finalScore); return; }   /* duel : score seul, zéro éco */
     const earned = rewardFor(finalScore);
     if(earned > 0){
       onEarn(earned);
@@ -140,10 +142,37 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
     onEventChallenge?.('reflex_score', finalScore);
   };
 
+  /* Duel : lance la partie automatiquement (zéro écran d'intro).
+     setTimeout+cleanup = pattern StrictMode-safe : le double-montage dev
+     annule le 1er timer, seul le dernier survit → UN seul lancement. */
+  useEffect(() => {
+    if(!duelMode) return;
+    const t = setTimeout(() => startGame(), 0);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  /* Pilote bot (autoPlay) : tape le cookie courant après un délai de
+     réaction (~0.26-0.56s). Si le TTL expire avant → miss naturel. Sans son. */
+  useEffect(() => {
+    if(!autoPlay || !cookie || phaseRef.current !== 'playing') return;
+    const t = setTimeout(() => {
+      if(phaseRef.current !== 'playing') return;
+      if(cookieTORef.current) clearTimeout(cookieTORef.current);
+      const ns = scoreRef.current + 1;
+      scoreRef.current = ns;
+      setScore(ns);
+      onDuelProgress?.(ns);
+      setCombo(c => c + 1);
+      setCookie(null);
+      respawnRef.current = setTimeout(spawn, RESPAWN_HIT_MS);
+    }, 260 + Math.random() * 300);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoPlay, cookie]);
   const startGame = () => {
-    if(coins < REFLEX_COST) return;
-    playSound('modal');
-    onSpend(REFLEX_COST);
+    if(!duelMode && coins < REFLEX_COST) return;
+    if(!autoPlay) playSound('modal');
+    if(!duelMode) onSpend(REFLEX_COST);
     scoreRef.current = 0;
     setScore(0);
     setTimeLeft(REFLEX_DURATION);
@@ -192,7 +221,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
   };
 
   const handleTap = (e) => {
-    if(phase !== 'playing' || !cookie) return;
+    if(autoPlay || phase !== 'playing' || !cookie) return;   /* le bot ne passe pas par ici */
     if(e && e.preventDefault) e.preventDefault();
     if(cookieTORef.current) clearTimeout(cookieTORef.current);
 
@@ -202,6 +231,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
     const newScore = scoreRef.current + 1;
     scoreRef.current = newScore;
     setScore(newScore);
+    if(duelMode) onDuelProgress?.(newScore);
 
     /* Combo (purement visuel, n'affecte pas les récompenses) :
        seuils 3 / 7 / 12 → x2 🔥 / x3 ⚡ / x4 💥, badge éphémère 1.5s */

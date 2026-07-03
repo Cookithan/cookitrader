@@ -45,6 +45,9 @@ import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
 import { APP_INFO } from "./lib/appInfo.js";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
+import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
+import { MatchmakingOverlay } from "./components/overlays/MatchmakingOverlay.jsx";
+import { getDuelGame, pickRandomDuelGame, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores } from "./lib/duels.js";
 import { BossEventOverlay } from "./components/overlays/BossEventOverlay.jsx";
 import { useCommunityBoss } from "./hooks/useCommunityBoss.js";
 import { getMyBossDamage, getBossRank } from "./lib/supabaseSync.js";
@@ -559,6 +562,84 @@ export default function CookiMiner() {
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
+  /* ── Duels 1v1 — Phase 2 : matchmaking « façon Valorant » + boucle bot ── */
+  const [duelSession, setDuelSession] = useState(null);   // duel en cours { kind:'bot', gameKey, higherWins, botName, botTarget }
+  const [duelResult,  setDuelResult]  = useState(null);   // écran de résultat post-duel
+  const [matchmaking, setMatchmaking] = useState(null);   // séquence de recherche { game, botName, botTarget }
+  const duelMyLiveRef  = useRef(0);                       // ton score live (REF → aucun re-render de l'App)
+  const duelBotLiveRef = useRef(0);                       // score bot live (idem) — la barre les poll en 10 fps
+  const duelSessionRef = useRef(null);                    // miroir sync (évite closure périmée à la fin de partie)
+  const matchmakingRef = useRef(null);
+  const duelPlayerScoreRef = useRef(null);                // score final joueur (split : on attend les 2)
+  const duelBotScoreRef    = useRef(null);                // score final bot (split)
+  /* Lance la recherche : tire un jeu au hasard + un bot + sa cible fixe. */
+  const startMatchmaking = () => {
+    const game = pickRandomDuelGame();
+    const m = { game, botName: makeBotName(), botAvatar: makeBotAvatar(), botTarget: rollBotTarget(game) };
+    matchmakingRef.current = m;
+    setDuelResult(null);
+    duelMyLiveRef.current = 0;
+    duelBotLiveRef.current = 0;
+    setMatchmaking(m);
+    playSound('modal');
+  };
+  /* Fin du matchmaking → ouvre le jeu (le useEffect duelMode l'auto-lance). */
+  const launchDuel = () => {
+    const m = matchmakingRef.current;
+    if(!m) return;
+    duelSessionRef.current = { kind:'bot', gameKey:m.game.key, higherWins:m.game.higherWins, botName:m.botName, botAvatar:m.botAvatar, botTarget:m.botTarget, autoPlay:!!m.game.autoPlay };
+    duelPlayerScoreRef.current = null;
+    duelBotScoreRef.current = null;
+    duelMyLiveRef.current = 0;
+    duelBotLiveRef.current = 0;
+    setMatchmaking(null);
+    setDuelSession(duelSessionRef.current);
+    setGameView(m.game.key);
+  };
+  /* Écrivent des REFS, pas du state → la partie tourne sans re-render App. */
+  const handleDuelProgress    = (s) => { duelMyLiveRef.current  = Math.max(0, Math.floor(s) || 0); };
+  const handleBotDuelProgress = (s) => { duelBotLiveRef.current = Math.max(0, Math.floor(s) || 0); };
+
+  /* Affiche l'écran de résultat à partir de 2 scores (toi vs adversaire). */
+  const showDuelResult = (sess, myScore, oppScore) => {
+    const r = resolveDuelScores(sess.higherWins, myScore, oppScore);   // 'challenger'(=moi) | 'opponent'(=bot) | 'draw'
+    const outcome = r === 'draw' ? 'draw' : (r === 'challenger' ? 'win' : 'lose');
+    setDuelResult({ gameKey:sess.gameKey, myScore, myAvatar:userAvatar, oppName:sess.botName, oppAvatar:sess.botAvatar, oppScore, outcome, higherWins:sess.higherWins });
+    playSound(outcome === 'win' ? 'success' : outcome === 'draw' ? 'modal' : 'error');
+  };
+  /* Split-screen : ne résout QUE quand les deux scores réels sont là. */
+  const finishSplitDuel = () => {
+    const sess = duelSessionRef.current;
+    const p = duelPlayerScoreRef.current, b = duelBotScoreRef.current;
+    if(!sess || p == null || b == null) return;
+    duelSessionRef.current = null;
+    duelPlayerScoreRef.current = null;
+    duelBotScoreRef.current = null;
+    setGameView(null);
+    setDuelSession(null);
+    showDuelResult(sess, p, b);
+  };
+  /* Fin de MA partie. Split → j'attends le bot ; sinon → vs cible fixe.
+     Aucun side-effect nesté dans un updater (règle React strict). */
+  const handleDuelScore = (score) => {
+    const sess = duelSessionRef.current;
+    if(!sess) return;
+    if(sess.autoPlay){
+      duelPlayerScoreRef.current = score;
+      finishSplitDuel();
+      return;
+    }
+    duelSessionRef.current = null;
+    setGameView(null);
+    setDuelSession(null);
+    showDuelResult(sess, score, sess.botTarget);
+  };
+  /* Fin de la partie du BOT (split uniquement). */
+  const handleBotDuelScore = (score) => {
+    if(!duelSessionRef.current) return;
+    duelBotScoreRef.current = score;
+    finishSplitDuel();
+  };
   const [showBoss,     setShowBoss]     = useState(false);
   /* Boss communautaire (Le Gâteau Géant). Déclaré tôt : showBoss/
      bossReward sont lus par useBackToClose & swipeBlocked plus bas. */
@@ -570,7 +651,11 @@ export default function CookiMiner() {
   const [bossPenalty,  setBossPenalty]  = useState(null);
   /* Boss "en cours" (annonce ou combat, statut serveur 'active') →
      on suspend les événements du jour tant qu'il n'est pas résolu. */
-  const bossOngoing = !!communityBoss && communityBoss.status === 'active';
+  /* « Boss en cours » = statut actif ET fenêtre pas encore expirée.
+     Sans le check endsAt, un boss 'active' périmé (personne n'a porté le
+     coup qui bascule en 'failed') laisserait la bannière traîner sur
+     l'accueil. Couvre l'annonce (avant startsAt) ET le combat. */
+  const bossOngoing = !!communityBoss && communityBoss.status === 'active' && Date.now() < (communityBoss.endsAt || 0);
   /* Overlay boss ouvert (= "on est dans l'onglet boss") → musique boss. */
   const bossOverlayOpen = !!communityBoss && (showBoss || !!bossReward || !!bossPenalty);
   const [showSettings, setShowSettings] = useState(false);
@@ -990,6 +1075,8 @@ export default function CookiMiner() {
      l'app. Pas appliqué à : showOnboarding, tutorialStep, pendingLvUp,
      pendingAchievement (l'utilisateur DOIT les voir / interagir). */
   useBackToClose(!!gameView,        () => setGameView(null));
+  useBackToClose(!!matchmaking,     () => { matchmakingRef.current=null; setMatchmaking(null); });
+  useBackToClose(!!duelResult,      () => setDuelResult(null));
   useBackToClose(showSettings,      () => setShowSettings(false));
   useBackToClose(showProfile,       () => setShowProfile(false));
   useBackToClose(showLevels,        () => setShowLevels(false));
@@ -1162,7 +1249,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -2239,7 +2326,9 @@ export default function CookiMiner() {
           /* UNIQUEMENT le skin exclusif — aucun cookie, jamais de CF. */
           setUnlocked(arr => Array.isArray(arr) && !arr.includes(reward.skinId)
             ? [...arr, reward.skinId] : arr);
-          setBossReward({ fournee: fourneeNumber(milestone), rank: rank0 + 1 });
+          /* Pop-up de fin de boss retirée (demande Régis) → feedback
+             discret via toast + inbox, sans overlay intrusif. */
+          showToast(`🍪 Fournée #${fourneeNumber(milestone)} sauvée — skin exclusif débloqué !`);
           playSound('levelup');
           createInboxMessage(
             userCode,
@@ -2279,7 +2368,8 @@ export default function CookiMiner() {
           const short = FAIL_PENALTY_COOKIES - pay;     // pris sur total gagné
           setCoins(c => Math.max(0, c - pay));
           if(short > 0) setTotalEarned(t => Math.max(0, t - short));
-          setBossPenalty({ lost: FAIL_PENALTY_COOKIES, fromEarned: short });
+          /* Pop-up de fin de boss retirée (demande Régis) → toast + inbox
+             déjà présents ci-dessous suffisent. */
           playSound('error');
           showToast(`☠️ Boss non vaincu — −${FAIL_PENALTY_COOKIES} 🍪`);
           createInboxMessage(
@@ -3698,7 +3788,7 @@ export default function CookiMiner() {
                 un Gâteau Géant est ACTIF (≥ niv 3). Discovery UX : on
                 reste vague (menace + temps restant), pas de mécanique
                 détaillée — le détail est dans l'overlay au tap. */}
-            {communityBoss && communityBoss.status === 'active' && level >= BOSS_LEVEL_MIN && (
+            {bossOngoing && level >= BOSS_LEVEL_MIN && (
               <button
                 onClick={()=>{ playSound('modal'); setShowBoss(true); }}
                 className="boss-banner"
@@ -4131,6 +4221,17 @@ export default function CookiMiner() {
         {/* ── JEUX ── */}
         {tab==='jeux' && (
           <div className="su">
+            <button
+              onClick={startMatchmaking}
+              style={{ width:'100%', marginBottom:16, padding:'15px 16px', borderRadius:18, border:'1px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(212,160,23,.04))', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
+            >
+              <span style={{ fontSize:24 }}>⚔️</span>
+              <span style={{ flex:1 }}>
+                <span style={{ display:'block', fontSize:14.5, fontWeight:900, color:C.text }}>Trouver un duel</span>
+                <span style={{ display:'block', fontSize:11, color:C.muted, marginTop:2 }}>Jeu tiré au sort · adversaire surprise · sans enjeu (test)</span>
+              </span>
+              <span style={{ fontSize:18, color:'#D4A017', fontWeight:900 }}>›</span>
+            </button>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
             {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))).map(g=>{
               /* Override force-unlock par code promo (cf. unlockedGames).
@@ -4287,7 +4388,10 @@ export default function CookiMiner() {
       {/* GAME OVERLAY */}
       {gameView && (
         <GameOverlay
-          gameView={gameView} onClose={()=>setGameView(null)}
+          gameView={gameView} onClose={()=>{ setGameView(null); duelSessionRef.current=null; duelPlayerScoreRef.current=null; duelBotScoreRef.current=null; setDuelSession(null); }}
+          duelMode={!!duelSession} onDuelScore={handleDuelScore} onDuelProgress={handleDuelProgress} myLiveRef={duelMyLiveRef}
+          onBotDuelScore={handleBotDuelScore} onBotDuelProgress={handleBotDuelProgress} botLiveRef={duelBotLiveRef}
+          duelInfo={duelSession ? { botTarget:duelSession.botTarget, higherWins:duelSession.higherWins, dur:getDuelGame(duelSession.gameKey)?.dur, gameLabel:getDuelGame(duelSession.gameKey)?.label, botName:duelSession.botName, botAvatar:duelSession.botAvatar, myAvatar:userAvatar, autoPlay:duelSession.autoPlay, metric:getDuelGame(duelSession.gameKey)?.metric } : null}
           coins={coins} level={level} streak={streak} canCheckin={canCheckin} canQuiz={canQuiz} clickRecord={clickRecord}
           onCheckin={doCheckin} checkinReward={checkinReward}
           onQuizEarn={addCoins} onQuizDone={()=>{ const ts = Date.now(); setLastQuiz(ts); syncDailyCounters(userCode, { last_quiz: ts }); }} quizMsLeft={quizMsLeft}
@@ -4331,6 +4435,9 @@ export default function CookiMiner() {
           C={C}
         />
       )}
+
+      {matchmaking && <MatchmakingOverlay match={matchmaking} onLaunch={launchDuel} onCancel={()=>{ matchmakingRef.current=null; setMatchmaking(null); }} C={C} />}
+      {duelResult && <DuelResultModal result={duelResult} onRematch={()=>{ setDuelResult(null); startMatchmaking(); }} onClose={()=>setDuelResult(null)} C={C} />}
 
       {/* BOSS COMMUNAUTAIRE — Le Gâteau Géant. S'ouvre au tap sur la
           bannière (showBoss) OU automatiquement après l'auto-crédit
