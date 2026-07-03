@@ -47,7 +47,7 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
         <DuelRaceHUD
           myScoreRef={myLiveRef} myAvatar={duelInfo.myAvatar}
           botTarget={duelInfo.botTarget} botAvatar={duelInfo.botAvatar} botName={duelInfo.botName}
-          botScoreRef={split ? botLiveRef : null}
+          botScoreRef={botTurn ? botLiveRef : null}
           higherWins={duelInfo.higherWins} dur={duelInfo.dur} gameLabel={duelInfo.gameLabel} metric={duelInfo.metric} C={C}
         />
       )}

@@ -90,6 +90,10 @@ export const PROMO_CODES = {
   /* Café bonus — distribution ponctuelle. */
   'DIO456':      { coins: 0, cafes: 4, label: '☕ 4 cafés offerts' },
 
+  /* Cadeau bêta-testeurs (annoncé dans la popup nouvelle version 1.27.0-beta).
+     Source ☕ validée explicitement par l'user 04/07/2026. One-shot/compte. */
+  'BETA':        { coins: 0, cafes: 3, label: '🧪 Bêta — 3 ☕ offerts' },
+
   /* Boost de classement cumulé — +7000 🍪 sur total_earned UNIQUEMENT
      (pas de solde dépensable, pas d'XP). Fait grimper au leaderboard
      cumulé sans déséquilibrer l'économie 🍪. One-shot par compte. */

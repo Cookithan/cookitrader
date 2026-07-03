@@ -77,6 +77,14 @@ export function getDuelGame(gameKey){
   return DUELABLE_GAMES.find(g => g.key === gameKey) || null;
 }
 
+/* Mise du bot (cachée puis révélée). Plausible : quelques 🍪 + parfois ☕.
+   Règle du pot : le gagnant rafle la mise de l'adversaire. */
+export function rollBotStake(){
+  const cookies = [50, 100, 150, 200, 300][Math.floor(Math.random() * 5)];
+  const cafes   = Math.random() < 0.35 ? (Math.random() < 0.7 ? 1 : 2) : 0;
+  return { cookies, cafes };
+}
+
 export const DUEL_CONFIG = {
   TTL_HOURS:            48,     // durée de vie d'un défi ouvert
   PLAY_WINDOW_MIN:      30,     // fenêtre du preneur pour poser son score (sinon forfait)

@@ -44,6 +44,16 @@ export const MARKET_CONFIG = {
   MEAN_REVERSION_RATE: 0,         // DÉSACTIVÉ (demande user 14/05/2026) — le prix ne revient plus vers 100. Le marché flotte librement, contraint uniquement par PRICE_MIN / PRICE_MAX. Remettre 0.10 pour réactiver.
   MEAN_REVERSION_LOW: 30,         // (vestigial — non utilisé)
   MEAN_REVERSION_HIGH: 700,       // (vestigial — non utilisé)
+  /* Réversion vers 100 (demande user 04/07/2026) : le prix « revient à
+     100 » de REVERT_PER_HOUR par heure — −10/h quand il est au-dessus de
+     100, +10/h quand il est en dessous —, sans jamais dépasser la cible.
+     Convergence LINÉAIRE (pas proportionnelle à la distance) : de 300 il
+     faut ~20 h pour revenir à 100, de 170 ~7 h. Domine de fait le plafond
+     doux (qui ne mordait qu'au-dessus de 170). Mettre REVERT_TO_100:false
+     pour laisser le marché flotter librement. */
+  REVERT_TO_100:   true,
+  REVERT_TARGET:   100,
+  REVERT_PER_HOUR: 10,
   /* Circuit breaker auto : si le prix bouge de plus de
      CIRCUIT_BREAKER_THRESHOLD en CIRCUIT_BREAKER_WINDOW_MS, le marché
      se ferme automatiquement pendant CIRCUIT_BREAKER_PAUSE_MS.
@@ -1064,6 +1074,18 @@ export async function maintenanceTick() {
       MARKET_CONFIG.HIGH_PRICE_THRESHOLD,
       newPrice - MARKET_CONFIG.HIGH_PRICE_DECAY_PER_DAY * daysSince
     );
+  }
+
+  /* 1c. Réversion vers 100 : convergence linéaire de REVERT_PER_HOUR par
+     heure vers REVERT_TARGET, sans overshoot (−10/h au-dessus de 100,
+     +10/h en dessous). Demande user 04/07/2026 — le marché « revient à
+     100 ». Proportionnelle au temps écoulé (hoursSince) → indépendante de
+     la fréquence de tick : la somme fait bien ±10 sur une heure. */
+  if (MARKET_CONFIG.REVERT_TO_100) {
+    const tgt  = MARKET_CONFIG.REVERT_TARGET;
+    const step = MARKET_CONFIG.REVERT_PER_HOUR * hoursSince;
+    if (newPrice > tgt)      newPrice = Math.max(tgt, newPrice - step);
+    else if (newPrice < tgt) newPrice = Math.min(tgt, newPrice + step);
   }
 
   /* 2. Mean reversion vers TARGET (100) — DÉSACTIVÉE (rate=0).

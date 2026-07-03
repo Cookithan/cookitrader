@@ -23,7 +23,7 @@ import { AvatarFigure } from "../AvatarFigure.jsx";
 ═══════════════════════════════════════════════════════ */
 export function DuelResultModal({ result, onRematch, onClose, C }){
   if(!result) return null;
-  const { gameKey, myScore, myAvatar, oppName, oppAvatar, oppScore, outcome, higherWins } = result;
+  const { gameKey, myScore, myAvatar, oppName, oppAvatar, oppScore, outcome, higherWins, delta } = result; // eslint-disable-line no-unused-vars
   const game = getDuelGame(gameKey);
   const metric = game?.metric || 'score';
 
@@ -86,6 +86,22 @@ export function DuelResultModal({ result, onRematch, onClose, C }){
             ⓘ Sur ce jeu, <b>moins</b> = mieux
           </div>
         )}
+
+        {/* Butin / mise (le gagnant rafle la mise de l'adversaire) */}
+        {delta && (delta.cookies || delta.cafes) ? (
+          <div style={{
+            textAlign:'center', marginTop:14, padding:'11px 14px', borderRadius:14,
+            background: meWon ? 'rgba(212,160,23,.14)' : C.card2,
+            border:`1px solid ${meWon ? GOLD : C.border}`,
+          }}>
+            <div style={{ fontSize:10.5, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1 }}>
+              {meWon ? 'Butin remporté' : 'Mise perdue'}
+            </div>
+            <div style={{ fontSize:19, fontWeight:900, color: meWon ? GOLD : C.text, marginTop:4 }}>
+              {meWon ? '+' : '−'}{Math.abs(delta.cookies)} 🍪{delta.cafes ? ` ${meWon ? '+' : '−'}${Math.abs(delta.cafes)} ☕` : ''}
+            </div>
+          </div>
+        ) : null}
 
         {/* Actions */}
         <div style={{ display:'flex', gap:10, marginTop:22 }}>

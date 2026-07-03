@@ -13,22 +13,29 @@ import { getDuelGame } from "../../lib/duels.js";
                Résolution : même choix → ce jeu ; sinon départage aléatoire
                entre les 2 jeux choisis.
      reveal  → L'épreuve tranchée + règles
-     count   → décompte 3·2·1 → onLaunch(gameKey)
+     stake   → Le bot a misé (affiché) ; tu mises au curseur jusqu'à 2× sa mise.
+               Cagnotte = les 2 mises ; le gagnant remporte la MOITIÉ du pot.
+     potreveal→ La cagnotte révélée (toi + bot) + moitié en jeu
+     count   → décompte 3·2·1 → onLaunch(gameKey, myStake)
 
-   Le tirage (bot, 3 jeux proposés, choix du bot) vient d'App via `match` ;
-   l'overlay pilote l'anim + la résolution puis appelle onLaunch(gameKey).
+   Le tirage (bot, 3 jeux proposés, choix du bot, mise du bot) vient d'App via
+   `match` ; l'overlay pilote l'anim + la résolution puis appelle
+   onLaunch(gameKey, { cookies, cafes }).
    Étape B (vrai live 2 joueurs) se branchera par-dessus ces mêmes phases.
 
-   props : match = { kind, botName, botAvatar, offeredGames:[g], botGamePick },
-           onLaunch(gameKey), onCancel(), C
+   props : match = { kind, botName, botAvatar, offeredGames:[g], botGamePick,
+                     botStake:{cookies,cafes} },
+           onLaunch(gameKey, myStake), onCancel(), coins, cafes, C
 ═══════════════════════════════════════════════════════ */
-export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){
-  const [phase, setPhase]       = useState('search');   // search → found → gamepick → reveal → count
+export function MatchmakingOverlay({ match, onLaunch, onCancel, coins = 0, cafes = 0, C }){ // eslint-disable-line no-unused-vars
+  const [phase, setPhase]       = useState('search');   // search→found→gamepick→reveal→stake→potreveal→count
   const [resolved, setResolved] = useState(null);       // { game, reason, myPick, botPick }
   const [count, setCount]       = useState(3);
   const [botRevealed, setBotRevealed] = useState(false);   // le choix du bot est révélé avant que tu choisisses
   const [myPickKey, setMyPickKey]     = useState(null);    // ton choix verrouillé (badge « TOI »)
   const [previewKey, setPreviewKey]   = useState(null);    // jeu tapé pour aperçu (démo + règles)
+  const [stakeC, setStakeC]           = useState(() => Math.min(match?.botStake?.cookies || 0, coins)); // ta mise 🍪 (défaut = égaler le bot)
+  const [stakeK, setStakeK]           = useState(0);       // ta mise ☕
   const launchRef = useRef(onLaunch);
   launchRef.current = onLaunch;
 
@@ -36,11 +43,28 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){
   const botName = match?.botName || 'Barista';
   const offered = match?.offeredGames || [];
 
+  /* Mises : le bot mise en premier ; ton plafond = 2× sa mise (borné par ton
+     solde). Cagnotte = les deux mises ; le gagnant remporte la MOITIÉ du pot. */
+  const botStakeC = match?.botStake?.cookies || 0;
+  const botStakeK = match?.botStake?.cafes   || 0;
+  const stakeCMax = Math.max(0, Math.min(botStakeC * 2, coins));
+  const stakeKMax = Math.max(0, Math.min(botStakeK * 2, cafes));
+  const potC = stakeC + botStakeC, potK = stakeK + botStakeK;
+  const atRiskC = Math.floor(potC / 2), atRiskK = Math.floor(potK / 2);   // en jeu = moitié du pot
+  const trackRef = useRef(null);
+  const sliderFromX = (clientX) => {
+    const el = trackRef.current; if(!el) return;
+    const r = el.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    setStakeC(Math.max(0, Math.min(stakeCMax, Math.round((ratio * stakeCMax) / 10) * 10)));
+  };
+
   /* Transitions auto (search/found/reveal). gamepick attend le tap. */
   useEffect(() => {
     if(phase === 'search'){ const t = setTimeout(()=>setPhase('found'),    5000); return ()=>clearTimeout(t); }
     if(phase === 'found'){  const t = setTimeout(()=>setPhase('gamepick'), 2000); return ()=>clearTimeout(t); }
-    if(phase === 'reveal'){ const t = setTimeout(()=>setPhase('count'),    2600); return ()=>clearTimeout(t); }
+    if(phase === 'reveal'){ const t = setTimeout(()=>setPhase('stake'),    2600); return ()=>clearTimeout(t); }
+    if(phase === 'potreveal'){ const t = setTimeout(()=>setPhase('count'), 2600); return ()=>clearTimeout(t); }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
 
@@ -51,7 +75,7 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){
     let n = 3;
     const id = setInterval(() => {
       n -= 1;
-      if(n <= 0){ clearInterval(id); launchRef.current?.(resolved?.game?.key); }
+      if(n <= 0){ clearInterval(id); launchRef.current?.(resolved?.game?.key, { cookies: stakeC, cafes: stakeK }); }
       else setCount(n);
     }, 800);
     return () => clearInterval(id);
@@ -212,6 +236,81 @@ export function MatchmakingOverlay({ match, onLaunch, onCancel, C }){
           <div style={{ fontSize:11.5, fontWeight:800, color:dim+'.5)', marginTop:6 }}>
             {resolved.game.higherWins ? '→ le plus haut score gagne' : '→ le moins de coups gagne'}
           </div>
+        </div>
+      )}
+
+      {phase === 'stake' && (
+        <div className="su" style={{ width:'100%', maxWidth:340 }}>
+          <div style={{ fontSize:12, fontWeight:800, color:dim+'.6)', textTransform:'uppercase', letterSpacing:2, textAlign:'center' }}>Ta mise</div>
+
+          {/* Le bot mise en premier → ton plafond = 2× sa mise */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:12, padding:'10px 14px', borderRadius:12, background:'rgba(255,255,255,.05)', border:'1px solid rgba(212,160,23,.2)' }}>
+            <span style={{ fontSize:14 }}>🤖</span>
+            <span style={{ fontSize:12.5, fontWeight:700, color:dim+'.7)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{botName} mise</span>
+            <span style={{ fontSize:14, fontWeight:900, color:'#F0E0C0', whiteSpace:'nowrap' }}>{botStakeC} 🍪{botStakeK ? ` +${botStakeK}☕` : ''}</span>
+          </div>
+
+          {/* Curseur 🍪 : 0 → 2× la mise du bot */}
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', margin:'22px 0 9px' }}>
+            <span style={{ fontSize:10.5, fontWeight:800, color:dim+'.45)', textTransform:'uppercase', letterSpacing:1 }}>🍪 ta mise · tu as {coins}</span>
+            <span style={{ fontSize:22, fontWeight:900, color:GOLD }}>{stakeC}</span>
+          </div>
+          <div
+            ref={trackRef}
+            onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); sliderFromX(e.clientX); }}
+            onPointerMove={e => { if(e.buttons) sliderFromX(e.clientX); }}
+            style={{ position:'relative', height:34, borderRadius:17, background:'rgba(255,255,255,.08)', border:'1px solid rgba(212,160,23,.25)', cursor:'pointer', touchAction:'none' }}
+          >
+            <div style={{ position:'absolute', left:0, top:0, bottom:0, width:`${stakeCMax ? (stakeC/stakeCMax)*100 : 0}%`, background:GOLD, borderRadius:17, opacity:.85 }} />
+            <div style={{ position:'absolute', top:'50%', left:`${stakeCMax ? (stakeC/stakeCMax)*100 : 0}%`, transform:'translate(-50%,-50%)', width:26, height:26, borderRadius:'50%', background:'#fff', border:`2px solid ${GOLD}`, boxShadow:'0 2px 8px rgba(0,0,0,.4)' }} />
+          </div>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, fontWeight:700, color:dim+'.4)', marginTop:5 }}>
+            <span>0</span><span>max {stakeCMax} 🍪 (2× le bot)</span>
+          </div>
+
+          {/* ☕ seulement si le bot en mise */}
+          {botStakeK > 0 && (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:16, padding:'10px 12px', borderRadius:12, background:'rgba(255,255,255,.06)', border:'1px solid rgba(212,160,23,.25)' }}>
+              <span style={{ fontSize:12.5, fontWeight:800 }}>+ ☕ <span style={{ color:dim+'.5)', fontWeight:600 }}>(tu as {cafes})</span></span>
+              <div style={{ display:'flex', gap:6 }}>
+                {Array.from({ length: stakeKMax + 1 }, (_, v) => (
+                  <button key={v} onClick={()=>setStakeK(v)}
+                    style={{ width:34, height:34, borderRadius:10, border:`1px solid ${stakeK===v ? GOLD : 'rgba(212,160,23,.3)'}`, background: stakeK===v ? GOLD : 'transparent', color: stakeK===v ? '#fff' : '#F0E0C0', fontWeight:900, cursor:'pointer' }}>{v}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Cagnotte + ce qui est en jeu (moitié du pot) */}
+          <div style={{ marginTop:18, padding:'12px 14px', borderRadius:14, background:'rgba(212,160,23,.1)', border:'1px solid rgba(212,160,23,.3)', textAlign:'center' }}>
+            <div style={{ fontSize:11, color:dim+'.6)' }}>Cagnotte <b style={{ color:'#F0E0C0' }}>{potC} 🍪{potK ? ` + ${potK} ☕` : ''}</b></div>
+            <div style={{ fontSize:13.5, fontWeight:900, color:GOLD, marginTop:4 }}>🏆 En jeu : ±{atRiskC} 🍪{atRiskK ? ` ±${atRiskK} ☕` : ''}</div>
+            <div style={{ fontSize:10, color:dim+'.45)', marginTop:2 }}>le gagnant remporte la moitié du pot</div>
+          </div>
+
+          <button onClick={()=>setPhase('potreveal')}
+            style={{ width:'100%', marginTop:16, padding:'15px', borderRadius:16, background:GOLD, color:'#fff', fontWeight:900, fontSize:15, border:'none', cursor:'pointer' }}>
+            Miser {stakeC} 🍪{stakeK ? ` + ${stakeK} ☕` : ''}
+          </button>
+        </div>
+      )}
+
+      {phase === 'potreveal' && (
+        <div className="su" style={{ textAlign:'center', width:'100%', maxWidth:340 }}>
+          <div style={{ fontSize:12, fontWeight:800, color:dim+'.6)', textTransform:'uppercase', letterSpacing:2 }}>La cagnotte</div>
+          <div style={{ display:'flex', gap:12, marginTop:20, justifyContent:'center' }}>
+            <div style={{ flex:1, padding:'16px 8px', borderRadius:14, background:'rgba(212,160,23,.16)', border:`1px solid ${GOLD}` }}>
+              <div style={{ fontSize:11, fontWeight:900, color:dim+'.7)' }}>TOI</div>
+              <div style={{ fontSize:15.5, fontWeight:900, color:GOLD, marginTop:5 }}>{stakeC} 🍪{stakeK ? ` +${stakeK}☕` : ''}</div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', fontSize:16, fontWeight:900, color:dim+'.5)' }}>+</div>
+            <div style={{ flex:1, padding:'16px 8px', borderRadius:14, background:'rgba(255,255,255,.06)', border:'1px solid rgba(212,160,23,.3)' }}>
+              <div style={{ fontSize:11, fontWeight:900, color:dim+'.7)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{botName}</div>
+              <div style={{ fontSize:15.5, fontWeight:900, color:'#F0E0C0', marginTop:5 }}>{botStakeC} 🍪{botStakeK ? ` +${botStakeK}☕` : ''}</div>
+            </div>
+          </div>
+          <div style={{ fontSize:24, fontWeight:900, color:'#E8C896', marginTop:18 }}>{potC} 🍪{potK ? ` + ${potK} ☕` : ''}</div>
+          <div style={{ fontSize:12.5, color:GOLD, fontWeight:800, marginTop:6 }}>🏆 Le gagnant remporte la moitié : +{atRiskC} 🍪{atRiskK ? ` +${atRiskK} ☕` : ''}</div>
         </div>
       )}
 

@@ -48,7 +48,7 @@ import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
 import { DuelStakeModal } from "./components/modals/DuelStakeModal.jsx";
 import { MatchmakingOverlay } from "./components/overlays/MatchmakingOverlay.jsx";
-import { getDuelGame, pickRandomDuelGame, pickThreeDuelGames, rollBotTarget, makeBotName, makeBotAvatar, resolveDuelScores, settlementFor, listMyDuels, listOpenDuels, acceptDuel, submitDuelScore, createOpenDuel } from "./lib/duels.js";
+import { getDuelGame, pickRandomDuelGame, pickThreeDuelGames, rollBotTarget, rollBotStake, makeBotName, makeBotAvatar, resolveDuelScores, settlementFor, listMyDuels, listOpenDuels, acceptDuel, submitDuelScore, createOpenDuel } from "./lib/duels.js";
 import { BossEventOverlay } from "./components/overlays/BossEventOverlay.jsx";
 import { useCommunityBoss } from "./hooks/useCommunityBoss.js";
 import { getMyBossDamage, getBossRank } from "./lib/supabaseSync.js";
@@ -587,7 +587,7 @@ export default function CookiMiner() {
        on l'appaire, sinon ce bot prend le relais. */
     const games3  = pickThreeDuelGames();
     const botPick = games3[Math.floor(Math.random() * games3.length)];
-    const m = { kind:'bot', botName: makeBotName(), botAvatar: makeBotAvatar(), offeredGames: games3, botGamePick: botPick.key };
+    const m = { kind:'bot', botName: makeBotName(), botAvatar: makeBotAvatar(), offeredGames: games3, botGamePick: botPick.key, botStake: rollBotStake() };
     matchmakingRef.current = m;
     setMatchmaking(m);
   };
@@ -606,7 +606,7 @@ export default function CookiMiner() {
   /* Fin du matchmaking → ouvre le jeu (le useEffect duelMode l'auto-lance).
      Online : on ACCEPTE le défi côté serveur + on débite ma mise (escrow)
      AVANT de lancer la partie. */
-  const launchDuel = (gameKey) => {
+  const launchDuel = (gameKey, myStake) => {
     const m = matchmakingRef.current;
     if(!m) return;
     const game = getDuelGame(gameKey) || (m.offeredGames && m.offeredGames[0]);
@@ -614,8 +614,9 @@ export default function CookiMiner() {
     duelMyLiveRef.current = 0;
     duelBotLiveRef.current = 0;
     /* Option 1 : d'abord le TOUR DU BOT (autoPlay, visible) ; son vrai score
-       remplit botTarget en fin de tour, puis TON tour. */
-    const sess = { kind:'bot', gameKey: game.key, higherWins: game.higherWins, botName: m.botName, botAvatar: m.botAvatar, turn:'bot', botTarget: null };
+       remplit botTarget en fin de tour, puis TON tour. Mises : le gagnant
+       rafle celle de l'adversaire (appliqué au résultat). */
+    const sess = { kind:'bot', gameKey: game.key, higherWins: game.higherWins, botName: m.botName, botAvatar: m.botAvatar, turn:'bot', botTarget: null, myStake: myStake || { cookies:0, cafes:0 }, botStake: m.botStake || { cookies:0, cafes:0 } };
     duelSessionRef.current = sess;
     setMatchmaking(null);
     setDuelSession(sess);
@@ -642,7 +643,24 @@ export default function CookiMiner() {
   const showDuelResult = (sess, myScore, oppScore) => {
     const r = resolveDuelScores(sess.higherWins, myScore, oppScore);   // 'challenger'(=moi) | 'opponent'(=bot) | 'draw'
     const outcome = r === 'draw' ? 'draw' : (r === 'challenger' ? 'win' : 'lose');
-    setDuelResult({ gameKey:sess.gameKey, myScore, myAvatar:userAvatar, oppName:sess.botName, oppAvatar:sess.botAvatar, oppScore, outcome, higherWins:sess.higherWins });
+    /* Mise : cagnotte = les deux mises ; le gagnant remporte la MOITIÉ du pot,
+       le perdant perd cette même moitié (symétrique, peu importe qui a le plus
+       misé). Plafond de mise = 2× celle du bot (borné à la saisie). */
+    const myS  = sess.myStake  || { cookies:0, cafes:0 };
+    const botS = sess.botStake || { cookies:0, cafes:0 };
+    const halfC = Math.floor(((myS.cookies||0) + (botS.cookies||0)) / 2);
+    const halfK = Math.floor(((myS.cafes||0)   + (botS.cafes||0))   / 2);
+    let delta = { cookies:0, cafes:0 };
+    if(outcome === 'win'){
+      delta = { cookies: halfC, cafes: halfK };
+      if(halfC) setCoins(c => c + halfC);
+      if(halfK) setCafes(c => (c || 0) + halfK);
+    } else if(outcome === 'lose'){
+      delta = { cookies: -halfC, cafes: -halfK };
+      if(halfC) spendCoins(halfC);
+      if(halfK) setCafes(c => Math.max(0, (c || 0) - halfK));
+    }
+    setDuelResult({ gameKey:sess.gameKey, myScore, myAvatar:userAvatar, oppName:sess.botName, oppAvatar:sess.botAvatar, oppScore, outcome, higherWins:sess.higherWins, delta });
     playSound(outcome === 'win' ? 'success' : outcome === 'draw' ? 'modal' : 'error');
   };
   /* Split-screen : ne résout QUE quand les deux scores réels sont là. */
@@ -4541,7 +4559,7 @@ export default function CookiMiner() {
       )}
 
       {showStakeModal && <DuelStakeModal coins={coins} cafes={cafes} onConfirm={startCreateDuel} onClose={()=>setShowStakeModal(false)} C={C} />}
-      {matchmaking && <MatchmakingOverlay match={matchmaking} onLaunch={launchDuel} onCancel={()=>{ matchmakingRef.current=null; setMatchmaking(null); }} C={C} />}
+      {matchmaking && <MatchmakingOverlay match={matchmaking} onLaunch={launchDuel} onCancel={()=>{ matchmakingRef.current=null; setMatchmaking(null); }} coins={coins} cafes={cafes} C={C} />}
       {duelHandoff && (
         <div style={{ position:'fixed', inset:0, zIndex:75, background:'linear-gradient(160deg,#2A1508,#160800)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:24, color:'#F0E0C0', textAlign:'center' }}>
           <div style={{ fontSize:12.5, fontWeight:800, color:'rgba(240,224,192,.6)', textTransform:'uppercase', letterSpacing:2 }}>🤖 {duelHandoff.botName} a joué</div>
