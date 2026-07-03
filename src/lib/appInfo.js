@@ -13,14 +13,32 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.25.0',
-  releaseDate: '2026-05-26',
+  version: '1.26.0-beta',
+  releaseDate: '2026-07-03',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.26.0-beta',
+    date: '2026-07-03',
+    title: '🥊 Duels 1v1 — bêta !',
+    title_en: '🥊 1v1 Duels — beta!',
+    changes: [
+      "🥊 Nouveauté en bêta : les Duels 1v1 ! Depuis l'onglet Jeux, tape « Trouver un duel »",
+      "🎯 Recherche d'un adversaire, épreuve tirée au sort + ses règles, puis affronte-le sur un mini-jeu",
+      "📊 Barre de course en direct : ton score face au sien, le meneur s'illumine en or",
+      "🧪 C'est une toute première version bêta — teste et dis-nous ce que t'en penses !",
+    ],
+    changes_en: [
+      "🥊 New in beta: 1v1 Duels! From the Games tab, tap \"Find a duel\"",
+      "🎯 Opponent search, a random challenge + its rules, then face them on a mini-game",
+      "📊 Live race bar: your score against theirs, the leader lights up in gold",
+      "🧪 This is an early beta — give it a try and tell us what you think!",
+    ],
+  },
   {
     version: '1.25.0',
     date: '2026-05-26',
@@ -93,24 +111,6 @@ export const CHANGELOG = [
       "📈 A marker in the Market shows your progress toward unlocking it",
       "🎡 Wheel: the mid-tier small wins have been bumped up",
       "🛒 Fix: a purchased $CKM shares pack no longer wrongly stays shown in the shop",
-    ],
-  },
-  {
-    version: '1.21.0',
-    date: '2026-05-17',
-    title: '🏆 Classement hebdo remis à zéro + roue rééquilibrée',
-    title_en: '🏆 Weekly leaderboard reset + rebalanced wheel',
-    changes: [
-      "🏆 Le classement repart à zéro : une nouvelle course chaque semaine, le podium est à prendre (tes cookies, ton niveau et tes récompenses restent 100 % intacts)",
-      "🎡 La roue est rééquilibrée et adaptée à ton niveau — trois paliers de mises et de gains, plus de suspense",
-      "🌍 Le mini-jeu « Devine la commande » est désormais entièrement traduit en anglais",
-      "📊 Chaque ligne du classement affiche le score de la semaine ET le total cumulé du joueur",
-    ],
-    changes_en: [
-      "🏆 The leaderboard is reset: a fresh race every week, the podium is yours to grab (your cookies, level and rewards stay 100% intact)",
-      "🎡 The wheel is rebalanced and scaled to your level — three tiers of stakes and rewards, more suspense",
-      "🌍 The \"Guess the order\" mini-game is now fully translated to English",
-      "📊 Every leaderboard row shows the weekly score AND the player's all-time total",
     ],
   },
 ];
