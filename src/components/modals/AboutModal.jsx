@@ -33,6 +33,9 @@ export function AboutModal({ onClose, C }){
   const { t, localizedField, lang } = useTranslation();
   const [stats,   setStats]   = useState(null);
   const [closing, setClosing] = useState(false);
+  /* Anciennes versions repliées par défaut — on n'ouvre l'À propos que
+     pour la dernière nouveauté 99 fois sur 100. */
+  const [showOldReleases, setShowOldReleases] = useState(false);
 
   /* Gate code source : input 4 chiffres → ouvre le lien si correct */
   const [showCodeInput, setShowCodeInput] = useState(false);
@@ -204,8 +207,11 @@ export function AboutModal({ onClose, C }){
               📋 {t('about.changelog')}
             </div>
 
-            {CHANGELOG.map((release, i) => {
-              const isLast = i === CHANGELOG.length - 1;
+            {/* Seule la dernière version est dépliée (v1.30) : le changelog
+                fait 6 entrées et poussait les liens + les crédits hors de
+                l'écran. Les anciennes restent accessibles au tap, en bas. */}
+            {(showOldReleases ? CHANGELOG : CHANGELOG.slice(0, 1)).map((release, i, arr) => {
+              const isLast = i === arr.length - 1;
               return (
                 <div key={release.version} style={{
                   marginBottom: isLast ? 10 : 14,
@@ -241,6 +247,23 @@ export function AboutModal({ onClose, C }){
                 </div>
               );
             })}
+
+            {CHANGELOG.length > 1 && (
+              <button
+                onClick={() => setShowOldReleases(v => !v)}
+                style={{
+                  width:'100%', marginBottom:10, padding:'10px 8px',
+                  borderRadius:11, background:'transparent',
+                  border:`1px dashed ${C.border}`,
+                  color:C.muted, fontSize:11.5, fontWeight:700,
+                  cursor:'pointer', letterSpacing:.2,
+                }}
+              >
+                {showOldReleases
+                  ? `${t('about.older_hide')} ↑`
+                  : `${t('about.older_show', { n: CHANGELOG.length - 1 })} ↓`}
+              </button>
+            )}
           </div>
 
           {/* 4. Liens — bouton GitHub gated derrière un code 4 chiffres */}

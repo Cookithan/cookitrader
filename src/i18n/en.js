@@ -171,6 +171,8 @@ export const EN = {
     realized_by:  'Made by',
     changelog:    "What's new",
     badge_new:    'New',
+    older_show:   'See previous versions ({n})',
+    older_hide:   'Hide previous versions',
     community_title:'🌍 The CookiMiner community',
     online_now:   '{n} online right now',
     stat_players: 'Players',

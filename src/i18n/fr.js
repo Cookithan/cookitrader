@@ -180,6 +180,8 @@ export const FR = {
     realized_by:  'Réalisé par',
     changelog:    'Nouveautés',
     badge_new:    'Nouveau',
+    older_show:   'Voir les versions précédentes ({n})',
+    older_hide:   'Masquer les versions précédentes',
     community_title:'🌍 La communauté CookiMiner',
     online_now:   '{n} en ligne maintenant',
     stat_players: 'Joueurs',
