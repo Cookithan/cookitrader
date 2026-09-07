@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle, Palette } from "lucide-react";
 import { GOLD } from "../../data/themes.js";
+import { APP_INFO } from "../../lib/appInfo.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 import { useTranslation } from "../../i18n/index.js";
 import {
@@ -516,10 +517,55 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, onOpen
         )}
 
         {/* Aide & infos — tutoriel, Discord, à propos regroupés (v1.30 :
-            3 sections d'une ligne fusionnées en une seule). */}
+            3 sections d'une ligne fusionnées en une seule).
+            « À propos » est passé EN TÊTE et porte un accent doré + le
+            numéro de version : c'est l'écran qui contient le changelog et
+            les stats de la communauté, il était enterré en 3e ligne grise. */}
         <section>
           {sectionLabel(t('settings.section_help'))}
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {onOpenAbout && (
+              <button
+                onClick={() => { playSound('modal'); onOpenAbout(); }}
+                style={{
+                  width:'100%', borderRadius:16,
+                  background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.07))',
+                  border:'1px solid rgba(212,160,23,.35)',
+                  padding:'14px 16px',
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  cursor:'pointer', textAlign:'left', gap:10,
+                }}
+              >
+                <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                  <div style={{
+                    width:38, height:38, borderRadius:10,
+                    background:'rgba(212,160,23,.14)',
+                    border:'1px solid rgba(212,160,23,.35)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    flexShrink:0,
+                  }}>
+                    <Info size={18} color="#D4A017" />
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                      {t('settings.about_title')}
+                    </div>
+                    <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                      {t('settings.about_sub')}
+                    </div>
+                  </div>
+                </div>
+                <span style={{
+                  flexShrink:0, fontSize:10.5, fontWeight:800, color:'#D4A017',
+                  padding:'4px 9px', borderRadius:9,
+                  background:'rgba(212,160,23,.14)',
+                  border:'1px solid rgba(212,160,23,.35)',
+                  fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+                }}>
+                  v{APP_INFO.version}
+                </span>
+              </button>
+            )}
             {onRestartTutorial && navRow({
               key:'tutorial',
               icon:<HelpCircle size={18} color="#D4A017" />,
@@ -531,12 +577,6 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, onOpen
               icon:<MessagesSquare size={18} color="#D4A017" />,
               title:t('settings.community_title'), sub:t('settings.community_sub'),
               href:'https://discord.gg/EMDQXDBV39', arrow:'↗',
-            })}
-            {onOpenAbout && navRow({
-              key:'about',
-              icon:<Info size={18} color="#D4A017" />,
-              title:t('settings.about_title'), sub:t('settings.about_sub'),
-              onClick:() => { playSound('modal'); onOpenAbout(); },
             })}
           </div>
         </section>

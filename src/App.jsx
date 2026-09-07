@@ -3864,15 +3864,28 @@ export default function CookiMiner() {
           )}
           <div style={{ minWidth:0, flex:1 }}>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
-            <div style={{
-              fontSize:22, fontWeight:900,
-              /* theme_grains : haut du gradient = crème pâle, donc C.text
-                 (calé sur les cards sombres) devient illisible. On force
-                 un brun espresso foncé qui passe sur le crème ET reste
-                 lisible quand on scroll vers le bas. */
-              color: activeTheme === 'theme_grains' ? '#3D1808' : C.text,
-              fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap',
-            }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
+            {/* Le titre ouvre « À propos » (v1.30). Taper le logo pour voir
+                la version et les nouveautés est un réflexe répandu, et
+                l'écran était enterré en 3e ligne d'une section de
+                Paramètres alors qu'il porte le changelog. */}
+            <button
+              onClick={()=>{ playSound('modal'); setShowAbout(true); }}
+              aria-label={t('settings.about_title')}
+              style={{
+                background:'transparent', border:'none', padding:0,
+                display:'block', textAlign:'left', cursor:'pointer', font:'inherit',
+              }}
+            >
+              <div style={{
+                fontSize:22, fontWeight:900,
+                /* theme_grains : haut du gradient = crème pâle, donc C.text
+                   (calé sur les cards sombres) devient illisible. On force
+                   un brun espresso foncé qui passe sur le crème ET reste
+                   lisible quand on scroll vers le bas. */
+                color: activeTheme === 'theme_grains' ? '#3D1808' : C.text,
+                fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap',
+              }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
+            </button>
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
@@ -4653,6 +4666,7 @@ export default function CookiMiner() {
           onOpenLevels={()=>{ setShowProfile(false); setShowLevels(true); }}
           onOpenSettings={()=>{ setShowProfile(false); setShowSettings(true); }}
           onOpenCollection={()=>{ playSound('tab'); setShowProfile(false); goToTab('collection'); }}
+          onOpenAbout={()=>{ playSound('modal'); setShowAbout(true); }}
           userName={userName} setUserName={setUserName}
           userAvatar={userAvatar}
           joinDate={joinDate}

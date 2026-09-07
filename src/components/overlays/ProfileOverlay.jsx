@@ -39,7 +39,7 @@ import { useTranslation } from "../../i18n/index.js";
 ═══════════════════════════════════════════════════════ */
 
 export function ProfileOverlay({
-  onClose, onOpenLevels, onOpenSettings, onOpenCollection,
+  onClose, onOpenLevels, onOpenSettings, onOpenCollection, onOpenAbout,
   userName, setUserName, userAvatar, joinDate,
   coins, spendCoins, nameChangeCount, setNameChangeCount,
   userCode,
@@ -416,13 +416,25 @@ export function ProfileOverlay({
               </section>
             )}
 
-            {/* 8. Crédit auteur — toujours en pied de profil (PHASE 2) */}
-            <div style={{ textAlign:'center', marginTop:24, paddingBottom:16, fontSize:11, color:'rgba(139,106,90,0.6)', fontWeight:500 }}>
+            {/* 8. Crédit auteur — désormais cliquable (v1.30) : il affichait
+                déjà le numéro de version en texte mort, or c'est exactement
+                là qu'on cherche « à propos ». Un tap ouvre l'AboutModal
+                (changelog, stats communauté, crédits). */}
+            <button
+              onClick={onOpenAbout}
+              disabled={!onOpenAbout}
+              style={{
+                display:'block', width:'100%', marginTop:24, paddingBottom:16,
+                background:'transparent', border:'none', font:'inherit',
+                textAlign:'center', fontSize:11, color:'rgba(139,106,90,0.6)',
+                fontWeight:500, cursor: onOpenAbout ? 'pointer' : 'default',
+              }}
+            >
               {t('profile.realized_by')} <strong style={{ color:'#C17F3C' }}>Cookithan</strong>
-              <div style={{ fontSize:10, marginTop:2, opacity:0.7 }}>
-                CookiMiner v{APP_INFO.version}
+              <div style={{ fontSize:10, marginTop:3, opacity:0.85, color:'#C17F3C', fontWeight:700 }}>
+                CookiMiner v{APP_INFO.version}{onOpenAbout ? ' · à propos →' : ''}
               </div>
-            </div>
+            </button>
           </>
         )}
 
