@@ -565,6 +565,23 @@ export default function CookiMiner() {
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
+  /* Carte de jeu en train de « popper ». L'overlay s'ouvrait dans le même
+     tick que le tap : l'animation existait mais était instantanément
+     recouverte, donc invisible. On joue le pop, PUIS on ouvre (200 ms).
+     Assez court pour ne pas se sentir comme de la latence, assez long
+     pour que le geste ait une réponse. */
+  const [poppingGame,  setPoppingGame]  = useState(null);
+  const popTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(popTimerRef.current), []);
+  const launchGame = (id) => {
+    if(poppingGame) return;            /* double-tap ignoré pendant le pop */
+    playSound('modal');
+    setPoppingGame(id);
+    popTimerRef.current = setTimeout(() => {
+      setGameView(id);
+      setPoppingGame(null);
+    }, 200);
+  };
   /* ── Duels 1v1 — Phase 2 : matchmaking « façon Valorant » + boucle bot ── */
   const [duelSession, setDuelSession] = useState(null);   // duel en cours { kind:'bot', gameKey, higherWins, botName, botTarget }
   const [duelResult,  setDuelResult]  = useState(null);   // écran de résultat post-duel
@@ -4269,9 +4286,9 @@ export default function CookiMiner() {
                   return (
                     <button
                       key={g.id}
-                      onClick={comingSoon ? undefined : ()=>{ playSound('modal'); setGameView(g.id); }}
+                      onClick={comingSoon ? undefined : ()=>launchGame(g.id)}
                       disabled={comingSoon}
-                      className={`su stagger-${(i % 4) + 1} game-card`}
+                      className={`su stagger-${(i % 4) + 1} game-card${poppingGame === g.id ? ' game-pop' : ''}`}
                       style={{
                         width:'100%', borderRadius:20, marginBottom:14,
                         padding:'16px 17px',

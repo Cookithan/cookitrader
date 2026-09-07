@@ -271,10 +271,15 @@ export const GLOBAL_CSS = `
                     est repris dans le keyframe, même raison. */
   .game-card{transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease;will-change:transform}
   .game-card:active{transform:scale(.955)}
+  /* Pop joué AVANT l'ouverture du jeu : creux puis dépassement. L'app
+     attend 200 ms (cf. launchGame) pour le laisser se voir. Pas besoin
+     de !important : une animation l'emporte sur le transform de :active. */
+  @keyframes gamePop{0%{transform:scale(1)}30%{transform:scale(.93)}62%{transform:scale(1.045)}100%{transform:scale(1)}}
+  .game-pop{animation:gamePop .2s cubic-bezier(.34,1.56,.64,1) both}
   @keyframes gameEmojiDrift{0%,100%{transform:rotate(-12deg) translate3d(0,0,0)}50%{transform:rotate(-6deg) translate3d(0,-8px,0)}}
   .game-emoji{animation:gameEmojiDrift 4.8s ease-in-out infinite;will-change:transform}
-  @keyframes gameOverlayIn{from{opacity:0;transform:translateX(-50%) scale(.97)}to{opacity:1;transform:translateX(-50%) scale(1)}}
-  .game-overlay-in{animation:gameOverlayIn .22s cubic-bezier(.16,.84,.44,1) both}
+  @keyframes gameOverlayIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+  .game-overlay-in{animation:gameOverlayIn .26s cubic-bezier(.16,.84,.44,1) both}
 
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}
