@@ -3741,19 +3741,23 @@ export default function CookiMiner() {
        le prochain palier à débloquer (donne envie), pas tous les futurs jeux d'un coup.
      - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
        le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
+  /* `emoji` (v1.30) : filigrane géant au fond de la carte dans l'onglet
+     Jeux. Plusieurs jeux partagent la même icône lucide (Coffee pour
+     pour/pyramid/flappy/catcher) — l'emoji leur redonne une identité
+     propre au premier coup d'œil. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: checkinReward.isJackpot ? t('games_list.checkin_reward_cf', { n: checkinReward.cafes }) : t('games_list.checkin_reward', { n: checkinReward.coins }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
-    { id:'quiz',    Icon:Star,              title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
-    { id:'spin',    Icon:CircleDot,         title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
-    { id:'click',   Icon:MousePointerClick, title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
-    { id:'pour',    Icon:Coffee,            title: t('games_list.pour_title'),         desc: t('games_list.pour_desc'),     reward: t('games_list.pour_reward'),      avail:true,        color:'#5A3520', levelRequired:1 },
-    { id:'memory',  Icon:LayoutGrid,        title: t('games_list.memory_title'),       desc: t('games_list.memory_desc'),         reward: t('games_list.memory_reward'), avail:coins>=10, color:'#A0784E', levelRequired:2 },
-    { id:'guess',   Icon:HelpCircle,        title: t('games_list.guess_title'),        desc: level >= 10 ? t('games_list.guess_desc_7') : t('games_list.guess_desc_5'), reward: t('games_list.guess_reward'), avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
-    { id:'reflex',  Icon:Timer,             title: t('games_list.reflex_title'),       desc: t('games_list.reflex_desc'), reward: t('games_list.reflex_reward'), avail:coins>=5, color:'#D4A017', levelRequired:6 },
-    { id:'pyramid', Icon:Coffee,            title: t('games_list.pyramid_title'),      desc: t('games_list.pyramid_desc'),         reward: t('games_list.pyramid_reward'), avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
-    { id:'slot',    Icon:Dice5,             title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
-    { id:'flappy',  Icon:Coffee,            title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
-    { id:'catcher', Icon:Coffee,            title: t('games_list.catcher_title'),      desc: t('games_list.catcher_desc'), reward: t('games_list.catcher_reward'), avail:coins>=10, color:'#B5793E', levelRequired:4 },
+    { id:'checkin', Icon:Gift,              emoji:'🎁', title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: checkinReward.isJackpot ? t('games_list.checkin_reward_cf', { n: checkinReward.cafes }) : t('games_list.checkin_reward', { n: checkinReward.coins }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'quiz',    Icon:Star,              emoji:'⭐', title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
+    { id:'spin',    Icon:CircleDot,         emoji:'🎡', title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
+    { id:'click',   Icon:MousePointerClick, emoji:'🍪', title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
+    { id:'pour',    Icon:Coffee,            emoji:'☕', title: t('games_list.pour_title'),         desc: t('games_list.pour_desc'),     reward: t('games_list.pour_reward'),      avail:true,        color:'#5A3520', levelRequired:1 },
+    { id:'memory',  Icon:LayoutGrid,        emoji:'🃏', title: t('games_list.memory_title'),       desc: t('games_list.memory_desc'),         reward: t('games_list.memory_reward'), avail:coins>=10, color:'#A0784E', levelRequired:2 },
+    { id:'guess',   Icon:HelpCircle,        emoji:'🤔', title: t('games_list.guess_title'),        desc: level >= 10 ? t('games_list.guess_desc_7') : t('games_list.guess_desc_5'), reward: t('games_list.guess_reward'), avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
+    { id:'reflex',  Icon:Timer,             emoji:'⚡', title: t('games_list.reflex_title'),       desc: t('games_list.reflex_desc'), reward: t('games_list.reflex_reward'), avail:coins>=5, color:'#D4A017', levelRequired:6 },
+    { id:'pyramid', Icon:Coffee,            emoji:'🗼', title: t('games_list.pyramid_title'),      desc: t('games_list.pyramid_desc'),         reward: t('games_list.pyramid_reward'), avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
+    { id:'slot',    Icon:Dice5,             emoji:'🎰', title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
+    { id:'flappy',  Icon:Coffee,            emoji:'🐦', title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
+    { id:'catcher', Icon:Coffee,            emoji:'🥤', title: t('games_list.catcher_title'),      desc: t('games_list.catcher_desc'), reward: t('games_list.catcher_reward'), avail:coins>=10, color:'#B5793E', levelRequired:4 },
   ];
 
   const s = {
@@ -4286,13 +4290,24 @@ export default function CookiMiner() {
                         opacity: comingSoon ? .6 : (g.avail ? 1 : .72),
                       }}
                     >
-                      {/* Bulle décorative — même signature que la carte niveau
-                          de l'Accueil, ça donne du volume à peu de frais. */}
+                      {/* Halo à gauche, derrière l'icône : donne du volume
+                          sans concurrencer le filigrane de droite. */}
                       <div aria-hidden style={{
-                        position:'absolute', top:-34, right:-26,
-                        width:104, height:104, borderRadius:'50%',
-                        background:'rgba(255,255,255,.07)', pointerEvents:'none',
+                        position:'absolute', top:-38, left:-28,
+                        width:110, height:110, borderRadius:'50%',
+                        background:'rgba(255,255,255,.08)', pointerEvents:'none',
                       }} />
+
+                      {/* Filigrane géant — l'identité du jeu. Quatre jeux
+                          partagent l'icône Coffee ; débordant et incliné,
+                          l'emoji les distingue immédiatement. La pastille de
+                          récompense a un fond opaque, elle passe par-dessus. */}
+                      <div aria-hidden style={{
+                        position:'absolute', right:-14, bottom:-24,
+                        fontSize:82, lineHeight:1, opacity:.15,
+                        transform:'rotate(-12deg)', pointerEvents:'none',
+                        filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))',
+                      }}>{g.emoji}</div>
 
                       <div style={{
                         width:50, height:50, borderRadius:15, flexShrink:0,
