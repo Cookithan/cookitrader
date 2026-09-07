@@ -13,14 +13,36 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.27.0-beta',
-  releaseDate: '2026-07-04',
+  version: '1.30.0',
+  releaseDate: '2026-09-07',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.30.0',
+    date: '2026-09-07',
+    title: '✨ Une app plus claire, une Collection à toi',
+    title_en: '✨ A clearer app, a Collection of your own',
+    changes: [
+      "🎨 Nouvel onglet Ma Collection : thèmes, avatars, skins, titres et musiques réunis au même endroit. On achète en boutique, on équipe ici",
+      "🗂️ Tout y est rangé par famille et par provenance — boutique, premium, éditions limitées, codes promo",
+      "🧹 Accueil, Boutique, Classement, Marché et Paramètres allégés : moins d'encarts, l'essentiel en premier",
+      "🏆 Tes succès ont leur propre écran, ils n'occupent plus la moitié de l'accueil",
+      "ℹ️ Tape le logo CookiMiner en haut de l'écran pour retrouver les nouveautés à tout moment",
+      "🏦 La boutique en actions $CKM ferme — ce que tu y avais obtenu reste à toi et s'équipe dans Ma Collection",
+    ],
+    changes_en: [
+      "🎨 New My Collection tab: themes, avatars, skins, titles and music all in one place. Buy in the shop, equip here",
+      "🗂️ Everything is sorted by family and by origin — shop, premium, limited editions, promo codes",
+      "🧹 Home, Shop, Leaderboard, Market and Settings decluttered: fewer boxes, the essentials first",
+      "🏆 Your achievements now have their own screen instead of filling half the home tab",
+      "ℹ️ Tap the CookiMiner logo at the top to check what's new at any time",
+      "🏦 The $CKM shares shop is closing — whatever you unlocked there stays yours and is equipped in My Collection",
+    ],
+  },
   {
     version: '1.27.0-beta',
     date: '2026-07-04',
@@ -113,24 +135,6 @@ export const CHANGELOG = [
       "📚 Quiz: the Easy difficulty makes way for more Medium and Expert questions",
       "🍪 Memory: a small bonus for clearing all the pairs",
       "✨ …and other surprises to uncover while playing 👀",
-    ],
-  },
-  {
-    version: '1.22.0',
-    date: '2026-05-18',
-    title: '🏦 Boutique Actions + roue ajustée',
-    title_en: '🏦 Shares Shop + tuned wheel',
-    changes: [
-      "🏦 Nouvelle Boutique Actions : accumule des actions $CKM et débloque-la pour échanger tes actions contre des récompenses exclusives (thèmes, avatars, cafés…)",
-      "📈 Un repère dans le Marché t'indique ta progression vers son déblocage",
-      "🎡 Roue : les petits gains du palier intermédiaire ont été revalorisés",
-      "🛒 Correctif : un pack d'actions $CKM acheté ne reste plus affiché à tort dans la boutique",
-    ],
-    changes_en: [
-      "🏦 New Shares Shop: stack up $CKM shares and unlock it to trade your shares for exclusive rewards (themes, avatars, coffees…)",
-      "📈 A marker in the Market shows your progress toward unlocking it",
-      "🎡 Wheel: the mid-tier small wins have been bumped up",
-      "🛒 Fix: a purchased $CKM shares pack no longer wrongly stays shown in the shop",
     ],
   },
 ];
