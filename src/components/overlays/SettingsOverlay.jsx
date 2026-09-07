@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronLeft, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle, Palette } from "lucide-react";
+import { ChevronLeft, ChevronDown, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle, Palette } from "lucide-react";
 import { GOLD } from "../../data/themes.js";
 import { APP_INFO } from "../../lib/appInfo.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
@@ -33,6 +33,10 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
   const [codeCopied,       setCodeCopied]       = useState(false);
   /* Carte 'Mes infos de récupération' collapsée par défaut (trop volumineuse) */
   const [recoveryRevealed, setRecoveryRevealed] = useState(false);
+  /* Groupe DONNÉES replié par défaut : on n'y touche qu'exceptionnellement
+     (changer d'appareil, repartir de zéro), il n'a pas à occuper un tiers
+     de l'écran à chaque passage dans les Paramètres. */
+  const [dataRevealed, setDataRevealed] = useState(false);
 
   const copyText = async (txt, kind) => {
     try{
@@ -313,15 +317,100 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
           </div>
         </section>
 
-        {/* Données — UN SEUL bloc à séparateurs (v1.30). C'étaient quatre
-            cartes empilées avec des écarts : sauvegarde locale, infos de
-            récupération, restaurer, nouveau compte. Elles parlent toutes du
-            même sujet — ton compte et sa sauvegarde — donc elles tiennent
-            désormais dans un seul conteneur. Le code promo, lui, n'a rien
-            à voir avec les données : il a sa propre section, plus bas. */}
+        {/* Code promo — au-dessus des données (v1.30). C'est ce qu'on vient
+            saisir volontairement ; les données, on ne les ouvre qu'en cas
+            de besoin. Il garde sa carte orange, seul de son espèce ici. */}
+        {onOpenPromoCode && (
+          <section>
+            {sectionLabel(t('settings.section_promo'))}
+            <button
+              onClick={() => { playSound('modal'); onOpenPromoCode(); }}
+              style={{
+                width:'100%', borderRadius:16,
+                background:'linear-gradient(135deg, #C25822 0%, #E8985A 100%)',
+                border:'1px solid #A0451A',
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left',
+                boxShadow:'0 4px 14px rgba(160, 69, 26, 0.3)',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(255,255,255,.18)',
+                  border:'1px solid rgba(255,255,255,.32)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>
+                  🎟️
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:'#fff', letterSpacing:.2 }}>
+                    {t('settings.data_promo')}
+                  </div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,.85)', marginTop:2 }}>
+                    {t('settings.data_promo_sub')}
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:18, color:'#fff', flexShrink:0, fontWeight:800 }}>→</span>
+            </button>
+          </section>
+        )}
+
+        {/* Données — bloc REPLIÉ par défaut (v1.30). C'étaient quatre cartes
+            empilées ; regroupées, elles restaient quatre pavés qu'on croise
+            à chaque passage dans les Paramètres alors qu'on n'y touche
+            qu'exceptionnellement (changer d'appareil, repartir de zéro).
+            Une ligne suffit, on déplie quand on en a besoin.
+            Deux niveaux de repli assumés : ouvrir la section ne révèle PAS
+            le PIN, qui garde son propre bouton. */}
         <section>
           {sectionLabel(t('settings.section_data'))}
           <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:'4px 14px' }}>
+
+            <button
+              onClick={() => {
+                playSound('tap');
+                setDataRevealed(v => {
+                  /* En refermant, on remasque le PIN : sinon il resterait
+                     affiché en clair au prochain dépliage. */
+                  if(v){ setRecoveryRevealed(false); setPinRevealed(false); }
+                  return !v;
+                });
+              }}
+              style={{
+                width:'100%', padding:'13px 4px', background:'transparent', border:'none',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                gap:10, cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.12)',
+                  border:'1px solid rgba(212,160,23,.3)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>💾</div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    {t('settings.data_group_title')}
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    {t('settings.data_group_sub')}
+                  </div>
+                </div>
+              </div>
+              <ChevronDown
+                size={18} color={C.muted}
+                style={{ flexShrink:0, transform: dataRevealed ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}
+              />
+            </button>
+
+            {dataRevealed && (<>
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
 
             <div style={{ padding:'14px 4px 12px' }}>
               <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>{t('settings.data_local_save')}</div>
@@ -509,50 +598,9 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
             })}
           </>)}
 
+          </>)}
           </div>
         </section>
-
-        {/* Code promo — sorti du groupe DONNÉES (v1.30). Ce n'est pas une
-            question de sauvegarde : c'est un cadeau qu'on saisit. Il garde
-            sa carte orange, seul de son espèce dans l'écran. */}
-        {onOpenPromoCode && (
-          <section>
-            {sectionLabel(t('settings.section_promo'))}
-            <button
-              onClick={() => { playSound('modal'); onOpenPromoCode(); }}
-              style={{
-                width:'100%', borderRadius:16,
-                background:'linear-gradient(135deg, #C25822 0%, #E8985A 100%)',
-                border:'1px solid #A0451A',
-                padding:'14px 16px',
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                cursor:'pointer', textAlign:'left',
-                boxShadow:'0 4px 14px rgba(160, 69, 26, 0.3)',
-              }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                <div style={{
-                  width:38, height:38, borderRadius:10,
-                  background:'rgba(255,255,255,.18)',
-                  border:'1px solid rgba(255,255,255,.32)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0, fontSize:18,
-                }}>
-                  🎟️
-                </div>
-                <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:'#fff', letterSpacing:.2 }}>
-                    {t('settings.data_promo')}
-                  </div>
-                  <div style={{ fontSize:11, color:'rgba(255,255,255,.85)', marginTop:2 }}>
-                    {t('settings.data_promo_sub')}
-                  </div>
-                </div>
-              </div>
-              <span style={{ fontSize:18, color:'#fff', flexShrink:0, fontWeight:800 }}>→</span>
-            </button>
-          </section>
-        )}
 
         {/* Installation PWA — bouton si Android/Desktop, instruction si iOS,
             badge "déjà installée" si standalone, rien sinon. */}

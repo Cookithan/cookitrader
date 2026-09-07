@@ -89,6 +89,8 @@ export const EN = {
     lang_select:           'Choose your language',
     lang_fr:               'Français',
     lang_en:               'English',
+    data_group_title:      'My account & save',
+    data_group_sub:        'Code, PIN, restore, new account',
     data_local_save:       'Local save',
     data_local_desc:       'Your progress is saved automatically in this browser. It persists across sessions but does not follow you across devices.',
     data_recovery_title:   'My recovery info',

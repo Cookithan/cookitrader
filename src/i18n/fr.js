@@ -97,6 +97,8 @@ export const FR = {
     lang_select:           'Choisis ta langue',
     lang_fr:               'Français',
     lang_en:               'English',
+    data_group_title:      'Mon compte & sauvegarde',
+    data_group_sub:        'Code, PIN, restaurer, nouveau compte',
     data_local_save:       'Sauvegarde locale',
     data_local_desc:       'Ta progression est enregistrée automatiquement dans ce navigateur. Elle est conservée même après fermeture, mais ne suit pas entre appareils.',
     data_recovery_title:   'Mes infos de récupération',
