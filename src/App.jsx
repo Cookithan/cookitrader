@@ -130,6 +130,13 @@ import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
    utilisent isAdminName() qui accepte les 2. */
 const ADMIN_NAME = ADMIN_NAMES[0];
 
+/* Duels — MASQUÉS pendant la v1.30 (décision Régis : « on le fera une
+   prochaine fois, c'est pas le plus important »). Seule l'entrée « Trouver
+   un duel » de l'onglet Jeux est cachée : toute la machinerie reste en
+   place et fonctionnelle (matchmaking, auto-play du bot, mises, résultat).
+   Repasser à true suffit à tout réafficher — ne PAS supprimer le code. */
+const DUELS_VISIBLE = false;
+
 function fmtCompact(n){
   if(n < 10_000) return String(n);
   if(n < 1_000_000){
@@ -4247,8 +4254,13 @@ export default function CookiMiner() {
         {/* ── JEUX ── */}
         {tab==='jeux' && (
           <div className="su">
+            {/* Entrée des Duels — masquée en v1.30 (cf. DUELS_VISIBLE en
+                tête de fichier). Le reste de la fonctionnalité est intact,
+                seul ce bouton la rendait atteignable. */}
+            {DUELS_VISIBLE && (
             <button
               onClick={startMatchmaking}
+              className="tap-pop"
               style={{ width:'100%', marginBottom:20, padding:'16px 17px', borderRadius:20, border:'1.5px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.20), rgba(193,127,60,.08))', boxShadow:'0 4px 16px rgba(212,160,23,.18)', display:'flex', alignItems:'center', gap:13, cursor:'pointer', textAlign:'left' }}
             >
               <span style={{ fontSize:24 }}>⚔️</span>
@@ -4258,6 +4270,7 @@ export default function CookiMiner() {
               </span>
               <span style={{ fontSize:18, color:'#D4A017', fontWeight:900 }}>›</span>
             </button>
+            )}
             {/* v1.30 — chaque jeu tenait sur DEUX blocs : l'en-tête coloré
                 plus une barre blanche en pied qui répétait « ● Disponible »
                 et « Jouer → » sur une carte évidemment tapable. Dix jeux =
