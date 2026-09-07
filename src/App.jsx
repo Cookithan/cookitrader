@@ -39,6 +39,7 @@ import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, applyHoldDecayIfDue } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
+import { levelUnlocks } from "./utils/levelUnlocks.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
@@ -4088,6 +4089,36 @@ export default function CookiMiner() {
                 </div>
               </div>
 
+              {/* Ce que le PROCHAIN palier rapporte (v1.30). La barre disait
+                  qu'il restait de l'XP à faire, jamais pourquoi le faire. */}
+              {(() => {
+                const next = level + 1;
+                if(next > 25) return null;
+                const rewards = levelUnlocks(next, GAMES, t);
+                if(rewards.length === 0) return null;
+                return (
+                  <div style={{ display:'flex', alignItems:'center', gap:7, marginTop:11, flexWrap:'wrap' }}>
+                    <span style={{ fontSize:9.5, fontWeight:800, color:'rgba(255,255,255,.5)', textTransform:'uppercase', letterSpacing:1.2, whiteSpace:'nowrap' }}>
+                      {t('levels.next_level', { n: next })}
+                    </span>
+                    {rewards.slice(0, 3).map((u, k) => (
+                      <span key={k} style={{
+                        display:'inline-flex', alignItems:'center', gap:4,
+                        padding:'3px 8px', borderRadius:9,
+                        background:'rgba(255,255,255,.13)',
+                        border:'1px solid rgba(255,255,255,.2)',
+                        fontSize:10, fontWeight: u.strong ? 800 : 600,
+                        color: u.strong ? '#F0C050' : 'rgba(255,255,255,.85)',
+                        maxWidth:'100%',
+                      }}>
+                        <span style={{ fontSize:11, lineHeight:1 }}>{u.icon}</span>
+                        <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{u.text}</span>
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
+
               {/* Pied de carte : tout l'« état en cours » sur UNE ligne —
                   série, boosters actifs, badges. Chacun avait sa carte
                   pleine largeur avant la v1.30 (jusqu'à 3 blocs empilés). */}
@@ -4879,7 +4910,10 @@ export default function CookiMiner() {
       )}
 
       {/* LEVELS MODAL */}
-      {showLevels && <LevelsModal currentLevel={level} xp={xp} xpReq={xpReq} onClose={()=>setShowLevels(false)} C={C} />}
+      {/* `games` : GAMES porte les levelRequired ET les titres déjà
+          traduits — la modale s'en sert pour dire quel mini-jeu ouvre à
+          quel palier, sans dupliquer les seuils. */}
+      {showLevels && <LevelsModal currentLevel={level} xp={xp} xpReq={xpReq} games={GAMES} onClose={()=>setShowLevels(false)} C={C} />}
 
       {/* LEVEL UP MODAL */}
       {!inTutorial && pendingLvUp && <LevelUpModal level={pendingLvUp} onCollect={()=>setPendingLvUp(null)} />}
