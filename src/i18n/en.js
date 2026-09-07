@@ -138,6 +138,8 @@ export const EN = {
     cat_musics:     'Music',
     cat_games:      'Games',
     section_banner: 'BANNER',
+    themes_light:   'Light',
+    themes_dark:    'Dark',
     none:           'None',
     empty_hint:     'Nothing in this category yet — unlock some in the shop.',
     to_unlock_n:    '{n} to unlock in the shop →',

@@ -146,6 +146,8 @@ export const FR = {
     cat_musics:     'Musiques',
     cat_games:      'Jeux',
     section_banner: 'BANNIÈRE',
+    themes_light:   'Clairs',
+    themes_dark:    'Sombres',
     none:           'Aucun',
     empty_hint:     "Rien dans cette catégorie pour l'instant — ça se débloque en boutique.",
     to_unlock_n:    '{n} à débloquer en boutique →',

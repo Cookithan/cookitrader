@@ -147,18 +147,6 @@ export function CollectionContent({
     </button>
   );
 
-  const themeSwatch = (id) => {
-    const p = THEMES[id];
-    return (
-      <div style={{
-        width:36, height:36, borderRadius:10, flexShrink:0,
-        background: p ? p.bg : LT.bg,
-        border:`1px solid ${p ? p.border : C.border}`,
-        filter: p && p.hueRotate ? `hue-rotate(${p.hueRotate}deg) saturate(${p.saturate || 1})` : 'none',
-      }} />
-    );
-  };
-
   const emojiSwatch = (emoji) => (
     <div style={{
       width:36, height:36, borderRadius:10, flexShrink:0,
@@ -215,23 +203,81 @@ export function CollectionContent({
   );
 
   /* ── Rendu par catégorie ─────────────────────────── */
+
+  /* Une tuile de thème : un aperçu PEINT avec la vraie palette (fond,
+     carte, barre dorée) plutôt qu'un nom dans une liste. On choisit un
+     thème avec les yeux — au-delà de ~8 thèmes possédés, une liste de
+     rangées devient un mur de noms à faire défiler. */
+  const themeTile = (id, label) => {
+    const p       = THEMES[id];
+    const bg      = p ? p.bg     : LT.bg;
+    const card    = p ? p.card   : LT.card;
+    const border  = p ? p.border : LT.border;
+    const filter  = p && p.hueRotate ? `hue-rotate(${p.hueRotate}deg) saturate(${p.saturate || 1})` : 'none';
+    const isActive = activeTheme === id;
+    return (
+      <button
+        key={id || 'default'}
+        onClick={() => pick(setActiveTheme, isActive ? '' : id)}
+        style={{
+          padding:6, borderRadius:15, textAlign:'left', cursor:'pointer',
+          background: isActive ? 'rgba(212,160,23,.12)' : C.card,
+          border: `2px solid ${isActive ? '#D4A017' : C.border}`,
+          boxShadow: isActive ? '0 0 12px rgba(212,160,23,.28)' : 'none',
+          transition:'all .2s',
+        }}
+      >
+        <div style={{
+          height:54, borderRadius:10, background:bg, filter,
+          border:`1px solid ${border}`, overflow:'hidden',
+          padding:'9px 10px', display:'flex', flexDirection:'column', gap:5, justifyContent:'center',
+        }}>
+          <div style={{ height:13, borderRadius:4, background:card, border:`1px solid ${border}` }} />
+          <div style={{ height:5, width:'58%', borderRadius:3, background:'linear-gradient(90deg,#D4A017,#F0C050)' }} />
+          <div style={{ height:5, width:'34%', borderRadius:3, background:card, border:`1px solid ${border}` }} />
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:4, padding:'7px 3px 2px' }}>
+          <span style={{
+            flex:1, minWidth:0, fontSize:11.5, fontWeight:800, color:C.text,
+            whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+          }}>{label}</span>
+          {isActive && <Check size={13} color="#D4A017" />}
+        </div>
+      </button>
+    );
+  };
+
+  /* Groupes clairs / sombres — l'axe qui compte quand on cherche un look
+     (le flag `dark` vient de data/themes.js). Le thème par défaut est clair. */
+  const themeLabel = (r) =>
+    (localizedField(r, 'name', 'REWARDS') || '').replace(/^Th[èe]me\s+/i, '').replace(/\sTheme$/i, '');
+  const lightThemes = ownedThemes.filter(r => !THEMES[r.id]?.dark);
+  const darkThemes  = ownedThemes.filter(r =>  THEMES[r.id]?.dark);
+
+  const themeGrid = (children) => (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
+      {children}
+    </div>
+  );
+
   const renderThemes = () => (
     <>
-      {sectionLabel(t('collection.cat_themes'))}
-      {listCard(<>
-        {/* Rangées volontairement sur UNE ligne (pas de description) : la
-            pastille de couleur dit déjà ce qu'est le thème, et 8 thèmes
-            décrits font une page à scroller. */}
-        {row('theme-default', dashSwatch, t('settings.theme_default'), null,
-          activeTheme === '', () => pick(setActiveTheme, ''))}
-        {ownedThemes.map(r => row(
-          r.id, themeSwatch(r.id),
-          (localizedField(r, 'name', 'REWARDS') || '').replace(/^Th[èe]me\s+/i, '').replace(/\sTheme$/i, ''),
-          null,
-          activeTheme === r.id,
-          () => pick(setActiveTheme, activeTheme === r.id ? '' : r.id),
-        ))}
+      <div style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.6, marginBottom:9 }}>
+        ☀️ {t('collection.themes_light')} · {lightThemes.length + 1}
+      </div>
+      {themeGrid(<>
+        {themeTile('', t('settings.theme_default'))}
+        {lightThemes.map(r => themeTile(r.id, themeLabel(r)))}
       </>)}
+
+      {darkThemes.length > 0 && (
+        <>
+          <div style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.6, marginBottom:9 }}>
+            🌙 {t('collection.themes_dark')} · {darkThemes.length}
+          </div>
+          {themeGrid(darkThemes.map(r => themeTile(r.id, themeLabel(r))))}
+        </>
+      )}
 
       {/* Bannière — décor de la carte niveau. Ne s'affiche que si possédée. */}
       {ownedBanners.length > 0 && setActiveBanner && (
