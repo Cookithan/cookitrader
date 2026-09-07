@@ -128,42 +128,94 @@ WHERE LOWER(user_name) LIKE '%fedider%';
 
 
 -- ════════════════════════════════════════════════════
--- CORRECTIONS — TOUT CE QUI SUIT MODIFIE LA BASE
--- Rien ne s'exécute tant que les blocs sont commentés.
--- Toujours relancer la requête 4 AVANT et APRÈS.
+-- RÉSULTATS DE L'ANALYSE — 2026-09-07 (33 comptes lus, 30 hors admins)
+-- ────────────────────────────────────────────────────
+-- Référence de rendement HONNÊTE : Miagguy, 918 minutes tracées (le plus
+-- gros temps de jeu de la base) → 143 🍪/min. On retient 150 🍪/min comme
+-- plafond plausible, volontairement au-dessus de lui.
+--
+-- L'angle mort de total_play_time est LEVÉ : la colonne a été ajoutée le
+-- 2026-05-12 (commit v1.18.0). Tous les comptes signalés ci-dessous ont
+-- au plus 1 jour de jeu non comptabilisé — insuffisant pour expliquer
+-- l'écart. Les gros ratios de comptes inactifs depuis mai/juin
+-- (Mustang46 820/min, Regislegoat 744, dokiller 373, LXP 354) SONT
+-- l'angle mort, pas de la triche : peu de minutes tracées, dernière
+-- connexion il y a des mois, hebdo à zéro. Ne pas y toucher.
+--
+-- ⚠️ DEUX comptes concernés, pas un.
+--
+--   Fedider (AZL-C8T) — niveau 25
+--     447 min tracées · total_earned 176 938 → 396 🍪/min
+--     plausible à 150/min : ~67 000  → environ 62 % de surplus
+--     hebdo 53 072 = 63 % de TOUT ce que les joueurs ont gagné cette
+--     semaine. A signalé le bug lui-même.
+--
+--   Le vrai Cooki (FPJ-LJK) — niveau 18
+--     126 min tracées · total_earned 108 416 → 857 🍪/min, le pire ratio
+--     de la base. Inscrit le 2026-07-03, DONC APRÈS la migration : son
+--     temps de jeu est intégralement tracé, aucune excuse possible.
+--     plausible à 150/min : ~19 000  → environ 82 % de surplus
+--     hebdo 21 489 = 25 % de la semaine. N'a rien signalé.
+--
+--   À eux deux : 88 % des cookies gagnés par toute la communauté cette
+--   semaine (84 280 au total). Les joueurs honnêtes de la semaine sont
+--   150000Cookiaaronxbox (6 158) et Miagguy (3 561).
 -- ════════════════════════════════════════════════════
 
--- 5a. Ramener un compte à une valeur plausible.
---     Remplacer <CODE>, et les montants par ce que les requêtes ci-dessus
---     ont donné pour un joueur comparable en temps de jeu.
---     total_earned pilote le classement cumulé ; weekly_earned le podium
---     hebdo (et donc les ☕) ; cookies le solde dépensable.
+
+-- ════════════════════════════════════════════════════
+-- CORRECTIONS — TOUT CE QUI SUIT MODIFIE LA BASE
+-- Rien ne s'exécute tant que les blocs sont commentés.
+-- Relancer la requête 4 AVANT et APRÈS.
+-- ════════════════════════════════════════════════════
+
+-- ─── A. LE MINIMUM VITAL : protéger le podium ☕ de la semaine ───────
+-- Sans ça, Fedider et Le vrai Cooki raflent les 3 ☕ et 2 ☕ du podium
+-- de vendredi 18 h UTC, aux dépens d'Aaron et Miagguy qui ont joué
+-- normalement. C'est la seule correction qui lèse quelqu'un si on ne la
+-- fait pas. Ne touche NI l'historique NI les soldes.
+--
+-- UPDATE public.users SET weekly_earned = 0
+--  WHERE user_code IN ('AZL-C8T', 'FPJ-LJK');
+
+
+-- ─── B. REMISE À PLAT COMPLÈTE (au cas par cas) ─────────────────────
+-- Valeurs calculées au plafond généreux de 150 🍪/min, solde ramené
+-- proportionnellement pour que le pouvoir d'achat suive.
+--
+-- Fedider — il a signalé le bug lui-même. Le rebalancer entièrement
+-- revient à punir la seule personne qui a joué franc jeu en le disant.
+-- Recommandation : s'en tenir au bloc A pour lui.
 --
 -- UPDATE public.users
---    SET total_earned  = 12000,
---        weekly_earned = 0,
---        cookies       = 2000
---  WHERE user_code = '<CODE>';
-
--- 5b. Neutraliser seulement la semaine en cours (le podium ☕), en
---     laissant l'historique tranquille. C'est la correction la plus
---     douce : elle protège les autres joueurs sans punir le signaleur.
+--    SET total_earned = 67000, cookies = 18800, weekly_earned = 0
+--  WHERE user_code = 'AZL-C8T';
+--
+-- Le vrai Cooki — pire ratio de la base, temps de jeu intégralement
+-- tracé, n'a rien signalé. C'est ici que la remise à plat se justifie.
 --
 -- UPDATE public.users
---    SET weekly_earned = 0
---  WHERE user_code = '<CODE>';
+--    SET total_earned = 19000, cookies = 700, weekly_earned = 0
+--  WHERE user_code = 'FPJ-LJK';
 
--- 5c. Étiquette de sanction — À NE PAS UTILISER pour un joueur qui a
---     signalé le bug de lui-même. Elle ne se pose pas en SQL : ajouter
---     une entrée dans src/data/sanctions.js (SANCTIONED_USERS), qui
---     affiche un bandeau visible UNIQUEMENT par le compte concerné.
+
+-- ─── C. ÉTIQUETTE DE SANCTION ───────────────────────────────────────
+-- Ne se pose pas en SQL : ajouter une entrée dans src/data/sanctions.js
+-- (SANCTIONED_USERS), bandeau visible UNIQUEMENT par le compte concerné.
+-- À NE PAS poser sur Fedider : il a signalé le bug.
 
 
 -- ─────────────────────────────────────────────────────
 -- 6. SURVEILLANCE — à relancer une semaine après le déploiement du fix
 -- ─────────────────────────────────────────────────────
--- Si plus personne ne dépasse 400 🍪/min, l'exploit est bien clos.
-SELECT COUNT(*) AS comptes_encore_impossibles
+-- Si plus aucun compte ACTIF ne dépasse 400 🍪/min, l'exploit est clos.
+-- (Les comptes inactifs depuis mai/juin resteront au-dessus : angle mort
+--  de total_play_time, cf. en-tête. Filtrer sur last_active.)
+SELECT user_name, user_code,
+       ROUND(total_earned / (total_play_time / 60.0))::int AS cookies_par_minute,
+       last_active
 FROM public.users
 WHERE COALESCE(total_play_time, 0) >= 600
-  AND total_earned / (total_play_time / 60.0) > 400;
+  AND total_earned / (total_play_time / 60.0) > 400
+  AND last_active > NOW() - INTERVAL '14 days'
+ORDER BY cookies_par_minute DESC;
