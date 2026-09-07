@@ -2198,7 +2198,46 @@ export default function CookiMiner() {
       lsKey:    'cookiminer:' + notice.patch,
       patchKey: notice.patch,
       isCancelled: () => cancelled,
-      applyFn: () => setAccountNotice(notice),
+      applyFn: async () => {
+        /* ⚠️ ADOPTION FORCÉE DES VALEURS SERVEUR — sans ça, la sanction
+           ne tient pas trente secondes.
+
+           Le pull d'ouverture (plus haut) n'accepte le serveur que s'il
+           est EN AVANCE : `serverAhead = server.totalEarned > totalEarned
+           || server.cafes > cafes`. Or une sanction fait BAISSER ces
+           valeurs. Le client garde donc son localStorage gonflé, et
+           l'upsert debouncé le repousse en base dans les 5 secondes :
+           la correction SQL est effacée par le joueur lui-même, sans
+           que personne ne s'en aperçoive.
+
+           On force donc l'adoption ici, une seule fois par compte, en
+           mettant l'upsert en pause le temps d'écrire les états.
+           C'est aussi ce qui explique qu'un changement fait à la main
+           en base ne se voie pas dans l'app : ce n'est pas un cache,
+           c'est le client qui gagne. */
+        setPauseUpsertUntil(Date.now() + 8000);
+        const srv = await pullProfile(userCode);
+        if(srv && !cancelled){
+          setCoins(srv.coins);
+          setCafes(srv.cafes);
+          setTotalEarned(srv.totalEarned);
+          setWeeklyEarned(Number(srv.weeklyEarned) || 0);
+          setLevel(srv.level);   lvRef.current = srv.level;
+          setXp(srv.xp);         xpRef.current = srv.xp;
+          setUnlocked(srv.unlocked || []);
+          setActiveTheme(srv.activeTheme || '');
+          setActiveTitle(srv.activeTitle || '');
+        }
+        /* Le classement garde son cache de session : sans purge, le
+           joueur verrait encore ses anciens chiffres jusqu'à la
+           prochaine ouverture de l'app. */
+        try{
+          sessionStorage.removeItem('leaderboard:cache:v5:alltime');
+          sessionStorage.removeItem('leaderboard:cache:v5:weekly');
+          sessionStorage.removeItem('leaderboard:market:cache');
+        }catch{ /* mode privé : pas de sessionStorage, rien à purger */ }
+        if(!cancelled) setAccountNotice(notice);
+      },
     });
     return () => { cancelled = true; };
   }, [userCode, pullDone]);

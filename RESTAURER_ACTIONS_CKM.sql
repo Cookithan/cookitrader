@@ -14,8 +14,23 @@
 -- NOTE SUR LES NOMS : « aaronxbox_288 #1 » de la capture correspond au
 -- compte X6G-4ZL, aujourd'hui renommé « 150000Cookiaaronxbox ». Même
 -- compte, vérifié via l'historique des podiums hebdo.
+-- ⚠️⚠️ ORDRE OBLIGATOIRE : SQL D'ABORD, DÉPLOIEMENT ENSUITE.
+--   L'économie est pilotée par le CLIENT. Au démarrage, l'app n'adopte
+--   les valeurs du serveur que s'il est EN AVANCE (App.jsx, serverAhead
+--   = total_earned ou cafes supérieurs). Une sanction fait BAISSER ces
+--   valeurs : le joueur garde donc son localStorage gonflé et son upsert
+--   automatique le repousse en base dans les 5 secondes. La correction
+--   SQL serait effacée par le joueur lui-même, en silence.
+--
+--   La v1.30 règle ça : le message de compte (data/accountNotices.js)
+--   force l'adoption des valeurs serveur, UNE SEULE FOIS par compte.
+--   Mais ce mécanisme se consomme au premier passage — donc :
+--     1. exécuter ce SQL
+--     2. déployer la v1.30
+--     3. vérifier avec npm run audit
+--   Dans l'autre sens, le joueur ouvre l'app avant la correction, brûle
+--   son message pour rien, et repousse ses anciennes valeurs.
 -- ════════════════════════════════════════════════════
-
 
 -- ─────────────────────────────────────────────────────
 -- TRANCHÉ — Le vrai Cooki (FPJ-LJK) : RIEN NE LUI EST RENDU
