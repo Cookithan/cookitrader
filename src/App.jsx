@@ -45,6 +45,7 @@ import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
 import { APP_INFO } from "./lib/appInfo.js";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
 import { CollectionOverlay } from "./components/overlays/CollectionOverlay.jsx";
+import { AchievementsOverlay } from "./components/overlays/AchievementsOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
 import { DuelStakeModal } from "./components/modals/DuelStakeModal.jsx";
@@ -800,7 +801,7 @@ export default function CookiMiner() {
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
      la migration cafesResetMay10 trigger pour expliquer le reset à 0. */
   const [showCafesResetNotice, setShowCafesResetNotice] = useState(false);
-  const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium'
+  const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium' | 'collection'
   const [cafeToast,    setCafeToast]    = useState(null);   // { amount, key } | null
   const cafeToastTimerRef = useRef(null);
   /* Popup festif "gain boosté" — déclenché par addCoins quand boost ×2
@@ -1207,6 +1208,7 @@ export default function CookiMiner() {
   useBackToClose(showSettings,      () => setShowSettings(false));
   useBackToClose(showProfile,       () => setShowProfile(false));
   useBackToClose(showCollection,    () => setShowCollection(false));
+  useBackToClose(showAllAchievements, () => setShowAllAchievements(false));
   useBackToClose(showLevels,        () => setShowLevels(false));
   useBackToClose(showSkipConfirm,   () => setShowSkipConfirm(false));
   useBackToClose(showEventModal,    () => setShowEventModal(false));
@@ -1377,7 +1379,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showCollection || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showCollection || showAllAchievements || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -1479,7 +1481,7 @@ export default function CookiMiner() {
 
   /* Quand on quitte l'onglet boutique, reset auto le mode */
   useEffect(()=>{
-    if(tab !== 'boutique' && (boutiqueMode === 'premium' || boutiqueMode === 'actions')) setBoutiqueMode('shop');
+    if(tab !== 'boutique' && boutiqueMode !== 'shop') setBoutiqueMode('shop');
   },[tab, boutiqueMode]);
 
   /* Tick 10 s pour rafraîchir le countdown du Boost ×2 (lecture Date.now()
@@ -4011,11 +4013,25 @@ export default function CookiMiner() {
                   <div className="shimmer-bar" />
                 </div>
               </div>
-              {badges.length>0 && (
-                <div style={{ display:'flex', gap:8, marginTop:10 }}>
-                  {badges.map(b=><span key={b.id} title={b.name} style={{ fontSize:20 }}>{b.emoji}</span>)}
-                </div>
-              )}
+              {/* Série + badges sur une seule ligne de pied — la série avait
+                  sa propre carte pleine largeur pour UN chiffre (v1.30). */}
+              <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:12, flexWrap:'wrap' }}>
+                <span style={{
+                  display:'inline-flex', alignItems:'center', gap:5,
+                  padding:'4px 10px', borderRadius:20,
+                  background:'rgba(255,255,255,.12)',
+                  border:'1px solid rgba(255,255,255,.18)',
+                  fontSize:11.5, fontWeight:800, color:'#fff',
+                }}>
+                  <Flame size={12} color="#E8A060" />
+                  {streak} {t('home.streak_days', { s: streak > 1 ? 's' : '' })}
+                </span>
+                {badges.length > 0 && (
+                  <span style={{ display:'flex', gap:6 }}>
+                    {badges.map(b=><span key={b.id} title={b.name} style={{ fontSize:18 }}>{b.emoji}</span>)}
+                  </span>
+                )}
+              </div>
             </button>
 
             {/* Indicateurs boosters actifs (boost ×2 en cours / doubler armé) */}
@@ -4103,18 +4119,6 @@ export default function CookiMiner() {
               </button>
             )}
 
-            {/* Stats — Série uniquement (Record clics retiré) */}
-            <div style={{ marginBottom:14 }}>
-              <div style={{ ...s.card, padding:16, textAlign:'center' }}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginBottom:6 }}>
-                  <Flame size={14} color="#E07040" />
-                  <span style={{ fontSize:11, color:C.muted, fontWeight:700 }}>Série</span>
-                </div>
-                <div style={{ fontSize:28, fontWeight:800, color:C.text }}>{streak}</div>
-                <div style={{ fontSize:11, color:C.muted }}>jour{streak>1?'s':''} consécutif{streak>1?'s':''}</div>
-              </div>
-            </div>
-
             {/* Games */}
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>TON CAFÉ DU JOUR</div>
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -4135,212 +4139,77 @@ export default function CookiMiner() {
               ))}
             </div>
 
-            {/* Achievements */}
+            {/* Mes Succès — carte compacte (v1.30). La grille complète des
+                22 succès occupait la moitié de l'Accueil (+ un « Voir plus »
+                qui la doublait) ; elle vit maintenant dans
+                AchievementsOverlay, ouvert au tap. */}
             {(() => {
-              const visibleAchievements = ACHIEVEMENTS;
-              const half = Math.ceil(visibleAchievements.length/2);
-              /* end_game est en dernière position dans ACHIEVEMENTS donc
-                 invisible tant que l'utilisateur ne déroule pas — surprise
-                 cachée à la fin pour récompenser la curiosité. */
-              const list = showAllAchievements ? visibleAchievements : visibleAchievements.slice(0, half);
+              const totalA = ACHIEVEMENTS.length;
+              const doneA  = earnedAchievements.length;
+              const pctA   = totalA > 0 ? Math.round((doneA / totalA) * 100) : 0;
+              /* Aperçu : les derniers succès obtenus, dans l'ordre de la
+                 liste. 6 max pour tenir sur une ligne sans wrap. */
+              const preview = ACHIEVEMENTS.filter(a => earnedAchievements.includes(a.id)).slice(-6);
               return (
-                <>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:22, marginBottom:10 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES SUCCÈS 🏆</div>
-                    <div style={{ fontSize:11, color:C.muted, fontWeight:600 }}>{earnedAchievements.length} / {visibleAchievements.length}</div>
+                <button
+                  onClick={()=>{ playSound('modal'); setShowAllAchievements(true); }}
+                  style={{
+                    width:'100%', marginTop:20, padding:'14px 16px', borderRadius:18,
+                    ...s.card, textAlign:'left', cursor:'pointer', display:'block',
+                  }}
+                >
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:9 }}>
+                    <span style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>
+                      {t('achievements.title')} 🏆
+                    </span>
+                    <span style={{ fontSize:12, fontWeight:800, color:'#D4A017' }}>
+                      {doneA} / {totalA}
+                    </span>
                   </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                    {list.map(a=>{
-                      const got = earnedAchievements.includes(a.id);
-                      const isEndGame = a.id === 'end_game';
-                      const isApex = isEndGame;
-                      /* Pour end_game (apex final), on calcule la progression
-                         de chaque condition pour que le user sache exactement
-                         ce qu'il lui manque. */
-                      let endGamePrereqs = null;
-                      if(isEndGame && !got){
-                        const succesList = ACHIEVEMENTS.filter(x => x.id !== 'end_game');
-                        const succesDone = succesList.filter(p => earnedAchievements.includes(p.id)).length;
-                        const shopList = REWARDS.filter(r => r.currency !== 'cafe' && !r.limited);
-                        const shopDone = shopList.filter(r => unlocked.includes(r.id)).length;
-                        const secretList = Object.values(SECRET_BADGES);
-                        const secretDone = secretList.filter(b => unlocked.includes(b.id)).length;
-                        const eventList = REWARDS.filter(r => r.limited);
-                        const eventDone = eventList.filter(r => unlocked.includes(r.id)).length;
-                        endGamePrereqs = {
-                          levelOk:    level >= 25,
-                          succesDone, succesTotal: succesList.length,
-                          succesOk:   succesDone === succesList.length,
-                          shopDone,   shopTotal:   shopList.length,
-                          shopOk:     shopDone === shopList.length,
-                          secretDone, secretTotal: secretList.length,
-                          secretOk:   secretDone === secretList.length,
-                          eventDone,  eventTotal:  eventList.length,
-                          eventOk:    eventDone === eventList.length,
-                        };
-                      }
-                      /* Style apex spécial — différencié obtenu vs verrouillé :
-                           · OBTENU : fond or vif éclatant + halo pulsant
-                           · VERROUILLÉ : fond espresso sombre + cadenas, pas de halo
-                         Dans les 2 cas la carte ressort fort (gradient + span 2). */
-                      const apexStyle = isEndGame
-                        ? (got
-                            ? { background:'linear-gradient(135deg, #FFE5A0, #F0C050, #E8B040)', border:'2px solid #D4A017' }
-                            : { background:'linear-gradient(135deg, #3D2010, #2C1810, #1F0E08)', border:'2px solid rgba(212,160,23,.55)' })
-                        : { border: isApex ? '1.5px solid rgba(212,160,23,.55)' : undefined };
-                      /* Couleurs de texte selon état apex */
-                      const apexTitleColor   = isEndGame ? (got ? '#5D3A1F' : '#F0C050') : C.text;
-                      const apexDescColor    = isEndGame ? (got ? '#7D4E1F' : '#C8A878') : C.muted;
-                      const apexBonusColor   = isEndGame ? (got ? '#5D3A1F' : '#F0C050') : '#D4A017';
-                      const apexBoxBg        = isEndGame && !got ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.5)';
-                      const apexBoxBorder    = isEndGame && !got ? '1px dashed rgba(212,160,23,.4)' : '1px dashed rgba(93,58,31,.45)';
-                      const apexCheckColor   = isEndGame && !got ? '#F0C050' : '#5D3A1F';
-                      const apexUncheckColor = isEndGame && !got ? '#A88060' : '#A07854';
 
-                      return (
-                        <div
-                          key={a.id}
-                          className={isEndGame && got ? 'glow-anim' : ''}
-                          style={{
-                            ...s.card,
-                            padding:'12px 12px',
-                            display:'flex', alignItems:'flex-start', gap:10,
-                            opacity:got ? 1 : (isEndGame ? 1 : .55),
-                            position:'relative',
-                            gridColumn: isEndGame ? 'span 2' : undefined,
-                            ...apexStyle,
-                          }}
-                        >
-                          {/* Cadenas overlay quand l'apex est verrouillé */}
-                          {isEndGame && !got && (
-                            <div style={{
-                              position:'absolute', top:8, right:8,
-                              width:26, height:26, borderRadius:'50%',
-                              background:'rgba(15,8,4,.7)',
-                              border:'1.5px solid rgba(212,160,23,.6)',
-                              display:'flex', alignItems:'center', justifyContent:'center',
-                              fontSize:13, lineHeight:1,
-                              boxShadow:'0 2px 6px rgba(0,0,0,.4)',
-                            }}>
-                              🔒
-                            </div>
-                          )}
-                          <div style={{
-                            fontSize: isEndGame ? 30 : 24,
-                            flexShrink:0,
-                            filter: got
-                              ? 'none'
-                              : isEndGame
-                                ? 'grayscale(.4) brightness(.85)'
-                                : 'grayscale(.7)',
-                            opacity: isEndGame && !got ? .85 : 1,
-                            lineHeight:1,
-                          }}>
-                            {got ? a.emoji : (isEndGame ? '🏆' : '🔒')}
-                          </div>
-                          <div style={{ minWidth:0, flex:1 }}>
-                            <div style={{
-                              fontSize: isEndGame ? 13 : 11,
-                              fontWeight:900,
-                              color: apexTitleColor,
-                              lineHeight:1.2, marginBottom:2,
-                              letterSpacing: isEndGame ? .3 : 0,
-                            }}>
-                              {a.name}
-                            </div>
-                            <div style={{
-                              fontSize:10,
-                              color: apexDescColor,
-                              lineHeight:1.3,
-                              fontWeight: isEndGame ? 600 : 'normal',
-                            }}>
-                              {a.desc}
-                            </div>
-                            {endGamePrereqs && (
-                              <div style={{
-                                marginTop:6, padding:'7px 9px', borderRadius:8,
-                                background: apexBoxBg,
-                                border: apexBoxBorder,
-                                fontSize:10, lineHeight:1.65, fontWeight:700,
-                              }}>
-                                <div style={{ color: endGamePrereqs.levelOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/25
-                                </div>
-                                <div style={{ color: endGamePrereqs.succesOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès
-                                </div>
-                                <div style={{ color: endGamePrereqs.shopOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.shopOk ? '✓' : '○'} {endGamePrereqs.shopDone}/{endGamePrereqs.shopTotal} items boutique 🍪
-                                </div>
-                                <div style={{ color: endGamePrereqs.secretOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.secretOk ? '✓' : '○'} {endGamePrereqs.secretDone}/{endGamePrereqs.secretTotal} badges secrets
-                                </div>
-                                <div style={{ color: endGamePrereqs.eventOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.eventOk ? '✓' : '○'} {endGamePrereqs.eventDone}/{endGamePrereqs.eventTotal} récompenses événements
-                                </div>
-                              </div>
-                            )}
-                            <div style={{
-                              fontSize:10,
-                              color: apexBonusColor,
-                              fontWeight:800, marginTop:4,
-                            }}>
-                              +{a.bonus} 🍪{a.cafesBonus ? ` · +${a.cafesBonus} ☕` : ''}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div style={{ height:6, background:C.card2, borderRadius:3, overflow:'hidden', marginBottom:10 }}>
+                    <div style={{
+                      width:`${pctA}%`, height:'100%',
+                      background:'linear-gradient(90deg, #D4A017, #F0C050)',
+                      transition:'width .5s ease-out',
+                    }} />
                   </div>
-                  {visibleAchievements.length > half && (
-                    <button
-                      onClick={()=>setShowAllAchievements(v=>!v)}
-                      style={{ width:'100%', marginTop:10, padding:'10px', borderRadius:12, background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, fontSize:12, fontWeight:700, letterSpacing:.3 }}
-                    >
-                      {showAllAchievements ? 'Voir moins ↑' : `Voir plus (${visibleAchievements.length - half}) ↓`}
-                    </button>
-                  )}
-                </>
+
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+                    <span style={{ display:'flex', gap:5, minWidth:0, overflow:'hidden' }}>
+                      {preview.length > 0
+                        ? preview.map(a => <span key={a.id} style={{ fontSize:19, lineHeight:1 }}>{a.emoji}</span>)
+                        : <span style={{ fontSize:11.5, color:C.muted, fontStyle:'italic' }}>{t('achievements.none_yet')}</span>}
+                    </span>
+                    <span style={{ fontSize:12, fontWeight:700, color:'#D4A017', flexShrink:0 }}>
+                      {t('achievements.see_all')} →
+                    </span>
+                  </div>
+                </button>
               );
             })()}
 
             {/* Bandeau Discord — bugs & suggestions communauté.
                 Clic = ouvre invitation Discord dans un nouvel onglet. */}
+            {/* v1.30 : réduit à une ligne discrète. C'était une carte
+                gradient de 42px de haut sur l'écran le plus vu de l'app,
+                alors que l'entrée existe aussi dans Paramètres. */}
             <a
               href="https://discord.gg/EMDQXDBV39"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => playSound('modal')}
               style={{
-                display:'flex', alignItems:'center', gap:12,
-                marginTop:18, padding:'13px 14px', borderRadius:16,
-                /* Opacités renforcées (.10/.18 → .22/.36) — sur thème clair
-                   le beige du bg avalait les anciennes valeurs. .55 sur le
-                   border + box-shadow plus présent → le bandeau se détache
-                   sur cream comme sur espresso. */
-                background:'linear-gradient(135deg, rgba(212,160,23,.22), rgba(193,127,60,.36))',
-                border:'1.5px solid rgba(212,160,23,.55)',
-                boxShadow:'0 4px 14px rgba(212,160,23,.18)',
-                textDecoration:'none', color:'inherit',
-                cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                marginTop:16, padding:'11px 14px', borderRadius:14,
+                background:'transparent',
+                border:`1px dashed ${C.border}`,
+                textDecoration:'none', color:C.muted,
+                fontSize:12, fontWeight:700, cursor:'pointer',
               }}
             >
-              <div style={{
-                width:42, height:42, borderRadius:12, flexShrink:0,
-                background:'linear-gradient(135deg,#FFE89A,#D4A017)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:22,
-                boxShadow:'0 3px 10px rgba(212,160,23,.4)',
-              }}>💬</div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:13.5, fontWeight:900, color:C.text, letterSpacing:.2 }}>
-                  Un bug ? Une suggestion ?
-                </div>
-                <div style={{ fontSize:11, color:C.muted, marginTop:2, lineHeight:1.4 }}>
-                  Rejoins notre Discord pour nous le dire 🍪
-                </div>
-              </div>
-              <span style={{ fontSize:16, color:'#D4A017', fontWeight:900, flexShrink:0 }}>↗</span>
+              💬 <span>{t('home.discord_line')}</span>
+              <span style={{ color:'#D4A017', fontWeight:900 }}>↗</span>
             </a>
 
           </div>
@@ -4464,7 +4333,6 @@ export default function CookiMiner() {
                     checkEventChallenge('market_profit', profit);
                   }
                 }}
-                onOpenActionsShop={()=>{ playSound('tab'); setBoutiqueMode('actions'); setTab('boutique'); }}
                 C={C}
               />
             ) : (
@@ -4482,12 +4350,10 @@ export default function CookiMiner() {
               activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
               activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
               userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
+              gameThemes={gameThemes}     setGameThemes={setGameThemes}
               spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
               userCode={userCode}
               vipPurchasesToday={vipPurchasesToday}
-              onGrantUnlock={(id)=> setUnlocked(u => (u||[]).includes(id) ? u : [...(u||[]), id])}
-              onGrantCafes={(n)=> { if(n>0) setCafes(c => (c||0) + n); }}
-              onOpenCollection={()=>{ playSound('tab'); setShowCollection(true); }}
               C={C}
             />
           )}
@@ -4652,6 +4518,18 @@ export default function CookiMiner() {
           userCode={userCode}
           restorePin={restorePin}
           onOpenCollection={()=>{ playSound('tab'); setShowCollection(true); }}
+          C={C}
+        />
+      )}
+
+      {/* MES SUCCÈS — sorti de l'Accueil en v1.30 (la grille y prenait la
+          moitié de l'écran le plus consulté). */}
+      {showAllAchievements && (
+        <AchievementsOverlay
+          onClose={()=>setShowAllAchievements(false)}
+          earnedAchievements={earnedAchievements}
+          unlocked={unlocked}
+          level={level}
           C={C}
         />
       )}

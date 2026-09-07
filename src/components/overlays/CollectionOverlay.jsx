@@ -18,12 +18,20 @@ import {
 } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
-   CollectionOverlay — « Ma Collection », plein écran z-index 62
+   Ma Collection — LE seul endroit où l'on ÉQUIPE ses cosmétiques (v1.30)
    ────────────────────────────────────────────────────
-   LE seul endroit où l'on ÉQUIPE ses cosmétiques (v1.30).
    Règle du glow-up : on ACHÈTE à la Boutique, on ÉQUIPE ici.
    Avant : thèmes + thèmes de jeu + musique dans Paramètres,
    avatars + skins + titres dans Profil, « Activer » dans la Boutique.
+
+   DEUX EXPORTS, un seul corps de rendu :
+   - `CollectionContent` — les pills + le contenu, sans chrome. C'est ce
+     que la BoutiqueTab embarque dans son 3e onglet « Collection » (la
+     place libérée par la boutique secrète $CKM, supprimée en v1.30) :
+     l'écran est ainsi à UN tap de la barre de nav, plus caché.
+   - `CollectionOverlay` — le même contenu en plein écran z-index 62,
+     pour les entrées Profil et Paramètres. 62 : se pose AU-DESSUS de
+     Profil / Paramètres (60), donc on ferme et on retombe dessous.
 
    6 catégories (pills wrap, tout visible d'un coup) :
      Thèmes (+ bannière) · Avatars · Skins · Titres · Musiques · Jeux
@@ -32,12 +40,13 @@ import {
    - On n'affiche QUE ce que le joueur possède. Les items verrouillés se
      résument à une ligne de pied « N à débloquer en boutique → »
      (sauf Jeux : l'accordéon montre le prix, c'est une aide au choix).
+     Les items `inActionsShop` sont exclus de ce décompte — leur boutique
+     n'existe plus, ils ne sont donc plus achetables (mais restent
+     équipables pour qui les possédait déjà).
    - Option « Défaut » systématique là où la désactivation a un sens
      (thème, skin, titre, bannière). Avatar : pas de défaut, juste un switch.
    - Choisir une musique rallume la musique si elle était coupée
      (le toggle on/off reste dans Paramètres).
-   - z-index 62 : se pose AU-DESSUS de Profil / Paramètres / Boutique
-     (tous en 60) — on ferme et on retombe sur l'écran d'où l'on vient.
 ═══════════════════════════════════════════════════════ */
 
 const CATEGORIES = [
@@ -49,8 +58,8 @@ const CATEGORIES = [
   { id:'games',   icon:'🎮' },
 ];
 
-export function CollectionOverlay({
-  onClose, unlocked = [],
+export function CollectionContent({
+  unlocked = [],
   activeTheme,  setActiveTheme,
   activeBanner, setActiveBanner,
   activeSkin,   setActiveSkin,
@@ -72,16 +81,21 @@ export function CollectionOverlay({
 
   /* ── Inventaires ─────────────────────────────────── */
   const owns = (id) => unlocked.includes(id);
+  /* Un item est encore ACHETABLE s'il n'est pas en édition limitée et
+     s'il n'appartient pas à l'ex-boutique $CKM (supprimée en v1.30) :
+     compter ces items dans « N à débloquer » enverrait le joueur vers
+     un rayon qui n'existe plus. */
+  const buyable = (r) => !owns(r.id) && !r.limited && !r.inActionsShop;
 
   const ownedThemes  = REWARDS.filter(r => owns(r.id) && (r.type === 'Thème' || r.applyAs === 'theme'));
-  const lockedThemes = REWARDS.filter(r => !owns(r.id) && !r.limited && (r.type === 'Thème' || r.applyAs === 'theme'));
+  const lockedThemes = REWARDS.filter(r => buyable(r) && (r.type === 'Thème' || r.applyAs === 'theme'));
   const ownedBanners = REWARDS.filter(r => owns(r.id) && r.applyAs === 'banner');
 
   const ownedSkins   = REWARDS.filter(r => owns(r.id) && (r.type === 'Skin' || r.applyAs === 'skin'));
-  const lockedSkins  = REWARDS.filter(r => !owns(r.id) && !r.limited && (r.type === 'Skin' || r.applyAs === 'skin'));
+  const lockedSkins  = REWARDS.filter(r => buyable(r) && (r.type === 'Skin' || r.applyAs === 'skin'));
 
   const ownedTitles  = REWARDS.filter(r => owns(r.id) && r.type === 'Titre');
-  const lockedTitles = REWARDS.filter(r => !owns(r.id) && !r.limited && r.type === 'Titre');
+  const lockedTitles = REWARDS.filter(r => buyable(r) && r.type === 'Titre');
 
   /* Avatars : les 12 de base sont toujours à toi, les premium se débloquent.
      `hidden` = retirés du shop mais gardés en data (compat vieux profils).
@@ -90,10 +104,13 @@ export function CollectionOverlay({
     ...ONBOARDING_AVATARS.filter(a => !a.hidden).map(a => ({ value:a.id, name:a.name })),
     ...AVATAR_PREMIUM_LIST.filter(a => owns(a.id)).map(a => ({ value:a.id, name:a.name })),
   ];
-  const lockedAvatarsCount = AVATAR_PREMIUM_LIST.filter(a => !owns(a.id) && !a.limited).length;
+  const lockedAvatarsCount = AVATAR_PREMIUM_LIST.filter(a => {
+    const r = REWARDS.find(x => x.id === a.id);
+    return !owns(a.id) && !a.limited && !(r && r.inActionsShop);
+  }).length;
 
   const ownedMusics  = Object.values(MUSICS).filter(m => m.free || owns('music_' + m.id));
-  const lockedMusics = REWARDS.filter(r => !owns(r.id) && r.applyAs === 'music');
+  const lockedMusics = REWARDS.filter(r => buyable(r) && r.applyAs === 'music');
 
   /* ── Actions ─────────────────────────────────────── */
   const pick = (fn, value) => { playSound('tap'); fn(value); };
@@ -480,37 +497,10 @@ export function CollectionOverlay({
    || (cat === 'musics' && ownedMusics.length === 0);
 
   return (
-    <div style={{
-      position:'fixed', top:0, left:'50%', transform:'translateX(-50%)',
-      width:'100%', maxWidth:430, bottom:0,
-      background:C.bg, zIndex:62, display:'flex', flexDirection:'column',
-    }}>
-      {/* Header */}
-      <div style={{
-        display:'flex', alignItems:'center', gap:12, padding:'14px 20px',
-        borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0,
-      }}>
-        <button
-          onClick={onClose}
-          aria-label={t('common.back')}
-          style={{
-            width:36, height:36, borderRadius:12, background:C.card2,
-            display:'flex', alignItems:'center', justifyContent:'center', color:C.text,
-          }}
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:17, fontWeight:800, color:C.text }}>{t('collection.title')}</div>
-          <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>{t('collection.subtitle')}</div>
-        </div>
-      </div>
-
+    <>
       {/* Pills de catégorie — flex-wrap : tout visible d'un coup, pas de scroll
           horizontal (cf. convention filtres du projet). */}
-      <div style={{
-        display:'flex', flexWrap:'wrap', gap:8, padding:'14px 18px 4px', flexShrink:0,
-      }}>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:14 }}>
         {CATEGORIES.map(c => {
           const sel = cat === c.id;
           return (
@@ -534,8 +524,7 @@ export function CollectionOverlay({
         })}
       </div>
 
-      {/* Contenu */}
-      <div key={cat} className="su" style={{ flex:1, overflowY:'auto', padding:'14px 18px 28px' }}>
+      <div key={cat} className="su">
         {isEmpty ? (
           <>
             {sectionLabel(t('collection.cat_' + cat))}
@@ -547,6 +536,43 @@ export function CollectionOverlay({
             )}
           </>
         ) : CONTENT[cat]()}
+      </div>
+    </>
+  );
+}
+
+/* Version plein écran (z-index 62) pour les entrées Profil / Paramètres.
+   Même contenu que l'onglet Collection de la boutique. */
+export function CollectionOverlay({ onClose, C, ...rest }){
+  const { t } = useTranslation();
+  return (
+    <div style={{
+      position:'fixed', top:0, left:'50%', transform:'translateX(-50%)',
+      width:'100%', maxWidth:430, bottom:0,
+      background:C.bg, zIndex:62, display:'flex', flexDirection:'column',
+    }}>
+      <div style={{
+        display:'flex', alignItems:'center', gap:12, padding:'14px 20px',
+        borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0,
+      }}>
+        <button
+          onClick={onClose}
+          aria-label={t('common.back')}
+          style={{
+            width:36, height:36, borderRadius:12, background:C.card2,
+            display:'flex', alignItems:'center', justifyContent:'center', color:C.text,
+          }}
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:17, fontWeight:800, color:C.text }}>{t('collection.title')}</div>
+          <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>{t('collection.subtitle')}</div>
+        </div>
+      </div>
+
+      <div style={{ flex:1, overflowY:'auto', padding:'16px 18px 28px' }}>
+        <CollectionContent C={C} {...rest} />
       </div>
     </div>
   );

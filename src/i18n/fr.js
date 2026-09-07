@@ -130,6 +130,7 @@ export const FR = {
   collection: {
     title:          'Ma Collection',
     subtitle:       "Tout ce que tu possèdes — équipe-le ici",
+    tab:            'COLLECTION',
     open:           'Ma Collection',
     open_sub:       'Thèmes, avatars, skins, titres, musiques',
     cat_themes:     'Thèmes',
@@ -144,6 +145,14 @@ export const FR = {
     to_unlock_n:    '{n} à débloquer en boutique →',
     music_off_hint: 'La musique est coupée — choisir une piste la rallume.',
     equip_hint:     'Équipe-le dans Ma Collection',
+  },
+
+  /* ── Mes Succès (écran dédié, v1.30) ───────────── */
+  achievements: {
+    title:     'MES SUCCÈS',
+    progress:  '{done} succès sur {total} débloqués',
+    see_all:   'Voir tout',
+    none_yet:  'Aucun succès débloqué pour le moment',
   },
 
   /* ── À propos ──────────────────────────────────── */
@@ -277,6 +286,8 @@ export const FR = {
     level_card:      'Niveau {n} · {label}',
     level_uppercase: 'NIVEAU',
     experience:      'Expérience',
+    streak_days:     'jour{s} de série',
+    discord_line:    'Un bug ? Une suggestion ? Viens sur Discord',
     see_all:         'Voir tous',
     xp_label:        '{cur} / {max} XP',
     next_level:      'Prochain niveau : +{n} 🍪',

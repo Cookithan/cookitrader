@@ -122,6 +122,7 @@ export const EN = {
   collection: {
     title:          'My Collection',
     subtitle:       'Everything you own — equip it here',
+    tab:            'COLLECTION',
     open:           'My Collection',
     open_sub:       'Themes, avatars, skins, titles, music',
     cat_themes:     'Themes',
@@ -136,6 +137,14 @@ export const EN = {
     to_unlock_n:    '{n} to unlock in the shop →',
     music_off_hint: 'Music is off — picking a track turns it back on.',
     equip_hint:     'Equip it in My Collection',
+  },
+
+  /* ── Achievements (dedicated screen, v1.30) ────── */
+  achievements: {
+    title:     'MY ACHIEVEMENTS',
+    progress:  '{done} of {total} achievements unlocked',
+    see_all:   'See all',
+    none_yet:  'No achievements unlocked yet',
   },
 
   about: {
@@ -264,6 +273,8 @@ export const EN = {
     level_card:      'Level {n} · {label}',
     level_uppercase: 'LEVEL',
     experience:      'Experience',
+    streak_days:     'day{s} streak',
+    discord_line:    'Found a bug? Got an idea? Join us on Discord',
     see_all:         'See all',
     xp_label:        '{cur} / {max} XP',
     next_level:      'Next level: +{n} 🍪',

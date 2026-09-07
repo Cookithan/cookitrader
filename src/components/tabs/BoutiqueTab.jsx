@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
-import { Cookie, Coffee, Check, Lock, ChevronRight, ChevronLeft } from "lucide-react";
+import { useState } from "react";
+import { Cookie, Coffee, Check, Lock, ChevronRight, ChevronLeft, Palette } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
-import { ActionsShopView, ACTIONS_ACCESS_THRESHOLD } from "./ActionsShopView.jsx";
-import { getUserPortfolio } from "../../lib/market.js";
-import { isSupabaseEnabled } from "../../lib/supabase.js";
+import { CollectionContent } from "../overlays/CollectionOverlay.jsx";
 import { useTranslation } from "../../i18n/index.js";
 
 /* Achat de cafés via Stripe — masqué tant qu'on est en mode test (pas de
@@ -15,20 +13,30 @@ import { useTranslation } from "../../i18n/index.js";
 const STRIPE_ENABLED = false;
 
 /* ════════════════════════════════════════════════════
-   BoutiqueTab — onglet boutique (mode 'shop' | 'premium')
+   BoutiqueTab — onglet boutique (mode 'shop' | 'premium' | 'collection')
    - SHOP : items en cookies, filtrés par type (Tous / Badge / Titre / Thème /
             Avatar / Skin / Roue), ne révèle un nouveau niveau que si tout l'actuel
             est acheté (paiement cookies uniquement, pas premium)
    - PREMIUM : items currency:'cafe' uniquement
+   - COLLECTION (v1.30) : Ma Collection embarquée ici (CollectionContent).
+            Elle occupe la 3e place du sélecteur, libérée par la suppression
+            de la boutique secrète $CKM. Objectif : l'équipement est à UN tap
+            de la barre de nav au lieu d'être enterré dans Profil/Paramètres.
    - Snapshot initialUnlocked : items achetés AVANT ce mount sont masqués
-                                (l'utilisateur les retrouve dans Profil/Paramètres).
+                                (on les retrouve dans l'onglet Collection).
                                 Les achats faits PENDANT cette session restent visibles.
    - v1.30 : la boutique VEND, elle n'équipe plus. Un item acheté affiche
-             « Débloqué » + un renvoi vers Ma Collection (CollectionOverlay),
-             seul écran d'équipement de l'app.
+             un renvoi vers Ma Collection, seul écran d'équipement de l'app.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, userAvatar, setActiveTheme, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {}, onGrantUnlock, onGrantCafes, onOpenCollection, C }) {
+export function BoutiqueTab({
+  coins, cafes, unlocked, level, onUnlock, mode, setMode,
+  activeTheme, setActiveTheme, activeBanner, setActiveBanner,
+  activeSkin, setActiveSkin, activeTitle, setActiveTitle,
+  userAvatar, setUserAvatar, gameThemes, setGameThemes,
+  spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {},
+  C,
+}) {
   const { t, localizedField } = useTranslation();
   const [filter, setFilter] = useState('Tous');
   /* Filtre dédié au mode premium 'main' — sépare visuellement Avatars/Skins/
@@ -42,30 +50,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   const [premiumView, setPremiumView] = useState('main');
   const [showBuyCafes, setShowBuyCafes] = useState(false);
 
-  /* Onglet « Actions » SECRET : invisible tant que le solde d'actions
-     $CKM < 500. On lit le portefeuille (Supabase) au mount + toutes
-     les 20 s. null = pas encore chargé → onglet caché par défaut. */
-  const [actionsShares, setActionsShares] = useState(null);
-  const actionsUnlocked = (actionsShares ?? 0) >= ACTIONS_ACCESS_THRESHOLD;
-  useEffect(() => {
-    if(!isSupabaseEnabled() || !userCode) return;
-    let alive = true;
-    const load = async () => {
-      const p = await getUserPortfolio(userCode);
-      if(alive) setActionsShares(Number(p?.shares) || 0);
-    };
-    load();
-    const id = setInterval(load, 20000);
-    return () => { alive = false; clearInterval(id); };
-  }, [userCode]);
-  /* Pas de bascule auto hors de l'onglet Actions : le joueur reste
-     dans la boutique TOUTE la session courante (pour voir/activer son
-     achat). Elle redevient « secrète » au prochain accès — l'App
-     remet boutiqueMode='shop' en quittant l'onglet Boutique, et le
-     toggle est masqué tant que solde < 500. */
   /* Snapshot des items déjà achetés au mount : on les cache de la boutique
-     (l'utilisateur les retrouve dans Profil ou Paramètres). Achats faits
-     pendant cette session restent visibles jusqu'au prochain mount. */
+     (on les retrouve dans l'onglet Collection). Achats faits pendant
+     cette session restent visibles jusqu'au prochain mount. */
   const [initialUnlocked] = useState(unlocked);
   const FILTERS = ['Tous','Badge','Thème','Avatar','Skin','Titre','Musique','Pack','Jeux'];
   /* Icône emoji par filtre — affichée avant le libellé pour rendre les
@@ -255,41 +242,37 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
           <Coffee size={14} color={mode==='premium' ? '#F0C050' : C.muted} />
           {t('shop.tab_premium')}
         </button>
-        {/* Onglet SECRET — n'apparaît qu'avec ≥ 500 actions $CKM.
-            Reste visible si on est déjà dedans (session en cours, ex.
-            après un achat qui a fait passer le solde sous 500). */}
-        {(actionsUnlocked || mode === 'actions') && (
+        {/* Ma Collection — 3e onglet permanent (v1.30). Occupe la place de
+            l'ancienne boutique secrète $CKM, supprimée. */}
         <button
-          onClick={()=>{ if(mode!=='actions'){ playSound('tab'); setMode('actions'); setPremiumView('main'); } }}
+          onClick={()=>{ if(mode!=='collection'){ playSound('tab'); setMode('collection'); setPremiumView('main'); } }}
           style={{
             flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:800, letterSpacing:.4,
-            background: mode==='actions' ? 'linear-gradient(135deg,#C99A2E,#8B5A2B)' : 'transparent',
-            color: mode==='actions' ? '#fff' : C.text,
+            background: mode==='collection' ? GOLD : 'transparent',
+            color: mode==='collection' ? '#fff' : C.text,
             display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-            boxShadow: mode==='actions' ? '0 4px 12px rgba(201,154,46,.4)' : 'none', cursor:'pointer'
+            boxShadow: mode==='collection' ? '0 4px 12px rgba(212,160,23,.4)' : 'none', cursor:'pointer'
           }}
         >
-          <span style={{ fontSize:14 }}>🏦</span>
-          {t('shop.tab_actions')}
+          <Palette size={14} color={mode==='collection' ? '#fff' : C.muted} />
+          {t('collection.tab')}
         </button>
-        )}
       </div>
 
-      {mode === 'actions' && (
-        <ActionsShopView
-          userCode={userCode}
+      {mode === 'collection' && (
+        <CollectionContent
           unlocked={unlocked}
-          onGrantUnlock={onGrantUnlock}
-          onGrantCafes={onGrantCafes}
-          activeTheme={activeTheme}
-          setActiveTheme={setActiveTheme}
-          userAvatar={userAvatar}
-          setUserAvatar={setUserAvatar}
+          activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
+          activeBanner={activeBanner} setActiveBanner={setActiveBanner}
+          activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
+          activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
+          userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
+          gameThemes={gameThemes}     setGameThemes={setGameThemes}
+          onOpenShop={()=>{ playSound('tab'); setMode('shop'); }}
           C={C}
         />
       )}
-      {mode !== 'actions' && (<>
-      <div style={{ display:'none' }} aria-hidden />
+      {mode !== 'collection' && (<>
 
       {/* Bouton retour — affiché dans les sous-vues 'jetons' et 'chests'. */}
       {mode === 'premium' && (premiumView === 'jetons' || premiumView === 'chests') && (
@@ -591,9 +574,9 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               })()}
 
               {isUnlocked ? (
-                isEquippable && onOpenCollection ? (
+                isEquippable ? (
                   <button
-                    onClick={onOpenCollection}
+                    onClick={()=>{ playSound('tab'); setMode('collection'); }}
                     style={{
                       width:'100%', padding:'8px 0', borderRadius:12, fontSize:11.5, fontWeight:700,
                       background:'transparent', color:'#D4A017',
