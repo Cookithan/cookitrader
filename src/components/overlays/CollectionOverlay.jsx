@@ -274,20 +274,48 @@ export function CollectionContent({
   const lightThemes   = ownedThemes.filter(r => isPlain(r) && !THEMES[r.id]?.dark);
   const darkThemes    = ownedThemes.filter(r => isPlain(r) &&  THEMES[r.id]?.dark);
 
-  const themeGroup = (icon, label, items, extra = null) => {
-    if(items.length === 0 && !extra) return null;
+  /* Bloc « en-tête de groupe + grille ». Partagé par Thèmes, Avatars et
+     Skins : même grammaire visuelle partout, un seul endroit à corriger.
+     `cols` varie (2 pour les thèmes qui ont un aperçu large, 4 pour les
+     avatars, 3 pour les skins). Groupe vide → rien du tout. */
+  const group = (icon, label, tiles, cols = 2, extra = null) => {
+    if(tiles.length === 0 && !extra) return null;
     return (
       <div key={label}>
         <div style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.6, marginBottom:9 }}>
-          {icon} {label} · {items.length + (extra ? 1 : 0)}
+          {icon} {label} · {tiles.length + (extra ? 1 : 0)}
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
+        <div style={{
+          display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`,
+          gap: cols >= 4 ? 12 : 10, marginBottom:16,
+          justifyItems: cols >= 4 ? 'center' : 'stretch',
+        }}>
           {extra}
-          {items.map(r => themeTile(r.id, themeLabel(r)))}
+          {tiles}
         </div>
       </div>
     );
   };
+
+  const themeGroup = (icon, label, items, extra = null) =>
+    group(icon, label, items.map(r => themeTile(r.id, themeLabel(r))), 2, extra);
+
+  /* Provenance d'un cosmétique — l'axe de rangement commun aux avatars et
+     aux skins (les thèmes y ajoutent clair/sombre). Priorité décroissante :
+     un item promo reste dans « Codes promo » même s'il est aussi `limited`. */
+  const sourceOf = (r) => {
+    if(!r) return 'shop';
+    if(PROMO_UNLOCK_IDS.has(r.id)) return 'promo';
+    if(r.limited)                  return 'limited';
+    if(r.currency === 'cafe')      return 'premium';
+    return 'shop';
+  };
+  const SOURCES = [
+    { key:'shop',    icon:'🍪', label:t('collection.src_shop') },
+    { key:'premium', icon:'☕', label:t('collection.src_premium') },
+    { key:'limited', icon:'✨', label:t('collection.src_limited') },
+    { key:'promo',   icon:'🎟️', label:t('collection.src_promo') },
+  ];
 
   const renderThemes = () => (
     <>
@@ -318,77 +346,97 @@ export function CollectionContent({
     </>
   );
 
-  const renderAvatars = () => (
-    <>
-      {sectionLabel(t('collection.cat_avatars'))}
-      <div style={{
-        borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16,
-        display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14, justifyItems:'center',
-      }}>
-        {myAvatars.map(a => {
-          const sel = userAvatar === a.value;
-          return (
-            <button
-              key={String(a.value)}
-              onClick={() => pick(setUserAvatar, a.value)}
-              aria-label={a.name}
-              style={{
-                padding:0, borderRadius:'50%', lineHeight:0, display:'inline-flex',
-                background:'transparent',
-                border:`3px solid ${sel ? '#D4A017' : 'transparent'}`,
-                boxShadow: sel ? '0 4px 16px rgba(212,160,23,.45)' : '0 2px 6px rgba(0,0,0,.15)',
-                transition:'all .2s', cursor:'pointer',
-              }}
-            >
-              <AvatarFigure value={a.value} size={62} />
-            </button>
-          );
-        })}
-      </div>
-      {lockedFooter(lockedAvatarsCount)}
-    </>
-  );
+  /* ── Avatars ─────────────────────────────────────
+     Les 12 de départ ont leur propre groupe : ils ne s'achètent pas, les
+     ranger dans « Boutique » serait faux. Les premium possédés sont
+     classés par provenance via leur entrée REWARDS. */
+  const avatarTile = (value, name) => {
+    const sel = userAvatar === value;
+    return (
+      <button
+        key={String(value)}
+        onClick={() => pick(setUserAvatar, value)}
+        aria-label={name}
+        title={name}
+        style={{
+          padding:0, borderRadius:'50%', lineHeight:0, display:'inline-flex',
+          background:'transparent',
+          border:`3px solid ${sel ? '#D4A017' : 'transparent'}`,
+          boxShadow: sel ? '0 4px 16px rgba(212,160,23,.45)' : '0 2px 6px rgba(0,0,0,.15)',
+          transition:'all .2s', cursor:'pointer',
+        }}
+      >
+        <AvatarFigure value={value} size={58} />
+      </button>
+    );
+  };
 
-  const renderSkins = () => (
-    <>
-      {sectionLabel(t('collection.cat_skins'))}
-      <div style={{
-        borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16,
-        display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12,
-      }}>
-        {[{ id:'', name:t('settings.theme_default') }, ...ownedSkins].map(s => {
-          const sel = activeSkin === s.id;
-          return (
-            <button
-              key={s.id || 'default'}
-              onClick={() => pick(setActiveSkin, s.id)}
-              style={{
-                display:'flex', flexDirection:'column', alignItems:'center', gap:6,
-                padding:'10px 6px', borderRadius:14,
-                background: sel ? 'rgba(212,160,23,.16)' : 'transparent',
-                border:`2px solid ${sel ? '#D4A017' : C.border}`,
-                boxShadow: sel ? '0 0 12px rgba(212,160,23,.35)' : 'none',
-                transition:'all .2s', cursor:'pointer',
-              }}
-            >
-              <div style={{ width:46, height:46 }}>
-                <SkinnedCookie skin={COOKIE_SKINS[s.id] || COOKIE_SKINS['']} />
-              </div>
-              <div style={{
-                fontSize:9.5, fontWeight:700, color:C.text, lineHeight:1.2, textAlign:'center',
-                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%',
-              }}>
-                {s.id
-                  ? (localizedField(s, 'name', 'REWARDS') || '').replace(/^(Cookie|Skin Cookie|Skin)\s+/i, '')
-                  : s.name}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-      {lockedFooter(lockedSkins.length)}
-    </>
-  );
+  const renderAvatars = () => {
+    const baseIds  = new Set(ONBOARDING_AVATARS.filter(a => !a.hidden).map(a => a.id));
+    const baseList = ONBOARDING_AVATARS.filter(a => !a.hidden);
+    const premiumOwned = AVATAR_PREMIUM_LIST.filter(a => owns(a.id) && !baseIds.has(a.id));
+    return (
+      <>
+        {group('👤', t('collection.src_starter'),
+          baseList.map(a => avatarTile(a.id, a.name)), 4)}
+        {SOURCES.map(src => group(
+          src.icon, src.label,
+          premiumOwned
+            .filter(a => sourceOf(REWARDS.find(x => x.id === a.id)) === src.key)
+            .map(a => avatarTile(a.id, a.name)),
+          4,
+        ))}
+        {lockedFooter(lockedAvatarsCount)}
+      </>
+    );
+  };
+
+  /* ── Skins ───────────────────────────────────────── */
+  const skinTile = (id, label) => {
+    const sel = activeSkin === id;
+    return (
+      <button
+        key={id || 'default'}
+        onClick={() => pick(setActiveSkin, id)}
+        style={{
+          display:'flex', flexDirection:'column', alignItems:'center', gap:6,
+          padding:'10px 6px', borderRadius:14, width:'100%',
+          background: sel ? 'rgba(212,160,23,.16)' : C.card,
+          border:`2px solid ${sel ? '#D4A017' : C.border}`,
+          boxShadow: sel ? '0 0 12px rgba(212,160,23,.35)' : 'none',
+          transition:'all .2s', cursor:'pointer',
+        }}
+      >
+        <div style={{ width:46, height:46 }}>
+          <SkinnedCookie skin={COOKIE_SKINS[id] || COOKIE_SKINS['']} />
+        </div>
+        <div style={{
+          fontSize:9.5, fontWeight:700, color:C.text, lineHeight:1.2, textAlign:'center',
+          whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'100%',
+        }}>
+          {label}
+        </div>
+      </button>
+    );
+  };
+
+  const renderSkins = () => {
+    const skinLabel = (r) =>
+      (localizedField(r, 'name', 'REWARDS') || '').replace(/^(Skin Cookie|Skin|Cookie)\s+/i, '');
+    return (
+      <>
+        {SOURCES.map((src, i) => group(
+          src.icon, src.label,
+          ownedSkins.filter(r => sourceOf(r) === src.key).map(r => skinTile(r.id, skinLabel(r))),
+          3,
+          /* Le cookie par défaut n'a pas de provenance : il ouvre le
+             premier groupe (Boutique), comme le thème par défaut. */
+          i === 0 ? skinTile('', t('settings.theme_default')) : null,
+        ))}
+        {lockedFooter(lockedSkins.length)}
+      </>
+    );
+  };
 
   const renderTitles = () => (
     <>
