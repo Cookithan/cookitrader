@@ -204,21 +204,24 @@ export function ProfileOverlay({
                   {levelLabel}
                 </span>
               </div>
-              {userCode && (
-                <div style={{ fontSize:11, color:'#8B6A5A', marginBottom:2, fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', letterSpacing:1.5 }}>
-                  Code · {userCode}
-                </div>
-              )}
-              {joinDate && (
-                <div style={{ fontSize:11, color:'#A88060', marginBottom:14 }}>
-                  Membre depuis le {joinDate}
+              {/* Code + ancienneté sur UNE ligne : deux lignes de 11 px
+                  empilées pour deux informations qu'on lit ensemble. */}
+              {(userCode || joinDate) && (
+                <div style={{ fontSize:11, color:'#8B6A5A', marginBottom:14, textAlign:'center' }}>
+                  {userCode && (
+                    <span style={{ fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace', letterSpacing:1.5 }}>
+                      {userCode}
+                    </span>
+                  )}
+                  {userCode && joinDate && <span style={{ color:'#C0A088' }}> · </span>}
+                  {joinDate && <span style={{ color:'#A88060' }}>depuis le {joinDate}</span>}
                 </div>
               )}
 
-              <div style={{ width:'100%', display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:joinDate?0:14, marginBottom:6 }}>
-                <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', textTransform:'uppercase', letterSpacing:2 }}>
-                  {t('home.level_uppercase')} {level}
-                </span>
+              {/* Plus de « NIVEAU 12 » ici : la pastille juste au-dessus dit
+                  déjà le palier, et la grille de stats le répétait une 3e
+                  fois. Ne reste que la progression vers le suivant. */}
+              <div style={{ width:'100%', textAlign:'right', marginBottom:6 }}>
                 <span style={{ fontSize:11, color:'#7D4E1F', fontWeight:600 }}>
                   {xp} / {xpReq} XP
                 </span>
@@ -245,23 +248,31 @@ export function ProfileOverlay({
               </section>
             )}
 
-            {/* 3. Stats grid 2×3 */}
+            {/* 3. Stats — 6 tuiles de 2 lignes (v1.30).
+                « Niveau » a sauté : la carte au-dessus l'affiche en grand,
+                en pastille ET dans sa barre d'XP. L'unité rejoint la valeur
+                sur la même ligne au lieu d'une 3e ligne sous chaque tuile —
+                7 tuiles × 3 lignes faisaient un pavé plus haut que la carte
+                de profil elle-même. */}
             <section>
               <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.stats')}</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                 {[
-                  { label: t('profile.stat_total'),  value:totalEarned, sub: t('common.cookies'), col:'#D4A017' },
-                  { label: t('profile.stat_streak'), value:streak,      sub: t('profile.day_unit', { n: streak, s: streak > 1 ? 's' : '' }), col:'#E07040' },
-                  { label: t('profile.stat_level'),  value:level,       sub: levelLabel, col:'#8B5A2B' },
-                  { label: t('profile.stat_achievements'), value:`${earnedAchievements.length}/${achievementsTotal}`, sub: t('profile.unlocked_lc'), col:'#C17F3C' },
-                  { label: t('profile.stat_items'),  value:`${unlocked.length}/${REWARDS.length}`, sub: t('profile.owned_lc'), col:'#7D4E1F' },
-                  { label: t('profile.stat_market'), value:marketRealized, sub: t('profile.cookies_ckm'), col:'#A0784E' },
-                  { label: t('profile.stat_playtime'), value:formatPlayTime(totalPlayTime), sub: t('profile.on_app'), col:'#5C3317' },
+                  { label: t('profile.stat_total'),  value:totalEarned, unit:'🍪', col:'#D4A017' },
+                  { label: t('profile.stat_streak'), value:streak, unit: t('profile.day_unit', { n: streak, s: streak > 1 ? 's' : '' }), col:'#E07040' },
+                  { label: t('profile.stat_achievements'), value:`${earnedAchievements.length}/${achievementsTotal}`, col:'#C17F3C' },
+                  { label: t('profile.stat_items'),  value:`${unlocked.length}/${REWARDS.length}`, col:'#7D4E1F' },
+                  { label: t('profile.stat_market'), value:marketRealized, unit:'$CKM', col:'#A0784E' },
+                  { label: t('profile.stat_playtime'), value:formatPlayTime(totalPlayTime), col:'#5C3317' },
                 ].map(st => (
-                  <div key={st.label} style={{ borderRadius:14, background:C.card, border:`1px solid ${C.border}`, padding:'12px 14px' }}>
+                  <div key={st.label} style={{ borderRadius:14, background:C.card, border:`1px solid ${C.border}`, padding:'11px 14px' }}>
                     <div style={{ fontSize:10, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase', marginBottom:4 }}>{st.label}</div>
-                    <div style={{ fontSize:22, fontWeight:800, color:st.col, lineHeight:1.1 }}>{st.value}</div>
-                    <div style={{ fontSize:10, color:C.muted, marginTop:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{st.sub}</div>
+                    <div style={{ display:'flex', alignItems:'baseline', gap:5, minWidth:0 }}>
+                      <span style={{ fontSize:21, fontWeight:800, color:st.col, lineHeight:1.1 }}>{st.value}</span>
+                      {st.unit && (
+                        <span style={{ fontSize:10, color:C.muted, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{st.unit}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -372,41 +383,33 @@ export function ProfileOverlay({
               C={C}
             />
 
-            {/* 6. Boutons d'édition (pseudo / avatar / bio) — fond carte
-                + bord doré + icône pour ressortir sur tous les thèmes
-                (transparent + border C.border se fondait avant). */}
-            <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:6 }}>
-              <button
-                onClick={()=>setShowChangeName(true)}
-                style={{
-                  width:'100%', padding:'13px 14px', borderRadius:14,
-                  background: `linear-gradient(135deg, ${C.card}, ${C.card2})`,
-                  border:'1.5px solid rgba(212,160,23,.5)',
-                  color:C.text, fontSize:13, fontWeight:800,
-                  boxShadow:'0 2px 10px rgba(0,0,0,.08)',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                  cursor:'pointer',
-                }}
-              >
-                <User size={15} color="#D4A017" />
-                <span>{t('profile.edit_name')}</span>
-                <span style={{ fontSize:11, fontWeight:800, color:'#D4A017' }}>· payant 🍪</span>
-              </button>
-              <button
-                onClick={()=>setShowChangeBio(true)}
-                style={{
-                  width:'100%', padding:'13px 14px', borderRadius:14,
-                  background: `linear-gradient(135deg, ${C.card}, ${C.card2})`,
-                  border:'1.5px solid rgba(212,160,23,.5)',
-                  color:C.text, fontSize:13, fontWeight:800,
-                  boxShadow:'0 2px 10px rgba(0,0,0,.08)',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                  cursor:'pointer',
-                }}
-              >
-                <MessageSquare size={15} color="#D4A017" />
-                {userBio ? t('modal.edit_bio') : '+ ' + t('modal.add_bio')}
-              </button>
+            {/* 6. Édition pseudo / bio — CÔTE À CÔTE (v1.30). Deux boutons
+                pleine largeur empilés pour deux actions rares et de même
+                poids : ils tiennent sur une ligne. Le « payant 🍪 » passe
+                en sous-titre, il ne mérite pas de couper le libellé. */}
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginTop:6 }}>
+              {[
+                { key:'name', Icon:User, label:t('profile.edit_name'), sub:'payant 🍪', onClick:()=>setShowChangeName(true) },
+                { key:'bio',  Icon:MessageSquare, label: userBio ? t('modal.edit_bio') : t('modal.add_bio'), sub:t('profile.free_lc'), onClick:()=>setShowChangeBio(true) },
+              ].map(b => (
+                <button
+                  key={b.key}
+                  onClick={b.onClick}
+                  className="tap-pop"
+                  style={{
+                    padding:'12px 10px', borderRadius:14,
+                    background: `linear-gradient(135deg, ${C.card}, ${C.card2})`,
+                    border:'1.5px solid rgba(212,160,23,.5)',
+                    color:C.text, boxShadow:'0 2px 10px rgba(0,0,0,.08)',
+                    display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+                    cursor:'pointer',
+                  }}
+                >
+                  <b.Icon size={16} color="#D4A017" />
+                  <span style={{ fontSize:12, fontWeight:800, textAlign:'center', lineHeight:1.25 }}>{b.label}</span>
+                  <span style={{ fontSize:10, fontWeight:700, color:C.muted }}>{b.sub}</span>
+                </button>
+              ))}
             </div>
 
             {/* 7. Réinitialiser ma progression */}

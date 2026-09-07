@@ -274,6 +274,7 @@ export const FR = {
     stat_market:     'Marché',
     day_unit:        'jour{s}',
     unlocked_lc:     'débloqués',
+    free_lc:         'gratuit',
     owned_lc:        'possédés',
     cookies_ckm:     'cookies $CKM',
     on_app:          "sur l'app",

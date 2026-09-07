@@ -262,6 +262,7 @@ export const EN = {
     stat_market:     'Market',
     day_unit:        'day{s}',
     unlocked_lc:     'unlocked',
+    free_lc:         'free',
     owned_lc:        'owned',
     cookies_ckm:     '$CKM cookies',
     on_app:          'on the app',
