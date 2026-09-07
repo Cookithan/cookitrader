@@ -4031,7 +4031,12 @@ export default function CookiMiner() {
             )}
             {/* Level card */}
             <button id="card-niveau" onClick={()=>{ playSound('modal'); setShowLevels(true); }} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
-              <div style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)' }} />
+              {/* Bulle décorative qui respire (v1.30) — elle était figée. */}
+              <div className="level-bubble" aria-hidden style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)', pointerEvents:'none' }} />
+              {/* Reflet qui balaie la carte toutes les 6 s : c'est ce qui
+                  fait passer le bloc d'« aplat sombre » à « objet qui
+                  accroche la lumière ». */}
+              <div className="level-sheen" aria-hidden />
               {/* Bannière Cookies premium — overlay décoratif (floating cookies) */}
               {activeBanner === 'banner_cookies' && (
                 <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden' }}>
@@ -4077,7 +4082,16 @@ export default function CookiMiner() {
                       display:'flex', alignItems:'center', justifyContent:'center',
                       fontSize:21, fontWeight:900, color:'#fff',
                       textShadow:'0 1px 3px rgba(0,0,0,.35)',
-                    }}>{level}</div>
+                      /* relative + overflow : le reflet doit être coupé par
+                         le cercle, sinon il déborde en rectangle. */
+                      position:'relative', overflow:'hidden',
+                    }}>
+                      {level}
+                      {/* Éclat métallique, déphasé du reflet de la carte
+                          (4,5 s contre 6 s) — les deux ne passent jamais
+                          en même temps, la médaille reste distincte. */}
+                      <span className="level-glint" aria-hidden />
+                    </div>
                   );
                 })()}
                 <div style={{ flex:1, minWidth:0 }}>

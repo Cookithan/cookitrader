@@ -291,6 +291,21 @@ export const GLOBAL_CSS = `
   @keyframes gameOverlayIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}
   .game-overlay-in{animation:gameOverlayIn .26s cubic-bezier(.16,.84,.44,1) both}
 
+  /* ── Carte niveau de l'Accueil (v1.30) ───────────────────────────
+     Trois boucles d'ambiance, transform + opacity uniquement (composité
+     GPU, aucun reflow). Ce sont des animations de FOND : elles dépassent
+     les 700 ms de la convention, qui vise les transitions d'interface —
+     même exception que float 3s, shimmer 2.6s ou glow 2s déjà en place.
+     Déphasées entre elles (6s / 4.5s / 5.5s) pour que la carte respire
+     au lieu de battre la mesure.
+     AUCUN BACKTICK dans ce fichier, même en commentaire. */
+  @keyframes levelSheen{0%{transform:translateX(-140%) skewX(-18deg)}45%{transform:translateX(320%) skewX(-18deg)}100%{transform:translateX(320%) skewX(-18deg)}}
+  .level-sheen{position:absolute;top:-30%;left:0;width:38%;height:170%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);animation:levelSheen 6s ease-in-out infinite;will-change:transform}
+  @keyframes levelGlint{0%{transform:translateX(-160%)}38%{transform:translateX(260%)}100%{transform:translateX(260%)}}
+  .level-glint{position:absolute;top:0;left:0;width:45%;height:100%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:levelGlint 4.5s ease-in-out infinite;will-change:transform}
+  @keyframes levelBubble{0%,100%{transform:scale(1);opacity:.05}50%{transform:scale(1.18);opacity:.1}}
+  .level-bubble{animation:levelBubble 5.5s ease-in-out infinite;will-change:transform,opacity}
+
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}
   .fu{animation:floatUp .85s ease-out forwards;position:absolute;pointer-events:none;font-size:17px;font-weight:800;color:#D4A017;white-space:nowrap;z-index:10;text-shadow:0 1px 4px rgba(74,44,23,.4);left:50%;top:0}
