@@ -1,14 +1,11 @@
 import { useState } from "react";
-import { ChevronLeft, Settings, Lock, Mail, Pencil, User, MessageSquare } from "lucide-react";
+import { ChevronLeft, Settings, Mail, User, MessageSquare, Palette } from "lucide-react";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
-import { ONBOARDING_AVATARS, AVATAR_PREMIUM, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
-import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
+import { GOLD } from "../../data/themes.js";
 import { APP_INFO } from "../../lib/appInfo.js";
-import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
 import { getSanction } from "../../data/sanctions.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
-import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { ChangeNameModal } from "../modals/ChangeNameModal.jsx";
 import { ChangeBioModal } from "../modals/ChangeBioModal.jsx";
 import { BadgeOriginModal } from "../modals/BadgeOriginModal.jsx";
@@ -28,23 +25,22 @@ import { useTranslation } from "../../i18n/index.js";
      2. Bio courte (affichage uniquement si remplie)
      3. Stats grid 2×3 (Total gagné · Série · Niveau · Succès · Items · CKM)
      4. Mes Badges
+     4b. Entrée « Ma Collection » (v1.30 — l'équipement se fait là-bas)
      5. Mes Amis (FriendsSection)
-     6. Boutons d'édition : pseudo (payant), avatar (gratuit), bio (gratuit)
+     6. Boutons d'édition : pseudo (payant), bio (gratuit)
      7. Réinitialiser ma progression (double validation, ResetProgressButton)
      8. Crédit "Réalisé par Cookithan"
 
-   Mode édition (toggle "Modifier mon avatar") : sections "Mes avatars"
-   + "À débloquer" (grille des 12 base + 8 premium avec cadenas).
-
-   Le pseudo n'est PLUS éditable depuis le mode édition — passe par la
-   ChangeNameModal payante (PHASE 1). La bio passe par ChangeBioModal
-   (PHASE 5, gratuite). Le compte d'achievementsTotal ignore master_
-   succes si non révélé.
+   v1.30 — le Profil ne gère plus QUE l'identité. Le choix de l'avatar,
+   des skins et des titres a déménagé dans CollectionOverlay : un seul
+   écran pour équiper. Le pseudo passe par la ChangeNameModal payante,
+   la bio par ChangeBioModal (gratuite). Le compte d'achievementsTotal
+   ignore master_succes si non révélé.
 ═══════════════════════════════════════════════════════ */
 
 export function ProfileOverlay({
-  onClose, onOpenLevels, onOpenSettings,
-  userName, setUserName, userAvatar, setUserAvatar, joinDate,
+  onClose, onOpenLevels, onOpenSettings, onOpenCollection,
+  userName, setUserName, userAvatar, joinDate,
   coins, spendCoins, nameChangeCount, setNameChangeCount,
   userCode,
   userBio, setUserBio,
@@ -52,7 +48,7 @@ export function ProfileOverlay({
   earnedAchievements, achievementsTotal,
   marketRealized = 0,
   totalPlayTime = 0,
-  activeTheme, activeSkin, setActiveSkin, activeTitle, setActiveTitle, activeRoue,
+  activeTitle,
   onReset,
   supabaseEnabled = false,
   supabaseSyncOk  = false,
@@ -65,8 +61,6 @@ export function ProfileOverlay({
 }) {
   const { t, localizedField, localizedLevelName } = useTranslation();
   const levelLabel = localizedLevelName(level) || LEVEL_NAMES[level];
-  const [editing, setEditing] = useState(false);
-  const [editAvatar, setEditAvatar] = useState(userAvatar);
   const [showChangeName, setShowChangeName] = useState(false);
   const [showChangeBio,  setShowChangeBio]  = useState(false);
   /* Badge cliqué → modale "comment j'ai débloqué". null = pas de modale. */
@@ -75,41 +69,9 @@ export function ProfileOverlay({
 
   const xpPct = Math.min((xp/xpReq)*100, 100);
   const badges = REWARDS.filter(r => r.type==='Badge'  && unlocked.includes(r.id));
-  /* Skins cookie possédés (toujours inclure le skin par défaut '' ) */
-  const ownedSkins = REWARDS.filter(r => r.type==='Skin' && unlocked.includes(r.id));
-  /* Titres possédés (cf. data/titles.js) */
-  const ownedTitles = REWARDS.filter(r => r.type==='Titre' && unlocked.includes(r.id));
   /* Badges secrets débloqués (BRIEF_BADGES_SECRETS). Les non-débloqués
      restent invisibles — sinon ce ne sont plus des secrets. */
   const secretBadgesUnlocked = Object.values(SECRET_BADGES).filter(b => unlocked.includes(b.id));
-
-  /* Sélecteur d'avatar (PHASE 4) :
-     - "Mes avatars" : 12 de base (toujours dispos) + premium débloqués
-     - "À débloquer" : premium non débloqués, grisés avec cadenas */
-  /* Filtre les onboarding `hidden:true` (Tasse / Théière / Croissant
-     retirés du shop mais conservés en data pour compat profils existants).
-     On garde l'index original via a.id pour ne pas remapper les valeurs. */
-  const myBaseAvatars = ONBOARDING_AVATARS
-    .filter(a => !a.hidden)
-    .map(a => ({ value:a.id, art:a.art, bg:a.bg, name:a.name, owned:true }));
-  const myPremiumAvatars = AVATAR_PREMIUM_LIST
-    .filter(a => unlocked.includes(a.id))
-    .map(a => ({ value:a.id, art:a.art, bg:a.bg, name:a.name, owned:true }));
-  /* `limited:true` (édition limitée code promo / event) → exclu de la
-     grille "À débloquer" : ne doit apparaître que pour les détenteurs. */
-  const lockedPremiumAvatars = AVATAR_PREMIUM_LIST
-    .filter(a => !unlocked.includes(a.id) && !a.limited)
-    .map(a => {
-      const r = REWARDS.find(x => x.id === a.id);
-      return { value:a.id, art:a.art, bg:a.bg, name:a.name, owned:false,
-               cost: r ? r.cost : 0, levelRequired: r ? r.levelRequired : 1 };
-    });
-
-  const saveEdit = () => {
-    if(editAvatar===null) return;
-    setUserAvatar(editAvatar);
-    setEditing(false);
-  };
 
   const confirmNameChange = (newName, price) => {
     spendCoins(price);
@@ -130,16 +92,14 @@ export function ProfileOverlay({
           <ChevronLeft size={20} />
         </button>
         <span style={{ fontSize:17, fontWeight:700, color:C.text, flex:1, display:'flex', alignItems:'center', gap:10 }}>
-          {editing ? t('profile.edit_avatar') : t('profile.title')}
-          {!editing && (
-            supabaseEnabled && supabaseSyncOk ? (
-              <span style={{ fontSize:10, fontWeight:700, color:'#D4A017', letterSpacing:.3 }} title={t('profile.sync_online_title')}>● {t('profile.synced')}</span>
-            ) : (
-              <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', letterSpacing:.3 }} title={t('profile.sync_offline_title')}>○ {t('profile.offline')}</span>
-            )
+          {t('profile.title')}
+          {supabaseEnabled && supabaseSyncOk ? (
+            <span style={{ fontSize:10, fontWeight:700, color:'#D4A017', letterSpacing:.3 }} title={t('profile.sync_online_title')}>● {t('profile.synced')}</span>
+          ) : (
+            <span style={{ fontSize:10, fontWeight:700, color:'#8B6A5A', letterSpacing:.3 }} title={t('profile.sync_offline_title')}>○ {t('profile.offline')}</span>
           )}
         </span>
-        {!editing && onOpenInbox && (
+        {onOpenInbox && (
           <button
             onClick={onOpenInbox}
             aria-label={unreadInboxCount > 0 ? `Boîte de réception (${unreadInboxCount} non lus)` : 'Boîte de réception'}
@@ -171,97 +131,14 @@ export function ProfileOverlay({
             )}
           </button>
         )}
-        {!editing && (
-          <button onClick={onOpenSettings} aria-label={t('settings.title')} style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Settings size={15} />
-          </button>
-        )}
+        <button onClick={onOpenSettings} aria-label={t('settings.title')} style={{ width:34, height:34, borderRadius:11, background:C.card2, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <Settings size={15} />
+        </button>
       </div>
 
       <div style={{ flex:1, overflowY:'auto', padding:'18px 18px 28px', display:'flex', flexDirection:'column', gap:18 }}>
 
-        {editing ? (
-          <>
-            <section>
-              <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.my_avatars')}</div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, justifyItems:'center' }}>
-                {[...myBaseAvatars, ...myPremiumAvatars].map(a => {
-                  const sel = editAvatar===a.value;
-                  return (
-                    <button
-                      key={String(a.value)}
-                      onClick={()=>setEditAvatar(a.value)}
-                      className={sel?'pulse-ring':''}
-                      style={{
-                        padding:0, borderRadius:'50%',
-                        border:`3px solid ${sel?'#D4A017':'transparent'}`,
-                        cursor:'pointer',
-                        boxShadow:sel?'0 4px 16px rgba(212,160,23,.45)':'0 2px 6px rgba(0,0,0,.15)',
-                        transition:'all .2s',
-                        background:'transparent', lineHeight:0,
-                        display:'inline-flex',
-                      }}
-                      aria-label={a.name}
-                    >
-                      <AvatarFigure value={a.value} size={66} />
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {lockedPremiumAvatars.length > 0 && (
-              <section>
-                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.to_unlock')}</div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12, justifyItems:'center' }}>
-                  {lockedPremiumAvatars.map(a => (
-                    <div
-                      key={a.value}
-                      title={`${a.name} — niveau ${a.levelRequired} requis · ${a.cost} 🍪`}
-                      style={{
-                        position:'relative',
-                        width:66, height:66,
-                        opacity:.55,
-                        filter:'grayscale(.55)',
-                      }}
-                    >
-                      <AvatarFigure value={a.value} size={66} />
-                      <div style={{
-                        position:'absolute', inset:0, borderRadius:'50%',
-                        background:'rgba(15,8,4,.45)',
-                        display:'flex', alignItems:'center', justifyContent:'center'
-                      }}>
-                        <Lock size={20} color="#FAF0E0" />
-                      </div>
-                      <div style={{
-                        position:'absolute', bottom:-4, left:'50%', transform:'translateX(-50%)',
-                        fontSize:9, fontWeight:800,
-                        background:'#2A1606', color:'#F0C050',
-                        padding:'2px 6px', borderRadius:8,
-                        border:'1px solid rgba(212,160,23,.4)',
-                        whiteSpace:'nowrap',
-                      }}>
-                        Niv {a.levelRequired}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ fontSize:11, color:C.muted, marginTop:14, fontStyle:'italic', textAlign:'center' }}>
-                  Débloque-les depuis la boutique ✨
-                </div>
-              </section>
-            )}
-
-            <div style={{ display:'flex', gap:10, marginTop:'auto' }}>
-              <button onClick={()=>{ setEditing(false); setEditAvatar(userAvatar); }} style={{ flex:1, padding:'13px 0', borderRadius:14, background:'transparent', border:`1.5px solid ${C.border}`, color:C.muted, fontSize:14, fontWeight:700 }}>
-                {t('common.cancel')}
-              </button>
-              <button onClick={saveEdit} disabled={editAvatar===null} style={{ flex:1, padding:'13px 0', borderRadius:14, background: editAvatar===null ? C.card2 : GOLD, color: editAvatar===null ? C.muted : '#fff', border:'none', fontSize:14, fontWeight:800, cursor:editAvatar===null?'not-allowed':'pointer' }}>
-                {t('common.confirm')}
-              </button>
-            </div>
-          </>
-        ) : (
+        {(
           <>
             {/* Bandeau de sanction privé — visible UNIQUEMENT par le user
                 concerné (pas dans le classement public ni les profils amis).
@@ -446,90 +323,43 @@ export function ProfileOverlay({
               )}
             </section>
 
-            {/* 4b. Mes Skins & Titres — sélecteurs (uniquement items possédés).
-                Chaque liste inclut systématiquement l'option "défaut" en tête. */}
-            {(ownedSkins.length > 0 || ownedTitles.length > 0) && (
-              <section>
-                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('profile.my_customizations')}</div>
-
-                {/* SKINS COOKIE — preview SkinnedCookie 44px par option */}
-                {ownedSkins.length > 0 && setActiveSkin && (
-                  <div style={{ marginBottom:12 }}>
-                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>{t('profile.cookie_skin')}</div>
-                    <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4 }}>
-                      {/* Option défaut systématique */}
-                      {[{ id:'', name: t('settings.theme_default') }, ...ownedSkins].map(s => {
-                        const skinData = COOKIE_SKINS[s.id] || COOKIE_SKINS[''];
-                        const sel = activeSkin === s.id;
-                        return (
-                          <button
-                            key={s.id || 'default'}
-                            onClick={()=>setActiveSkin(s.id)}
-                            style={{
-                              flex:'0 0 auto', display:'flex', flexDirection:'column', alignItems:'center', gap:4,
-                              padding:8, borderRadius:14,
-                              background: sel ? 'rgba(212,160,23,.16)' : C.card,
-                              border:`2px solid ${sel ? '#D4A017' : C.border}`,
-                              cursor:'pointer', minWidth:64,
-                              boxShadow: sel ? '0 0 12px rgba(212,160,23,.35)' : 'none',
-                              transition:'all .2s',
-                            }}
-                          >
-                            <div style={{ width:44, height:44 }}>
-                              <SkinnedCookie skin={skinData} />
-                            </div>
-                            <div style={{ fontSize:9, fontWeight:700, color:C.text, lineHeight:1.1, textAlign:'center', whiteSpace:'nowrap', maxWidth:60, overflow:'hidden', textOverflow:'ellipsis' }}>
-                              {(s.name || '').replace(/^Cookie\s+/, '') || 'Défaut'}
-                            </div>
-                          </button>
-                        );
-                      })}
+            {/* 4b. Ma Collection — porte d'entrée unique vers l'équipement
+                (avatars, skins, titres, thèmes, musiques). Les sélecteurs
+                vivaient ici avant la v1.30 ; ils ont déménagé pour qu'il
+                n'y ait plus qu'UN seul endroit où équiper. */}
+            {onOpenCollection && (
+              <button
+                onClick={onOpenCollection}
+                style={{
+                  width:'100%', borderRadius:16,
+                  background:'linear-gradient(140deg, rgba(212,160,23,.12), rgba(193,127,60,.08))',
+                  border:'1.5px solid rgba(212,160,23,.45)',
+                  padding:'14px 16px',
+                  display:'flex', alignItems:'center', justifyContent:'space-between',
+                  cursor:'pointer', textAlign:'left',
+                }}
+              >
+                <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                  <div style={{
+                    width:38, height:38, borderRadius:10,
+                    background:'rgba(212,160,23,.16)',
+                    border:'1px solid rgba(212,160,23,.35)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    flexShrink:0,
+                  }}>
+                    <Palette size={18} color="#D4A017" />
+                  </div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                      {t('collection.open')}
+                    </div>
+                    <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                      {t('collection.open_sub')}
                     </div>
                   </div>
-                )}
-
-                {/* TITRES COULEUR — preview du pseudo dans le style du titre */}
-                {ownedTitles.length > 0 && setActiveTitle && (
-                  <div>
-                    <div style={{ fontSize:10, fontWeight:800, color:C.muted, marginBottom:6, letterSpacing:.5 }}>{t('profile.color_title')}</div>
-                    <div style={{ display:'flex', gap:8, overflowX:'auto', paddingBottom:4, flexWrap:'wrap' }}>
-                      {/* Option défaut. Variable renommée en `tt` pour ne pas
-                          masquer le hook t() de useTranslation. */}
-                      {[{ id:'', name: t('profile.none_title') }, ...ownedTitles].map(tt => {
-                        const sel = activeTitle === tt.id;
-                        const previewStyle = tt.id ? (getTitleStyle(tt.id) || {}) : { color:C.text, fontWeight:800 };
-                        return (
-                          <button
-                            key={tt.id || 'none'}
-                            onClick={()=>setActiveTitle(tt.id)}
-                            style={{
-                              padding:'8px 14px', borderRadius:14,
-                              background: sel ? 'rgba(212,160,23,.16)' : C.card,
-                              border:`2px solid ${sel ? '#D4A017' : C.border}`,
-                              cursor:'pointer',
-                              boxShadow: sel ? '0 0 12px rgba(212,160,23,.35)' : 'none',
-                              transition:'all .2s',
-                              fontSize:14,
-                            }}
-                          >
-                            {/* Span dédié pour le shimmer — appliquer previewStyle
-                                directement sur le button cassait background-clip:text
-                                (rendu d'un carré opaque sur le titre Or notamment).
-                                Key liée à sel pour remount à chaque changement
-                                de sélection (sinon le keyframe garde son état). */}
-                            <span
-                              key={`title-${tt.id || 'none'}-${sel ? 'sel' : 'idle'}`}
-                              style={{ ...previewStyle, display:'inline-block', lineHeight:1.2 }}
-                            >
-                              {(TITLE_STYLES[tt.id]?.name) || (tt.id ? localizedField(tt, 'name', 'REWARDS').replace(/^Titre\s+/, '').replace(/\sTitle$/, '') : tt.name)}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </section>
+                </div>
+                <span style={{ fontSize:18, color:'#D4A017', flexShrink:0 }}>→</span>
+              </button>
             )}
 
             {/* 5. Mes Amis */}
@@ -561,21 +391,6 @@ export function ProfileOverlay({
                 <User size={15} color="#D4A017" />
                 <span>{t('profile.edit_name')}</span>
                 <span style={{ fontSize:11, fontWeight:800, color:'#D4A017' }}>· payant 🍪</span>
-              </button>
-              <button
-                onClick={()=>{ setEditAvatar(userAvatar); setEditing(true); }}
-                style={{
-                  width:'100%', padding:'13px 14px', borderRadius:14,
-                  background: `linear-gradient(135deg, ${C.card}, ${C.card2})`,
-                  border:'1.5px solid rgba(212,160,23,.5)',
-                  color:C.text, fontSize:13, fontWeight:800,
-                  boxShadow:'0 2px 10px rgba(0,0,0,.08)',
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                  cursor:'pointer',
-                }}
-              >
-                <Pencil size={15} color="#D4A017" />
-                {t('profile.edit_avatar')}
               </button>
               <button
                 onClick={()=>setShowChangeBio(true)}

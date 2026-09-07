@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Cookie, Coffee, Check, Lock, ChevronRight, ChevronLeft } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
-import { playMusic, getCurrentMusicId, playSound } from "../../lib/audio.js";
+import { playSound } from "../../lib/audio.js";
 import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
 import { ActionsShopView, ACTIONS_ACCESS_THRESHOLD } from "./ActionsShopView.jsx";
 import { getUserPortfolio } from "../../lib/market.js";
@@ -23,11 +23,12 @@ const STRIPE_ENABLED = false;
    - Snapshot initialUnlocked : items achetés AVANT ce mount sont masqués
                                 (l'utilisateur les retrouve dans Profil/Paramètres).
                                 Les achats faits PENDANT cette session restent visibles.
-   - "Activer/Désactiver" pour Thème / Skin / Roue (mutuellement exclusifs).
-                Avatar : pas de désactivation, juste switch.
+   - v1.30 : la boutique VEND, elle n'équipe plus. Un item acheté affiche
+             « Débloqué » + un renvoi vers Ma Collection (CollectionOverlay),
+             seul écran d'équipement de l'app.
 ═══════════════════════════════════════════════════════ */
 
-export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, activeBanner, activeSkin, activeTitle, userAvatar, setActiveTheme, setActiveBanner, setActiveSkin, setActiveTitle, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {}, onGrantUnlock, onGrantCafes, C }) {
+export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, setMode, activeTheme, userAvatar, setActiveTheme, setUserAvatar, spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {}, onGrantUnlock, onGrantCafes, onOpenCollection, C }) {
   const { t, localizedField } = useTranslation();
   const [filter, setFilter] = useState('Tous');
   /* Filtre dédié au mode premium 'main' — sépare visuellement Avatars/Skins/
@@ -107,35 +108,6 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
   /* Items "coffres mystères" — Boîte Mystère + chests Bronze/Or/Légendaire.
      Tous one-shot, tous routés vers la sous-vue 'chests'. */
   const isChestLike = (r) => r.applyAs === 'open_box' || r.applyAs === 'open_chest';
-
-  /* Musique active — état local synchronisé avec le système audio (LS).
-     Convention : côté REWARDS l'id est `music_<key>` (ex 'music_matin') ;
-     côté MUSICS / playMusic la clé est `<key>` (ex 'matin'). On strip le
-     préfixe avant l'appel et pour comparer la sélection.
-     Note : `activeMusicId` côté state local stocke l'id REWARDS (`music_<key>`)
-     pour matcher r.id directement dans la comparaison `isActive`. */
-  const fromMusicsKey = (k) => k ? `music_${k}` : '';
-  const toMusicsKey   = (id) => id ? id.replace(/^music_/, '') : '';
-  const [activeMusicId, setActiveMusicIdState] = useState(fromMusicsKey(getCurrentMusicId()));
-  const setActiveMusic = (id) => {
-    const key = toMusicsKey(id);
-    if(key){ playMusic(key); }
-    setActiveMusicIdState(id || fromMusicsKey(getCurrentMusicId()));
-  };
-
-  const ACTIVATABLE = {
-    'Thème'   :[activeTheme,  setActiveTheme],
-    'Bannière':[activeBanner, setActiveBanner],
-    /* Avatar : pas de désactivation possible, juste switch (gère plus bas) */
-    'Avatar'  :[userAvatar,   setUserAvatar],
-    /* Musique : pas de "désactivation" depuis la boutique — on switch
-       vers la musique sélectionnée. La désactivation passe par Settings. */
-    'Musique' :[activeMusicId, setActiveMusic],
-    /* Skin cookie : activable comme un thème (toggle '' = défaut) */
-    'Skin'    :[activeSkin,   setActiveSkin],
-    /* Titre couleur : activable comme un thème (toggle '' = aucun titre) */
-    'Titre'   :[activeTitle,  setActiveTitle],
-  };
 
   /* Révèle un niveau de plus uniquement quand tout celui en cours est acheté.
      Ignore les items premium (☕), les items 'limited' (thèmes événements
@@ -570,17 +542,12 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
             : (isSlotPass && slotPlaysLeft > 0) ? `Reste ${slotPlaysLeft} partie${slotPlaysLeft>1?'s':''}`
             : null;
           const passLocked = !!passLockedReason;
-          /* Pour les premium : on regarde applyAs pour piocher le bon activator */
-          const activeKey  = isPremium
-            ? (r.applyAs==='theme'  ? 'Thème'
-              : r.applyAs==='avatar'? 'Avatar'
-              : r.applyAs==='banner'? 'Bannière'
-              : r.applyAs==='music' ? 'Musique'
-              : r.applyAs==='skin'  ? 'Skin'
-              : null)
-            : r.type;
-          const activatable = ACTIVATABLE[activeKey];
-          const isActive    = activatable && activatable[0] === r.id;
+          /* Un item « équipable » (thème, avatar, skin, titre, musique,
+             bannière) renvoie vers Ma Collection une fois acheté. Les
+             consommables (jetons, packs, coffres) n'ont rien à équiper. */
+          const EQUIPPABLE = ['theme','avatar','skin','music','banner'];
+          const isEquippable = EQUIPPABLE.includes(r.applyAs)
+            || ['Thème','Avatar','Skin','Titre','Musique'].includes(r.type);
 
           return (
             <div key={r.id} className={`su stagger-${(i%4)+1}`} style={{
@@ -624,26 +591,21 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               })()}
 
               {isUnlocked ? (
-                activatable ? (
+                isEquippable && onOpenCollection ? (
                   <button
-                    onClick={()=>{
-                      const noToggle = activeKey === 'Avatar' || activeKey === 'Musique';
-                      if(noToggle){ if(!isActive) activatable[1](r.id); }
-                      else activatable[1](isActive ? '' : r.id);
-                    }}
-                    disabled={(activeKey === 'Avatar' || activeKey === 'Musique') && isActive}
+                    onClick={onOpenCollection}
                     style={{
-                      width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:700,
-                      background: isActive ? GOLD : 'transparent',
-                      color: isActive ? '#fff' : '#D4A017',
-                      border: `1.5px solid ${isActive ? 'transparent' : '#D4A017'}`,
-                      display:'flex', alignItems:'center', justifyContent:'center', gap:5, cursor: ((activeKey === 'Avatar' || activeKey === 'Musique') && isActive) ? 'default' : 'pointer'
+                      width:'100%', padding:'8px 0', borderRadius:12, fontSize:11.5, fontWeight:700,
+                      background:'transparent', color:'#D4A017',
+                      border:'1.5px solid #D4A017',
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+                      cursor:'pointer',
                     }}
                   >
-                    {isActive ? <><Check size={12} color="#fff" /> {activeKey === 'Avatar' ? 'Porté' : activeKey === 'Musique' ? 'En lecture' : 'Activé'}</> : 'Activer'}
+                    <Check size={12} color="#D4A017" /> {t('shop.equip_in_collection')}
                   </button>
                 ) : (
-                  <div style={{ fontSize:12, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:4 }}><Check size={12} color="#D4A017" /> Débloqué</div>
+                  <div style={{ fontSize:12, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:4 }}><Check size={12} color="#D4A017" /> {t('common.unlocked')}</div>
                 )
               ) : lvLocked ? (
                 <div style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:700, background:C.card2, color:'#D4A017', border:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
@@ -681,7 +643,7 @@ export function BoutiqueTab({ coins, cafes, unlocked, level, onUnlock, mode, set
               ? 'Tu as déjà tout débloqué côté premium.'
               : 'Tu as déjà tout débloqué pour ton niveau. Monte de niveau pour de nouvelles récompenses !'}
             <br/>
-            Retrouve tes items dans <strong style={{ color:C.text }}>Profil</strong> ou <strong style={{ color:C.text }}>Paramètres</strong>.
+            {t('shop.empty_find_items')}
           </div>
         </div>
       )}

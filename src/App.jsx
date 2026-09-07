@@ -44,6 +44,7 @@ import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
 import { APP_INFO } from "./lib/appInfo.js";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
+import { CollectionOverlay } from "./components/overlays/CollectionOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
 import { DuelStakeModal } from "./components/modals/DuelStakeModal.jsx";
@@ -780,6 +781,10 @@ export default function CookiMiner() {
   const bossOverlayOpen = !!communityBoss && (showBoss || !!bossReward || !!bossPenalty);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile,  setShowProfile]  = useState(false);
+  /* « Ma Collection » (v1.30) — LE seul écran où l'on équipe ses cosmétiques.
+     z-index 62 : se superpose à Profil / Paramètres / Boutique (60), donc on
+     ne ferme PAS l'écran appelant — la fermeture y ramène naturellement. */
+  const [showCollection, setShowCollection] = useState(false);
   const [showLevels,   setShowLevels]   = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [showPrestigeModal, setShowPrestigeModal] = useState(false);
@@ -1201,6 +1206,7 @@ export default function CookiMiner() {
   useBackToClose(!!duelResult,      () => setDuelResult(null));
   useBackToClose(showSettings,      () => setShowSettings(false));
   useBackToClose(showProfile,       () => setShowProfile(false));
+  useBackToClose(showCollection,    () => setShowCollection(false));
   useBackToClose(showLevels,        () => setShowLevels(false));
   useBackToClose(showSkipConfirm,   () => setShowSkipConfirm(false));
   useBackToClose(showEventModal,    () => setShowEventModal(false));
@@ -1371,7 +1377,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showCollection || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -4481,6 +4487,7 @@ export default function CookiMiner() {
               vipPurchasesToday={vipPurchasesToday}
               onGrantUnlock={(id)=> setUnlocked(u => (u||[]).includes(id) ? u : [...(u||[]), id])}
               onGrantCafes={(n)=> { if(n>0) setCafes(c => (c||0) + n); }}
+              onOpenCollection={()=>{ playSound('tab'); setShowCollection(true); }}
               C={C}
             />
           )}
@@ -4635,9 +4642,6 @@ export default function CookiMiner() {
       {showSettings && (
         <SettingsOverlay
           onClose={()=>setShowSettings(false)}
-          unlocked={unlocked}
-          activeTheme={activeTheme} setActiveTheme={setActiveTheme}
-          gameThemes={gameThemes} setGameThemes={setGameThemes}
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
           install={installPrompt}
           onOpenAbout={()=>setShowAbout(true)}
@@ -4647,6 +4651,31 @@ export default function CookiMiner() {
           onRestartTutorial={restartTutorial}
           userCode={userCode}
           restorePin={restorePin}
+          onOpenCollection={()=>{ playSound('tab'); setShowCollection(true); }}
+          C={C}
+        />
+      )}
+
+      {/* MA COLLECTION — l'unique écran d'équipement (v1.30).
+          Rendu au-dessus (z 62) de Profil / Paramètres / Boutique : on ne
+          ferme pas l'appelant, la croix y ramène directement. */}
+      {showCollection && (
+        <CollectionOverlay
+          onClose={()=>setShowCollection(false)}
+          unlocked={unlocked}
+          activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
+          activeBanner={activeBanner} setActiveBanner={setActiveBanner}
+          activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
+          activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
+          userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
+          gameThemes={gameThemes}     setGameThemes={setGameThemes}
+          onOpenShop={()=>{
+            setShowCollection(false);
+            setShowProfile(false);
+            setShowSettings(false);
+            setBoutiqueMode('shop');
+            setTab('boutique');
+          }}
           C={C}
         />
       )}
@@ -4786,8 +4815,9 @@ export default function CookiMiner() {
           onClose={()=>setShowProfile(false)}
           onOpenLevels={()=>{ setShowProfile(false); setShowLevels(true); }}
           onOpenSettings={()=>{ setShowProfile(false); setShowSettings(true); }}
+          onOpenCollection={()=>{ playSound('tab'); setShowCollection(true); }}
           userName={userName} setUserName={setUserName}
-          userAvatar={userAvatar} setUserAvatar={setUserAvatar}
+          userAvatar={userAvatar}
           joinDate={joinDate}
           coins={coins} spendCoins={spendCoins}
           nameChangeCount={nameChangeCount} setNameChangeCount={setNameChangeCount}
@@ -4798,9 +4828,7 @@ export default function CookiMiner() {
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.length}
           marketRealized={marketRealized}
           totalPlayTime={totalPlayTime}
-          activeTheme={activeTheme}
-          activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
-          activeTitle={activeTitle} setActiveTitle={setActiveTitle}
+          activeTitle={activeTitle}
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
           supabaseEnabled={isSupabaseEnabled()}
           supabaseSyncOk={!supabaseError}
