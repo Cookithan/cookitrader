@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Cookie, Coffee, Check, Lock, ChevronRight, ChevronLeft, Palette } from "lucide-react";
+import { Cookie, Coffee, Check, Lock, ChevronRight, ChevronLeft } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
 import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { playSound } from "../../lib/audio.js";
 import { BuyCafesModal } from "../modals/BuyCafesModal.jsx";
-import { CollectionContent } from "../overlays/CollectionOverlay.jsx";
 import { useTranslation } from "../../i18n/index.js";
 
 /* Achat de cafés via Stripe — masqué tant qu'on est en mode test (pas de
@@ -13,29 +12,25 @@ import { useTranslation } from "../../i18n/index.js";
 const STRIPE_ENABLED = false;
 
 /* ════════════════════════════════════════════════════
-   BoutiqueTab — onglet boutique (mode 'shop' | 'premium' | 'collection')
+   BoutiqueTab — onglet boutique (mode 'shop' | 'premium')
    - SHOP : items en cookies, filtrés par type (Tous / Badge / Titre / Thème /
             Avatar / Skin / Roue), ne révèle un nouveau niveau que si tout l'actuel
             est acheté (paiement cookies uniquement, pas premium)
    - PREMIUM : items currency:'cafe' uniquement
-   - COLLECTION (v1.30) : Ma Collection embarquée ici (CollectionContent).
-            Elle occupe la 3e place du sélecteur, libérée par la suppression
-            de la boutique secrète $CKM. Objectif : l'équipement est à UN tap
-            de la barre de nav au lieu d'être enterré dans Profil/Paramètres.
    - Snapshot initialUnlocked : items achetés AVANT ce mount sont masqués
                                 (on les retrouve dans l'onglet Collection).
                                 Les achats faits PENDANT cette session restent visibles.
-   - v1.30 : la boutique VEND, elle n'équipe plus. Un item acheté affiche
-             un renvoi vers Ma Collection, seul écran d'équipement de l'app.
+   - v1.30 : la boutique VEND, elle n'équipe plus. Un item acheté renvoie
+             vers l'onglet Ma Collection, seul écran d'équipement de l'app.
+             (La Collection a transité par un 3e onglet ici — rejeté :
+             acheter et équiper sont deux gestes distincts. C'est un onglet
+             de la barre de nav, entre Jeux et Classement.)
 ═══════════════════════════════════════════════════════ */
 
 export function BoutiqueTab({
   coins, cafes, unlocked, level, onUnlock, mode, setMode,
-  activeTheme, setActiveTheme, activeBanner, setActiveBanner,
-  activeSkin, setActiveSkin, activeTitle, setActiveTitle,
-  userAvatar, setUserAvatar, gameThemes, setGameThemes,
   spinsLeft = 0, slotPlaysLeft = 0, userCode = '', vipPurchasesToday = {},
-  C,
+  onOpenCollection, C,
 }) {
   const { t, localizedField } = useTranslation();
   const [filter, setFilter] = useState('Tous');
@@ -242,37 +237,7 @@ export function BoutiqueTab({
           <Coffee size={14} color={mode==='premium' ? '#F0C050' : C.muted} />
           {t('shop.tab_premium')}
         </button>
-        {/* Ma Collection — 3e onglet permanent (v1.30). Occupe la place de
-            l'ancienne boutique secrète $CKM, supprimée. */}
-        <button
-          onClick={()=>{ if(mode!=='collection'){ playSound('tab'); setMode('collection'); setPremiumView('main'); } }}
-          style={{
-            flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:800, letterSpacing:.4,
-            background: mode==='collection' ? GOLD : 'transparent',
-            color: mode==='collection' ? '#fff' : C.text,
-            display:'flex', alignItems:'center', justifyContent:'center', gap:6,
-            boxShadow: mode==='collection' ? '0 4px 12px rgba(212,160,23,.4)' : 'none', cursor:'pointer'
-          }}
-        >
-          <Palette size={14} color={mode==='collection' ? '#fff' : C.muted} />
-          {t('collection.tab')}
-        </button>
       </div>
-
-      {mode === 'collection' && (
-        <CollectionContent
-          unlocked={unlocked}
-          activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
-          activeBanner={activeBanner} setActiveBanner={setActiveBanner}
-          activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
-          activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
-          userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
-          gameThemes={gameThemes}     setGameThemes={setGameThemes}
-          onOpenShop={()=>{ playSound('tab'); setMode('shop'); }}
-          C={C}
-        />
-      )}
-      {mode !== 'collection' && (<>
 
       {/* Bouton retour — affiché dans les sous-vues 'jetons' et 'chests'. */}
       {mode === 'premium' && (premiumView === 'jetons' || premiumView === 'chests') && (
@@ -574,9 +539,9 @@ export function BoutiqueTab({
               })()}
 
               {isUnlocked ? (
-                isEquippable ? (
+                isEquippable && onOpenCollection ? (
                   <button
-                    onClick={()=>{ playSound('tab'); setMode('collection'); }}
+                    onClick={onOpenCollection}
                     style={{
                       width:'100%', padding:'8px 0', borderRadius:12, fontSize:11.5, fontWeight:700,
                       background:'transparent', color:'#D4A017',
@@ -636,7 +601,6 @@ export function BoutiqueTab({
           Monte de niveau pour débloquer plus de récompenses ! ☕
         </div>
       )}
-      </>)}
     </div>
   );
 }

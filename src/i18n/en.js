@@ -8,6 +8,7 @@ export const EN = {
   nav: {
     home:        'Home',
     games:       'Games',
+    collection:  'Collection',
     leaderboard: 'Leaderboard',
     market:      'Market',
     shop:        'Shop',
@@ -122,8 +123,12 @@ export const EN = {
   collection: {
     title:          'My Collection',
     subtitle:       'Everything you own — equip it here',
-    tab:            'COLLECTION',
     open:           'My Collection',
+    back_hub:       'My Collection',
+    owned_n:        '{n} owned',
+    music_off:      'Music off',
+    games_customised:'{n} game(s) customised',
+    games_default:  'Default look',
     open_sub:       'Themes, avatars, skins, titles, music',
     cat_themes:     'Themes',
     cat_avatars:    'Avatars',

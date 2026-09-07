@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronDown, Check, Lock, ShoppingBag } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
-import { THEMES, LT, GOLD, COOKIE_SKINS } from "../../data/themes.js";
+import { THEMES, LT, COOKIE_SKINS } from "../../data/themes.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
 import { THEMABLE_GAMES, getThemesForGame, getActiveTheme, isThemeUnlocked } from "../../data/gameThemes.js";
@@ -24,17 +24,18 @@ import {
    Avant : thèmes + thèmes de jeu + musique dans Paramètres,
    avatars + skins + titres dans Profil, « Activer » dans la Boutique.
 
-   DEUX EXPORTS, un seul corps de rendu :
-   - `CollectionContent` — les pills + le contenu, sans chrome. C'est ce
-     que la BoutiqueTab embarque dans son 3e onglet « Collection » (la
-     place libérée par la boutique secrète $CKM, supprimée en v1.30) :
-     l'écran est ainsi à UN tap de la barre de nav, plus caché.
-   - `CollectionOverlay` — le même contenu en plein écran z-index 62,
-     pour les entrées Profil et Paramètres. 62 : se pose AU-DESSUS de
-     Profil / Paramètres (60), donc on ferme et on retombe dessous.
+   C'est un ONGLET de la barre de nav (entre Jeux et Classement), pas un
+   sous-écran : l'équipement est une destination à part entière. Il l'a été
+   brièvement dans la Boutique — rejeté, ça mélangeait acheter et équiper.
 
-   6 catégories (pills wrap, tout visible d'un coup) :
-     Thèmes (+ bannière) · Avatars · Skins · Titres · Musiques · Jeux
+   DEUX NIVEAUX, jamais tout à la fois (règle posée par Régis : « quand on
+   ouvre on a plein de thèmes d'un coup ») :
+     1. HUB — 6 cartes, une par catégorie, chacune montrant ce qui est
+        ÉQUIPÉ en ce moment + le nombre possédé. Rien d'autre.
+     2. CATÉGORIE — on entre, on voit la liste de cette seule famille,
+        avec un retour vers le hub.
+
+   Catégories : Thèmes (+ bannière) · Avatars · Skins · Titres · Musiques · Jeux
 
    Invariants :
    - On n'affiche QUE ce que le joueur possède. Les items verrouillés se
@@ -49,15 +50,6 @@ import {
      (le toggle on/off reste dans Paramètres).
 ═══════════════════════════════════════════════════════ */
 
-const CATEGORIES = [
-  { id:'themes',  icon:'🎨' },
-  { id:'avatars', icon:'👤' },
-  { id:'skins',   icon:'🍪' },
-  { id:'titles',  icon:'👑' },
-  { id:'musics',  icon:'🎵' },
-  { id:'games',   icon:'🎮' },
-];
-
 export function CollectionContent({
   unlocked = [],
   activeTheme,  setActiveTheme,
@@ -70,7 +62,8 @@ export function CollectionContent({
   C,
 }) {
   const { t, localizedField } = useTranslation();
-  const [cat, setCat] = useState('themes');
+  /* null = hub (les 6 cartes). Sinon on est DANS une catégorie. */
+  const [cat, setCat] = useState(null);
   /* Accordéon des thèmes de mini-jeu — un seul jeu déplié à la fois. */
   const [expandedGame, setExpandedGame] = useState(null);
   /* État audio local, resynchronisé à chaque choix de piste. */
@@ -223,12 +216,15 @@ export function CollectionContent({
     <>
       {sectionLabel(t('collection.cat_themes'))}
       {listCard(<>
-        {row('theme-default', dashSwatch, t('settings.theme_default'), t('settings.theme_default_desc'),
+        {/* Rangées volontairement sur UNE ligne (pas de description) : la
+            pastille de couleur dit déjà ce qu'est le thème, et 8 thèmes
+            décrits font une page à scroller. */}
+        {row('theme-default', dashSwatch, t('settings.theme_default'), null,
           activeTheme === '', () => pick(setActiveTheme, ''))}
         {ownedThemes.map(r => row(
           r.id, themeSwatch(r.id),
           (localizedField(r, 'name', 'REWARDS') || '').replace(/^Th[èe]me\s+/i, '').replace(/\sTheme$/i, ''),
-          localizedField(r, 'desc', 'REWARDS'),
+          null,
           activeTheme === r.id,
           () => pick(setActiveTheme, activeTheme === r.id ? '' : r.id),
         ))}
@@ -244,7 +240,7 @@ export function CollectionContent({
             {ownedBanners.map(r => row(
               r.id, emojiSwatch(r.emoji),
               localizedField(r, 'name', 'REWARDS'),
-              localizedField(r, 'desc', 'REWARDS'),
+              null,
               activeBanner === r.id,
               () => pick(setActiveBanner, activeBanner === r.id ? '' : r.id),
             ))}
@@ -489,6 +485,83 @@ export function CollectionContent({
     games:   renderGames,
   };
 
+  /* ── HUB : ce qui est équipé, catégorie par catégorie ─────────────
+     Le nom court de l'item porté + le nombre possédé. Chaque carte est
+     une porte : on n'entre que dans la famille qu'on veut changer. */
+  const shortName = (r, strip) =>
+    (localizedField(r, 'name', 'REWARDS') || '').replace(strip, '').trim();
+
+  const activeThemeItem = ownedThemes.find(r => r.id === activeTheme);
+  const activeSkinItem  = ownedSkins.find(r => r.id === activeSkin);
+  const activeAvatar    = myAvatars.find(a => a.value === userAvatar);
+  const activeMusic     = ownedMusics.find(m => m.id === audio.currentMusicId);
+  const gameThemesSet   = THEMABLE_GAMES.filter(g => {
+    const th = getActiveTheme(g, gameThemes);
+    return th && th.id !== getThemesForGame(g)[0]?.id;
+  }).length;
+
+  const HUB = [
+    { id:'themes',  icon:'🎨',
+      current: activeThemeItem ? shortName(activeThemeItem, /^Th[èe]me\s+/i) : t('settings.theme_default'),
+      count: ownedThemes.length + 1,
+      visual: themeSwatch(activeTheme) },
+    { id:'avatars', icon:'👤',
+      current: activeAvatar?.name || '—',
+      count: myAvatars.length,
+      visual: <AvatarFigure value={userAvatar} size={38} /> },
+    { id:'skins',   icon:'🍪',
+      current: activeSkinItem ? shortName(activeSkinItem, /^(Skin Cookie|Skin|Cookie)\s+/i) : t('settings.theme_default'),
+      count: ownedSkins.length + 1,
+      visual: <div style={{ width:38, height:38 }}><SkinnedCookie skin={COOKIE_SKINS[activeSkin] || COOKIE_SKINS['']} /></div> },
+    { id:'titles',  icon:'👑',
+      current: activeTitle ? (TITLE_STYLES[activeTitle]?.name || '—') : t('collection.none'),
+      count: ownedTitles.length + 1,
+      visual: emojiSwatch('👑') },
+    { id:'musics',  icon:'🎵',
+      current: audio.musicEnabled ? (activeMusic?.name || '—') : t('collection.music_off'),
+      count: ownedMusics.length,
+      visual: emojiSwatch(audio.musicEnabled ? (activeMusic?.emoji || '🎵') : '🔇') },
+    { id:'games',   icon:'🎮',
+      current: gameThemesSet > 0
+        ? t('collection.games_customised', { n: gameThemesSet })
+        : t('collection.games_default'),
+      count: THEMABLE_GAMES.length,
+      visual: emojiSwatch('🎮') },
+  ];
+
+  const renderHub = () => (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+      {HUB.map(h => (
+        <button
+          key={h.id}
+          onClick={() => { playSound('tab'); setCat(h.id); setExpandedGame(null); }}
+          style={{
+            display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8,
+            padding:'14px 14px 12px', borderRadius:18, textAlign:'left',
+            background:C.card, border:`1px solid ${C.border}`,
+            boxShadow:'0 2px 8px rgba(0,0,0,.05)', cursor:'pointer',
+          }}
+        >
+          {h.visual}
+          <div style={{ width:'100%', minWidth:0 }}>
+            <div style={{ fontSize:13, fontWeight:800, color:C.text, marginBottom:2 }}>
+              {t('collection.cat_' + h.id)}
+            </div>
+            <div style={{
+              fontSize:11, color:'#D4A017', fontWeight:700,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}>
+              {h.current}
+            </div>
+            <div style={{ fontSize:10, color:C.muted, marginTop:3 }}>
+              {t('collection.owned_n', { n: h.count })}
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+
   /* Catégories vides (hors avatars/jeux qui ont toujours du contenu) —
      on affiche l'invitation boutique plutôt qu'une carte vide. */
   const isEmpty =
@@ -496,84 +569,50 @@ export function CollectionContent({
    || (cat === 'titles' && ownedTitles.length === 0)
    || (cat === 'musics' && ownedMusics.length === 0);
 
-  return (
-    <>
-      {/* Pills de catégorie — flex-wrap : tout visible d'un coup, pas de scroll
-          horizontal (cf. convention filtres du projet). */}
-      <div style={{ display:'flex', flexWrap:'wrap', gap:8, marginBottom:14 }}>
-        {CATEGORIES.map(c => {
-          const sel = cat === c.id;
-          return (
-            <button
-              key={c.id}
-              onClick={() => { if(!sel){ playSound('tab'); setCat(c.id); setExpandedGame(null); } }}
-              style={{
-                padding:'7px 13px', borderRadius:20, fontSize:12, fontWeight:700,
-                display:'inline-flex', alignItems:'center', gap:6, whiteSpace:'nowrap',
-                background: sel ? GOLD : C.card,
-                color: sel ? '#fff' : C.muted,
-                border:`1px solid ${sel ? 'transparent' : C.border}`,
-                boxShadow: sel ? '0 2px 8px rgba(212,160,23,.3)' : 'none',
-                transition:'all .2s', cursor:'pointer',
-              }}
-            >
-              <span style={{ fontSize:14, lineHeight:1 }}>{c.icon}</span>
-              <span>{t('collection.cat_' + c.id)}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div key={cat} className="su">
-        {isEmpty ? (
-          <>
-            {sectionLabel(t('collection.cat_' + cat))}
-            {emptyHint(t('collection.empty_hint'))}
-            {lockedFooter(
-              cat === 'skins'  ? lockedSkins.length
-            : cat === 'titles' ? lockedTitles.length
-            : lockedMusics.length
-            )}
-          </>
-        ) : CONTENT[cat]()}
-      </div>
-    </>
-  );
-}
-
-/* Version plein écran (z-index 62) pour les entrées Profil / Paramètres.
-   Même contenu que l'onglet Collection de la boutique. */
-export function CollectionOverlay({ onClose, C, ...rest }){
-  const { t } = useTranslation();
-  return (
-    <div style={{
-      position:'fixed', top:0, left:'50%', transform:'translateX(-50%)',
-      width:'100%', maxWidth:430, bottom:0,
-      background:C.bg, zIndex:62, display:'flex', flexDirection:'column',
-    }}>
-      <div style={{
-        display:'flex', alignItems:'center', gap:12, padding:'14px 20px',
-        borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0,
-      }}>
-        <button
-          onClick={onClose}
-          aria-label={t('common.back')}
-          style={{
-            width:36, height:36, borderRadius:12, background:C.card2,
-            display:'flex', alignItems:'center', justifyContent:'center', color:C.text,
-          }}
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:17, fontWeight:800, color:C.text }}>{t('collection.title')}</div>
-          <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>{t('collection.subtitle')}</div>
+  /* ── HUB ─────────────────────────────────────────── */
+  if(!cat){
+    return (
+      <div className="su">
+        <div style={{ marginBottom:14, paddingTop:4 }}>
+          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>
+            {t('collection.title')}
+          </div>
+          <div style={{ fontSize:11.5, color:C.muted, marginTop:3 }}>
+            {t('collection.subtitle')}
+          </div>
         </div>
+        {renderHub()}
       </div>
+    );
+  }
 
-      <div style={{ flex:1, overflowY:'auto', padding:'16px 18px 28px' }}>
-        <CollectionContent C={C} {...rest} />
-      </div>
+  /* ── UNE catégorie ───────────────────────────────── */
+  return (
+    <div key={cat} className="su">
+      <button
+        onClick={() => { playSound('tab'); setCat(null); setExpandedGame(null); }}
+        style={{
+          display:'flex', alignItems:'center', gap:8,
+          padding:'9px 14px 9px 10px', borderRadius:12, marginBottom:14,
+          background:'transparent', color:C.text,
+          border:`1px solid ${C.border}`,
+          fontSize:12.5, fontWeight:700, cursor:'pointer',
+        }}
+      >
+        <ChevronLeft size={16} /> {t('collection.back_hub')}
+      </button>
+
+      {isEmpty ? (
+        <>
+          {sectionLabel(t('collection.cat_' + cat))}
+          {emptyHint(t('collection.empty_hint'))}
+          {lockedFooter(
+            cat === 'skins'  ? lockedSkins.length
+          : cat === 'titles' ? lockedTitles.length
+          : lockedMusics.length
+          )}
+        </>
+      ) : CONTENT[cat]()}
     </div>
   );
 }

@@ -14,6 +14,7 @@ export const FR = {
   nav: {
     home:        'Accueil',
     games:       'Jeux',
+    collection:  'Collection',
     leaderboard: 'Classement',
     market:      'Marché',
     shop:        'Boutique',
@@ -130,8 +131,12 @@ export const FR = {
   collection: {
     title:          'Ma Collection',
     subtitle:       "Tout ce que tu possèdes — équipe-le ici",
-    tab:            'COLLECTION',
     open:           'Ma Collection',
+    back_hub:       'Ma Collection',
+    owned_n:        '{n} possédés',
+    music_off:      'Musique coupée',
+    games_customised:'{n} jeu(x) personnalisé(s)',
+    games_default:  'Look par défaut',
     open_sub:       'Thèmes, avatars, skins, titres, musiques',
     cat_themes:     'Thèmes',
     cat_avatars:    'Avatars',

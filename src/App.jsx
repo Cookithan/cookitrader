@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5 } from "lucide-react";
+import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
@@ -44,7 +44,7 @@ import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
 import { APP_INFO } from "./lib/appInfo.js";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
-import { CollectionOverlay } from "./components/overlays/CollectionOverlay.jsx";
+import { CollectionContent } from "./components/overlays/CollectionOverlay.jsx";
 import { AchievementsOverlay } from "./components/overlays/AchievementsOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
@@ -782,10 +782,6 @@ export default function CookiMiner() {
   const bossOverlayOpen = !!communityBoss && (showBoss || !!bossReward || !!bossPenalty);
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile,  setShowProfile]  = useState(false);
-  /* « Ma Collection » (v1.30) — LE seul écran où l'on équipe ses cosmétiques.
-     z-index 62 : se superpose à Profil / Paramètres / Boutique (60), donc on
-     ne ferme PAS l'écran appelant — la fermeture y ramène naturellement. */
-  const [showCollection, setShowCollection] = useState(false);
   const [showLevels,   setShowLevels]   = useState(false);
   const [showAllAchievements, setShowAllAchievements] = useState(false);
   const [showPrestigeModal, setShowPrestigeModal] = useState(false);
@@ -1207,7 +1203,6 @@ export default function CookiMiner() {
   useBackToClose(!!duelResult,      () => setDuelResult(null));
   useBackToClose(showSettings,      () => setShowSettings(false));
   useBackToClose(showProfile,       () => setShowProfile(false));
-  useBackToClose(showCollection,    () => setShowCollection(false));
   useBackToClose(showAllAchievements, () => setShowAllAchievements(false));
   useBackToClose(showLevels,        () => setShowLevels(false));
   useBackToClose(showSkipConfirm,   () => setShowSkipConfirm(false));
@@ -1358,7 +1353,7 @@ export default function CookiMiner() {
      overlay/modal/jeu/tuto est ouvert, pour éviter les conflits.
      `slideDir` mémorise la direction du dernier changement pour
      animer le content entrant (depuis la droite ou la gauche). */
-  const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
+  const TAB_ORDER = ['accueil','jeux','collection','classement','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
 
   const goToTab = (target, source = 'click') => {
@@ -1379,7 +1374,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showCollection || showAllAchievements || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showAllAchievements || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -3746,7 +3741,10 @@ export default function CookiMiner() {
   ];
 
   const s = {
-    pill:(active)=>({ padding:'10px 12px', borderRadius:18, flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, transition:'all .2s', background:active?ESPRESSO:'transparent', color:active?'#fff':C.muted }),
+    /* 6 onglets depuis la v1.30 (ajout de Collection) : padding horizontal
+       réduit à 4px et libellé en 9.5px pour que « Classement » tienne sans
+       passer à la ligne, même sur un écran de 360 px. */
+    pill:(active)=>({ padding:'10px 4px', borderRadius:16, flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', gap:3, transition:'all .2s', background:active?ESPRESSO:'transparent', color:active?'#fff':C.muted }),
     card:{ borderRadius:18, background:C.card, border:`1px solid ${C.border}`, boxShadow:'0 2px 8px rgba(0,0,0,.05)' },
     goldBtn:(disabled)=>({ padding:'13px 36px', borderRadius:20, fontSize:14, fontWeight:700, background:disabled?C.card:GOLD, color:disabled?C.muted:'#fff', border:`2px solid ${disabled?C.border:'transparent'}`, boxShadow:disabled?'none':'0 4px 16px rgba(212,160,23,.4)', cursor:disabled?'not-allowed':'pointer' }),
   };
@@ -4340,20 +4338,32 @@ export default function CookiMiner() {
             )
           )}
 
-          {/* ── BOUTIQUE ── */}
-          {tab==='boutique' && (
-            <BoutiqueTab
-              coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
-              mode={boutiqueMode} setMode={setBoutiqueMode}
+          {/* ── MA COLLECTION ── onglet à part entière (v1.30). Décision
+              de Régis : surtout PAS dans la boutique — acheter et équiper
+              sont deux gestes différents. */}
+          {tab==='collection' && (
+            <CollectionContent
+              unlocked={unlocked}
               activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
               activeBanner={activeBanner} setActiveBanner={setActiveBanner}
               activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
               activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
               userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
               gameThemes={gameThemes}     setGameThemes={setGameThemes}
+              onOpenShop={()=>{ playSound('tab'); setBoutiqueMode('shop'); goToTab('boutique'); }}
+              C={C}
+            />
+          )}
+
+          {/* ── BOUTIQUE ── */}
+          {tab==='boutique' && (
+            <BoutiqueTab
+              coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
+              mode={boutiqueMode} setMode={setBoutiqueMode}
               spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
               userCode={userCode}
               vipPurchasesToday={vipPurchasesToday}
+              onOpenCollection={()=>{ playSound('tab'); goToTab('collection'); }}
               C={C}
             />
           )}
@@ -4363,17 +4373,17 @@ export default function CookiMiner() {
       {/* NAV */}
       <nav style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, padding:'0 16px 16px', zIndex:40 }}>
         <div style={{ background:isDark?'rgba(30,16,10,.95)':'rgba(253,250,246,.95)', backdropFilter:'blur(12px)', borderRadius:24, border:`1px solid ${C.border}`, boxShadow:'0 8px 32px rgba(0,0,0,.12)', display:'flex', padding:8 }}>
-          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
+          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'collection',Icon:Palette,label:t('nav.collection')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
             const showDot = item.id==='accueil' && (canCheckin || canQuiz);
             return (
               <button key={item.id} id={`nav-${item.id}`} onClick={()=>goToTab(item.id)} style={s.pill(tab===item.id)}>
                 <span style={{ position:'relative', display:'inline-flex', lineHeight:0 }}>
-                  <item.Icon size={20} />
+                  <item.Icon size={19} />
                   {showDot && (
                     <span className="pulse-ring" style={{ position:'absolute', top:-3, right:-4, width:8, height:8, borderRadius:'50%', background:'#D4A017', boxShadow:'0 0 0 2px '+(isDark?'rgba(30,16,10,.95)':'rgba(253,250,246,.95)') }} />
                   )}
                 </span>
-                <span style={{ fontSize:11, fontWeight:700 }}>{item.label}</span>
+                <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:'-.2px', maxWidth:'100%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.label}</span>
               </button>
             );
           })}
@@ -4517,7 +4527,7 @@ export default function CookiMiner() {
           onRestartTutorial={restartTutorial}
           userCode={userCode}
           restorePin={restorePin}
-          onOpenCollection={()=>{ playSound('tab'); setShowCollection(true); }}
+          onOpenCollection={()=>{ playSound('tab'); setShowSettings(false); goToTab('collection'); }}
           C={C}
         />
       )}
@@ -4530,30 +4540,6 @@ export default function CookiMiner() {
           earnedAchievements={earnedAchievements}
           unlocked={unlocked}
           level={level}
-          C={C}
-        />
-      )}
-
-      {/* MA COLLECTION — l'unique écran d'équipement (v1.30).
-          Rendu au-dessus (z 62) de Profil / Paramètres / Boutique : on ne
-          ferme pas l'appelant, la croix y ramène directement. */}
-      {showCollection && (
-        <CollectionOverlay
-          onClose={()=>setShowCollection(false)}
-          unlocked={unlocked}
-          activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
-          activeBanner={activeBanner} setActiveBanner={setActiveBanner}
-          activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
-          activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
-          userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
-          gameThemes={gameThemes}     setGameThemes={setGameThemes}
-          onOpenShop={()=>{
-            setShowCollection(false);
-            setShowProfile(false);
-            setShowSettings(false);
-            setBoutiqueMode('shop');
-            setTab('boutique');
-          }}
           C={C}
         />
       )}
@@ -4693,7 +4679,7 @@ export default function CookiMiner() {
           onClose={()=>setShowProfile(false)}
           onOpenLevels={()=>{ setShowProfile(false); setShowLevels(true); }}
           onOpenSettings={()=>{ setShowProfile(false); setShowSettings(true); }}
-          onOpenCollection={()=>{ playSound('tab'); setShowCollection(true); }}
+          onOpenCollection={()=>{ playSound('tab'); setShowProfile(false); goToTab('collection'); }}
           userName={userName} setUserName={setUserName}
           userAvatar={userAvatar}
           joinDate={joinDate}
