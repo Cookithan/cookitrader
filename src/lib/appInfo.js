@@ -21,6 +21,12 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  /* ⚠️ BROUILLON — NE PAS DÉPLOYER EN L'ÉTAT ⚠️
+     La 1.30 est loin d'être finie (≈ 10 % du périmètre voulu au 07/09/2026) :
+     ce qui suit ne couvre que le premier chantier, la simplification de
+     l'interface. Le titre, la date et TOUS les points sont à réécrire
+     quand la version sera vraiment terminée — sinon les joueurs
+     recevront un changelog qui décrit un dixième de la mise à jour. */
   {
     version: '1.30.0',
     date: '2026-09-07',
