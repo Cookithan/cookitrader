@@ -6,8 +6,8 @@
 -- capture du classement des traders (2026-09-07, 19 h 25) — reportées
 -- ci-dessous, appariées aux user_code de la base.
 --
--- ⚠️ TOUT EST COMMENTÉ. Décommenter après avoir tranché les 2 points
---    marqués À ARBITRER plus bas.
+-- ⚠️ TOUT EST COMMENTÉ. Décommenter après avoir tranché le point
+--    marqué À ARBITRER plus bas (dokiller).
 -- ⚠️ IRRÉVERSIBLE. Sauvegarder d'abord :
 --    CREATE TABLE pf_avant_restauration AS SELECT * FROM public.market_portfolio;
 --
@@ -18,25 +18,15 @@
 
 
 -- ─────────────────────────────────────────────────────
--- À ARBITRER n°1 — Le vrai Cooki (FPJ-LJK), 500 actions
+-- TRANCHÉ — Le vrai Cooki (FPJ-LJK) : RIEN NE LUI EST RENDU
 -- ─────────────────────────────────────────────────────
--- Tu as dit « à tous les joueurs sauf Fedider ». Or Le vrai Cooki est
--- le SECOND compte qui a exploité le bug du Memory — 857 cookies/min,
--- le pire rendement de toute la base, et 25 % des gains de la semaine
--- en cours. Lui rendre 500 actions (≈ 51 434 cookies de valeur, le plus
--- gros portefeuille du classement) annulerait la sanction préparée dans
--- SANCTION_EXPLOIT_MEMORY.sql, où on lui retire justement ses actions.
+-- Décision de Régis (2026-09-07) : il rejoint Fedider du côté des
+-- comptes sanctionnés. Ses 500 actions de la capture ne sont donc PAS
+-- restaurées, et le bloc de SANCTION_EXPLOIT_MEMORY.sql qui remet son
+-- portefeuille à 0 reste valable. Les deux fichiers sont cohérents.
 --
--- Les deux ne peuvent pas coexister. Choisir UNE ligne :
---
---   (a) il est traité comme Fedider — ne rien lui rendre :
---       ne décommenter aucune ligne le concernant.
---
---   (b) tu veux quand même le servir :
---       UPDATE public.market_portfolio SET shares = 500 WHERE user_code = 'FPJ-LJK';
---       ... et alors retirer la ligne « market_portfolio » de son bloc
---       dans SANCTION_EXPLOIT_MEMORY.sql, sinon l'une défait l'autre.
-
+-- Rappel du motif : 857 cookies/min, le pire rendement de toute la
+-- base, et 25 % des gains de la communauté sur la semaine en cours.
 
 -- ─────────────────────────────────────────────────────
 -- À ARBITRER n°2 — dokiller (7Z4-977), 90 actions
