@@ -991,6 +991,8 @@ export const EN = {
     catcher_desc:   'Slide the cup, catch the orders',
     catcher_reward: '60-180s · up to 300 🍪 · ☕ jackpot (cost 10🍪)',
     available:      'Available',
+    section_pick:   'Pick a game',
+    section_locked: 'To unlock',
   },
 
   game_checkin: {

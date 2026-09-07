@@ -1010,6 +1010,8 @@ export const FR = {
     catcher_desc:   'Glisse la tasse, attrape les commandes',
     catcher_reward: '60-180s · jusqu\'à 300 🍪 · jackpot ☕ (coût 10🍪)',
     available:      'Dispo',
+    section_pick:   'Choisir un jeu',
+    section_locked: 'À débloquer',
   },
 
   game_checkin: {

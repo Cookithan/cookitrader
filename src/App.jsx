@@ -4237,71 +4237,92 @@ export default function CookiMiner() {
               </span>
               <span style={{ fontSize:18, color:'#D4A017', fontWeight:900 }}>›</span>
             </button>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
-            {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))).map(g=>{
-              /* Override force-unlock par code promo (cf. unlockedGames).
-                 Si l'id du jeu est dans unlockedGames, on ignore le
-                 niveau requis (utile pour les codes starter pack). */
-              const locked     = level < g.levelRequired && !unlockedGames.includes(g.id);
-              const comingSoon = !locked && g.comingSoon;
-              const blocked    = locked || comingSoon;
-              const onClick    = blocked ? undefined : ()=>{ playSound('modal'); setGameView(g.id); };
-
-              return (
-                <button
-                  key={g.id}
-                  onClick={onClick}
-                  disabled={blocked}
-                  style={{
-                    width:'100%', borderRadius:20, overflow:'hidden',
-                    boxShadow: blocked ? '0 2px 8px rgba(0,0,0,.06)' : '0 4px 16px rgba(0,0,0,.1)',
-                    marginBottom:12, textAlign:'left', display:'block',
-                    cursor: blocked ? 'not-allowed' : 'pointer',
-                    opacity: locked ? .65 : 1,
-                  }}
-                >
-                  <div style={{
-                    padding:18,
-                    background: locked ? 'linear-gradient(135deg,#3D2010,#2A1508)' : g.color,
-                    display:'flex', alignItems:'center', gap:14,
-                    filter: locked ? 'grayscale(.4)' : 'none',
-                  }}>
-                    <div style={{ width:54, height:54, borderRadius:16, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, position:'relative' }}>
-                      <g.Icon size={26} color="#fff" />
-                      {locked && (
-                        <div style={{ position:'absolute', bottom:-4, right:-4, width:22, height:22, borderRadius:'50%', background:'#1A0E08', border:'2px solid #4A2C17', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          <Lock size={11} color="#F0E0C0" />
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:17, fontWeight:800, color:'#fff' }}>{g.title}</div>
-                      <div style={{ fontSize:12, color:'rgba(255,255,255,.7)', marginTop:2 }}>{g.desc}</div>
-                    </div>
-                    <div style={{ textAlign:'right', flexShrink:0 }}>
-                      <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>Récompense</div>
-                      <div style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{g.reward}</div>
-                    </div>
-                  </div>
-                  <div style={{ padding:'10px 18px', background:C.card, borderTop:`1px solid ${C.border}`, display:'flex', justifyContent: locked ? 'center' : (g.avail ? 'space-between' : 'flex-end'), alignItems:'center', gap:6 }}>
-                    {locked ? (
-                      <span style={{ fontSize:12, fontWeight:700, color:C.muted, display:'flex', alignItems:'center', gap:6, letterSpacing:.3 }}>
-                        <Lock size={12} /> Niveau {g.levelRequired} requis
-                      </span>
-                    ) : comingSoon ? (
-                      <span style={{ fontSize:12, fontWeight:700, color:'#C17F3C', letterSpacing:.3 }}>
-                        ✨ Bientôt disponible
-                      </span>
-                    ) : (
-                      <>
-                        {g.avail && <span style={{ fontSize:12, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:5 }}><span style={{ width:6, height:6, borderRadius:'50%', background:'#D4A017', display:'inline-block' }} />Disponible</span>}
-                        <span style={{ fontSize:12, color:C.muted, fontWeight:600 }}>Jouer →</span>
-                      </>
-                    )}
-                  </div>
-                </button>
+            {/* v1.30 — chaque jeu tenait sur DEUX blocs : l'en-tête coloré
+                plus une barre blanche en pied qui répétait « ● Disponible »
+                et « Jouer → » sur une carte évidemment tapable. Dix jeux =
+                dix barres inutiles et ~1200 px à faire défiler.
+                Un seul bloc désormais, et les jeux verrouillés passent en
+                rangée compacte — on ne peut pas y jouer, ils n'ont pas
+                besoin d'une carte pleine taille. */}
+            {(() => {
+              const list = GAMES.filter(g =>
+                g.id !== 'checkin' && g.id !== 'quiz'
+                && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))
               );
-            })}
+              /* Override force-unlock par code promo (cf. unlockedGames) :
+                 si l'id est dans unlockedGames, on ignore le niveau requis. */
+              const isLocked = (g) => level < g.levelRequired && !unlockedGames.includes(g.id);
+              const playable = list.filter(g => !isLocked(g));
+              const locked   = list.filter(isLocked);
+
+              return (<>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>
+                  {t('games_list.section_pick')}
+                </div>
+
+                {playable.map(g => {
+                  const comingSoon = !!g.comingSoon;
+                  return (
+                    <button
+                      key={g.id}
+                      onClick={comingSoon ? undefined : ()=>{ playSound('modal'); setGameView(g.id); }}
+                      disabled={comingSoon}
+                      style={{
+                        width:'100%', borderRadius:18, marginBottom:10,
+                        padding:'13px 15px', background:g.color,
+                        display:'flex', alignItems:'center', gap:13,
+                        textAlign:'left', position:'relative', overflow:'hidden',
+                        boxShadow:'0 4px 14px rgba(0,0,0,.10)',
+                        cursor: comingSoon ? 'not-allowed' : 'pointer',
+                        /* Pas assez de cookies / plus de parties : la carte
+                           s'estompe. Pas de texte — le jeu l'explique à
+                           l'ouverture, et l'écrire 10 fois serait du bruit. */
+                        opacity: comingSoon ? .6 : (g.avail ? 1 : .72),
+                      }}
+                    >
+                      <div style={{ width:44, height:44, borderRadius:13, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                        <g.Icon size={22} color="#fff" />
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:15, fontWeight:800, color:'#fff', display:'flex', alignItems:'center', gap:7 }}>
+                          {g.title}
+                          {g.avail && !comingSoon && (
+                            <span className="live-pulse" style={{ width:6, height:6, borderRadius:'50%', background:'#fff', display:'inline-block', flexShrink:0 }} />
+                          )}
+                        </div>
+                        <div style={{ fontSize:11.5, color:'rgba(255,255,255,.72)', marginTop:2 }}>
+                          {comingSoon ? '✨ Bientôt disponible' : g.desc}
+                        </div>
+                      </div>
+                      <div style={{ flexShrink:0, maxWidth:'36%', textAlign:'right', fontSize:11, fontWeight:700, color:'rgba(255,255,255,.92)', lineHeight:1.35 }}>
+                        {g.reward}
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {locked.length > 0 && (<>
+                  <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, margin:'18px 0 10px' }}>
+                    {t('games_list.section_locked')}
+                  </div>
+                  {locked.map(g => (
+                    <div key={g.id} style={{
+                      display:'flex', alignItems:'center', gap:11,
+                      padding:'11px 14px', borderRadius:14, marginBottom:8,
+                      background:C.card, border:`1px dashed ${C.border}`,
+                    }}>
+                      <Lock size={14} color={C.muted} />
+                      <span style={{ flex:1, minWidth:0, fontSize:12.5, fontWeight:700, color:C.muted, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                        {g.title}
+                      </span>
+                      <span style={{ flexShrink:0, fontSize:11, fontWeight:800, color:'#D4A017' }}>
+                        {t('profile.level_n', { n: g.levelRequired })}
+                      </span>
+                    </div>
+                  ))}
+                </>)}
+              </>);
+            })()}
           </div>
         )}
 
