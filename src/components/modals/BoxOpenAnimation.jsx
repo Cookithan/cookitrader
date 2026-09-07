@@ -47,11 +47,16 @@ export function BoxOpenAnimation({ boxName, boxEmoji, reward, onCollect }) {
     };
   }) : [];
 
-  const rewardLabel = reward.cafes
-    ? `+${reward.cafes} ☕`
-    : reward.cookies
-      ? `+${reward.cookies} 🍪`
-      : t('box.surprise_label');
+  /* App.jsx crédite les DEUX monnaies indépendamment (`if(reward.cafes)`
+     puis `if(reward.cookies)`). Le libellé était un si/sinon : une boîte
+     donnant ☕ ET 🍪 n'aurait annoncé que le café. Aucune boîte n'est dans
+     ce cas aujourd'hui (box_starter ne donne que 3 ☕), mais l'écart entre
+     ce qui est versé et ce qui est annoncé n'a pas à attendre d'être
+     visible pour être faux. */
+  const rewardParts = [];
+  if(reward.cafes)   rewardParts.push(`+${reward.cafes} ☕`);
+  if(reward.cookies) rewardParts.push(`+${reward.cookies} 🍪`);
+  const rewardLabel = rewardParts.length ? rewardParts.join('  ') : t('box.surprise_label');
 
   return (
     <div
