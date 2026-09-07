@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronDown, Check, Lock, ShoppingBag } from "lucide-react";
 import { REWARDS } from "../../data/constants.js";
-import { THEMES, LT, COOKIE_SKINS } from "../../data/themes.js";
+import { THEMES, LT, ESPRESSO, COOKIE_SKINS } from "../../data/themes.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
 import { THEMABLE_GAMES, getThemesForGame, getActiveTheme, isThemeUnlocked } from "../../data/gameThemes.js";
@@ -500,61 +500,153 @@ export function CollectionContent({
     return th && th.id !== getThemesForGame(g)[0]?.id;
   }).length;
 
+  /* Scène d'aperçu — le haut de chaque carte du hub. Elle ne montre PAS
+     une icône de catégorie mais l'ITEM RÉELLEMENT PORTÉ : le thème est
+     peint avec sa vraie palette, l'avatar est dessiné, le cookie est
+     skinné, le titre est rendu dans son style. C'est ce qui fait la
+     différence entre six cartes blanches identiques et six cartes qui
+     racontent ton personnage. */
+  const stage = (children, background, extra = {}) => (
+    <div style={{
+      height:86, borderRadius:14, marginBottom:10,
+      display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+      background, overflow:'hidden', position:'relative',
+      border:`1px solid ${C.border}`,
+      ...extra,
+    }}>{children}</div>
+  );
+
+  /* Aperçu de thème : on repeint une mini-interface (fond + carte + barre
+     dorée) avec la palette réelle du thème actif. */
+  const themeStage = () => {
+    const p = THEMES[activeTheme];
+    const bg     = p ? p.bg     : LT.bg;
+    const card   = p ? p.card   : LT.card;
+    const border = p ? p.border : LT.border;
+    const filter = p && p.hueRotate ? `hue-rotate(${p.hueRotate}deg) saturate(${p.saturate || 1})` : 'none';
+    return stage(
+      <div style={{ width:'100%', height:'100%', padding:'12px 14px', display:'flex', flexDirection:'column', gap:6, justifyContent:'center' }}>
+        <div style={{ height:20, borderRadius:6, background:card, border:`1px solid ${border}` }} />
+        <div style={{ height:8, width:'62%', borderRadius:4, background:'linear-gradient(90deg,#D4A017,#F0C050)' }} />
+        <div style={{ height:8, width:'38%', borderRadius:4, background:card, border:`1px solid ${border}` }} />
+      </div>,
+      bg,
+      { filter },
+    );
+  };
+
   const HUB = [
-    { id:'themes',  icon:'🎨',
+    { id:'themes',
       current: activeThemeItem ? shortName(activeThemeItem, /^Th[èe]me\s+/i) : t('settings.theme_default'),
       count: ownedThemes.length + 1,
-      visual: themeSwatch(activeTheme) },
-    { id:'avatars', icon:'👤',
+      stage: themeStage() },
+
+    { id:'avatars',
       current: activeAvatar?.name || '—',
       count: myAvatars.length,
-      visual: <AvatarFigure value={userAvatar} size={38} /> },
-    { id:'skins',   icon:'🍪',
+      stage: stage(
+        <AvatarFigure value={userAvatar} size={64} />,
+        'radial-gradient(circle at 50% 30%, rgba(212,160,23,.18), rgba(193,127,60,.08))',
+      ) },
+
+    { id:'skins',
       current: activeSkinItem ? shortName(activeSkinItem, /^(Skin Cookie|Skin|Cookie)\s+/i) : t('settings.theme_default'),
       count: ownedSkins.length + 1,
-      visual: <div style={{ width:38, height:38 }}><SkinnedCookie skin={COOKIE_SKINS[activeSkin] || COOKIE_SKINS['']} /></div> },
-    { id:'titles',  icon:'👑',
+      stage: stage(
+        <div style={{ width:58, height:58 }}>
+          <SkinnedCookie skin={COOKIE_SKINS[activeSkin] || COOKIE_SKINS['']} />
+        </div>,
+        'radial-gradient(circle at 50% 35%, rgba(255,232,154,.30), rgba(193,127,60,.10))',
+      ) },
+
+    { id:'titles',
       current: activeTitle ? (TITLE_STYLES[activeTitle]?.name || '—') : t('collection.none'),
       count: ownedTitles.length + 1,
-      visual: emojiSwatch('👑') },
-    { id:'musics',  icon:'🎵',
+      /* Fond espresso : les titres dorés / dégradés ne ressortent que sur
+         sombre (background-clip:text sur du crème = illisible). */
+      stage: stage(
+        activeTitle ? (
+          <span
+            key={`hub-title-${activeTitle}`}
+            style={{ ...(getTitleStyle(activeTitle) || {}), fontSize:17, display:'inline-block', lineHeight:1.2 }}
+          >
+            {TITLE_STYLES[activeTitle]?.name || '—'}
+          </span>
+        ) : (
+          <span style={{ fontSize:13, fontWeight:700, color:'rgba(255,255,255,.45)', fontStyle:'italic' }}>
+            {t('collection.none')}
+          </span>
+        ),
+        ESPRESSO,
+      ) },
+
+    { id:'musics',
       current: audio.musicEnabled ? (activeMusic?.name || '—') : t('collection.music_off'),
       count: ownedMusics.length,
-      visual: emojiSwatch(audio.musicEnabled ? (activeMusic?.emoji || '🎵') : '🔇') },
-    { id:'games',   icon:'🎮',
+      stage: stage(
+        <>
+          <span style={{ fontSize:26, lineHeight:1, marginRight:4, opacity: audio.musicEnabled ? 1 : .4 }}>
+            {audio.musicEnabled ? (activeMusic?.emoji || '🎵') : '🔇'}
+          </span>
+          {/* Égaliseur décoratif — hauteurs figées, pas d'animation
+              (contrainte projet : rien qui tourne en fond sans raison). */}
+          {[14, 26, 18, 30, 20].map((h, i) => (
+            <span key={i} style={{
+              width:4, height: audio.musicEnabled ? h : 6, borderRadius:2,
+              background:'linear-gradient(180deg,#F0C050,#C17F3C)',
+              opacity: audio.musicEnabled ? .9 : .3,
+            }} />
+          ))}
+        </>,
+        ESPRESSO,
+      ) },
+
+    { id:'games',
       current: gameThemesSet > 0
         ? t('collection.games_customised', { n: gameThemesSet })
         : t('collection.games_default'),
       count: THEMABLE_GAMES.length,
-      visual: emojiSwatch('🎮') },
+      /* Les 4 jeux personnalisables, chacun avec l'emoji de SON thème actif. */
+      stage: stage(
+        THEMABLE_GAMES.map(g => (
+          <span key={g} style={{ fontSize:24, lineHeight:1 }}>
+            {getActiveTheme(g, gameThemes)?.preview || '🎮'}
+          </span>
+        )),
+        'radial-gradient(circle at 50% 35%, rgba(212,160,23,.16), rgba(74,44,23,.10))',
+      ) },
   ];
 
   const renderHub = () => (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-      {HUB.map(h => (
+    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+      {HUB.map((h, i) => (
         <button
           key={h.id}
           onClick={() => { playSound('tab'); setCat(h.id); setExpandedGame(null); }}
+          className={`su stagger-${(i % 4) + 1}`}
           style={{
-            display:'flex', flexDirection:'column', alignItems:'flex-start', gap:8,
-            padding:'14px 14px 12px', borderRadius:18, textAlign:'left',
+            display:'block', width:'100%', textAlign:'left',
+            padding:10, borderRadius:20,
             background:C.card, border:`1px solid ${C.border}`,
-            boxShadow:'0 2px 8px rgba(0,0,0,.05)', cursor:'pointer',
+            boxShadow:'0 4px 14px rgba(0,0,0,.07)', cursor:'pointer',
           }}
         >
-          {h.visual}
-          <div style={{ width:'100%', minWidth:0 }}>
-            <div style={{ fontSize:13, fontWeight:800, color:C.text, marginBottom:2 }}>
+          {h.stage}
+          <div style={{ padding:'0 4px 4px', minWidth:0 }}>
+            <div style={{
+              fontSize:10, fontWeight:800, color:C.muted,
+              textTransform:'uppercase', letterSpacing:1.4, marginBottom:3,
+            }}>
               {t('collection.cat_' + h.id)}
             </div>
             <div style={{
-              fontSize:11, color:'#D4A017', fontWeight:700,
+              fontSize:13, color:C.text, fontWeight:800,
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
             }}>
               {h.current}
             </div>
-            <div style={{ fontSize:10, color:C.muted, marginTop:3 }}>
-              {t('collection.owned_n', { n: h.count })}
+            <div style={{ fontSize:10, color:'#D4A017', fontWeight:700, marginTop:3 }}>
+              {t('collection.owned_n', { n: h.count, s: h.count > 1 ? 's' : '' })}
             </div>
           </div>
         </button>
@@ -573,12 +665,20 @@ export function CollectionContent({
   if(!cat){
     return (
       <div className="su">
-        <div style={{ marginBottom:14, paddingTop:4 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>
-            {t('collection.title')}
-          </div>
-          <div style={{ fontSize:11.5, color:C.muted, marginTop:3 }}>
-            {t('collection.subtitle')}
+        <div style={{ marginBottom:16, paddingTop:6, display:'flex', alignItems:'center', gap:11 }}>
+          <div style={{
+            width:38, height:38, borderRadius:12, flexShrink:0,
+            background:'linear-gradient(140deg,#FFE89A,#D4A017)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:19, boxShadow:'0 3px 10px rgba(212,160,23,.35)',
+          }}>🎨</div>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:19, fontWeight:900, color:C.text, letterSpacing:'-.3px', lineHeight:1.1 }}>
+              {t('collection.title')}
+            </div>
+            <div style={{ fontSize:11.5, color:C.muted, marginTop:2 }}>
+              {t('collection.subtitle')}
+            </div>
           </div>
         </div>
         {renderHub()}
