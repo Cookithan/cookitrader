@@ -34,10 +34,13 @@ export function AboutModal({ onClose, C }){
   const { t, localizedField, lang } = useTranslation();
   const [stats,   setStats]   = useState(null);
   const [closing, setClosing] = useState(false);
-  /* Archive (v1.0 → v1.22) repliée par défaut : les 6 dernières versions
-     s'affichent normalement, le reste est là pour qui veut fouiller. */
-  const [showOldReleases, setShowOldReleases] = useState(false);
-  const releases = showOldReleases ? [...CHANGELOG, ...CHANGELOG_ARCHIVE] : CHANGELOG;
+  /* Archive (v1.0 → v1.22) dévoilée PAR PAQUETS DE 6, pas d'un bloc :
+     25 entrées d'un coup, c'est un mur de texte qu'on ne lit pas. Le
+     bouton revient après chaque paquet, tant qu'il en reste. */
+  const ARCHIVE_STEP = 6;
+  const [archiveShown, setArchiveShown] = useState(0);
+  const archiveLeft = CHANGELOG_ARCHIVE.length - archiveShown;
+  const releases = [...CHANGELOG, ...CHANGELOG_ARCHIVE.slice(0, archiveShown)];
 
   /* Gate code source : input 4 chiffres → ouvre le lien si correct */
   const [showCodeInput, setShowCodeInput] = useState(false);
@@ -254,7 +257,9 @@ export function AboutModal({ onClose, C }){
 
             {CHANGELOG_ARCHIVE.length > 0 && (
               <button
-                onClick={() => setShowOldReleases(v => !v)}
+                onClick={() => setArchiveShown(n =>
+                  archiveLeft > 0 ? n + ARCHIVE_STEP : 0
+                )}
                 style={{
                   width:'100%', marginBottom:10, padding:'10px 8px',
                   borderRadius:11, background:'transparent',
@@ -263,9 +268,9 @@ export function AboutModal({ onClose, C }){
                   cursor:'pointer', letterSpacing:.2,
                 }}
               >
-                {showOldReleases
-                  ? `${t('about.older_hide')} ↑`
-                  : `${t('about.older_show', { n: CHANGELOG_ARCHIVE.length })} ↓`}
+                {archiveLeft > 0
+                  ? `${t('about.older_show', { n: archiveLeft })} ↓`
+                  : `${t('about.older_hide')} ↑`}
               </button>
             )}
           </div>
