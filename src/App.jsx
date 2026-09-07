@@ -3749,6 +3749,10 @@ export default function CookiMiner() {
        passer à la ligne, même sur un écran de 360 px. */
     pill:(active)=>({ padding:'10px 4px', borderRadius:16, flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', gap:3, transition:'all .2s', background:active?ESPRESSO:'transparent', color:active?'#fff':C.muted }),
     card:{ borderRadius:18, background:C.card, border:`1px solid ${C.border}`, boxShadow:'0 2px 8px rgba(0,0,0,.05)' },
+    /* Pastille du pied de carte niveau (série, boosters actifs). Tout ce
+       qui est « état en cours » y tient en une ligne, au lieu d'une carte
+       pleine largeur chacun (v1.30). */
+    homeTag:{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, background:'rgba(255,255,255,.12)', border:'1px solid rgba(255,255,255,.18)', fontSize:11.5, fontWeight:800, color:'#fff', whiteSpace:'nowrap' },
     goldBtn:(disabled)=>({ padding:'13px 36px', borderRadius:20, fontSize:14, fontWeight:700, background:disabled?C.card:GOLD, color:disabled?C.muted:'#fff', border:`2px solid ${disabled?C.border:'transparent'}`, boxShadow:disabled?'none':'0 4px 16px rgba(212,160,23,.4)', cursor:disabled?'not-allowed':'pointer' }),
   };
 
@@ -4006,87 +4010,52 @@ export default function CookiMiner() {
                   <div style={{ fontSize:20, fontWeight:800, color:'#fff' }}>{totalEarned} 🍪</div>
                 </div>
               </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,.6)', marginBottom:5 }}>
-                <span>{t('home.experience')}</span><span>{xp}/{xpReq}</span>
+              {/* Le libellé « Expérience » a sauté : une barre sous une carte
+                  de niveau ne peut pas être autre chose. On garde le chiffre. */}
+              <div style={{ textAlign:'right', fontSize:10, color:'rgba(255,255,255,.6)', marginBottom:5 }}>
+                {xp}/{xpReq} XP
               </div>
               <div style={{ height:8, borderRadius:4, background:'rgba(255,255,255,.18)', overflow:'hidden', position:'relative' }}>
                 <div style={{ height:'100%', borderRadius:4, width:`${xpPct}%`, background:'rgba(255,255,255,.85)', transition:'width .8s cubic-bezier(.36,.07,.19,.97)', position:'relative', overflow:'hidden' }}>
                   <div className="shimmer-bar" />
                 </div>
               </div>
-              {/* Série + badges sur une seule ligne de pied — la série avait
-                  sa propre carte pleine largeur pour UN chiffre (v1.30). */}
-              <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:12, flexWrap:'wrap' }}>
-                <span style={{
-                  display:'inline-flex', alignItems:'center', gap:5,
-                  padding:'4px 10px', borderRadius:20,
-                  background:'rgba(255,255,255,.12)',
-                  border:'1px solid rgba(255,255,255,.18)',
-                  fontSize:11.5, fontWeight:800, color:'#fff',
-                }}>
-                  <Flame size={12} color="#E8A060" />
-                  {streak} {t('home.streak_days', { s: streak > 1 ? 's' : '' })}
-                </span>
-                {badges.length > 0 && (
-                  <span style={{ display:'flex', gap:6 }}>
-                    {badges.map(b=><span key={b.id} title={b.name} style={{ fontSize:18 }}>{b.emoji}</span>)}
-                  </span>
-                )}
-              </div>
-            </button>
 
-            {/* Indicateurs boosters actifs (boost ×2 en cours / doubler armé) */}
-            {(() => {
-              const now = Date.now();
-              const boostActive = boostUntil && now < boostUntil;
-              if(!boostActive && !nextGameDoubler) return null;
-              const formatLeft = (ms) => {
-                const totalMin = Math.floor(ms / 60000);
-                const h = Math.floor(totalMin / 60);
-                const m = totalMin % 60;
-                return h > 0 ? `${h}h ${String(m).padStart(2,'0')}min` : `${m}min`;
-              };
-              return (
-                <div className="su" style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:14 }}>
-                  {boostActive && (
-                    <div style={{
-                      padding:'10px 14px', borderRadius:14,
-                      background:'linear-gradient(135deg, #D4A017, #C17F3C)',
-                      border:'1.5px solid rgba(212,160,23,.6)',
-                      boxShadow:'0 4px 14px rgba(212,160,23,.35)',
-                      color:'#fff', display:'flex', alignItems:'center', gap:10,
-                    }}>
-                      <span style={{ fontSize:22 }}>⚡</span>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase', opacity:.9 }}>
-                          Boost ×2 actif
-                        </div>
-                        <div style={{ fontSize:13, fontWeight:700 }}>
-                          {formatLeft(boostUntil - now)} restantes
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {nextGameDoubler && (
-                    <div style={{
-                      padding:'10px 14px', borderRadius:14,
-                      background:C.card, border:`1.5px solid #D4A017`,
-                      color:C.text, display:'flex', alignItems:'center', gap:10,
-                    }}>
-                      <span style={{ fontSize:22 }}>🎯</span>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase', color:'#D4A017' }}>
-                          Doubler armé
-                        </div>
-                        <div style={{ fontSize:12.5, fontWeight:600, color:C.muted }}>
-                          Le prochain gain 🍪 sera ×2
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+              {/* Pied de carte : tout l'« état en cours » sur UNE ligne —
+                  série, boosters actifs, badges. Chacun avait sa carte
+                  pleine largeur avant la v1.30 (jusqu'à 3 blocs empilés). */}
+              {(() => {
+                const now = Date.now();
+                const boostActive = boostUntil && now < boostUntil;
+                const leftMin = boostActive ? Math.floor((boostUntil - now) / 60000) : 0;
+                const boostLabel = leftMin >= 60
+                  ? `${Math.floor(leftMin / 60)}h${String(leftMin % 60).padStart(2,'0')}`
+                  : `${leftMin}min`;
+                return (
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:12, flexWrap:'wrap' }}>
+                    <span style={s.homeTag}>
+                      <Flame size={12} color="#E8A060" />
+                      {streak} {t('home.streak_days', { s: streak > 1 ? 's' : '' })}
+                    </span>
+                    {boostActive && (
+                      <span style={{ ...s.homeTag, background:'linear-gradient(135deg,#D4A017,#C17F3C)', border:'1px solid rgba(255,255,255,.28)' }}>
+                        ⚡ ×2 · {boostLabel}
+                      </span>
+                    )}
+                    {nextGameDoubler && (
+                      <span style={{ ...s.homeTag, background:'rgba(240,192,80,.18)', border:'1px solid rgba(240,192,80,.45)', color:'#F0C050' }}>
+                        🎯 Doubler armé
+                      </span>
+                    )}
+                    {badges.length > 0 && (
+                      <span style={{ display:'flex', gap:6 }}>
+                        {badges.slice(-6).map(b=><span key={b.id} title={b.name} style={{ fontSize:18 }}>{b.emoji}</span>)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </button>
 
             {/* Carte Prestige — visible quand niveau 25 atteint avec
                 60000 XP cumulés. Renaître = repartir lvl 1 avec un
@@ -4106,14 +4075,13 @@ export default function CookiMiner() {
               >
                 <div className="float-anim" style={{ fontSize:34, lineHeight:1 }}>🌟</div>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, fontWeight:900, color:'#FFE066', letterSpacing:1.5, textTransform:'uppercase', marginBottom:2 }}>
+                  <div style={{ fontSize:11, fontWeight:900, color:'#FFE066', letterSpacing:1.5, textTransform:'uppercase', marginBottom:3 }}>
                     Renaissance disponible
                   </div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'#fff', lineHeight:1.4, marginBottom:2 }}>
-                    Recommence niveau 1 — multiplicateur permanent
-                  </div>
-                  <div style={{ fontSize:11.5, color:'#F0C050', fontWeight:700 }}>
-                    Prochain bonus : x{(1 + (prestigeLevel + 1) * 0.1).toFixed(1)} 🍪
+                  {/* Une seule ligne : le détail (ce qu'on garde, ce qu'on perd)
+                      est dans la modale de confirmation, pas sur l'Accueil. */}
+                  <div style={{ fontSize:12.5, fontWeight:700, color:'#fff', lineHeight:1.4 }}>
+                    Repartir niveau 1 — gains ×{(1 + (prestigeLevel + 1) * 0.1).toFixed(1)} à vie
                   </div>
                 </div>
                 <ChevronLeft size={18} color="#F0C050" style={{ transform:'rotate(180deg)' }} />
