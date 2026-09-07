@@ -269,12 +269,19 @@ export const GLOBAL_CSS = `
                     cartes feraient mécanique, pas vivant.
      .game-overlay-in : entrée du jeu. Le translateX(-50%) de centrage
                     est repris dans le keyframe, même raison. */
-  .game-card{transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease;will-change:transform}
-  .game-card:active{transform:scale(.955)}
-  /* Pop joué AVANT l'ouverture du jeu : creux puis dépassement. L'app
-     attend 200 ms (cf. launchGame) pour le laisser se voir. Pas besoin
-     de !important : une animation l'emporte sur le transform de :active. */
-  @keyframes gamePop{0%{transform:scale(1)}30%{transform:scale(.93)}62%{transform:scale(1.045)}100%{transform:scale(1)}}
+  /* `.tap-pop` : le retour tactile générique de l'app — tout ce qui se
+     tape peut le porter (cartes de jeu, boutons d'achat, pastilles).
+     ⚠️ À ne JAMAIS poser sur un élément qui a déjà `.su` : son
+     animation-fill-mode:both garde un transform appliqué par l'animation,
+     qui l'emporte sur le :active et neutralise l'effet. Mettre `.su` sur
+     un wrapper et `.tap-pop` sur l'élément tapable. */
+  .tap-pop,.game-card{transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease;will-change:transform}
+  .tap-pop:active,.game-card:active{transform:scale(.955)}
+  /* Pop joué AVANT l'ouverture du jeu (200 ms, cf. launchGame).
+     Il DÉMARRE à l'échelle enfoncée : sinon la carte redescendait une
+     seconde fois au relâchement et on voyait deux rebonds au lieu d'un.
+     Le doigt fait la descente, l'animation fait la remontée. */
+  @keyframes gamePop{0%{transform:scale(.955)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
   .game-pop{animation:gamePop .2s cubic-bezier(.34,1.56,.64,1) both}
   @keyframes gameEmojiDrift{0%,100%{transform:rotate(-12deg) translate3d(0,0,0)}50%{transform:rotate(-6deg) translate3d(0,-8px,0)}}
   .game-emoji{animation:gameEmojiDrift 4.8s ease-in-out infinite;will-change:transform}

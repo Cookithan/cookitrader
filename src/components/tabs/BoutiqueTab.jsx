@@ -192,6 +192,7 @@ export function BoutiqueTab({
           isEquippable && onOpenCollection ? (
             <button
               onClick={onOpenCollection}
+              className="tap-pop"
               style={{
                 width:'100%', padding:'8px 0', borderRadius:12, fontSize:11.5, fontWeight:700,
                 background:'transparent', color:'#D4A017', border:'1.5px solid #D4A017',
@@ -215,12 +216,14 @@ export function BoutiqueTab({
               <Lock size={11} /> {passLockedReason}
             </div>
           ) : (
-            <button onClick={() => onUnlock(r.id)} className={canAfford ? 'pulse-ring' : ''} style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:800, background: canAfford ? ESPRESSO : C.card2, color: canAfford ? '#F0C050' : C.muted, border:`1.5px solid ${canAfford ? 'rgba(212,160,23,.5)' : C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:5, cursor: canAfford ? 'pointer' : 'not-allowed' }}>
+            /* `pulse-ring` n'anime que le box-shadow : il cohabite sans
+               problème avec `tap-pop`, qui n'agit que sur le transform. */
+            <button onClick={() => onUnlock(r.id)} className={`tap-pop${canAfford ? ' pulse-ring' : ''}`} style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:800, background: canAfford ? ESPRESSO : C.card2, color: canAfford ? '#F0C050' : C.muted, border:`1.5px solid ${canAfford ? 'rgba(212,160,23,.5)' : C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:5, cursor: canAfford ? 'pointer' : 'not-allowed' }}>
               {canAfford ? <Coffee size={11} color="#F0C050" /> : <Lock size={11} />} {r.cost} cafés
             </button>
           )
         ) : (
-          <button onClick={() => onUnlock(r.id)} className={canAfford ? 'pulse-ring' : ''} style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:700, background: canAfford ? GOLD : C.card2, color: canAfford ? '#fff' : C.muted, border:`1px solid ${canAfford ? 'transparent' : C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:4, cursor: canAfford ? 'pointer' : 'not-allowed' }}>
+          <button onClick={() => onUnlock(r.id)} className={`tap-pop${canAfford ? ' pulse-ring' : ''}`} style={{ width:'100%', padding:'8px 0', borderRadius:12, fontSize:12, fontWeight:700, background: canAfford ? GOLD : C.card2, color: canAfford ? '#fff' : C.muted, border:`1px solid ${canAfford ? 'transparent' : C.border}`, display:'flex', alignItems:'center', justifyContent:'center', gap:4, cursor: canAfford ? 'pointer' : 'not-allowed' }}>
             {canAfford ? <Cookie size={11} color="#fff" /> : <Lock size={11} />} {r.cost} cookies
           </button>
         )}
@@ -247,6 +250,7 @@ export function BoutiqueTab({
   const tabButton = (id, Icon, label, activeBg, activeColor, shadow) => (
     <button
       onClick={() => { if(mode !== id){ playSound('tab'); setMode(id); } }}
+      className="tap-pop"
       style={{
         flex:1, padding:'10px 0', borderRadius:10, fontSize:13, fontWeight:800, letterSpacing:.4,
         background: mode === id ? activeBg : 'transparent',
@@ -349,6 +353,7 @@ export function BoutiqueTab({
               <button
                 key={c.id}
                 onClick={()=>{ if(!sel){ playSound('tab'); setPremiumCat(c.id); } }}
+                className="tap-pop"
                 style={{
                   flex:1, minWidth:0, padding:'8px 6px', borderRadius:20,
                   fontSize:11.5, fontWeight:700,
