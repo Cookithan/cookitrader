@@ -1353,7 +1353,10 @@ export default function CookiMiner() {
      overlay/modal/jeu/tuto est ouvert, pour éviter les conflits.
      `slideDir` mémorise la direction du dernier changement pour
      animer le content entrant (depuis la droite ou la gauche). */
-  const TAB_ORDER = ['accueil','jeux','collection','classement','marche','boutique'];
+  /* Classement en 3e position : avec 6 onglets de largeur égale aucun ne
+     tombe à 50 % (les centres sont à 8/25/42/58/75/92 %). Régis préfère
+     Classement juste AVANT le milieu (42 %) plutôt qu'après (58 %). */
+  const TAB_ORDER = ['accueil','jeux','classement','collection','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
 
   const goToTab = (target, source = 'click') => {
@@ -4375,7 +4378,7 @@ export default function CookiMiner() {
       {/* NAV */}
       <nav style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, padding:'0 16px 16px', zIndex:40 }}>
         <div style={{ background:isDark?'rgba(30,16,10,.95)':'rgba(253,250,246,.95)', backdropFilter:'blur(12px)', borderRadius:24, border:`1px solid ${C.border}`, boxShadow:'0 8px 32px rgba(0,0,0,.12)', display:'flex', padding:8 }}>
-          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'collection',Icon:Palette,label:t('nav.collection')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
+          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'collection',Icon:Palette,label:t('nav.collection')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
             const showDot = item.id==='accueil' && (canCheckin || canQuiz);
             return (
               <button key={item.id} id={`nav-${item.id}`} onClick={()=>goToTab(item.id)} style={s.pill(tab===item.id)}>
