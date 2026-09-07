@@ -827,6 +827,19 @@ export default function CookiMiner() {
      un changelog d'ancien). Voir useEffect plus bas. */
   const [lastSeenVersion,  setLastSeenVersion]  = useLocalStorage('lastSeenVersion', '');
   const [showNewVersion,   setShowNewVersion]   = useState(false);
+  /* Pastille NOUVEAU sur « À propos » — distincte de lastSeenVersion, qui
+     est consommé par la NewVersionModal dès sa fermeture (donc éteint dans
+     la quasi-totalité des cas). Celle-ci ne s'éteint que quand l'écran
+     À propos est RÉELLEMENT ouvert, et se rallume à chaque nouvelle version.
+     Volontairement absent de resetProgress() : c'est un marqueur de lecture,
+     pas de la progression de jeu. */
+  const [aboutSeenVersion, setAboutSeenVersion] = useLocalStorage('aboutSeenVersion', '');
+  const aboutIsNew = aboutSeenVersion !== APP_INFO.version;
+  const openAbout = () => {
+    playSound('modal');
+    setAboutSeenVersion(APP_INFO.version);
+    setShowAbout(true);
+  };
   /* Maintenance LIVE — pilotée par la table Supabase public.system_status
      via Realtime. Permet de basculer l'app en maintenance OU de pousser
      un popup "Mise à jour disponible" sans devoir redéployer.
@@ -3869,11 +3882,12 @@ export default function CookiMiner() {
                 l'écran était enterré en 3e ligne d'une section de
                 Paramètres alors qu'il porte le changelog. */}
             <button
-              onClick={()=>{ playSound('modal'); setShowAbout(true); }}
+              onClick={openAbout}
               aria-label={t('settings.about_title')}
               style={{
                 background:'transparent', border:'none', padding:0,
                 display:'block', textAlign:'left', cursor:'pointer', font:'inherit',
+                position:'relative',
               }}
             >
               <div style={{
@@ -3884,7 +3898,19 @@ export default function CookiMiner() {
                    lisible quand on scroll vers le bas. */
                 color: activeTheme === 'theme_grains' ? '#3D1808' : C.text,
                 fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap',
-              }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
+                display:'inline-block',
+              }}>
+                Cooki<span style={{ color:'#C17F3C' }}>Miner</span>
+                {/* Point doré tant que le changelog de cette version n'a
+                    pas été ouvert. Pas de texte : le logo doit rester un
+                    logo, le point suffit à dire « il y a du neuf ici ». */}
+                {aboutIsNew && (
+                  <span className="pulse-ring" style={{
+                    display:'inline-block', width:7, height:7, borderRadius:'50%',
+                    background:'#D4A017', marginLeft:5, verticalAlign:'super',
+                  }} />
+                )}
+              </div>
             </button>
           </div>
         </div>
@@ -4506,7 +4532,8 @@ export default function CookiMiner() {
           onClose={()=>setShowSettings(false)}
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
           install={installPrompt}
-          onOpenAbout={()=>setShowAbout(true)}
+          onOpenAbout={openAbout}
+          aboutIsNew={aboutIsNew}
           onOpenRestore={()=>setRestoreMode('replace')}
           onStartNewAccount={handleStartNewAccount}
           onOpenPromoCode={()=>setShowPromoCode(true)}
@@ -4616,7 +4643,7 @@ export default function CookiMiner() {
             setShowNewVersion(false);
             setLastSeenVersion(APP_INFO.version);
           }}
-          onOpenAbout={() => setShowAbout(true)}
+          onOpenAbout={openAbout}
           C={C}
         />
       )}
@@ -4666,7 +4693,7 @@ export default function CookiMiner() {
           onOpenLevels={()=>{ setShowProfile(false); setShowLevels(true); }}
           onOpenSettings={()=>{ setShowProfile(false); setShowSettings(true); }}
           onOpenCollection={()=>{ playSound('tab'); setShowProfile(false); goToTab('collection'); }}
-          onOpenAbout={()=>{ playSound('modal'); setShowAbout(true); }}
+          onOpenAbout={openAbout}
           userName={userName} setUserName={setUserName}
           userAvatar={userAvatar}
           joinDate={joinDate}

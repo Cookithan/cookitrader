@@ -24,7 +24,7 @@ import {
    ZONE SENSIBLE (reset progression, double validation).
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, onOpenCollection, userCode, restorePin, C }) {
+export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutIsNew = false, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, onOpenCollection, userCode, restorePin, C }) {
   const { t, lang, setLang } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
@@ -158,6 +158,67 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, onOpen
                 </div>
               </div>
               <span style={{ fontSize:18, color:'#D4A017', flexShrink:0 }}>→</span>
+            </button>
+          </section>
+        )}
+
+        {/* À propos — remonté en 2e position (v1.30, demande de Régis) :
+            c'est l'écran qui porte le changelog, les stats de la communauté
+            et les crédits, il était la 3e ligne grise d'AIDE & INFOS.
+            Accent doré + numéro de version, et pastille NOUVEAU tant que
+            le changelog de cette version n'a pas été ouvert. */}
+        {onOpenAbout && (
+          <section>
+            {sectionLabel(t('settings.section_about'))}
+            <button
+              onClick={onOpenAbout}
+              style={{
+                width:'100%', borderRadius:16,
+                background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.07))',
+                border:`1px solid rgba(212,160,23,${aboutIsNew ? '.6' : '.35'})`,
+                boxShadow: aboutIsNew ? '0 3px 12px rgba(212,160,23,.18)' : 'none',
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left', gap:10,
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.14)',
+                  border:'1px solid rgba(212,160,23,.35)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0,
+                }}>
+                  <Info size={18} color="#D4A017" />
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text, display:'flex', alignItems:'center', gap:7 }}>
+                    {t('settings.about_title')}
+                    {aboutIsNew && (
+                      <span className="pulse-ring" style={{
+                        fontSize:8.5, fontWeight:900, letterSpacing:.6,
+                        padding:'2px 6px', borderRadius:7,
+                        background:GOLD, color:'#fff', flexShrink:0,
+                      }}>
+                        {t('common.new').toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    {t('settings.about_sub')}
+                  </div>
+                </div>
+              </div>
+              <span style={{
+                flexShrink:0, fontSize:10.5, fontWeight:800, color:'#D4A017',
+                padding:'4px 9px', borderRadius:9,
+                background:'rgba(212,160,23,.14)',
+                border:'1px solid rgba(212,160,23,.35)',
+                fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+              }}>
+                v{APP_INFO.version}
+              </span>
             </button>
           </section>
         )}
@@ -516,56 +577,11 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, onOpen
           </section>
         )}
 
-        {/* Aide & infos — tutoriel, Discord, à propos regroupés (v1.30 :
-            3 sections d'une ligne fusionnées en une seule).
-            « À propos » est passé EN TÊTE et porte un accent doré + le
-            numéro de version : c'est l'écran qui contient le changelog et
-            les stats de la communauté, il était enterré en 3e ligne grise. */}
+        {/* Aide & infos — tutoriel + Discord. « À propos » a sa propre
+            section, remontée juste sous Personnalisation. */}
         <section>
           {sectionLabel(t('settings.section_help'))}
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-            {onOpenAbout && (
-              <button
-                onClick={() => { playSound('modal'); onOpenAbout(); }}
-                style={{
-                  width:'100%', borderRadius:16,
-                  background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.07))',
-                  border:'1px solid rgba(212,160,23,.35)',
-                  padding:'14px 16px',
-                  display:'flex', alignItems:'center', justifyContent:'space-between',
-                  cursor:'pointer', textAlign:'left', gap:10,
-                }}
-              >
-                <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                  <div style={{
-                    width:38, height:38, borderRadius:10,
-                    background:'rgba(212,160,23,.14)',
-                    border:'1px solid rgba(212,160,23,.35)',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    flexShrink:0,
-                  }}>
-                    <Info size={18} color="#D4A017" />
-                  </div>
-                  <div style={{ minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                      {t('settings.about_title')}
-                    </div>
-                    <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                      {t('settings.about_sub')}
-                    </div>
-                  </div>
-                </div>
-                <span style={{
-                  flexShrink:0, fontSize:10.5, fontWeight:800, color:'#D4A017',
-                  padding:'4px 9px', borderRadius:9,
-                  background:'rgba(212,160,23,.14)',
-                  border:'1px solid rgba(212,160,23,.35)',
-                  fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
-                }}>
-                  v{APP_INFO.version}
-                </span>
-              </button>
-            )}
             {onRestartTutorial && navRow({
               key:'tutorial',
               icon:<HelpCircle size={18} color="#D4A017" />,
