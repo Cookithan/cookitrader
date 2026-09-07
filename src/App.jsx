@@ -4228,7 +4228,7 @@ export default function CookiMiner() {
           <div className="su">
             <button
               onClick={startMatchmaking}
-              style={{ width:'100%', marginBottom:16, padding:'15px 16px', borderRadius:18, border:'1px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(212,160,23,.04))', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
+              style={{ width:'100%', marginBottom:20, padding:'16px 17px', borderRadius:20, border:'1.5px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.20), rgba(193,127,60,.08))', boxShadow:'0 4px 16px rgba(212,160,23,.18)', display:'flex', alignItems:'center', gap:13, cursor:'pointer', textAlign:'left' }}
             >
               <span style={{ fontSize:24 }}>⚔️</span>
               <span style={{ flex:1 }}>
@@ -4256,23 +4256,29 @@ export default function CookiMiner() {
               const locked   = list.filter(isLocked);
 
               return (<>
-                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:14, paddingTop:6 }}>
                   {t('games_list.section_pick')}
                 </div>
 
-                {playable.map(g => {
+                {playable.map((g, i) => {
                   const comingSoon = !!g.comingSoon;
                   return (
                     <button
                       key={g.id}
                       onClick={comingSoon ? undefined : ()=>{ playSound('modal'); setGameView(g.id); }}
                       disabled={comingSoon}
+                      className={`su stagger-${(i % 4) + 1}`}
                       style={{
-                        width:'100%', borderRadius:18, marginBottom:10,
-                        padding:'13px 15px', background:g.color,
-                        display:'flex', alignItems:'center', gap:13,
+                        width:'100%', borderRadius:20, marginBottom:14,
+                        padding:'16px 17px',
+                        /* Couleur du jeu + voile clair→sombre : la teinte plate
+                           rendait les 10 cartes ternes et interchangeables. */
+                        backgroundColor:g.color,
+                        backgroundImage:'linear-gradient(145deg, rgba(255,255,255,.16), rgba(0,0,0,.24))',
+                        border:'1px solid rgba(255,255,255,.12)',
+                        boxShadow:'0 6px 20px rgba(0,0,0,.16)',
+                        display:'flex', alignItems:'center', gap:14,
                         textAlign:'left', position:'relative', overflow:'hidden',
-                        boxShadow:'0 4px 14px rgba(0,0,0,.10)',
                         cursor: comingSoon ? 'not-allowed' : 'pointer',
                         /* Pas assez de cookies / plus de parties : la carte
                            s'estompe. Pas de texte — le jeu l'explique à
@@ -4280,21 +4286,46 @@ export default function CookiMiner() {
                         opacity: comingSoon ? .6 : (g.avail ? 1 : .72),
                       }}
                     >
-                      <div style={{ width:44, height:44, borderRadius:13, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-                        <g.Icon size={22} color="#fff" />
+                      {/* Bulle décorative — même signature que la carte niveau
+                          de l'Accueil, ça donne du volume à peu de frais. */}
+                      <div aria-hidden style={{
+                        position:'absolute', top:-34, right:-26,
+                        width:104, height:104, borderRadius:'50%',
+                        background:'rgba(255,255,255,.07)', pointerEvents:'none',
+                      }} />
+
+                      <div style={{
+                        width:50, height:50, borderRadius:15, flexShrink:0,
+                        background:'rgba(255,255,255,.18)',
+                        border:'1px solid rgba(255,255,255,.22)',
+                        boxShadow:'inset 0 1px 0 rgba(255,255,255,.28), 0 3px 8px rgba(0,0,0,.16)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                      }}>
+                        <g.Icon size={24} color="#fff" />
                       </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:15, fontWeight:800, color:'#fff', display:'flex', alignItems:'center', gap:7 }}>
+
+                      <div style={{ flex:1, minWidth:0, position:'relative' }}>
+                        <div style={{ fontSize:15.5, fontWeight:800, color:'#fff', display:'flex', alignItems:'center', gap:7, letterSpacing:'-.2px' }}>
                           {g.title}
                           {g.avail && !comingSoon && (
                             <span className="live-pulse" style={{ width:6, height:6, borderRadius:'50%', background:'#fff', display:'inline-block', flexShrink:0 }} />
                           )}
                         </div>
-                        <div style={{ fontSize:11.5, color:'rgba(255,255,255,.72)', marginTop:2 }}>
+                        <div style={{ fontSize:11.5, color:'rgba(255,255,255,.74)', marginTop:3, lineHeight:1.35 }}>
                           {comingSoon ? '✨ Bientôt disponible' : g.desc}
                         </div>
                       </div>
-                      <div style={{ flexShrink:0, maxWidth:'36%', textAlign:'right', fontSize:11, fontWeight:700, color:'rgba(255,255,255,.92)', lineHeight:1.35 }}>
+
+                      {/* Récompense en pastille : détachée du fond, elle se lit
+                          d'un coup d'œil au lieu de se fondre dans la couleur. */}
+                      <div style={{
+                        flexShrink:0, maxWidth:'34%', position:'relative',
+                        padding:'7px 10px', borderRadius:12,
+                        background:'rgba(0,0,0,.22)',
+                        border:'1px solid rgba(255,255,255,.14)',
+                        textAlign:'right', fontSize:10.5, fontWeight:700,
+                        color:'rgba(255,255,255,.95)', lineHeight:1.35,
+                      }}>
                         {g.reward}
                       </div>
                     </button>
@@ -4302,13 +4333,13 @@ export default function CookiMiner() {
                 })}
 
                 {locked.length > 0 && (<>
-                  <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, margin:'18px 0 10px' }}>
+                  <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, margin:'22px 0 12px' }}>
                     {t('games_list.section_locked')}
                   </div>
                   {locked.map(g => (
                     <div key={g.id} style={{
                       display:'flex', alignItems:'center', gap:11,
-                      padding:'11px 14px', borderRadius:14, marginBottom:8,
+                      padding:'12px 14px', borderRadius:14, marginBottom:10,
                       background:C.card, border:`1px dashed ${C.border}`,
                     }}>
                       <Lock size={14} color={C.muted} />
