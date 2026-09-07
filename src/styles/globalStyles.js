@@ -258,6 +258,24 @@ export const GLOBAL_CSS = `
   .tab-slide-in-right { animation:tabSlideInRight .2s cubic-bezier(.16,.84,.44,1) both; will-change:transform }
   .tab-slide-in-left  { animation:tabSlideInLeft  .2s cubic-bezier(.16,.84,.44,1) both; will-change:transform }
 
+  /* ── Onglet Jeux (v1.30) ─────────────────────────────────────────
+     .game-card   : retour tactile. Le doigt enfonce la carte, le ressort
+                    du cubic-bezier la fait « popper » au relâchement.
+                    Transform seul → composité GPU, aucun reflow.
+     .game-emoji  : dérive lente du filigrane. La rotation est REPRISE
+                    dans le keyframe, sinon l'animation écraserait le
+                    rotate(-12deg) inline. Chaque carte reçoit un
+                    animationDelay différent : synchronisées, les 10
+                    cartes feraient mécanique, pas vivant.
+     .game-overlay-in : entrée du jeu. Le translateX(-50%) de centrage
+                    est repris dans le keyframe, même raison. */
+  .game-card{transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease;will-change:transform}
+  .game-card:active{transform:scale(.955)}
+  @keyframes gameEmojiDrift{0%,100%{transform:rotate(-12deg) translate3d(0,0,0)}50%{transform:rotate(-6deg) translate3d(0,-8px,0)}}
+  .game-emoji{animation:gameEmojiDrift 4.8s ease-in-out infinite;will-change:transform}
+  @keyframes gameOverlayIn{from{opacity:0;transform:translateX(-50%) scale(.97)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+  .game-overlay-in{animation:gameOverlayIn .22s cubic-bezier(.16,.84,.44,1) both}
+
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}
   .fu{animation:floatUp .85s ease-out forwards;position:absolute;pointer-events:none;font-size:17px;font-weight:800;color:#D4A017;white-space:nowrap;z-index:10;text-shadow:0 1px 4px rgba(74,44,23,.4);left:50%;top:0}

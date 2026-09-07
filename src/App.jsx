@@ -4271,7 +4271,7 @@ export default function CookiMiner() {
                       key={g.id}
                       onClick={comingSoon ? undefined : ()=>{ playSound('modal'); setGameView(g.id); }}
                       disabled={comingSoon}
-                      className={`su stagger-${(i % 4) + 1}`}
+                      className={`su stagger-${(i % 4) + 1} game-card`}
                       style={{
                         width:'100%', borderRadius:20, marginBottom:14,
                         padding:'16px 17px',
@@ -4302,19 +4302,23 @@ export default function CookiMiner() {
                           partagent l'icône Coffee ; débordant et incliné,
                           l'emoji les distingue immédiatement. La pastille de
                           récompense a un fond opaque, elle passe par-dessus. */}
-                      <div aria-hidden style={{
+                      <div aria-hidden className="game-emoji" style={{
                         position:'absolute', right:-14, bottom:-24,
                         fontSize:82, lineHeight:1, opacity:.15,
                         transform:'rotate(-12deg)', pointerEvents:'none',
                         filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))',
+                        /* Déphasage par carte : sans ça les 10 emojis
+                           montent et descendent au même rythme. */
+                        animationDelay:`${(i % 5) * 0.55}s`,
                       }}>{g.emoji}</div>
 
-                      <div style={{
+                      <div className={g.avail && !comingSoon ? 'float-anim' : ''} style={{
                         width:50, height:50, borderRadius:15, flexShrink:0,
                         background:'rgba(255,255,255,.18)',
                         border:'1px solid rgba(255,255,255,.22)',
                         boxShadow:'inset 0 1px 0 rgba(255,255,255,.28), 0 3px 8px rgba(0,0,0,.16)',
                         display:'flex', alignItems:'center', justifyContent:'center',
+                        position:'relative',
                       }}>
                         <g.Icon size={24} color="#fff" />
                       </div>
