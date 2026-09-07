@@ -4284,13 +4284,21 @@ export default function CookiMiner() {
                 {playable.map((g, i) => {
                   const comingSoon = !!g.comingSoon;
                   return (
+                    /* Deux éléments, et c'est indispensable : `.su` utilise
+                       animation-fill-mode:both, donc l'élément GARDE le
+                       transform de slideUp appliqué par l'animation une fois
+                       celle-ci finie — et une animation l'emporte sur une
+                       déclaration normale. Sur le même nœud, ni :active ni
+                       .game-pop ne pouvaient s'appliquer : la carte ne
+                       réagissait pas au doigt. L'entrée en cascade vit donc
+                       sur le wrapper, le retour tactile sur le bouton. */
+                    <div key={g.id} className={`su stagger-${(i % 4) + 1}`} style={{ marginBottom:14 }}>
                     <button
-                      key={g.id}
                       onClick={comingSoon ? undefined : ()=>launchGame(g.id)}
                       disabled={comingSoon}
-                      className={`su stagger-${(i % 4) + 1} game-card${poppingGame === g.id ? ' game-pop' : ''}`}
+                      className={`game-card${poppingGame === g.id ? ' game-pop' : ''}`}
                       style={{
-                        width:'100%', borderRadius:20, marginBottom:14,
+                        width:'100%', borderRadius:20,
                         padding:'16px 17px',
                         /* Couleur du jeu + voile clair→sombre : la teinte plate
                            rendait les 10 cartes ternes et interchangeables. */
@@ -4365,6 +4373,7 @@ export default function CookiMiner() {
                         {g.reward}
                       </div>
                     </button>
+                    </div>
                   );
                 })}
 
