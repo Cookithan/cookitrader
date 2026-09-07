@@ -130,20 +130,6 @@ export const FR = {
     collection_sub:        'Équipe tes thèmes, avatars, skins, titres…',
   },
 
-  /* ── Paliers de niveau (v1.30) ─────────────────── */
-  levels: {
-    progress:         '{done} paliers sur {total}',
-    reached:          'Atteint',
-    in_progress:      'En cours',
-    next_level:       'Niveau {n}',
-    unlock_market:    'Marché $CKM',
-    unlock_prestige:  'Renaissance',
-    unlock_cafe:      '+1 café',
-    unlock_cookies:   '+{n} cookies',
-    unlock_rewards:   '{n} récompense{s} en boutique',
-    footer_hint:      "Le nom d'un palier reste secret jusqu'à ce que tu l'atteignes — mais tu sais déjà ce qu'il te rapportera.",
-  },
-
   /* ── Ma Collection (v1.30) ─────────────────────── */
   collection: {
     title:          'Ma Collection',

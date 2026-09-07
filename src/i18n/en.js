@@ -122,20 +122,6 @@ export const EN = {
     collection_sub:        'Equip your themes, avatars, skins, titles…',
   },
 
-  /* ── Level tiers (v1.30) ───────────────────────── */
-  levels: {
-    progress:         '{done} of {total} tiers',
-    reached:          'Reached',
-    in_progress:      'In progress',
-    next_level:       'Level {n}',
-    unlock_market:    '$CKM Market',
-    unlock_prestige:  'Rebirth',
-    unlock_cafe:      '+1 coffee',
-    unlock_cookies:   '+{n} cookies',
-    unlock_rewards:   '{n} shop reward{s}',
-    footer_hint:      "A tier's name stays secret until you reach it — but you already know what it will bring you.",
-  },
-
   /* ── My Collection (v1.30) ─────────────────────── */
   collection: {
     title:          'My Collection',
