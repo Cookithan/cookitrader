@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { APP_INFO, CHANGELOG } from "../../lib/appInfo.js";
+import { CHANGELOG_ARCHIVE } from "../../lib/changelogArchive.js";
 import { getGlobalCommunityStats } from "../../lib/supabaseSync.js";
 import { ESPRESSO } from "../../data/themes.js";
 import { useTranslation } from "../../i18n/index.js";
@@ -33,9 +34,10 @@ export function AboutModal({ onClose, C }){
   const { t, localizedField, lang } = useTranslation();
   const [stats,   setStats]   = useState(null);
   const [closing, setClosing] = useState(false);
-  /* Anciennes versions repliées par défaut — on n'ouvre l'À propos que
-     pour la dernière nouveauté 99 fois sur 100. */
+  /* Archive (v1.0 → v1.22) repliée par défaut : les 6 dernières versions
+     s'affichent normalement, le reste est là pour qui veut fouiller. */
   const [showOldReleases, setShowOldReleases] = useState(false);
+  const releases = showOldReleases ? [...CHANGELOG, ...CHANGELOG_ARCHIVE] : CHANGELOG;
 
   /* Gate code source : input 4 chiffres → ouvre le lien si correct */
   const [showCodeInput, setShowCodeInput] = useState(false);
@@ -207,10 +209,12 @@ export function AboutModal({ onClose, C }){
               📋 {t('about.changelog')}
             </div>
 
-            {/* Seule la dernière version est dépliée (v1.30) : le changelog
-                fait 6 entrées et poussait les liens + les crédits hors de
-                l'écran. Les anciennes restent accessibles au tap, en bas. */}
-            {(showOldReleases ? CHANGELOG : CHANGELOG.slice(0, 1)).map((release, i, arr) => {
+            {/* Les 6 dernières versions restent dépliées, comme avant.
+                Le bouton du bas révèle l'ARCHIVE (v1.0 → v1.22), reconstruite
+                depuis l'historique git : ces entrées étaient supprimées de
+                appInfo.js à chaque release, l'app avait donc perdu sa propre
+                histoire. Cf. lib/changelogArchive.js. */}
+            {releases.map((release, i, arr) => {
               const isLast = i === arr.length - 1;
               return (
                 <div key={release.version} style={{
@@ -248,7 +252,7 @@ export function AboutModal({ onClose, C }){
               );
             })}
 
-            {CHANGELOG.length > 1 && (
+            {CHANGELOG_ARCHIVE.length > 0 && (
               <button
                 onClick={() => setShowOldReleases(v => !v)}
                 style={{
@@ -261,7 +265,7 @@ export function AboutModal({ onClose, C }){
               >
                 {showOldReleases
                   ? `${t('about.older_hide')} ↑`
-                  : `${t('about.older_show', { n: CHANGELOG.length - 1 })} ↓`}
+                  : `${t('about.older_show', { n: CHANGELOG_ARCHIVE.length })} ↓`}
               </button>
             )}
           </div>
