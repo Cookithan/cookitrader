@@ -146,7 +146,50 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
       {/* Bandeau Maintenance / Circuit Breaker — fond espresso sombre +
           bord doré épais + halo doré pulsant pour attirer l'attention.
           Palette café-only respectée (or + crème + espresso). */}
-      {marketStatus?.maintenance && (
+      {/* Fermeture officielle (v1.29) — bandeau distinct de la maintenance :
+          pas de compte à rebours, pas de "réouverture bientôt". On dit
+          pourquoi c'est fermé et surtout que rien n'est perdu, sinon le
+          joueur qui a 300 actions croit qu'on les lui a confisquées. */}
+      {marketStatus?.closed && (
+        <div style={{
+          background: 'linear-gradient(135deg, #2E1808 0%, #4A2A12 55%, #2E1808 100%)',
+          border: '2px solid rgba(201,154,46,.55)',
+          borderRadius: 18,
+          padding: '22px 22px 18px',
+          marginBottom: 16,
+          textAlign: 'center',
+        }}>
+          <div style={{ fontSize: 42, lineHeight: 1, marginBottom: 10 }}>🔒</div>
+          <div style={{
+            fontSize: 10, fontWeight: 800, color: 'rgba(255,232,154,.6)',
+            letterSpacing: 3, textTransform: 'uppercase', marginBottom: 7,
+          }}>
+            {t('market.closed_label')}
+          </div>
+          <div style={{
+            fontSize: 17, fontWeight: 900, color: '#FFE066',
+            letterSpacing: .3, marginBottom: 10,
+          }}>
+            {t('market.closed_title')}
+          </div>
+          <div style={{
+            fontSize: 12, fontWeight: 600, color: 'rgba(255,232,154,.72)',
+            lineHeight: 1.55, maxWidth: 320, margin: '0 auto 12px',
+          }}>
+            {t('market.closed_desc')}
+          </div>
+          <div style={{
+            fontSize: 11.5, fontWeight: 700, color: '#F3D9A4',
+            lineHeight: 1.5, background: 'rgba(0,0,0,.22)',
+            border: '1px solid rgba(201,154,46,.3)',
+            borderRadius: 12, padding: '10px 12px',
+          }}>
+            {t('market.closed_keep')}
+          </div>
+        </div>
+      )}
+
+      {marketStatus?.maintenance && !marketStatus?.closed && (
         <div className="glow-anim" style={{
           background: 'linear-gradient(135deg, #3D2010 0%, #5C3317 50%, #3D2010 100%)',
           border: '2px solid #D4A017',
@@ -244,6 +287,13 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         );
       })()}
 
+      {/* Marché officiellement fermé : on retire le panneau d'échange au
+          lieu de l'afficher grisé — le bandeau du haut a déjà tout dit,
+          et un formulaire mort avec une heure de réouverture bidon
+          (nextChange est null quand c'est une fermeture) ferait croire
+          à un bug. La Boutique Actions, elle, reste ouverte : les
+          actions gardent une utilité. */}
+      {!marketStatus?.closed && (
       <TradePanel
         state={state}
         portfolio={portfolio}
@@ -256,6 +306,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         onConsumeBulkPass={onConsumeBulkPass}
         C={C}
       />
+      )}
 
       {showWelcome && <MarketWelcomeModal onClose={closeWelcome} />}
     </div>

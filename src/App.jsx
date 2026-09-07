@@ -34,6 +34,8 @@ import { RestoreProfileModal } from "./components/modals/RestoreProfileModal.jsx
 import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.jsx";
 import { MarketRefundModal } from "./components/modals/MarketRefundModal.jsx";
 import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.jsx";
+import { AccountNoticeModal } from "./components/modals/AccountNoticeModal.jsx";
+import { getAccountNotice } from "./data/accountNotices.js";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
@@ -790,6 +792,10 @@ export default function CookiMiner() {
   const [weeklyChampReward, setWeeklyChampReward] = useState(null);  // { rank, cafes, weekNum }
   /* Sanction appliquée — popup d'avertissement post-débit. */
   const [sanctionApplied, setSanctionApplied] = useState(null);  // { amount, reason }
+  /* Message de compte one-shot (v1.29) — sanction ou compensation suite
+     a l exploit du Memory. Cf. data/accountNotices.js : la modale
+     INFORME seulement, les corrections sont faites en SQL. */
+  const [accountNotice, setAccountNotice] = useState(null);
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
   const [paymentReceived, setPaymentReceived] = useState(null);
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
@@ -1211,6 +1217,7 @@ export default function CookiMiner() {
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
   useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
   useBackToClose(!!secretBadgeReward, () => setSecretBadgeQueue(q => q.slice(1)));
+  useBackToClose(!!accountNotice,   () => setAccountNotice(null));
   useBackToClose(showBoss || !!bossReward || !!bossPenalty, () => { setShowBoss(false); setBossReward(null); setBossPenalty(null); });
 
   /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
@@ -2123,6 +2130,74 @@ export default function CookiMiner() {
       reason: s.reason,
     });
   }, [userCode, pullDone, setTotalEarned, setWeeklyEarned]);
+
+  /* ── Message de compte one-shot (v1.30) ─────────────
+     Sanction ou compensation suite à l'exploit du Memory. La modale
+     n'applique AUCUN effet : les corrections sont faites en SQL, une
+     fois pour toutes. Elle ne fait qu'expliquer au joueur ce qui a
+     changé sur son compte — sans quoi il rouvre l'app, découvre dix
+     niveaux en moins, et croit légitimement à un bug.
+
+     applyPatchOnce → une seule fois par COMPTE, pas par appareil : la
+     trace vit côté Supabase. C'est exactement le piège des sanctions de
+     mai 2026, qui se rejouaient sur un téléphone neuf faute de verrou
+     partagé (cf. le commentaire « double-refund » plus haut).
+
+     Ne se déclenche qu'à partir de cette mise à jour, puisque le
+     fichier accountNotices.js n'existe pas avant. */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    const notice = getAccountNotice(userCode);
+    if(!notice) return;
+    let cancelled = false;
+    applyPatchOnce({
+      userCode,
+      lsKey:    'cookiminer:' + notice.patch,
+      patchKey: notice.patch,
+      isCancelled: () => cancelled,
+      applyFn: async () => {
+        /* ⚠️ ADOPTION FORCÉE DES VALEURS SERVEUR — sans ça, la sanction
+           ne tient pas trente secondes.
+
+           Le pull d'ouverture (plus haut) n'accepte le serveur que s'il
+           est EN AVANCE : `serverAhead = server.totalEarned > totalEarned
+           || server.cafes > cafes`. Or une sanction fait BAISSER ces
+           valeurs. Le client garde donc son localStorage gonflé, et
+           l'upsert debouncé le repousse en base dans les 5 secondes :
+           la correction SQL est effacée par le joueur lui-même, sans
+           que personne ne s'en aperçoive.
+
+           On force donc l'adoption ici, une seule fois par compte, en
+           mettant l'upsert en pause le temps d'écrire les états.
+           C'est aussi ce qui explique qu'un changement fait à la main
+           en base ne se voie pas dans l'app : ce n'est pas un cache,
+           c'est le client qui gagne. */
+        setPauseUpsertUntil(Date.now() + 8000);
+        const srv = await pullProfile(userCode);
+        if(srv && !cancelled){
+          setCoins(srv.coins);
+          setCafes(srv.cafes);
+          setTotalEarned(srv.totalEarned);
+          setWeeklyEarned(Number(srv.weeklyEarned) || 0);
+          setLevel(srv.level);   lvRef.current = srv.level;
+          setXp(srv.xp);         xpRef.current = srv.xp;
+          setUnlocked(srv.unlocked || []);
+          setActiveTheme(srv.activeTheme || '');
+          setActiveTitle(srv.activeTitle || '');
+        }
+        /* Le classement garde son cache de session : sans purge, le
+           joueur verrait encore ses anciens chiffres jusqu'à la
+           prochaine ouverture de l'app. */
+        try{
+          sessionStorage.removeItem('leaderboard:cache:v5:alltime');
+          sessionStorage.removeItem('leaderboard:cache:v5:weekly');
+          sessionStorage.removeItem('leaderboard:market:cache');
+        }catch{ /* mode privé : pas de sessionStorage, rien à purger */ }
+        if(!cancelled) setAccountNotice(notice);
+      },
+    });
+    return () => { cancelled = true; };
+  }, [userCode, pullDone]);
 
   /* Sanction double-refund (Mustang AUY-KJ9, mai 2026).
      Le refund marché utilise un flag LS one-shot par device. Mustang
@@ -4693,6 +4768,17 @@ export default function CookiMiner() {
       )}
 
       {/* SANCTION APPLIED MODAL — avertissement post-débit administratif */}
+      {/* Message de compte (sanction / compensation) — passe avant
+          les modales de niveau et de succes. Une seule fois par COMPTE :
+          applyPatchOnce garde la trace cote Supabase, donc un appareil
+          neuf ne le rejoue pas (le piege des anciennes sanctions). */}
+      {!inTutorial && accountNotice && (
+        <AccountNoticeModal
+          notice={accountNotice}
+          onClose={()=>setAccountNotice(null)}
+        />
+      )}
+
       {!inTutorial && sanctionApplied && (
         <SanctionAppliedModal
           amount={sanctionApplied.amount}

@@ -13,14 +13,34 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.27.0-beta',
-  releaseDate: '2026-07-04',
+  version: '1.29.0',
+  releaseDate: '2026-09-07',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.29.0',
+    date: '2026-09-07',
+    title: '⚖️ Économie remise d\'aplomb',
+    title_en: '⚖️ Economy set straight',
+    changes: [
+      "🧩 Memory : correction d'un bug qui pouvait verser des milliers de 🍪 par partie — il traînait là depuis deux semaines",
+      "⚖️ Les comptes qui en ont profité ont été corrigés (cookies, cafés, niveau, actions, objets) et les deux classements recalculés",
+      "🎁 Les actions $CKM effacées lors du reset du marché ont été rendues à tout le monde",
+      "✉️ Si ton compte a été touché — dans un sens ou dans l'autre — un message t'attend à l'ouverture avec le détail",
+      "🔒 Le marché $CKM ferme le temps qu'on le refonde. Tes actions et ton portefeuille sont conservés, et la Boutique Actions reste ouverte",
+    ],
+    changes_en: [
+      "🧩 Memory: fixed a bug that could pay out thousands of 🍪 per run — it had been there for two weeks",
+      "⚖️ Accounts that exploited it have been corrected (cookies, coffees, level, shares, items) and both leaderboards recomputed",
+      "🎁 The $CKM shares wiped during the market reset have been given back to everyone",
+      "✉️ If your account was affected — either way — a message is waiting for you on open with the details",
+      "🔒 The $CKM market is closing while we rebuild it. Your shares and portfolio are kept, and the Shares Shop stays open",
+    ],
+  },
   {
     version: '1.27.0-beta',
     date: '2026-07-04',
@@ -113,24 +133,6 @@ export const CHANGELOG = [
       "📚 Quiz: the Easy difficulty makes way for more Medium and Expert questions",
       "🍪 Memory: a small bonus for clearing all the pairs",
       "✨ …and other surprises to uncover while playing 👀",
-    ],
-  },
-  {
-    version: '1.22.0',
-    date: '2026-05-18',
-    title: '🏦 Boutique Actions + roue ajustée',
-    title_en: '🏦 Shares Shop + tuned wheel',
-    changes: [
-      "🏦 Nouvelle Boutique Actions : accumule des actions $CKM et débloque-la pour échanger tes actions contre des récompenses exclusives (thèmes, avatars, cafés…)",
-      "📈 Un repère dans le Marché t'indique ta progression vers son déblocage",
-      "🎡 Roue : les petits gains du palier intermédiaire ont été revalorisés",
-      "🛒 Correctif : un pack d'actions $CKM acheté ne reste plus affiché à tort dans la boutique",
-    ],
-    changes_en: [
-      "🏦 New Shares Shop: stack up $CKM shares and unlock it to trade your shares for exclusive rewards (themes, avatars, coffees…)",
-      "📈 A marker in the Market shows your progress toward unlocking it",
-      "🎡 Wheel: the mid-tier small wins have been bumped up",
-      "🛒 Fix: a purchased $CKM shares pack no longer wrongly stays shown in the shop",
     ],
   },
 ];

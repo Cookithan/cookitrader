@@ -260,6 +260,11 @@ export const GLOBAL_CSS = `
 
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}
+  /* Retour tactile generique : le bouton s enfonce sous le doigt.
+     Pas d animation CSS ici, uniquement :active — une animation avec
+     fill-mode both garderait son transform et mangerait le :active. */
+  .tap-pop{transition:transform .12s ease}
+  .tap-pop:active{transform:scale(.955)}
   .fu{animation:floatUp .85s ease-out forwards;position:absolute;pointer-events:none;font-size:17px;font-weight:800;color:#D4A017;white-space:nowrap;z-index:10;text-shadow:0 1px 4px rgba(74,44,23,.4);left:50%;top:0}
   .float-anim{animation:float 3s ease-in-out infinite}
   .wiggle-anim{animation:wiggle .55s ease-in-out}
