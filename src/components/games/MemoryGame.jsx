@@ -77,19 +77,38 @@ export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, 
     if(peekTRef.current){ clearTimeout(peekTRef.current); peekTRef.current = null; }
   }, []);
 
-  /* Quand la dernière paire est trouvée → fin */
+  /* Fin de partie — la dernière paire vient d'être trouvée.
+
+     ⚠️ EXPLOIT CORRIGÉ (v1.30) : ce bloc versait la récompense à CHAQUE
+     exécution de l'effet, et rien ne garantissait qu'il ne tourne qu'une
+     fois. onDuelScore et onDuelProgress sont de simples fonctions
+     déclarées dans App.jsx (pas de useCallback) : elles changent
+     d'identité à chaque rendu. Dès la dernière paire, la boucle
+     s'auto-alimentait —
+        effet → onEarn() → setCoins → App re-rend → nouvelle identité de
+        callback → dépendances changées → effet → onEarn() → …
+     — pendant les 600 ms qui précèdent le passage en 'done'. Résultat :
+     des milliers de cookies par partie, et l'impossibilité de perdre.
+
+     Le garde-fou ne repose PAS sur l'identité des callbacks (fragile) ni
+     sur la course des 600 ms : un ref armé une seule fois par partie,
+     désarmé dans startGame(). Les 3 autres jeux qui versent des cookies
+     (Clic, Stop le café, Roue) le font depuis un gestionnaire
+     d'événement, jamais depuis un effet : eux ne sont pas concernés. */
+  const paidRef = useRef(false);
   useEffect(()=>{
     if(phase !== 'playing') return;
-    if(matched.length === deck.length){
-      if(duelMode){
-        onDuelScore?.(moves);   // duel : score = nb de coups (MOINS = mieux), zéro éco
-      } else {
-        const earned = rewardFor(moves) + FULL_CLEAR_BONUS;   // 6/6 → +10 🍪
-        onEarn(earned);
-      }
-      playSound('success');
-      setTimeout(()=>setPhase('done'), 600);
+    if(matched.length !== deck.length) return;
+    if(paidRef.current) return;
+    paidRef.current = true;
+    if(duelMode){
+      onDuelScore?.(moves);   // duel : score = nb de coups (MOINS = mieux), zéro éco
+    } else {
+      const earned = rewardFor(moves) + FULL_CLEAR_BONUS;   // 6/6 → +10 🍪
+      onEarn(earned);
     }
+    playSound('success');
+    setTimeout(()=>setPhase('done'), 600);
   }, [matched, deck.length, phase, moves, onEarn, duelMode, onDuelScore]);
 
   /* Duel : lance la partie automatiquement (zéro écran d'intro).
@@ -130,6 +149,7 @@ export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, 
     setDeck(shuffledDeck());
     setFlipped([]); setMatched([]); setShaking([]);
     setMoves(0);
+    paidRef.current = false;   /* réarme le versement pour cette partie */
     lockRef.current = true; /* bloqué pendant le peek */
     setPhase('playing');
     setPeek(true);
