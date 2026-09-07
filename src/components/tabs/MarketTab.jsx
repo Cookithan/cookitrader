@@ -8,7 +8,6 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { MarketStateCard } from '../market/MarketStateCard.jsx';
 import { MarketChart } from '../market/MarketChart.jsx';
 import { MarketFeed } from '../market/MarketFeed.jsx';
-import { MarketPulse } from '../market/MarketPulse.jsx';
 import { PortfolioCard } from '../market/PortfolioCard.jsx';
 import { TradePanel } from '../market/TradePanel.jsx';
 import { MarketWelcomeModal } from '../market/MarketWelcomeModal.jsx';
@@ -24,6 +23,11 @@ import { useTranslation } from '../../i18n/index.js';
      incrémente le compteur de plus-value réalisée (badge Investisseur),
      puis refresh.
    - Mode dégradé : si Supabase off → message clair, pas de crash.
+
+   v1.30 — l'écran est réordonné autour de l'action : prix → courbe →
+   mon portefeuille → acheter/vendre → activité des autres. Le titre
+   « MARCHÉ » a sauté (l'onglet de nav le dit) et MarketPulse est monté
+   dans MarketFeed : les deux encarts répondaient à la même question.
 ═══════════════════════════════════════════════════════ */
 
 export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
@@ -138,74 +142,39 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
 
   return (
     <div style={{ padding: 16, paddingBottom: 100 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, paddingTop:4 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>{t('market.title')}</div>
-        <div style={{ fontSize:11, color:C.muted }}>{t('market.shared_subtitle')}</div>
-      </div>
-
-      {/* Bandeau Maintenance / Circuit Breaker — fond espresso sombre +
-          bord doré épais + halo doré pulsant pour attirer l'attention.
-          Palette café-only respectée (or + crème + espresso). */}
+      {/* Bandeau Maintenance / Circuit Breaker — compacté en v1.30 : il
+          faisait 4 blocs de texte, un emoji de 44 px et un ruban diagonal,
+          alors que la carte de prix juste dessous affiche déjà le statut.
+          Une ligne suffit à dire pourquoi on ne peut pas trader. */}
       {marketStatus?.maintenance && (
         <div className="glow-anim" style={{
           background: 'linear-gradient(135deg, #3D2010 0%, #5C3317 50%, #3D2010 100%)',
           border: '2px solid #D4A017',
-          borderRadius: 18,
-          padding: '20px 22px',
-          marginBottom: 16,
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
+          borderRadius: 16,
+          padding: '13px 16px',
+          marginBottom: 14,
+          display: 'flex', alignItems: 'center', gap: 13,
         }}>
-          {/* Bandeau décoratif diagonal "PAUSE" en arrière-plan */}
-          <div aria-hidden style={{
-            position: 'absolute',
-            top: -8, right: -40,
-            transform: 'rotate(20deg)',
-            background: 'rgba(212,160,23,.18)',
-            color: 'rgba(255,232,154,.35)',
-            padding: '4px 50px',
-            fontSize: 9,
-            fontWeight: 900,
-            letterSpacing: 4,
-            textTransform: 'uppercase',
-            pointerEvents: 'none',
-          }}>
-            {t('market.pause_label')}
-          </div>
-
-          <div style={{
-            fontSize: 44, lineHeight: 1, marginBottom: 8,
-            filter: 'drop-shadow(0 0 10px rgba(212,160,23,.7)) drop-shadow(0 2px 4px rgba(0,0,0,.4))',
-          }}>
+          <div style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>
             {marketStatus.circuitBreaker ? '⚡' : '🛠️'}
           </div>
-          <div style={{
-            fontSize: 11, fontWeight: 800, color: 'rgba(255,232,154,.7)',
-            letterSpacing: 3, textTransform: 'uppercase', marginBottom: 6,
-          }}>
-            {marketStatus.circuitBreaker ? t('market.cb_label') : t('market.maintenance_label')}
-          </div>
-          <div style={{
-            fontSize: 17, fontWeight: 900, color: '#FFE066',
-            letterSpacing: .3, marginBottom: 8,
-            textShadow: '0 0 12px rgba(212,160,23,.6)',
-          }}>
-            {marketStatus.circuitBreaker ? t('market.cb_title') : t('market.maintenance_title')}
-          </div>
-          <div style={{
-            fontSize: 12, fontWeight: 600, color: 'rgba(255,232,154,.78)',
-            lineHeight: 1.5, maxWidth: 320, margin: '0 auto',
-          }}>
-            {marketStatus.circuitBreaker ? t('market.cb_desc') : t('market.maintenance_desc')}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 900, color: '#FFE066', marginBottom: 2 }}>
+              {marketStatus.circuitBreaker ? t('market.cb_title') : t('market.maintenance_title')}
+            </div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,232,154,.78)', lineHeight: 1.45 }}>
+              {marketStatus.circuitBreaker ? t('market.cb_desc') : t('market.maintenance_desc')}
+            </div>
           </div>
         </div>
       )}
 
+      {/* Ordre de lecture (v1.30) : le prix, la courbe, CE QUE JE POSSÈDE,
+          puis L'ACTION. Le panneau d'achat/vente — le seul endroit où l'on
+          fait quelque chose — était relégué après deux encarts sociaux.
+          Ceux-ci passent en pied de page, fusionnés en un seul. */}
       <MarketStateCard state={state} dayChange={dayChange} marketStatus={marketStatus} />
-      <MarketPulse pulse={pulse} C={C} />
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
-      <MarketFeed activity={activity} C={C} />
       <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
 
       <TradePanel
@@ -220,6 +189,8 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         onConsumeBulkPass={onConsumeBulkPass}
         C={C}
       />
+
+      <MarketFeed activity={activity} pulse={pulse} C={C} />
 
       {showWelcome && <MarketWelcomeModal onClose={closeWelcome} />}
     </div>
