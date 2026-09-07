@@ -1,19 +1,35 @@
 import { ChevronLeft, Check, Lock } from "lucide-react";
 import { LEVEL_NAMES, xpRequired } from "../../data/constants.js";
-import { GOLD, ESPRESSO } from "../../data/themes.js";
+import { GOLD, ESPRESSO, levelTier } from "../../data/themes.js";
 import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    LevelsModal — popup "Voir les niveaux"
-   - Ouverte au clic sur la carte niveau (Accueil) ou depuis le profil
-   - Révèle les 16 paliers : passés en gold, courant pulsé avec barre XP,
-     futurs verrouillés "? ? ?". Niv 16 = Ascendant Caféiné, palier
-     endgame qui propose le prestige une fois 20000 XP atteints.
-   - Lock click sur l'overlay pour fermer (sauf clic à l'intérieur)
+   ────────────────────────────────────────────────────
+   Ouverte au clic sur la carte niveau (Accueil) ou depuis le profil.
+   Les 25 paliers : passés en or, courant pulsé avec barre XP, futurs
+   verrouillés « ? ? ? ». Niv 25 = apex, il propose le prestige.
+
+   v1.30 — chaque palier est une VRAIE bannière, plus une ligne de liste.
+   Registre volontairement différent des cartes de mini-jeu (qui sont des
+   aplats colorés à filigrane emoji) : ici c'est une plaque commémorative.
+     · un ruban vertical à gauche, dans la teinte du palier
+     · le NUMÉRO en géant, en filigrane à droite
+     · une médaille ronde plutôt qu'une tuile carrée
+     · un fond dégradé très pâle dans la teinte du palier
+
+   TEINTES : la palette avance avec la progression — crème, caramel, moka,
+   espresso, puis OR pour les 5 derniers. Faire défiler la liste doit se
+   lire comme un parcours qui fonce et finit en or, pas comme 25 lignes
+   identiques. Café-only, aucun rouge ni vert (cf. CLAUDE.md).
 ════════════════════════════════════════════════════ */
+
+const TOTAL_LEVELS = 25;
+const LEVELS = Array.from({ length: TOTAL_LEVELS }, (_, i) => i + 1);
 
 export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
   const { t, localizedLevelName } = useTranslation();
+
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.78)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:80, backdropFilter:'blur(6px)', padding:18 }}>
       <div onClick={e=>e.stopPropagation()} className="bi" style={{ background:C.card, borderRadius:24, padding:'22px 18px 18px', width:'100%', maxWidth:380, maxHeight:'85vh', overflowY:'auto', border:`1px solid ${C.border}`, boxShadow:'0 24px 64px rgba(0,0,0,.45)' }}>
@@ -28,57 +44,118 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
           </button>
         </div>
 
-        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-          {[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25].map(n => {
-            const passed   = n < currentLevel;
+        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+          {LEVELS.map(n => {
+            const passed    = n < currentLevel;
             const isCurrent = n === currentLevel;
-            const locked   = n > currentLevel;
+            const locked    = n > currentLevel;
             /* XP exacte à gagner DANS le niveau n-1 pour passer au n.
                Pour n=1, on affiche 0 (palier de départ). */
-            const req      = n === 1 ? 0 : xpRequired(n - 1);
+            const req       = n === 1 ? 0 : xpRequired(n - 1);
+            const tier      = levelTier(n);
+
+            /* Le palier courant garde le fond espresso : c'est LUI qu'on
+               doit trouver en ouvrant la modale. Les autres portent la
+               teinte de leur tranche, très diluée. */
+            const bg = isCurrent
+              ? ESPRESSO
+              : passed
+                ? `linear-gradient(100deg, ${tier.soft}, transparent 70%)`
+                : C.card2;
 
             return (
               <div key={n} className={isCurrent ? 'pulse-ring' : ''} style={{
-                display:'flex', alignItems:'center', gap:12, padding:'12px 14px', borderRadius:16,
-                background: passed ? 'rgba(212,160,23,.08)' : isCurrent ? ESPRESSO : C.card2,
-                border: `2px solid ${isCurrent ? '#D4A017' : passed ? 'rgba(212,160,23,.3)' : C.border}`,
-                opacity: locked ? .65 : 1,
-                transition:'all .25s'
+                position:'relative', overflow:'hidden',
+                display:'flex', alignItems:'center', gap:13,
+                padding:'14px 16px 14px 19px', borderRadius:18,
+                background: bg,
+                border: `1.5px solid ${isCurrent ? '#D4A017' : passed ? tier.edge : C.border}`,
+                boxShadow: isCurrent
+                  ? '0 8px 22px rgba(74,44,23,.4)'
+                  : passed ? '0 2px 10px rgba(0,0,0,.05)' : 'none',
+                opacity: locked ? .78 : 1,
+                transition:'all .25s',
               }}>
+                {/* Ruban vertical — la teinte du palier, tranchée net. */}
+                <div aria-hidden style={{
+                  position:'absolute', left:0, top:0, bottom:0, width:5,
+                  background: locked ? C.border : isCurrent ? GOLD : tier.base,
+                }} />
+
+                {/* Numéro géant en filigrane : la signature de ces
+                    bannières, là où les cartes de jeu ont un emoji. */}
+                <div aria-hidden style={{
+                  position:'absolute', right:10, bottom:-20,
+                  fontSize:72, fontWeight:900, lineHeight:1,
+                  letterSpacing:'-4px', pointerEvents:'none',
+                  color: isCurrent ? '#fff' : tier.base,
+                  opacity: isCurrent ? .12 : locked ? .07 : .13,
+                }}>{n}</div>
+
+                {/* Médaille ronde — les cartes de jeu ont une tuile carrée,
+                    on change de forme pour changer de registre. */}
                 <div style={{
-                  width:42, height:42, borderRadius:13, flexShrink:0,
-                  background: passed ? GOLD : isCurrent ? 'rgba(212,160,23,.25)' : C.card,
-                  border: passed ? 'none' : `2px solid ${isCurrent ? '#D4A017' : C.border}`,
+                  width:44, height:44, borderRadius:'50%', flexShrink:0,
+                  background: passed
+                    ? `linear-gradient(140deg, ${tier.base}, ${tier.edge})`
+                    : isCurrent ? 'rgba(212,160,23,.22)' : C.card,
+                  border: passed
+                    ? '2px solid rgba(255,255,255,.35)'
+                    : `2px solid ${isCurrent ? '#D4A017' : C.border}`,
+                  boxShadow: passed
+                    ? `0 3px 10px ${tier.soft}, inset 0 1px 0 rgba(255,255,255,.4)`
+                    : isCurrent ? '0 0 0 3px rgba(212,160,23,.15)' : 'none',
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  fontWeight:800, fontSize:16,
+                  fontWeight:900, fontSize:16,
                   color: passed ? '#fff' : isCurrent ? '#D4A017' : C.muted,
+                  position:'relative',
                 }}>
                   {locked ? <Lock size={16} /> : n}
                 </div>
 
-                <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ flex:1, minWidth:0, position:'relative' }}>
                   <div style={{ fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:'uppercase', color: isCurrent ? 'rgba(255,255,255,.6)' : C.muted, marginBottom:2 }}>
                     {t('modal.level_n', { n })}
                   </div>
-                  <div style={{ fontSize:15, fontWeight:800, color: isCurrent ? '#fff' : passed ? C.text : locked ? C.muted : C.text, letterSpacing: locked ? 4 : 0 }}>
+                  <div style={{
+                    fontSize:15, fontWeight:800,
+                    color: isCurrent ? '#fff' : locked ? C.muted : C.text,
+                    letterSpacing: locked ? 4 : 0,
+                  }}>
                     {locked ? '? ? ?' : (localizedLevelName(n) || LEVEL_NAMES[n])}
                   </div>
+
                   {isCurrent && (
                     <div style={{ marginTop:8 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,.6)', marginBottom:3 }}>
                         <span>XP</span><span>{xp}/{xpReq}</span>
                       </div>
-                      <div style={{ height:5, borderRadius:3, background:'rgba(255,255,255,.18)', overflow:'hidden' }}>
-                        <div style={{ height:'100%', borderRadius:3, width:`${Math.min((xp/xpReq)*100,100)}%`, background:'#D4A017', transition:'width .6s' }} />
+                      <div style={{ height:5, borderRadius:3, background:'rgba(255,255,255,.18)', overflow:'hidden', position:'relative' }}>
+                        <div style={{ height:'100%', borderRadius:3, width:`${Math.min((xp/xpReq)*100,100)}%`, background:'linear-gradient(90deg,#D4A017,#F0C050)', transition:'width .6s', position:'relative', overflow:'hidden' }}>
+                          <div className="shimmer-bar" />
+                        </div>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <div style={{ flexShrink:0, textAlign:'right' }}>
-                  {passed && <span style={{ fontSize:11, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:3 }}><Check size={11} color="#D4A017" /> Atteint</span>}
-                  {isCurrent && <span style={{ fontSize:11, fontWeight:700, color:'#D4A017', background:'rgba(212,160,23,.2)', padding:'3px 8px', borderRadius:8 }}>En cours</span>}
-                  {locked && <span style={{ fontSize:10, color:C.muted, fontWeight:600 }}>{req} XP</span>}
+                <div style={{ flexShrink:0, textAlign:'right', position:'relative' }}>
+                  {passed && (
+                    <span style={{
+                      display:'inline-flex', alignItems:'center', gap:3,
+                      fontSize:10.5, fontWeight:800, color:'#fff',
+                      background:tier.base, padding:'3px 8px', borderRadius:9,
+                      boxShadow:`0 2px 6px ${tier.soft}`,
+                    }}>
+                      <Check size={11} color="#fff" /> Atteint
+                    </span>
+                  )}
+                  {isCurrent && (
+                    <span style={{ fontSize:10.5, fontWeight:800, color:'#3D2010', background:'linear-gradient(135deg,#FFE89A,#D4A017)', padding:'3px 9px', borderRadius:9, boxShadow:'0 2px 8px rgba(212,160,23,.4)' }}>
+                      En cours
+                    </span>
+                  )}
+                  {locked && <span style={{ fontSize:10, color:C.muted, fontWeight:700 }}>{req} XP</span>}
                 </div>
               </div>
             );

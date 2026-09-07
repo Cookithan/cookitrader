@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
-import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
+import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, levelTier } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { generateUserCode } from "./utils/userCode.js";
@@ -4060,21 +4060,42 @@ export default function CookiMiner() {
               <div style={{ position:'absolute', top:14, right:16, fontSize:10, color:'rgba(255,255,255,.45)', display:'flex', alignItems:'center', gap:3, fontWeight:600 }}>
                 {t('home.see_all')} <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
               </div>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12, marginTop:14 }}>
-                <div>
+              {/* Médaille du palier (v1.30) — même signature que les
+                  bannières de LevelsModal, dans la teinte de la tranche de
+                  5 niveaux : les deux écrans parlent la même langue, et
+                  le niveau devient une décoration qu'on porte plutôt
+                  qu'une ligne de texte. */}
+              <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12, marginTop:14 }}>
+                {(() => {
+                  const tier = levelTier(level);
+                  return (
+                    <div style={{
+                      width:54, height:54, borderRadius:'50%', flexShrink:0,
+                      background:`linear-gradient(140deg, ${tier.base}, ${tier.edge})`,
+                      border:'2px solid rgba(255,255,255,.4)',
+                      boxShadow:'0 4px 14px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.45)',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      fontSize:21, fontWeight:900, color:'#fff',
+                      textShadow:'0 1px 3px rgba(0,0,0,.35)',
+                    }}>{level}</div>
+                  );
+                })()}
+                <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:2, display:'flex', alignItems:'center', gap:6 }}>
-                    {t('home.level_uppercase')} {level}
+                    {t('home.level_uppercase')}
                     {prestigeLevel > 0 && (
                       <span title={`Prestige ${prestigeLevel} · multiplicateur x${(1 + prestigeLevel * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:'#FFE066', letterSpacing:.5 }}>
                         {prestigeLevel <= 5 ? '👑'.repeat(prestigeLevel) : `👑×${prestigeLevel}`}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{localizedLevelName(level) || LEVEL_NAMES[level]}</div>
+                  <div style={{ fontSize:19, fontWeight:800, color:'#fff', lineHeight:1.15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {localizedLevelName(level) || LEVEL_NAMES[level]}
+                  </div>
                 </div>
-                <div style={{ textAlign:'right' }}>
+                <div style={{ textAlign:'right', flexShrink:0 }}>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>{t('profile.stat_total')}</div>
-                  <div style={{ fontSize:20, fontWeight:800, color:'#fff' }}>{totalEarned} 🍪</div>
+                  <div style={{ fontSize:19, fontWeight:800, color:'#fff' }}>{totalEarned} 🍪</div>
                 </div>
               </div>
               {/* Le libellé « Expérience » a sauté : une barre sous une carte
