@@ -269,12 +269,15 @@ export const GLOBAL_CSS = `
                     cartes feraient mécanique, pas vivant.
      .game-overlay-in : entrée du jeu. Le translateX(-50%) de centrage
                     est repris dans le keyframe, même raison. */
-  /* `.tap-pop` : le retour tactile générique de l'app — tout ce qui se
+  /* .tap-pop : le retour tactile générique de l'app — tout ce qui se
      tape peut le porter (cartes de jeu, boutons d'achat, pastilles).
-     ⚠️ À ne JAMAIS poser sur un élément qui a déjà `.su` : son
+     ⚠️ À ne JAMAIS poser sur un élément qui a déjà .su : son
      animation-fill-mode:both garde un transform appliqué par l'animation,
-     qui l'emporte sur le :active et neutralise l'effet. Mettre `.su` sur
-     un wrapper et `.tap-pop` sur l'élément tapable. */
+     qui l'emporte sur le :active et neutralise l'effet. Mettre .su sur
+     un wrapper et .tap-pop sur l'élément tapable.
+     ⚠️⚠️ AUCUN BACKTICK dans ce fichier, même en commentaire : tout le
+     contenu est un template literal, un backtick le FERME. La syntaxe
+     reste valide, le build passe, et l'app meurt au chargement. */
   .tap-pop,.game-card{transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease;will-change:transform}
   .tap-pop:active,.game-card:active{transform:scale(.955)}
   /* Pop joué AVANT l'ouverture du jeu (200 ms, cf. launchGame).
