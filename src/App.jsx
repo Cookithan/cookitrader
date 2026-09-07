@@ -4350,6 +4350,8 @@ export default function CookiMiner() {
               activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
               userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
               gameThemes={gameThemes}     setGameThemes={setGameThemes}
+              userName={userName} level={level} prestigeLevel={prestigeLevel}
+              earnedAchievements={earnedAchievements}
               onOpenShop={()=>{ playSound('tab'); setBoutiqueMode('shop'); goToTab('boutique'); }}
               C={C}
             />

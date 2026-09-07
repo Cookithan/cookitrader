@@ -125,6 +125,7 @@ export const EN = {
     subtitle:       'Everything you own — equip it here',
     open:           'My Collection',
     back_hub:       'My Collection',
+    you:            'Your look',
     owned_n:        '{n} owned',
     music_off:      'Music off',
     games_customised:'{n} game(s) customised',

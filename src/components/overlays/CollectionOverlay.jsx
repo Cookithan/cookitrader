@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronDown, Check, Lock, ShoppingBag } from "lucide-react";
-import { REWARDS } from "../../data/constants.js";
+import { REWARDS, LEVEL_NAMES } from "../../data/constants.js";
 import { THEMES, LT, ESPRESSO, COOKIE_SKINS } from "../../data/themes.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
 import { THEMABLE_GAMES, getThemesForGame, getActiveTheme, isThemeUnlocked } from "../../data/gameThemes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
+import { getNameStyle } from "../../utils/legend.js";
 import { useTranslation } from "../../i18n/index.js";
 import {
   MUSICS,
@@ -58,10 +59,12 @@ export function CollectionContent({
   activeTitle,  setActiveTitle,
   userAvatar,   setUserAvatar,
   gameThemes,   setGameThemes,
+  /* Identité — sert uniquement au bandeau « toi » du hub. */
+  userName = '', level = 1, prestigeLevel = 0, earnedAchievements = [],
   onOpenShop,
   C,
 }) {
-  const { t, localizedField } = useTranslation();
+  const { t, localizedField, localizedLevelName } = useTranslation();
   /* null = hub (les 6 cartes). Sinon on est DANS une catégorie. */
   const [cat, setCat] = useState(null);
   /* Accordéon des thèmes de mini-jeu — un seul jeu déplié à la fois. */
@@ -665,22 +668,89 @@ export function CollectionContent({
   if(!cat){
     return (
       <div className="su">
-        <div style={{ marginBottom:16, paddingTop:6, display:'flex', alignItems:'center', gap:11 }}>
-          <div style={{
-            width:38, height:38, borderRadius:12, flexShrink:0,
-            background:'linear-gradient(140deg,#FFE89A,#D4A017)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:19, boxShadow:'0 3px 10px rgba(212,160,23,.35)',
-          }}>🎨</div>
-          <div style={{ minWidth:0 }}>
-            <div style={{ fontSize:19, fontWeight:900, color:C.text, letterSpacing:'-.3px', lineHeight:1.1 }}>
-              {t('collection.title')}
+        {/* ── Bandeau « toi » ────────────────────────────────────────
+            Le résultat de tout ce qu'on équipe, tel que les autres le
+            voient : avatar porté + pseudo dans le style de son titre +
+            cookie skinné. Fond espresso obligatoire — les titres dorés
+            utilisent background-clip:text et disparaissent sur du crème.
+            La bannière Cookies, si elle est équipée, décore le fond. */}
+        <div style={{
+          position:'relative', overflow:'hidden',
+          display:'flex', alignItems:'center', gap:14,
+          padding:'16px 18px', borderRadius:22, marginBottom:18, marginTop:4,
+          background:ESPRESSO,
+          border:'1.5px solid rgba(212,160,23,.4)',
+          boxShadow:'0 8px 24px rgba(74,44,23,.35)',
+        }}>
+          {activeBanner === 'banner_cookies' && (
+            <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none' }}>
+              {[
+                { top:'10%', left:'16%', size:24, delay:0,   rot:-12 },
+                { top:'62%', left:'8%',  size:20, delay:1.2, rot:8   },
+                { top:'18%', left:'74%', size:22, delay:.6,  rot:16  },
+                { top:'66%', left:'86%', size:18, delay:1.9, rot:-8  },
+              ].map((c,i)=>(
+                <span key={i} className="float-anim" style={{
+                  position:'absolute', top:c.top, left:c.left,
+                  fontSize:c.size, opacity:.18,
+                  transform:`rotate(${c.rot}deg)`, animationDelay:`${c.delay}s`,
+                }}>🍪</span>
+              ))}
             </div>
-            <div style={{ fontSize:11.5, color:C.muted, marginTop:2 }}>
-              {t('collection.subtitle')}
+          )}
+
+          <div style={{
+            flexShrink:0, borderRadius:'50%', lineHeight:0,
+            border:'2.5px solid rgba(212,160,23,.65)',
+            boxShadow:'0 4px 14px rgba(0,0,0,.3)',
+          }}>
+            <AvatarFigure value={userAvatar} size={62} />
+          </div>
+
+          <div style={{ flex:1, minWidth:0, position:'relative' }}>
+            <div style={{
+              fontSize:9.5, fontWeight:800, color:'rgba(255,255,255,.5)',
+              textTransform:'uppercase', letterSpacing:1.8, marginBottom:3,
+            }}>
+              {t('collection.you')}
+            </div>
+            {/* Key liée au titre : sans remount, background-clip:text garde
+                l'ancien rendu (carré de couleur) au changement de titre. */}
+            <div
+              key={`collec-pseudo-${activeTitle || 'none'}`}
+              style={{
+                fontSize:19, fontWeight:900, color:'#fff', lineHeight:1.15,
+                whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+                ...(getNameStyle(userName, earnedAchievements, activeTitle) || {}),
+              }}
+            >
+              {userName || 'Joueur'}
+            </div>
+            <div style={{
+              fontSize:11, color:'#F0C050', fontWeight:700, marginTop:3,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+            }}>
+              {t('home.level_card', { n: level, label: localizedLevelName(level) || LEVEL_NAMES[level] })}
+              {prestigeLevel > 0 && (
+                <span style={{ marginLeft:6 }}>
+                  {prestigeLevel <= 5 ? '👑'.repeat(prestigeLevel) : `👑×${prestigeLevel}`}
+                </span>
+              )}
             </div>
           </div>
+
+          <div style={{ width:46, height:46, flexShrink:0, position:'relative' }}>
+            <SkinnedCookie skin={COOKIE_SKINS[activeSkin] || COOKIE_SKINS['']} />
+          </div>
         </div>
+
+        <div style={{
+          fontSize:10, fontWeight:800, color:C.muted,
+          textTransform:'uppercase', letterSpacing:2, marginBottom:10,
+        }}>
+          {t('collection.title')}
+        </div>
+
         {renderHub()}
       </div>
     );

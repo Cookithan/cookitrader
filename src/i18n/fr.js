@@ -133,6 +133,7 @@ export const FR = {
     subtitle:       "Tout ce que tu possèdes — équipe-le ici",
     open:           'Ma Collection',
     back_hub:       'Ma Collection',
+    you:            'Ton allure',
     owned_n:        '{n} possédé{s}',
     music_off:      'Musique coupée',
     games_customised:'{n} jeu(x) personnalisé(s)',
