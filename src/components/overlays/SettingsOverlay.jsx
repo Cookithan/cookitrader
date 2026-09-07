@@ -62,7 +62,10 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
   /* Ligne de navigation standard (icône + titre + sous-titre + chevron).
      Toutes les entrées « qui mènent ailleurs » partagent ce rendu pour
      que l'écran se lise d'un seul coup d'œil. */
-  const navRow = ({ key, icon, title, sub, onClick, href, arrow = '→' }) => {
+  /* `flat` : la rangée perd sa carte (fond + bord + coins) pour s'insérer
+     dans un conteneur groupé — cf. la section DONNÉES, où quatre cartes
+     empilées sont devenues un seul bloc à séparateurs. */
+  const navRow = ({ key, icon, title, sub, onClick, href, arrow = '→', flat = false }) => {
     const inner = (
       <>
         <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
@@ -83,7 +86,13 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
         <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>{arrow}</span>
       </>
     );
-    const style = {
+    const style = flat ? {
+      width:'100%', border:'none', background:'transparent',
+      padding:'13px 4px',
+      display:'flex', alignItems:'center', justifyContent:'space-between',
+      cursor:'pointer', textAlign:'left',
+      textDecoration:'none', color:'inherit', boxSizing:'border-box',
+    } : {
       width:'100%', borderRadius:16,
       background:C.card, border:`1px solid ${C.border}`,
       padding:'14px 16px',
@@ -304,15 +313,24 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
           </div>
         </section>
 
-        {/* Données */}
+        {/* Données — UN SEUL bloc à séparateurs (v1.30). C'étaient quatre
+            cartes empilées avec des écarts : sauvegarde locale, infos de
+            récupération, restaurer, nouveau compte. Elles parlent toutes du
+            même sujet — ton compte et sa sauvegarde — donc elles tiennent
+            désormais dans un seul conteneur. Le code promo, lui, n'a rien
+            à voir avec les données : il a sa propre section, plus bas. */}
         <section>
           {sectionLabel(t('settings.section_data'))}
-          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16, marginBottom:8 }}>
-            <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>{t('settings.data_local_save')}</div>
-            <div style={{ fontSize:11, color:C.muted, lineHeight:1.5 }}>
-              {t('settings.data_local_desc')}
+          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:'4px 14px' }}>
+
+            <div style={{ padding:'14px 4px 12px' }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>{t('settings.data_local_save')}</div>
+              <div style={{ fontSize:11, color:C.muted, lineHeight:1.5 }}>
+                {t('settings.data_local_desc')}
+              </div>
             </div>
-          </div>
+
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
 
           {/* Carte infos de récupération — collapsée par défaut, révélée
               au tap pour ne pas occuper trop de place. */}
@@ -320,10 +338,8 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
             <button
               onClick={() => setRecoveryRevealed(true)}
               style={{
-                width:'100%', borderRadius:16,
-                background:'linear-gradient(140deg, rgba(212,160,23,.08), rgba(193,127,60,.06))',
-                border:'1px solid rgba(212,160,23,.32)',
-                padding:'14px 16px', marginBottom:8,
+                width:'100%', border:'none', background:'transparent',
+                padding:'13px 4px',
                 display:'flex', alignItems:'center', justifyContent:'space-between',
                 cursor:'pointer', textAlign:'left',
               }}
@@ -355,10 +371,10 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
 
           {(userCode || restorePin) && recoveryRevealed && (
             <div style={{
-              borderRadius:16,
-              background:'linear-gradient(140deg, rgba(212,160,23,.08), rgba(193,127,60,.06))',
+              borderRadius:14,
+              background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.07))',
               border:'1px solid rgba(212,160,23,.32)',
-              padding:'14px 16px', marginBottom:8,
+              padding:'12px 14px', margin:'10px 0',
             }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
@@ -473,27 +489,35 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
             </div>
           )}
 
-          {onOpenRestore && (
-            <div style={{ marginBottom:8 }}>
-              {navRow({
-                key:'restore', icon:'🔄',
-                title:t('settings.data_restore'), sub:t('settings.data_restore_sub'),
-                onClick:() => { playSound('modal'); onOpenRestore(); },
-              })}
-            </div>
-          )}
+          {onOpenRestore && (<>
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
+            {navRow({
+              key:'restore', icon:'🔄',
+              title:t('settings.data_restore'), sub:t('settings.data_restore_sub'),
+              onClick:() => { playSound('modal'); onOpenRestore(); },
+              flat:true,
+            })}
+          </>)}
 
-          {onStartNewAccount && (
-            <div style={{ marginBottom:8 }}>
-              {navRow({
-                key:'newaccount', icon:'🌱',
-                title:t('settings.data_new_account'), sub:t('settings.data_new_account_sub'),
-                onClick:() => { playSound('modal'); onStartNewAccount(); },
-              })}
-            </div>
-          )}
+          {onStartNewAccount && (<>
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
+            {navRow({
+              key:'newaccount', icon:'🌱',
+              title:t('settings.data_new_account'), sub:t('settings.data_new_account_sub'),
+              onClick:() => { playSound('modal'); onStartNewAccount(); },
+              flat:true,
+            })}
+          </>)}
 
-          {onOpenPromoCode && (
+          </div>
+        </section>
+
+        {/* Code promo — sorti du groupe DONNÉES (v1.30). Ce n'est pas une
+            question de sauvegarde : c'est un cadeau qu'on saisit. Il garde
+            sa carte orange, seul de son espèce dans l'écran. */}
+        {onOpenPromoCode && (
+          <section>
+            {sectionLabel(t('settings.section_promo'))}
             <button
               onClick={() => { playSound('modal'); onOpenPromoCode(); }}
               style={{
@@ -527,8 +551,8 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
               </div>
               <span style={{ fontSize:18, color:'#fff', flexShrink:0, fontWeight:800 }}>→</span>
             </button>
-          )}
-        </section>
+          </section>
+        )}
 
         {/* Installation PWA — bouton si Android/Desktop, instruction si iOS,
             badge "déjà installée" si standalone, rien sinon. */}

@@ -74,6 +74,7 @@ export const FR = {
     section_audio:         'AUDIO',
     section_language:      'LANGUE',
     section_data:          'DONNÉES',
+    section_promo:         'CODE PROMO',
     section_installation:  'INSTALLATION',
     section_community:     'COMMUNAUTÉ',
     section_about:         'À PROPOS',

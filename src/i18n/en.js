@@ -66,6 +66,7 @@ export const EN = {
     section_audio:         'AUDIO',
     section_language:      'LANGUAGE',
     section_data:          'DATA',
+    section_promo:         'PROMO CODE',
     section_installation:  'INSTALLATION',
     section_community:     'COMMUNITY',
     section_about:         'ABOUT',
