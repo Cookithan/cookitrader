@@ -148,6 +148,8 @@ export const FR = {
     section_banner: 'BANNIÈRE',
     themes_light:   'Clairs',
     themes_dark:    'Sombres',
+    themes_limited: 'Éditions limitées',
+    themes_promo:   'Codes promo',
     none:           'Aucun',
     empty_hint:     "Rien dans cette catégorie pour l'instant — ça se débloque en boutique.",
     to_unlock_n:    '{n} à débloquer en boutique →',

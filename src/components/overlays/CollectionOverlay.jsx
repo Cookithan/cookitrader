@@ -5,6 +5,7 @@ import { THEMES, LT, ESPRESSO, COOKIE_SKINS } from "../../data/themes.js";
 import { ONBOARDING_AVATARS, AVATAR_PREMIUM_LIST } from "../../data/avatars.js";
 import { TITLE_STYLES, getTitleStyle } from "../../data/titles.js";
 import { THEMABLE_GAMES, getThemesForGame, getActiveTheme, isThemeUnlocked } from "../../data/gameThemes.js";
+import { PROMO_CODES } from "../../data/promoCodes.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { getNameStyle } from "../../utils/legend.js";
@@ -50,6 +51,14 @@ import {
    - Choisir une musique rallume la musique si elle était coupée
      (le toggle on/off reste dans Paramètres).
 ═══════════════════════════════════════════════════════ */
+
+/* Items débloquables par code promo — dérivé de PROMO_CODES (champ
+   `unlock`), donc toujours à jour si Régis ajoute un code. Sert à ranger
+   ces cosmétiques dans leur propre groupe : on les retrouve par leur
+   provenance, pas par leur couleur. */
+const PROMO_UNLOCK_IDS = new Set(
+  Object.values(PROMO_CODES).map(c => c && c.unlock).filter(Boolean)
+);
 
 export function CollectionContent({
   unlocked = [],
@@ -247,37 +256,45 @@ export function CollectionContent({
     );
   };
 
-  /* Groupes clairs / sombres — l'axe qui compte quand on cherche un look
-     (le flag `dark` vient de data/themes.js). Le thème par défaut est clair. */
+  /* Groupes de thèmes. Deux axes combinés, en PRIORITÉ décroissante :
+     d'abord la provenance (code promo, puis édition limitée), parce que
+     c'est ce qui rend un thème mémorable et introuvable autrement ; le
+     reste retombe sur clair / sombre, l'axe utile quand on cherche un look.
+     Un thème n'apparaît que dans UN groupe.
+     Tout est dérivé des données — rien n'est écrit en dur ici :
+       · promo   = son id est un `unlock` d'un code de PROMO_CODES
+       · limitée = flag `limited` dans REWARDS
+       · sombre  = flag `dark` dans THEMES */
   const themeLabel = (r) =>
     (localizedField(r, 'name', 'REWARDS') || '').replace(/^Th[èe]me\s+/i, '').replace(/\sTheme$/i, '');
-  const lightThemes = ownedThemes.filter(r => !THEMES[r.id]?.dark);
-  const darkThemes  = ownedThemes.filter(r =>  THEMES[r.id]?.dark);
 
-  const themeGrid = (children) => (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
-      {children}
-    </div>
-  );
+  const promoThemes   = ownedThemes.filter(r => PROMO_UNLOCK_IDS.has(r.id));
+  const limitedThemes = ownedThemes.filter(r => r.limited && !PROMO_UNLOCK_IDS.has(r.id));
+  const isPlain       = (r) => !r.limited && !PROMO_UNLOCK_IDS.has(r.id);
+  const lightThemes   = ownedThemes.filter(r => isPlain(r) && !THEMES[r.id]?.dark);
+  const darkThemes    = ownedThemes.filter(r => isPlain(r) &&  THEMES[r.id]?.dark);
+
+  const themeGroup = (icon, label, items, extra = null) => {
+    if(items.length === 0 && !extra) return null;
+    return (
+      <div key={label}>
+        <div style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.6, marginBottom:9 }}>
+          {icon} {label} · {items.length + (extra ? 1 : 0)}
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
+          {extra}
+          {items.map(r => themeTile(r.id, themeLabel(r)))}
+        </div>
+      </div>
+    );
+  };
 
   const renderThemes = () => (
     <>
-      <div style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.6, marginBottom:9 }}>
-        ☀️ {t('collection.themes_light')} · {lightThemes.length + 1}
-      </div>
-      {themeGrid(<>
-        {themeTile('', t('settings.theme_default'))}
-        {lightThemes.map(r => themeTile(r.id, themeLabel(r)))}
-      </>)}
-
-      {darkThemes.length > 0 && (
-        <>
-          <div style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.6, marginBottom:9 }}>
-            🌙 {t('collection.themes_dark')} · {darkThemes.length}
-          </div>
-          {themeGrid(darkThemes.map(r => themeTile(r.id, themeLabel(r))))}
-        </>
-      )}
+      {themeGroup('☀️', t('collection.themes_light'), lightThemes, themeTile('', t('settings.theme_default')))}
+      {themeGroup('🌙', t('collection.themes_dark'),  darkThemes)}
+      {themeGroup('✨', t('collection.themes_limited'), limitedThemes)}
+      {themeGroup('🎟️', t('collection.themes_promo'),   promoThemes)}
 
       {/* Bannière — décor de la carte niveau. Ne s'affiche que si possédée. */}
       {ownedBanners.length > 0 && setActiveBanner && (

@@ -140,6 +140,8 @@ export const EN = {
     section_banner: 'BANNER',
     themes_light:   'Light',
     themes_dark:    'Dark',
+    themes_limited: 'Limited editions',
+    themes_promo:   'Promo codes',
     none:           'None',
     empty_hint:     'Nothing in this category yet — unlock some in the shop.',
     to_unlock_n:    '{n} to unlock in the shop →',
