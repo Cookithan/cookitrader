@@ -6,8 +6,8 @@
 -- capture du classement des traders (2026-09-07, 19 h 25) — reportées
 -- ci-dessous, appariées aux user_code de la base.
 --
--- ⚠️ TOUT EST COMMENTÉ. Décommenter après avoir tranché le point
---    marqué À ARBITRER plus bas (dokiller).
+-- ⚠️ TOUT EST COMMENTÉ. Les deux arbitrages sont tranchés : décommenter
+--    les blocs dans l'ordre.
 -- ⚠️ IRRÉVERSIBLE. Sauvegarder d'abord :
 --    CREATE TABLE pf_avant_restauration AS SELECT * FROM public.market_portfolio;
 --
@@ -29,15 +29,13 @@
 -- base, et 25 % des gains de la communauté sur la semaine en cours.
 
 -- ─────────────────────────────────────────────────────
--- À ARBITRER n°2 — dokiller (7Z4-977), 90 actions
+-- TRANCHÉ — dokiller (7Z4-977) : ses 90 actions lui sont RENDUES
 -- ─────────────────────────────────────────────────────
--- C'est le seul compte DÉJÀ sanctionné de l'app : src/data/sanctions.js
--- le liste pour « manipulation du marché $CKM (pump-and-dump) », le
--- 2026-05-10 — des achats/ventes massifs qui ont fait chuter le prix de
--- 123 à 80 cookies en 5 minutes, aux dépens des autres investisseurs.
--- Lui rendre ses actions de marché est une décision, pas une évidence.
--- Sa ligne est plus bas, commentée comme les autres : à toi de voir.
-
+-- Décision de Régis (2026-09-07). Sa sanction de mai 2026 portait sur
+-- la manipulation du prix, pas sur l'origine de ses actions : celles-ci
+-- ont été acquises normalement, et effacées par la remise à zéro du
+-- marché comme celles de tout le monde. Sa ligne est donc à décommenter
+-- avec les autres.
 
 -- ─────────────────────────────────────────────────────
 -- RESTAURATION — tous les autres joueurs
@@ -49,7 +47,7 @@
 -- UPDATE public.market_portfolio SET shares = 327 WHERE user_code = '83F-LV2';  -- Regislegoat
 -- UPDATE public.market_portfolio SET shares = 221 WHERE user_code = 'FXF-9CK';  -- LXP
 -- UPDATE public.market_portfolio SET shares = 142 WHERE user_code = 'AUY-KJ9';  -- Mustang46
--- UPDATE public.market_portfolio SET shares =  90 WHERE user_code = '7Z4-977';  -- dokiller   ⚠️ cf. arbitrage n°2
+-- UPDATE public.market_portfolio SET shares =  90 WHERE user_code = '7Z4-977';  -- dokiller
 -- UPDATE public.market_portfolio SET shares =  76 WHERE user_code = 'XN2-Z7M';  -- Miagguy
 -- UPDATE public.market_portfolio SET shares =  46 WHERE user_code = 'L7X-RDP';  -- Régis (le vrai)
 -- UPDATE public.market_portfolio SET shares =  42 WHERE user_code = 'X6G-4ZL';  -- 150000Cookiaaronxbox

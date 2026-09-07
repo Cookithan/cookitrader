@@ -44,14 +44,18 @@ export const SANCTION_NOTICES = {
     removed: [
       'Niveau 25 → 15',
       '176 938 → 67 000 cookies au classement cumulé',
-      '49 763 → 18 800 cookies de solde',
-      '29 → 24 cafés',
+      '49 763 → 10 800 cookies de solde',
+      '29 → 14 cafés',
       '461 actions $CKM retirées',
       '23 objets retirés (au-delà de ce que ton niveau et ton budget réels permettaient)',
       'Badges de champion des semaines gagnées avec ces scores',
     ],
-    /* Il a signalé le bug de lui-même : ça mérite d'être dit. */
-    footer: "Merci d'avoir signalé le bug toi-même — c'est ce qui a permis de le corriger. La remise à plat ne vise pas à te punir, seulement à remettre tout le monde sur la même ligne.",
+    /* Il a signalé le bug de lui-même : ça mérite d'être dit. Mais une
+       pénalité s'ajoute à la remise à plat (10 cafés et 8 000 cookies),
+       parce qu'il en a profité des semaines avant de le signaler — le
+       message doit le dire, sinon il ne comprendra pas l'écart entre
+       les chiffres annoncés et le simple rééquilibrage. */
+    footer: "Merci d'avoir signalé le bug toi-même : c'est ce qui a permis de le corriger. Une pénalité de 10 cafés et 8 000 cookies s'ajoute quand même à la remise à plat, parce que tu en as profité plusieurs semaines avant de le dire. Le reste n'est qu'un retour à ce que ton temps de jeu justifie.",
   },
   'FPJ-LJK': {
     name: 'Le vrai Cooki',
