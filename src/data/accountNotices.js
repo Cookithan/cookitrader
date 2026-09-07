@@ -100,9 +100,17 @@ const ACTIONS_RENDUES = {
   '9US-FXX': ['Epikseo', 1],
 };
 
-/* Bonus au cas par cas, en plus des actions rendues. */
+/* Bonus au cas par cas, en plus des actions rendues.
+
+   Podium refait de la semaine du 28 août : les deux premières places
+   étaient tenues par des scores fabriqués, donc tout le monde remonte
+   de deux rangs. Cafés du podium : 1er +3, 2e +2, 3e +1 — Miagguy
+   avait déjà touché 1 café en tant que 3e, d'où +2 et non +3.
+   Cf. SANCTION_EXPLOIT_MEMORY.sql pour la reconstruction des rangs. */
 const BONUS = {
-  'XN2-Z7M': ['2 cafés — tu étais le vrai vainqueur du classement de la semaine du 28 août, le podium t\'avait été pris'],
+  'XN2-Z7M': ['2 cafés — tu passes 1er du classement de la semaine du 28 août, la place t\'avait été prise'],
+  'X6G-4ZL': ['2 cafés — tu passes 2e du classement de la semaine du 28 août'],
+  'FXF-9CK': ['1 café — tu passes 3e du classement de la semaine du 28 août'],
 };
 
 export const REWARD_NOTICES = Object.fromEntries(
