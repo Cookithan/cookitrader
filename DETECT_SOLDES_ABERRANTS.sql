@@ -128,94 +128,150 @@ WHERE LOWER(user_name) LIKE '%fedider%';
 
 
 -- ════════════════════════════════════════════════════
--- RÉSULTATS DE L'ANALYSE — 2026-09-07 (33 comptes lus, 30 hors admins)
--- ────────────────────────────────────────────────────
--- Référence de rendement HONNÊTE : Miagguy, 918 minutes tracées (le plus
--- gros temps de jeu de la base) → 143 🍪/min. On retient 150 🍪/min comme
--- plafond plausible, volontairement au-dessus de lui.
---
--- L'angle mort de total_play_time est LEVÉ : la colonne a été ajoutée le
--- 2026-05-12 (commit v1.18.0). Tous les comptes signalés ci-dessous ont
--- au plus 1 jour de jeu non comptabilisé — insuffisant pour expliquer
--- l'écart. Les gros ratios de comptes inactifs depuis mai/juin
--- (Mustang46 820/min, Regislegoat 744, dokiller 373, LXP 354) SONT
--- l'angle mort, pas de la triche : peu de minutes tracées, dernière
--- connexion il y a des mois, hebdo à zéro. Ne pas y toucher.
---
--- ⚠️ DEUX comptes concernés, pas un.
---
---   Fedider (AZL-C8T) — niveau 25
---     447 min tracées · total_earned 176 938 → 396 🍪/min
---     plausible à 150/min : ~67 000  → environ 62 % de surplus
---     hebdo 53 072 = 63 % de TOUT ce que les joueurs ont gagné cette
---     semaine. A signalé le bug lui-même.
---
---   Le vrai Cooki (FPJ-LJK) — niveau 18
---     126 min tracées · total_earned 108 416 → 857 🍪/min, le pire ratio
---     de la base. Inscrit le 2026-07-03, DONC APRÈS la migration : son
---     temps de jeu est intégralement tracé, aucune excuse possible.
---     plausible à 150/min : ~19 000  → environ 82 % de surplus
---     hebdo 21 489 = 25 % de la semaine. N'a rien signalé.
---
---   À eux deux : 88 % des cookies gagnés par toute la communauté cette
---   semaine (84 280 au total). Les joueurs honnêtes de la semaine sont
---   150000Cookiaaronxbox (6 158) et Miagguy (3 561).
+-- RÉSULTATS DE L'ANALYSE — 2026-09-07 (33 comptes, 30 hors admins)
 -- ════════════════════════════════════════════════════
+--
+-- ⚠️ TROIS DÉCOUVERTES QUI CHANGENT LE DIAGNOSTIC INITIAL
+--
+-- 1) LE BUG N'A PAS 2 SEMAINES, IL EN A NEUF.
+--    L'exploit est né avec les Duels : commit ad8b331 du 2026-07-03,
+--    déployé le jour même, qui a ajouté onDuelScore (fonction non
+--    mémoïsée) aux dépendances de l'effet de fin de partie du Memory.
+--    Preuve dans les podiums : Le vrai Cooki gagne la semaine du
+--    2026-07-03 avec 13 341 cookies — contre 225 la semaine d'avant.
+--    Il exploitait DES la première semaine où c'était possible.
+--
+-- 2) total_earned MENT — ET IL MINIMISE.
+--    addCoins applique un cap anti-écart au leader (App.jsx ~1747) :
+--      setTotalEarned(t => Math.min(cap, t + xpDelta))   cap = top2 x 1.20
+--    Le classement cumulé est donc FIGÉ pour le n°1, pendant que ses
+--    XP et son niveau continuent de monter normalement. C'est pour ça
+--    que Fedider affiche 176 938 (seulement 1,15x le n°2) alors qu'il
+--    est niveau 25 : atteindre le niveau 25 réclame ~418 800 cookies
+--    de gains cumulés. Le vrai chiffre est là, pas dans total_earned.
+--
+--    -> Les signaux honnêtes sont le NIVEAU et weekly_earned
+--       (ce dernier n'est pas plafonné).
+--
+-- 3) UN PODIUM A DÉJÀ ÉTÉ PAYÉ.
+--    Semaine 2026-08-28, clôturée le 2026-09-04 (table weekly_winners) :
+--       1. Fedider ......... 262 131  -> 3 cafés versés
+--       2. Le vrai Cooki .... 70 982  -> 2 cafés versés
+--       3. Miagguy .......... 16 758  -> 1 café versé
+--    Pour mémoire, les vainqueurs des semaines normales : 570, 152,
+--    1 457, 112, 106, 225… Les gagnants scorent en CENTAINES.
+--    262 131, c'est 460x le vainqueur de la semaine précédente.
+--    Miagguy aurait dû être 1er (3 cafés) et n'a eu que 1 café.
+--
+-- ────────────────────────────────────────────────────
+-- LES DEUX COMPTES
+-- ────────────────────────────────────────────────────
+-- Référence honnête : Miagguy, 918 min tracées (le plus gros temps de
+-- jeu de la base), niveau 18 -> 143 cookies/min. Plafond retenu : 150.
+--
+--   Fedider (AZL-C8T) — niveau 25, xp 60000 (plafond), 29 cafés
+--     447 min tracées · 396 cookies/min affichés (sous-estimé, cf. 2)
+--     hebdo en cours 53 072 = 63 % de TOUT ce que la communauté a gagné
+--     cette semaine. A signalé le bug lui-même.
+--     Niveau plausible pour 447 min a 150/min (~67 000) : NIVEAU 15
+--
+--   Le vrai Cooki (FPJ-LJK) — niveau 18, xp 2925, 0 café
+--     126 min tracées · 857 cookies/min — le pire ratio de la base.
+--     Inscrit le 2026-07-03, soit APRES la migration total_play_time
+--     (2026-05-12) : son temps de jeu est intégralement tracé, aucune
+--     excuse possible. Hebdo en cours 21 489 = 25 % de la semaine.
+--     N'a rien signalé, et exploite depuis juillet.
+--     Niveau plausible pour 126 min (~19 000) : NIVEAU 11
+--     Pour comparaison : Miagguy est niveau 18 avec 918 min de jeu.
+--
+--   A eux deux : 88 % des cookies de la semaine en cours (84 280).
+--   Aucun des deux n'a le succès end_game (+12 cafés) — vérifié.
+--
+-- ────────────────────────────────────────────────────
+-- CE QUE LES AUTRES GROS RATIOS NE SONT PAS
+-- ────────────────────────────────────────────────────
+-- Mustang46 (820/min), Regislegoat (744), dokiller (373), LXP (354) :
+-- ce n'est PAS de la triche. Peu de minutes tracées, hebdo à zéro,
+-- dernière connexion en mai/juin. C'est l'angle mort de la colonne
+-- total_play_time, ajoutée le 2026-05-12 alors qu'ils jouaient déjà.
+-- NE PAS Y TOUCHER.
 
 
 -- ════════════════════════════════════════════════════
 -- CORRECTIONS — TOUT CE QUI SUIT MODIFIE LA BASE
 -- Rien ne s'exécute tant que les blocs sont commentés.
--- Relancer la requête 4 AVANT et APRÈS.
+-- Relancer la requête 4 AVANT et APRES.
 -- ════════════════════════════════════════════════════
 
--- ─── A. LE MINIMUM VITAL : protéger le podium ☕ de la semaine ───────
--- Sans ça, Fedider et Le vrai Cooki raflent les 3 ☕ et 2 ☕ du podium
--- de vendredi 18 h UTC, aux dépens d'Aaron et Miagguy qui ont joué
--- normalement. C'est la seule correction qui lèse quelqu'un si on ne la
--- fait pas. Ne touche NI l'historique NI les soldes.
+-- ─── A. URGENT : protéger le podium cafés de VENDREDI ───────────────
+-- Sans ça, les deux mêmes raflent 3 et 2 cafés une SECONDE semaine
+-- d'affilée, aux dépens d'Aaron (6 158) et Miagguy (3 561) qui jouent
+-- normalement. Seule inaction qui lèse réellement quelqu'un.
+-- Ne touche ni les niveaux ni l'historique.
 --
 -- UPDATE public.users SET weekly_earned = 0
 --  WHERE user_code IN ('AZL-C8T', 'FPJ-LJK');
 
 
--- ─── B. REMISE À PLAT COMPLÈTE (au cas par cas) ─────────────────────
--- Valeurs calculées au plafond généreux de 150 🍪/min, solde ramené
--- proportionnellement pour que le pouvoir d'achat suive.
+-- ─── B. LE NIVEAU — indispensable, et c'est le plus visible ─────────
+-- Rebalancer total_earned NE SUFFIT PAS : le niveau est ce qui
+-- déverrouille les mini-jeux, les paliers de boutique et les cafés de
+-- palier. Les laisser à 25 et 18, c'est leur laisser tout le bénéfice.
+-- xp remis à 0 = début du nouveau palier.
 --
--- Fedider — il a signalé le bug lui-même. Le rebalancer entièrement
--- revient à punir la seule personne qui a joué franc jeu en le disant.
--- Recommandation : s'en tenir au bloc A pour lui.
---
+-- Fedider : 25 -> 15
 -- UPDATE public.users
---    SET total_earned = 67000, cookies = 18800, weekly_earned = 0
+--    SET level = 15, xp = 0, total_earned = 67000, cookies = 18800,
+--        weekly_earned = 0, cafes = 24
 --  WHERE user_code = 'AZL-C8T';
+--   (cafes 29 -> 24 : retire les 3 du podium volé + les 2 des paliers
+--    20 et 25 jamais atteints légitimement. Les cafés des succès
+--    level_6/10/15 lui restent, il les mérite au niveau 15.)
 --
--- Le vrai Cooki — pire ratio de la base, temps de jeu intégralement
--- tracé, n'a rien signalé. C'est ici que la remise à plat se justifie.
---
+-- Le vrai Cooki : 18 -> 11
 -- UPDATE public.users
---    SET total_earned = 19000, cookies = 700, weekly_earned = 0
+--    SET level = 11, xp = 0, total_earned = 19000, cookies = 700,
+--        weekly_earned = 0
 --  WHERE user_code = 'FPJ-LJK';
+--   (cafes déjà à 0 — les 2 du podium volé ont été dépensés, on ne peut
+--    pas les reprendre sans retirer un objet acheté. Perte sèche.)
 
 
--- ─── C. ÉTIQUETTE DE SANCTION ───────────────────────────────────────
--- Ne se pose pas en SQL : ajouter une entrée dans src/data/sanctions.js
--- (SANCTIONED_USERS), bandeau visible UNIQUEMENT par le compte concerné.
--- À NE PAS poser sur Fedider : il a signalé le bug.
+-- ─── C. RÉPARER LE PODIUM DÉJA PAYÉ (semaine 2026-08-28) ────────────
+-- Miagguy (XN2-Z7M) était le vrai vainqueur : 1 café reçu au lieu de 3.
+--
+-- UPDATE public.users SET cafes = cafes + 2 WHERE user_code = 'XN2-Z7M';
+--
+-- Et corriger la trace du podium pour l'historique :
+-- UPDATE public.weekly_winners
+--    SET top1_code='XN2-Z7M', top1_name='Miagguy', top1_earned=16758,
+--        top2_code=NULL, top2_name=NULL, top2_earned=0,
+--        top3_code=NULL, top3_name=NULL, top3_earned=0
+--  WHERE week_id = '2026-08-28';
+
+
+-- ─── D. ÉTIQUETTE DE SANCTION ───────────────────────────────────────
+-- Ne se pose pas en SQL : entrée dans src/data/sanctions.js, bandeau
+-- visible UNIQUEMENT par le compte concerné.
+--   · Fedider : A NE PAS SANCTIONNER. Il a signalé le bug lui-même.
+--   · Le vrai Cooki : exploite depuis juillet sans rien dire, et a pris
+--     un podium au passage. Seul cas où l'étiquette se défend.
 
 
 -- ─────────────────────────────────────────────────────
--- 6. SURVEILLANCE — à relancer une semaine après le déploiement du fix
+-- 6. SURVEILLANCE — a relancer une semaine apres le fix
 -- ─────────────────────────────────────────────────────
--- Si plus aucun compte ACTIF ne dépasse 400 🍪/min, l'exploit est clos.
--- (Les comptes inactifs depuis mai/juin resteront au-dessus : angle mort
---  de total_play_time, cf. en-tête. Filtrer sur last_active.)
-SELECT user_name, user_code,
+SELECT user_name, user_code, level,
        ROUND(total_earned / (total_play_time / 60.0))::int AS cookies_par_minute,
-       last_active
+       weekly_earned, last_active
 FROM public.users
 WHERE COALESCE(total_play_time, 0) >= 600
   AND total_earned / (total_play_time / 60.0) > 400
   AND last_active > NOW() - INTERVAL '14 days'
 ORDER BY cookies_par_minute DESC;
+
+-- Le controle le plus parlant : un vainqueur hebdo a 5 chiffres est
+-- anormal. Les semaines saines se gagnent en centaines.
+SELECT week_id, top1_name, top1_earned
+FROM public.weekly_winners
+ORDER BY week_id DESC LIMIT 6;
