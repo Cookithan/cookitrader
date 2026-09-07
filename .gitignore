@@ -27,3 +27,4 @@ dist-ssr
 *.sw?
 nouveau_sons/
 *.png
+.audit-snapshot.json

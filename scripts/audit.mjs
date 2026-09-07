@@ -68,6 +68,30 @@ const jours = iso => iso ? (Date.now() - new Date(iso).getTime()) / 86400000 : I
 const fmt   = n => num(n).toLocaleString('fr-FR');
 const gras  = s => '\n\x1b[1m' + s + '\x1b[0m';
 
+/* ── Empreinte d'une exécution ─────────────────────
+   Chaque passage écrit .audit-snapshot.json (hors git). Le passage
+   SUIVANT compare : c'est ce qui permet de détecter une anomalie dont
+   on ignore encore la nature, au lieu de ne chercher que ce qu'on sait
+   déjà chercher. Un seul point est conservé, le plus récent. */
+const FICHIER_SNAPSHOT = new URL('../.audit-snapshot.json', import.meta.url);
+
+function lireSnapshot() {
+  try { return JSON.parse(fs.readFileSync(FICHIER_SNAPSHOT, 'utf8')); }
+  catch { return null; }
+}
+function ecrireSnapshot(users, state) {
+  const s = state[0] || {};
+  fs.writeFileSync(FICHIER_SNAPSHOT, JSON.stringify({
+    at: Date.now(),
+    prix: Number(s.current_price) || 0,
+    users: users.map(u => ({
+      c: u.user_code, n: u.user_name,
+      e: num(u.total_earned), l: num(u.level),
+      f: num(u.cafes), t: num(u.total_play_time),
+    })),
+  }));
+}
+
 /* ════════ CONTRÔLES ════════ */
 
 /* 1. Rendement : cookies gagnés par minute de jeu.
@@ -140,6 +164,68 @@ function podiums(rows) {
   if (gros.length) alerte(`${gros.length} semaine(s) gagnée(s) avec un score à 5 chiffres`,
     gros.map(w => `${w.week_id} — ${w.top1_name} : ${fmt(w.top1_earned)} cookies   ⚠️ podium café déjà versé`));
   else ok('Aucun podium hebdo aberrant', detail);
+}
+
+/* 6. ÉVOLUTION DEPUIS LA DERNIÈRE EXÉCUTION.
+   Le contrôle le plus utile du lot, et le seul qui ne suppose pas de
+   savoir ce qu'on cherche : il compare l'état actuel à l'empreinte du
+   passage précédent. Tout gain anormal apparu entre les deux ressort,
+   quelle que soit sa cause — un exploit qu'on n'a pas encore imaginé
+   comme un cadeau mal calibré.
+
+   Sa force : le ratio est calculé sur le TEMPS DE JEU DE LA PÉRIODE
+   (delta de total_play_time), pas sur le cumul historique. L'angle mort
+   des comptes antérieurs au 2026-05-12 disparaît complètement ici.
+
+   Il ne sert à rien au premier lancement — c'est normal, il se met en
+   place tout seul dès le deuxième. */
+function evolution(users, snap) {
+  if (!snap) {
+    return voir('Évolution : première exécution, empreinte enregistrée', [
+      'Aucun point de comparaison pour l\'instant.',
+      'Le prochain « npm run audit » signalera tout gain anormal survenu entre les deux.',
+    ]);
+  }
+  const heures = (Date.now() - snap.at) / 3600000;
+  const avant  = new Map(snap.users.map(u => [u.c, u]));
+  const faits  = [];
+
+  for (const u of users) {
+    if (ADMINS.includes(String(u.user_name).toLowerCase())) continue;
+    const a = avant.get(u.user_code);
+    if (!a) { faits.push({ grave: false, l: `${u.user_name} — nouveau compte depuis la dernière fois` }); continue; }
+
+    const dGains   = num(u.total_earned)    - a.e;
+    const dMinutes = (num(u.total_play_time) - a.t) / 60;
+    const dNiveaux = num(u.level)           - a.l;
+    const dCafes   = num(u.cafes)           - a.f;
+    if (dGains <= 0 && dNiveaux <= 0 && dCafes <= 0) continue;
+
+    /* Gains sans temps de jeu : le signal le plus net qui soit. */
+    if (dGains > 500 && dMinutes < 1) {
+      faits.push({ grave: true, l: `${u.user_name} (${u.user_code}) — +${fmt(dGains)} cookies pour MOINS D'UNE MINUTE de jeu` });
+    } else if (dMinutes >= 1) {
+      const taux = Math.round(dGains / dMinutes);
+      if (taux > 400) faits.push({ grave: true,  l: `${u.user_name} (${u.user_code}) — ${taux} cookies/min sur la période (+${fmt(dGains)} en ${Math.round(dMinutes)} min)` });
+      else if (taux > 150) faits.push({ grave: false, l: `${u.user_name} (${u.user_code}) — ${taux} cookies/min sur la période` });
+    }
+
+    /* Le total_earned du leader est plafonné : ses gains réels
+       n'apparaissent que dans le niveau. 4 paliers d'un coup, ce n'est
+       pas une bonne soirée. */
+    if (dNiveaux >= 4) faits.push({ grave: true, l: `${u.user_name} (${u.user_code}) — +${dNiveaux} niveaux en ${Math.round(heures)} h` });
+
+    /* Le café est la monnaie rare de l'app : ses sources sont comptées.
+       En gagner beaucoup d'un coup mérite toujours un regard. */
+    if (dCafes >= 6) faits.push({ grave: true,  l: `${u.user_name} (${u.user_code}) — +${dCafes} cafés en ${Math.round(heures)} h` });
+    else if (dCafes >= 3) faits.push({ grave: false, l: `${u.user_name} (${u.user_code}) — +${dCafes} cafés en ${Math.round(heures)} h` });
+  }
+
+  const entete = `Évolution sur ${heures < 1 ? Math.round(heures * 60) + ' min' : Math.round(heures) + ' h'}`;
+  const graves = faits.filter(f => f.grave);
+  if (graves.length)     alerte(`${entete} : ${graves.length} anomalie(s)`, faits.map(f => (f.grave ? '!! ' : '   ') + f.l));
+  else if (faits.length) voir(`${entete} : ${faits.length} point(s) à regarder`, faits.map(f => '   ' + f.l));
+  else                   ok(`${entete} : rien d'anormal`);
 }
 
 /* 5. Marché $CKM — état, cohérence des actions, activité. */
@@ -218,6 +304,8 @@ function marche(state, txs, portefeuilles) {
   concentrationHebdo(users);
   podiums(winners);
   marche(state, txs, portefeuilles);
+  evolution(users, lireSnapshot());
+  ecrireSnapshot(users, state);
 
   const couleur = { OK: '\x1b[32m', VOIR: '\x1b[33m', ALERTE: '\x1b[31m' };
   const puce    = { OK: '  OK  ', VOIR: ' VOIR ', ALERTE: 'ALERTE' };
