@@ -55,6 +55,11 @@ export function BoutiqueTab({
   const { t, localizedField } = useTranslation();
   const [showBuyCafes, setShowBuyCafes] = useState(false);
   const [initialUnlocked] = useState(unlocked);
+  /* Catégorie premium affichée. Les 17 items premium tenaient dans un seul
+     défilement à 3 sections — trop long à parcourir (retour de Régis), on
+     revient à des onglets. Mais 3 pastilles, pas les 7 filtres + 2
+     sous-vues d'avant la v1.30 : les 3 familles sont réelles et suffisent. */
+  const [premiumCat, setPremiumCat] = useState('cosmetics');
 
   /* Révèle un niveau de plus uniquement quand tout celui en cours est acheté.
      Ignore les items premium (☕), les items 'limited' (thèmes événements
@@ -229,19 +234,15 @@ export function BoutiqueTab({
     </div>
   );
 
-  /* En-tête de section premium — même grammaire que Ma Collection. */
-  const section = (icon, label, items, sub = null) => {
-    if(items.length === 0) return null;
-    return (
-      <div style={{ marginBottom:22 }}>
-        <div style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.6, marginBottom: sub ? 4 : 10 }}>
-          {icon} {label} · {items.length}
-        </div>
-        {sub && <div style={{ fontSize:11, color:C.muted, lineHeight:1.45, marginBottom:10 }}>{sub}</div>}
-        {grid(items)}
-      </div>
-    );
-  };
+  /* Les 3 familles premium. `sub` = phrase d'intro, réservée aux coffres
+     (le caractère one-shot n'est pas devinable). */
+  const PREMIUM_CATS = [
+    { id:'cosmetics', icon:'🎨', label:t('shop.cat_cosmetics'), items:premiumCosmetics },
+    { id:'jetons',    icon:'🎫', label:t('shop.cat_vip'),       items:premiumJetons },
+    { id:'chests',    icon:'🎁', label:t('shop.cat_chests'),    items:premiumChests,
+      sub:t('shop.chests_view_intro', { once: t('shop.chests_view_once') }) },
+  ];
+  const activeCat = PREMIUM_CATS.find(c => c.id === premiumCat) || PREMIUM_CATS[0];
 
   const tabButton = (id, Icon, label, activeBg, activeColor, shadow) => (
     <button
@@ -338,9 +339,49 @@ export function BoutiqueTab({
           </button>
         )}
 
-        {section('🎨', 'Cosmétiques', premiumCosmetics)}
-        {section('🎫', 'Boosts VIP', premiumJetons)}
-        {section('🎁', 'Coffres Mystères', premiumChests, t('shop.chests_view_intro', { once: t('shop.chests_view_once') }))}
+        {/* Onglets de catégorie — 3 pastilles sur une ligne, toujours
+            visibles (pas de wrap nécessaire à 3). Le compteur évite
+            d'ouvrir une catégorie vide pour rien. */}
+        <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+          {PREMIUM_CATS.map(c => {
+            const sel = premiumCat === c.id;
+            return (
+              <button
+                key={c.id}
+                onClick={()=>{ if(!sel){ playSound('tab'); setPremiumCat(c.id); } }}
+                style={{
+                  flex:1, minWidth:0, padding:'8px 6px', borderRadius:20,
+                  fontSize:11.5, fontWeight:700,
+                  display:'inline-flex', alignItems:'center', justifyContent:'center', gap:5,
+                  whiteSpace:'nowrap', overflow:'hidden',
+                  background: sel ? ESPRESSO : C.card,
+                  color: sel ? '#F0C050' : C.muted,
+                  border:`1px solid ${sel ? 'rgba(212,160,23,.6)' : C.border}`,
+                  boxShadow: sel ? '0 2px 8px rgba(74,44,23,.3)' : 'none',
+                  transition:'all .2s', cursor:'pointer',
+                }}
+              >
+                <span style={{ fontSize:13, lineHeight:1 }}>{c.icon}</span>
+                <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{c.label}</span>
+                <span style={{ opacity:.7 }}>{c.items.length}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {activeCat.sub && activeCat.items.length > 0 && (
+          <div style={{ fontSize:11, color:C.muted, lineHeight:1.45, marginBottom:12 }}>
+            {activeCat.sub}
+          </div>
+        )}
+
+        {activeCat.items.length > 0
+          ? grid(activeCat.items)
+          : (
+            <div style={{ textAlign:'center', padding:'26px 20px', borderRadius:16, background:C.card, border:`1px dashed ${C.border}`, color:C.muted, fontSize:12, lineHeight:1.5 }}>
+              {t('shop.cat_empty')}
+            </div>
+          )}
 
         {premiumCosmetics.length + premiumJetons.length + premiumChests.length === 0 && (
           <div style={{ textAlign:'center', padding:'30px 20px', borderRadius:16, background:C.card, border:`1px dashed ${C.border}`, color:C.muted }}>
