@@ -444,6 +444,10 @@ export const FR = {
     maintenance_title:'Marché temporairement fermé',
     cb_desc:         '⚠ Variation de prix trop forte détectée. Réouverture automatique dans 1 h.',
     maintenance_desc:"Le trading est suspendu le temps d'un rééquilibrage. Réouverture bientôt — merci de ta patience ☕",
+    closed_label:    'Fermeture officielle',
+    closed_title:    'Le marché $CKM est fermé',
+    closed_desc:     "Un bug d'économie avait laissé deux comptes rafler 96 % des actions. Le marché ferme le temps de refondre tout ça pour la 1.30.",
+    closed_keep:     '🔒 Tes actions et ton portefeuille sont conservés — tu les retrouveras intacts à la réouverture.',
   },
 
   /* Onglet Marché — TradePanel & welcome */

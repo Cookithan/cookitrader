@@ -427,6 +427,10 @@ export const EN = {
     maintenance_title:'Market temporarily closed',
     cb_desc:         '⚠ Price swing too large detected. Auto-reopen in 1 hour.',
     maintenance_desc:'Trading is suspended for a rebalance. Reopening soon — thanks for your patience ☕',
+    closed_label:    'Officially closed',
+    closed_title:    'The $CKM market is closed',
+    closed_desc:     'An economy bug let two accounts grab 96% of all shares. The market is closing while we rebuild it for 1.30.',
+    closed_keep:     "🔒 Your shares and portfolio are kept — you'll find them untouched when it reopens.",
   },
 
   trade: {

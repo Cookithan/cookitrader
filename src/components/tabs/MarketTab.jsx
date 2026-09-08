@@ -146,7 +146,41 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
           faisait 4 blocs de texte, un emoji de 44 px et un ruban diagonal,
           alors que la carte de prix juste dessous affiche déjà le statut.
           Une ligne suffit à dire pourquoi on ne peut pas trader. */}
-      {marketStatus?.maintenance && (
+      {/* Fermeture officielle (v1.29, conservée en 1.30) — distincte de la
+          maintenance : pas de compte à rebours, pas de "réouverture
+          bientôt". On dit pourquoi c'est fermé et surtout que rien n'est
+          perdu, sinon le joueur qui a 300 actions croit qu'on les lui a
+          confisquées. Compacté au format 1.30 (une ligne + le rassurant). */}
+      {marketStatus?.closed && (
+        <div style={{
+          background: 'linear-gradient(135deg, #2E1808 0%, #4A2A12 55%, #2E1808 100%)',
+          border: '2px solid rgba(201,154,46,.55)',
+          borderRadius: 16,
+          padding: '13px 16px 14px',
+          marginBottom: 14,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+            <div style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>🔒</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 900, color: '#FFE066', marginBottom: 2 }}>
+                {t('market.closed_title')}
+              </div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,232,154,.78)', lineHeight: 1.45 }}>
+                {t('market.closed_desc')}
+              </div>
+            </div>
+          </div>
+          <div style={{
+            fontSize: 11.5, fontWeight: 700, color: '#F3D9A4', lineHeight: 1.45,
+            background: 'rgba(0,0,0,.22)', border: '1px solid rgba(201,154,46,.3)',
+            borderRadius: 11, padding: '9px 11px', marginTop: 11,
+          }}>
+            {t('market.closed_keep')}
+          </div>
+        </div>
+      )}
+
+      {marketStatus?.maintenance && !marketStatus?.closed && (
         <div className="glow-anim" style={{
           background: 'linear-gradient(135deg, #3D2010 0%, #5C3317 50%, #3D2010 100%)',
           border: '2px solid #D4A017',
@@ -177,18 +211,25 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
       <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
 
-      <TradePanel
-        state={state}
-        portfolio={portfolio}
-        userCode={userCode}
-        coins={coins}
-        onTradeSuccess={handleTradeSuccess}
-        marketStatus={marketStatus}
-        tradingDisabled={tradingDisabled}
-        bulkTradePasses={bulkTradePasses}
-        onConsumeBulkPass={onConsumeBulkPass}
-        C={C}
-      />
+      {/* Marché officiellement fermé : on retire le panneau d'échange au
+          lieu de l'afficher grisé — le bandeau du haut a déjà tout dit,
+          et un formulaire mort avec une heure de réouverture bidon
+          (nextChange est null quand c'est une fermeture) ferait croire
+          à un bug. */}
+      {!marketStatus?.closed && (
+        <TradePanel
+          state={state}
+          portfolio={portfolio}
+          userCode={userCode}
+          coins={coins}
+          onTradeSuccess={handleTradeSuccess}
+          marketStatus={marketStatus}
+          tradingDisabled={tradingDisabled}
+          bulkTradePasses={bulkTradePasses}
+          onConsumeBulkPass={onConsumeBulkPass}
+          C={C}
+        />
+      )}
 
       <MarketFeed activity={activity} pulse={pulse} C={C} />
 

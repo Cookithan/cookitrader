@@ -29,7 +29,21 @@ export const MARKET_CONFIG = {
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.
      Repasser à false dès que les déséquilibres sont corrigés. */
   MAINTENANCE_MODE: false,
-  TOTAL_SHARES: 10000,            // 10× plus d'actions pour un marché vraiment profond. Cap PCT 0.05 = 500 actions max/user.
+  /* ⚠️ FERMETURE OFFICIELLE (v1.29 — 07/09/2026)
+     Distincte de MAINTENANCE_MODE : ici le marché est fermé DÉLIBÉRÉMENT
+     et pour une durée indéterminée, le temps de refondre l'économie en
+     1.30. Raison : l'exploit du Memory (cf. accountNotices.js) avait
+     permis d'acheter 767 des 797 actions en circulation — 96 % du
+     flottant sur deux comptes. Rouvrir avant d'avoir corrigé la source
+     des cookies aurait juste rejoué le même scénario.
+
+     Le prix, l'historique et les portefeuilles sont CONSERVÉS : à la
+     réouverture, chacun retrouve ses actions. Seuls les échanges sont
+     suspendus.
+
+     Repasser à false pour rouvrir — rien d'autre à toucher. */
+  CLOSED: true,
+  TOTAL_SHARES: 10000,           // 10× plus d'actions pour un marché vraiment profond. Cap PCT 0.05 = 500 actions max/user.
   IMPACT_PER_SHARE: 0.0003,       // +0.03 % par action — impact triplé pour rendre l'offre/demande visible (avant 0.0001 → prix scotché à 100 même avec 2000 actions écoulées). 30 actions/tx = 0.9 % impact (sensible). Range théorique 5-700 (toutes achetées / toutes vendues), bornée par PRICE_MIN/PRICE_MAX et la mean reversion.
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
   DAILY_INFLATION: 0.001,         // +0.1% par jour
@@ -91,6 +105,12 @@ export const MARKET_CONFIG = {
    les 2 cas : MAINTENANCE_MODE manuel ET circuit breaker auto.
    `circuitBreakerUntil` (optionnel) : timestamp de réouverture si CB actif. */
 export function getMarketStatus(now = new Date(), serverState = null) {
+  /* Fermeture officielle : passe AVANT le circuit breaker, sinon un CB
+     résiduel en base (il en traînait un jusqu'en 2126 suite à un UPDATE
+     manuel raté) afficherait "réouverture à …" avec une date absurde. */
+  if (MARKET_CONFIG.CLOSED) {
+    return { open: false, nextChange: null, maintenance: true, closed: true };
+  }
   if (MARKET_CONFIG.MAINTENANCE_MODE) {
     return { open: false, nextChange: null, maintenance: true };
   }
@@ -611,6 +631,9 @@ export async function buyShares(userCode, shares, options = {}) {
 
   const status = getMarketStatus(new Date(), state);
   if (!status.open) {
+    if (status.closed) {
+      return { error: '🔒 Le marché $CKM est fermé — tes actions sont conservées' };
+    }
     if (status.circuitBreaker) {
       return { error: `⚡ Circuit breaker — variation trop forte. Réouverture à ${formatHour(status.nextChange)}` };
     }
@@ -866,6 +889,9 @@ export async function sellShares(userCode, shares, options = {}) {
 
   const status = getMarketStatus(new Date(), stateForStatus);
   if (!status.open) {
+    if (status.closed) {
+      return { error: '🔒 Le marché $CKM est fermé — tes actions sont conservées' };
+    }
     if (status.circuitBreaker) {
       return { error: `⚡ Circuit breaker — variation trop forte. Réouverture à ${formatHour(status.nextChange)}` };
     }

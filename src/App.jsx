@@ -818,8 +818,8 @@ export default function CookiMiner() {
   const [weeklyChampReward, setWeeklyChampReward] = useState(null);  // { rank, cafes, weekNum }
   /* Sanction appliquée — popup d'avertissement post-débit. */
   const [sanctionApplied, setSanctionApplied] = useState(null);  // { amount, reason }
-  /* Message de compte one-shot (v1.30) — sanction ou compensation suite
-     a l'exploit du Memory. Cf. data/accountNotices.js : la modale
+  /* Message de compte one-shot (v1.29) — sanction ou compensation suite
+     a l exploit du Memory. Cf. data/accountNotices.js : la modale
      INFORME seulement, les corrections sont faites en SQL. */
   const [accountNotice, setAccountNotice] = useState(null);
   /* Popup post-achat Stripe — set au montant détecté par le re-pull. */
@@ -1258,6 +1258,7 @@ export default function CookiMiner() {
   useBackToClose(pendingFriendNotifs.length > 0, () => setPendingFriendNotifs(n => n.slice(1)));
   useBackToClose(!!viewingProfile,  () => setViewingProfile(null));
   useBackToClose(!!secretBadgeReward, () => setSecretBadgeQueue(q => q.slice(1)));
+  useBackToClose(!!accountNotice,   () => setAccountNotice(null));
   useBackToClose(showBoss || !!bossReward || !!bossPenalty, () => { setShowBoss(false); setBossReward(null); setBossPenalty(null); });
 
   /* Refresh inbox unread count : initial + toutes les 30s tant que userCode dispo.
@@ -4822,15 +4823,14 @@ export default function CookiMiner() {
       )}
 
       {/* SANCTION APPLIED MODAL — avertissement post-débit administratif */}
-      {/* MESSAGE DE COMPTE (v1.30) — z-index 98, au-dessus de tout sauf
-          les modales de niveau/succes. Une seule fois par COMPTE :
+      {/* Message de compte (sanction / compensation) — passe avant
+          les modales de niveau et de succes. Une seule fois par COMPTE :
           applyPatchOnce garde la trace cote Supabase, donc un appareil
           neuf ne le rejoue pas (le piege des anciennes sanctions). */}
       {!inTutorial && accountNotice && (
         <AccountNoticeModal
           notice={accountNotice}
           onClose={()=>setAccountNotice(null)}
-          C={C}
         />
       )}
 

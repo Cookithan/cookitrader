@@ -1,7 +1,7 @@
 import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
-   AccountNoticeModal — message de compte one-shot (v1.30)
+   AccountNoticeModal — message de compte one-shot (v1.29)
    ────────────────────────────────────────────────────
    Une seule modale, deux tons, pilotée par data/accountNotices.js :
 
@@ -23,7 +23,7 @@ import { useTranslation } from "../../i18n/index.js";
    Props : notice (cf. getAccountNotice), onClose, C
 ═══════════════════════════════════════════════════════ */
 
-export function AccountNoticeModal({ notice, onClose, C }) {
+export function AccountNoticeModal({ notice, onClose }) {
   const { t } = useTranslation();
   if (!notice) return null;
   const sanction = notice.kind === 'sanction';
