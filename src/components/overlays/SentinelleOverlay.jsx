@@ -452,14 +452,21 @@ function PanneauDemander({ onUtiliserCode, C }) {
 
   /* Les propositions n'apparaissent QU'EN TAPANT. Un écran vide avec une
      seule barre ne demande rien à personne ; la même page couverte de
-     listes force à lire avant de pouvoir chercher. */
+     listes force à lire avant de pouvoir chercher.
+
+     Le mot « question » est un mot-clé : il déballe TOUT ce que la vigie
+     sait répondre. C'est la porte pour qui ne sait pas quoi demander.
+     Tout le reste sert à chercher une information — un joueur, un code,
+     ou un sujet précis (« cours », « triche »). */
   const t = texte.trim().toLowerCase();
-  const questions = t
-    ? EXEMPLES.filter(e => e.texte.toLowerCase().includes(t) || t.length < 3)
-    : [];
-  const trouves = t
-    ? joueurs.filter(j => `${j.user_name} ${j.user_code}`.toLowerCase().includes(t)).slice(0, 8)
-    : [];
+  const veutLaListe = /^questions?$/.test(t) || t.includes('question');
+
+  const questions = !t ? []
+    : veutLaListe ? EXEMPLES
+    : EXEMPLES.filter(e => e.texte.toLowerCase().includes(t));
+
+  const trouves = (!t || veutLaListe) ? []
+    : joueurs.filter(j => `${j.user_name} ${j.user_code}`.toLowerCase().includes(t)).slice(0, 8);
 
   return (
     <>
@@ -576,8 +583,9 @@ function PanneauDemander({ onUtiliserCode, C }) {
 
       {!t && (
         <div style={{ fontSize:11.5, color:C.muted, marginTop:12, lineHeight:1.6, padding:'0 2px' }}>
-          Un pseudo, un code de compte, ou une question — les propositions
-          apparaissent dès la première lettre.
+          Tape un pseudo ou un code pour trouver quelqu'un. Tape
+          <strong style={{ color:C.text }}> question </strong>
+          pour voir tout ce que je sais répondre.
         </div>
       )}
     </>
@@ -593,6 +601,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
      rayon et on y reste. */
   const [famille, setFamille] = useState('joueur');
   const [registre, setRegistre] = useState([]);
+  const [voirRegistre, setVoirRegistre] = useState(false);
 
   const chargerJournal = useCallback(async () => setRegistre(await journal(10)), []);
   useEffect(() => { if (ouverte) chargerJournal(); }, [ouverte, chargerJournal]);
@@ -767,9 +776,26 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
         );
       })}
 
-      {/* Le registre : c'est ce qui rend la console vérifiable. */}
-      <Section C={C}>Ce qui a été fait</Section>
-      {registre.length === 0 ? (
+      {/* Le registre : c'est ce qui rend la console vérifiable. Replié
+          par défaut — on vient ici pour AGIR, pas pour relire ce qu'on a
+          déjà fait. Il reste à un appui quand on en a besoin. */}
+      <button
+        onPointerDown={() => setVoirRegistre(v => !v)}
+        style={{
+          width:'100%', textAlign:'left', marginTop:20,
+          background:'none', border:'none', padding:'6px 2px', cursor:'pointer',
+          display:'flex', alignItems:'center', gap:8,
+          fontSize:11, fontWeight:800, color:C.muted,
+          textTransform:'uppercase', letterSpacing:2,
+        }}
+      >
+        <span>Ce qui a été fait{registre.length ? ` (${registre.length})` : ''}</span>
+        <span style={{ letterSpacing:0, textTransform:'none', fontWeight:700, opacity:.8 }}>
+          {voirRegistre ? '— masquer' : '— voir'}
+        </span>
+      </button>
+
+      {!voirRegistre ? null : registre.length === 0 ? (
         <div style={{ fontSize:12.5, color:C.muted, padding:'4px 2px' }}>Rien pour l'instant.</div>
       ) : (
         <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, overflow:'hidden' }}>
