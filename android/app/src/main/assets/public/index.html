@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <title>CookiMiner 🍪</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <!-- Theme-color : sombre pendant le splash, caramel sinon (assorti à l'app) -->
+    <meta name="theme-color" content="#3D2010" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#C17F3C" media="(prefers-color-scheme: light)">
+
+    <!-- Apple/iOS specific -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CookiMiner">
+
+    <!-- Mobile viewport (anti-zoom au double-tap, sans viewport-fit=cover :
+         on reste dans la zone safe automatiquement sur iOS PWA) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- Fond sombre dès le tout premier paint (avant chargement React),
+         pour s'enchaîner sans flash blanc avec le splash custom. -->
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background-color: #3D2010;
+      }
+      body {
+        color: #E8C896;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-Bjcdi1DX.js"></script>
+  <script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -380,6 +380,14 @@ export default function CookiMiner() {
      le webhook + les re-pulls finaliser sans race condition (l'upsert
      client écrasait sinon les cafés crédités par Stripe). */
   const [pauseUpsertUntil, setPauseUpsertUntil] = useState(0);
+
+  /* Adoption forcée des valeurs serveur — compteur gardé PAR APPAREIL.
+     C'est toute la différence avec applyPatchOnce, qui est par COMPTE :
+     le 08/09/2026, la sanction de Fedider a été effacée parce que son
+     verrou avait été consommé sur un premier téléphone, et qu'un second
+     appareil au localStorage périmé a repoussé les anciennes valeurs.
+     Ici, CHAQUE appareil compare son compteur à celui du serveur. */
+  const [adoptVersion,     setAdoptVersion]     = useLocalStorage('adoptVersion', 0);
   useEffect(()=>{
     if(!isSupabaseEnabled()){ setPullDone(true); return; }
     if(!userCode || !userName){ return; }
@@ -392,11 +400,26 @@ export default function CookiMiner() {
          monotone : total_earned (gameplay) OU cafes (paiement Stripe via
          webhook). Sans le check cafes, un paiement Stripe créditait la
          DB sans que le client le voie (l'upsert client écrasait derrière). */
+      /* ── ADOPTION FORCÉE ──────────────────────────────────────
+         Quand le serveur porte un compteur supérieur à celui de CET
+         appareil, on prend ses valeurs telles quelles, même plus
+         basses. C'est le seul moyen qu'une correction faite à la main
+         (sanction, remise à plat) tienne : sans ça, le client garde son
+         localStorage gonflé et le repousse en base dans les 5 secondes.
+
+         On met l'upsert en pause 8 s, le temps que les setState écrivent,
+         sinon le debounce republierait les anciennes valeurs par-dessus. */
+      const doitAdopter = server && Number(server.forceAdoptVersion || 0) > Number(adoptVersion || 0);
+      if(doitAdopter){
+        setPauseUpsertUntil(Date.now() + 8000);
+        setAdoptVersion(Number(server.forceAdoptVersion));
+      }
+
       const serverAhead = server && (
         Number(server.totalEarned) > totalEarned ||
         Number(server.cafes) > cafes
       );
-      if(serverAhead){
+      if(serverAhead || doitAdopter){
         setCoins(server.coins);
         setCafes(server.cafes);
         setTotalEarned(server.totalEarned);
@@ -409,7 +432,9 @@ export default function CookiMiner() {
         setActiveTitle(server.activeTitle || '');
         setNameChangeCount(server.nameChangeCount || 0);
         setPrestigeLevel(server.prestigeLevel || 0);
-        showToastRef.current?.('☁️ Données synchronisées');
+        showToastRef.current?.(doitAdopter
+          ? '☁️ Ton compte a été mis à jour depuis le serveur'
+          : '☁️ Données synchronisées');
       }
       /* Anti-cheat cross-device : on merge TOUJOURS les compteurs
          quotidiens, indépendamment de serverAhead. Sinon, se reconnecter

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorAccent">#D4A017</color>
+    <color name="colorPrimary">#C17F3C</color>
+    <color name="colorPrimaryDark">#3D2010</color>
+    <color name="ic_launcher_background">#3D2010</color>
+    <string name="app_name">CookiMiner</string>
+    <string name="custom_url_scheme">com.cookithan.cookiminer</string>
+    <string name="package_name">com.cookithan.cookiminer</string>
+    <string name="title_activity_main">CookiMiner</string>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+    </style>
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="android:background">@drawable/splash</item>
+    </style>
+</resources>

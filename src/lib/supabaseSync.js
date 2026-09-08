@@ -1184,7 +1184,7 @@ export async function pullProfile(userCode){
     const data = await withRetry(async () => {
       const { data: row, error } = await supabase
         .from('users')
-        .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date, weekly_earned, weekly_week_id, total_play_time')
+        .select('cookies, cafes, total_earned, level, xp, streak, unlocked, badges, earned_achievements, active_theme, active_title, name_change_count, prestige_level, last_active, last_checkin, last_quiz, spins_today, spins_date, slot_games_today, slot_games_date, weekly_earned, weekly_week_id, total_play_time, force_adopt_version')
         .eq('user_code', userCode)
         .maybeSingle();
       if(error) throw error;
@@ -1208,6 +1208,11 @@ export async function pullProfile(userCode){
       activeTitle:         data.active_title || '',
       nameChangeCount:     Number(data.name_change_count) || 0,
       prestigeLevel:       Number(data.prestige_level) || 0,
+      /* Compteur d'adoption forcée : quand il dépasse celui gardé en
+         local, le client prend les valeurs du serveur SANS discuter,
+         même si elles sont plus basses. Cf. App.jsx (pull d'ouverture).
+         Colonne absente en base = 0, donc rien ne se déclenche. */
+      forceAdoptVersion:   Number(data.force_adopt_version) || 0,
       lastActive:          data.last_active || null,
       /* Compteurs quotidiens — anti-cheat cross-device. Sans ces champs,
          se connecter sur un autre appareil réinitialisait check-in/quiz/
