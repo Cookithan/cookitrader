@@ -102,6 +102,31 @@ export const MARKET_CONFIG = {
   HOURS: { openHour: 6, closeHour: 24 },
 };
 
+/* ── Ouverture forcée pour la mise au point (08/09/2026) ──────
+   Le marché reste FERMÉ pour les joueurs (MARKET_CONFIG.CLOSED), mais
+   on a besoin de l'ouvrir chez nous pour éprouver la nouvelle échelle
+   sur la vraie base : c'est le seul endroit où le prix, la profondeur
+   et le fil d'activité sont réels.
+
+   DEUX VERROUS, les deux obligatoires :
+     1. import.meta.env.DEV       → jamais dans un build de production,
+                                    donc jamais chez un joueur
+     2. VITE_MARKET_FORCE_OPEN=1  → dans .env.local, qui n'est pas
+                                    versionné (cf. .gitignore)
+   Autrement dit : impossible d'ouvrir le marché aux joueurs par
+   accident en oubliant de retirer une ligne avant de déployer. Pour
+   les rouvrir pour de bon, il faudra passer CLOSED à false, et c'est
+   un geste délibéré.
+
+   ⚠️ Ce que ça implique : les ordres passés ainsi sont de VRAIS ordres.
+   Ils bougent le vrai cours, consomment le vrai flottant et laissent
+   des lignes dans market_transactions. Nettoyer avec
+   RESET_APRES_ESSAIS.sql avant la réouverture. */
+const DEV_FORCE_OPEN = (() => {
+  try { return !!import.meta.env?.DEV && import.meta.env?.VITE_MARKET_FORCE_OPEN === '1'; }
+  catch { return false; }
+})();
+
 /* Statut du marché (ouvert / fermé) basé sur l'heure LOCALE du client.
    Retourne { open, nextChange, maintenance, circuitBreaker } où
    nextChange est la prochaine bascule. Le flag `maintenance` couvre
@@ -111,7 +136,7 @@ export function getMarketStatus(now = new Date(), serverState = null) {
   /* Fermeture officielle : passe AVANT le circuit breaker, sinon un CB
      résiduel en base (il en traînait un jusqu'en 2126 suite à un UPDATE
      manuel raté) afficherait "réouverture à …" avec une date absurde. */
-  if (MARKET_CONFIG.CLOSED) {
+  if (MARKET_CONFIG.CLOSED && !DEV_FORCE_OPEN) {
     return { open: false, nextChange: null, maintenance: true, closed: true };
   }
   if (MARKET_CONFIG.MAINTENANCE_MODE) {

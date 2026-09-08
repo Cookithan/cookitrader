@@ -106,6 +106,26 @@ set
   last_updated          = now()
 where id = 1;
 
+/* ── 3b. Photo d'après-split, pour pouvoir revenir ───────────── */
+/* On va éprouver le marché en conditions réelles avant de le rouvrir
+   aux joueurs (ouverture forcée en dev uniquement, cf.
+   VITE_MARKET_FORCE_OPEN). Ces ordres-là sont de VRAIS ordres : ils
+   bougent le cours et consomment le flottant. Cette table garde donc
+   l'état exact du marché juste après le regroupement, pour que
+   RESET_APRES_ESSAIS.sql puisse tout remettre d'aplomb avant la
+   réouverture. Elle ne sert à rien d'autre et peut être supprimée
+   une fois le marché rouvert. */
+drop table if exists market_apres_split;
+
+create table market_apres_split as
+select user_code,
+       shares,
+       total_invested,
+       weighted_buy_at,
+       now() as snapshot_at
+from market_portfolio
+where shares > 0;
+
 /* ── 4. La courbe ────────────────────────────────────────────── */
 /* L'historique est tout entier à l'échelle 100 : le garder ferait
    apparaître un mur vertical de 100 à 500 sur le graphe 24 h, que
