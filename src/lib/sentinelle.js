@@ -619,6 +619,21 @@ export async function listerIgnores() {
   }
 }
 
+/* Les codes promo créés depuis la console. Lus par la modale de saisie,
+   en plus des codes écrits dans l'app. Silencieux si la table n'existe
+   pas : le joueur ne doit jamais voir une erreur parce qu'une
+   fonctionnalité d'administration n'est pas installée. */
+export async function codesPromoEnBase() {
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const { data } = await supabase
+      .from('promo_codes').select('code, coins, cafes, shares, label, actif').eq('actif', true);
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
 /* Le registre de ce qui a été fait — refus compris. C'est ce qui rend
    la console vérifiable : on peut toujours savoir qui a fait quoi,
    quand, et si ça a marché. */

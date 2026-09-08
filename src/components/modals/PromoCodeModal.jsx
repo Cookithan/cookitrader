@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { GOLD } from "../../data/themes.js";
 import { lookupPromoCode } from "../../data/promoCodes.js";
+import { codesPromoEnBase } from "../../lib/sentinelle.js";
 import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
@@ -19,6 +20,12 @@ import { useTranslation } from "../../i18n/index.js";
      C
 ═══════════════════════════════════════════════════════ */
 export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCodes = [], C }){
+  /* Les codes créés depuis la Sentinelle vivent en base : on les charge
+     à l'ouverture de la modale. Si la lecture échoue (hors ligne, table
+     absente), la liste reste vide et seuls les codes historiques
+     répondent — le joueur ne voit jamais d'erreur pour autant. */
+  const [codesBase, setCodesBase] = useState([]);
+  useEffect(() => { codesPromoEnBase().then(setCodesBase).catch(() => {}); }, []);
   const { t } = useTranslation();
   const [input,    setInput]    = useState('');
   const [feedback, setFeedback] = useState(null);  // { type: 'ok'|'err', msg }
@@ -33,7 +40,7 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
 
   const submit = () => {
     if(loading) return;
-    const promo = lookupPromoCode(input, revealedCodes);
+    const promo = lookupPromoCode(input, revealedCodes, codesBase);
     if(!promo){
       setFeedback({ type:'err', msg: t('modal.promo_invalid') });
       setShake(true);

@@ -110,6 +110,38 @@ begin
   end if;
 end $$;
 
+/* ── 2 ter. Les codes promo créés depuis la console ───────────
+   Les 24 codes historiques restent écrits en dur dans l'app
+   (src/data/promoCodes.js) : ils utilisent des mécaniques riches —
+   forcer un niveau, débloquer un mini-jeu, révéler un code secret —
+   qu'on ne va pas déplacer en base pour le plaisir.
+
+   Cette table sert aux codes que Régis crée DEPUIS SON TÉLÉPHONE, avec
+   les trois récompenses courantes : cookies, cafés, actions. L'app lit
+   les deux sources et les fusionne.
+
+   Lecture publique — il le faut, c'est le client qui vérifie le code
+   saisi. Écriture réservée à la fonction : sinon n'importe qui
+   s'inventerait un code à 100 000 cookies. */
+create table if not exists public.promo_codes (
+  code       text primary key,
+  coins      bigint not null default 0,
+  cafes      int    not null default 0,
+  shares     int    not null default 0,
+  label      text,
+  actif      boolean not null default true,
+  cree_le    timestamptz not null default now()
+);
+
+alter table public.promo_codes enable row level security;
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'promo_codes' and policyname = 'promo_lecture') then
+    create policy promo_lecture on public.promo_codes for select using (true);
+  end if;
+end $$;
+
 /* ── 3. La porte unique ───────────────────────────────────────── */
 create or replace function public.action_sentinelle(
   phrase  text,
@@ -277,6 +309,26 @@ begin
     msg := case when coalesce((params->>'actif')::boolean, false)
                 then 'Maintenance ACTIVÉE pour tout le monde.'
                 else 'Maintenance levée.' end;
+
+  elsif action = 'creer_code_promo' then
+    /* Le code est normalisé en majuscules : le joueur le tape comme il
+       veut, il tombera juste. */
+    insert into public.promo_codes (code, coins, cafes, shares, label)
+    values (upper(trim(params->>'code')),
+            coalesce((params->>'coins')::bigint, 0),
+            coalesce((params->>'cafes')::int, 0),
+            coalesce((params->>'shares')::int, 0),
+            params->>'label')
+    on conflict (code) do update set
+      coins = excluded.coins, cafes = excluded.cafes,
+      shares = excluded.shares, label = excluded.label, actif = true;
+    cible := upper(trim(params->>'code'));
+    msg := 'Code promo créé. Il est utilisable immédiatement, sans redéploiement.';
+
+  elsif action = 'desactiver_code_promo' then
+    update public.promo_codes set actif = false where code = upper(trim(params->>'code'));
+    cible := upper(trim(params->>'code'));
+    msg := 'Code désactivé. Ceux qui l''ont déjà utilisé gardent leur récompense.';
 
   elsif action = 'classer_sans_suite' then
     insert into public.sentinelle_ignores (signature, categorie, titre, motif)

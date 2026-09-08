@@ -6,6 +6,7 @@ import {
 } from "../../lib/sentinelle.js";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
+import { tousLesJoueurs, demander, EXEMPLES } from "../../lib/sentinelleQuestions.js";
 
 /* ════════════════════════════════════════════════════
    SentinelleOverlay — la santé de l'app, et de quoi agir
@@ -412,6 +413,164 @@ function Formulaire({ act, phrase, onFait, C }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════
+   PanneauDemander — un seul champ, deux usages
+   ────────────────────────────────────────────────────
+   Régis voulait deux choses qui n'en font qu'une : « pouvoir parler à
+   la sentinelle » et « un tableau avec tous les pseudos et les codes,
+   parce qu'on me les demande et que je ne peux pas les retenir ».
+
+   Un seul champ répond aux deux. On tape un pseudo → sa fiche et son
+   code, prêt à copier. On tape « cours », « triche », « versions » →
+   la vigie répond. Et sous le champ, la liste complète des joueurs,
+   filtrée au fur et à mesure de la frappe.
+
+   Deux champs séparés auraient obligé à savoir, AVANT de taper, si on
+   pose une question ou si on cherche quelqu'un. C'est une décision de
+   plus, et elle ne sert à rien : le texte suffit à trancher.
+═══════════════════════════════════════════════════════ */
+function PanneauDemander({ onUtiliserCode, C }) {
+  const [texte, setTexte]     = useState('');
+  const [joueurs, setJoueurs] = useState([]);
+  const [reponse, setReponse] = useState(null);
+  const [charge, setCharge]   = useState(true);
+  const [copie, setCopie]     = useState(null);
+
+  useEffect(() => {
+    tousLesJoueurs().then(j => { setJoueurs(j); setCharge(false); });
+  }, []);
+
+  useEffect(() => {
+    if (!texte.trim()) { setReponse(null); return; }
+    let annule = false;
+    demander(texte, joueurs).then(r => { if (!annule) setReponse(r); });
+    return () => { annule = true; };
+  }, [texte, joueurs]);
+
+  const copier = async (code) => {
+    try { await navigator.clipboard.writeText(code); setCopie(code); setTimeout(() => setCopie(null), 1500); }
+    catch { /* pas de presse-papier : le code reste lisible à l'écran */ }
+  };
+
+  /* La liste se filtre en même temps que la question se pose : tant
+     qu'on n'a pas trouvé, on voit les candidats. */
+  const filtres = texte.trim()
+    ? joueurs.filter(j =>
+        `${j.user_name} ${j.user_code}`.toLowerCase().includes(texte.trim().toLowerCase()))
+    : joueurs;
+
+  return (
+    <>
+      <input
+        value={texte}
+        onChange={e => setTexte(e.target.value)}
+        placeholder="un pseudo, un code, ou une question…"
+        style={{
+          width:'100%', boxSizing:'border-box',
+          background:C.card, border:`1.5px solid ${C.border}`, borderRadius:14,
+          padding:'14px 15px', fontSize:14.5, color:C.text, marginBottom:10,
+        }}
+      />
+
+      {!texte.trim() && (
+        <div style={{ display:'flex', flexWrap:'wrap', gap:7, marginBottom:16 }}>
+          {EXEMPLES.map(ex => (
+            <button
+              key={ex.id}
+              onPointerDown={() => setTexte(ex.texte)}
+              style={{
+                padding:'8px 12px', borderRadius:11, background:C.card,
+                border:`1px solid ${C.border}`, color:C.muted, fontSize:11.5, fontWeight:700,
+                touchAction:'manipulation',
+              }}
+            >{ex.texte}</button>
+          ))}
+        </div>
+      )}
+
+      {reponse && (
+        <div style={{
+          background: reponse.type === 'inconnu' ? C.card : 'rgba(212,160,23,.10)',
+          border:`1.5px solid ${reponse.type === 'inconnu' ? C.border : 'rgba(212,160,23,.4)'}`,
+          borderRadius:16, padding:'14px 15px', marginBottom:16,
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+            <div style={{ flex:1, fontSize:15, fontWeight:900, color:C.text, lineHeight:1.3 }}>
+              {reponse.titre}
+            </div>
+            {reponse.code && (
+              <button
+                onPointerDown={() => copier(reponse.code)}
+                style={{
+                  flexShrink:0, padding:'8px 12px', borderRadius:11,
+                  background:'rgba(212,160,23,.18)', border:'1.5px solid rgba(212,160,23,.45)',
+                  color:OR, fontSize:11.5, fontWeight:800,
+                }}
+              >{copie === reponse.code ? 'copié ✓' : 'copier le code'}</button>
+            )}
+          </div>
+          <div style={{ fontSize:12.5, color:C.text, lineHeight:1.8 }}>
+            {reponse.lignes.map((l, i) => <div key={i}>{l}</div>)}
+          </div>
+          {reponse.code && onUtiliserCode && (
+            <button
+              onPointerDown={() => onUtiliserCode(reponse.code)}
+              style={{
+                width:'100%', marginTop:11, padding:'11px 0', borderRadius:12,
+                background:'transparent', border:`1.5px solid ${C.border}`,
+                color:C.muted, fontSize:12.5, fontWeight:800,
+              }}
+            >Agir sur ce compte ›</button>
+          )}
+        </div>
+      )}
+
+      <Section C={C}>
+        {texte.trim() ? `${filtres.length} joueur(s) trouvé(s)` : `Tous les joueurs (${joueurs.length})`}
+      </Section>
+
+      {charge ? (
+        <div style={{ fontSize:12.5, color:C.muted, padding:'6px 2px' }}>Lecture…</div>
+      ) : (
+        <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, overflow:'hidden' }}>
+          {filtres.slice(0, 60).map((j, i) => (
+            <button
+              key={j.user_code}
+              onPointerDown={() => copier(j.user_code)}
+              style={{
+                width:'100%', textAlign:'left', background:'none', border:'none',
+                borderBottom: i === Math.min(filtres.length, 60) - 1 ? 'none' : `1px solid ${C.border}`,
+                padding:'11px 14px', display:'flex', alignItems:'center', gap:11, cursor:'pointer',
+              }}
+            >
+              <span style={{ flex:1, minWidth:0 }}>
+                <span style={{ display:'block', fontSize:13, fontWeight:800, color:C.text, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                  {j.user_name}
+                </span>
+                <span style={{ display:'block', fontSize:11, color:C.muted, marginTop:2 }}>
+                  niveau {j.level} · {Number(j.total_earned).toLocaleString('fr-FR')} 🍪
+                </span>
+              </span>
+              <span style={{
+                flexShrink:0, fontSize:11.5, fontWeight:800,
+                color: copie === j.user_code ? OR : C.muted,
+                fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',
+              }}>
+                {copie === j.user_code ? 'copié ✓' : j.user_code}
+              </span>
+            </button>
+          ))}
+          {filtres.length > 60 && (
+            <div style={{ padding:'11px 14px', fontSize:11.5, color:C.muted }}>
+              … et {filtres.length - 60} autres. Affine ta recherche.
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -837,18 +996,18 @@ export function SentinelleOverlay({ onClose, C }) {
 
         {/* Deux onglets, gros et lisibles */}
         <div style={{ display:'flex', gap:8, marginBottom:6 }}>
-          {[['etat', '🔍', 'État'], ['agir', '⚙️', 'Agir']].map(([id, emoji, label]) => {
+          {[['etat', '🔍', 'État'], ['demander', '💬', 'Demander'], ['agir', '⚙️', 'Agir']].map(([id, emoji, label]) => {
             const actif = onglet === id;
             return (
               <button
                 key={id}
                 onPointerDown={() => setOnglet(id)}
                 style={{
-                  flex:1, padding:'13px 0', borderRadius:14,
+                  flex:1, padding:'12px 0', borderRadius:14,
                   background: actif ? 'linear-gradient(140deg, rgba(212,160,23,.22), rgba(193,127,60,.12))' : C.card,
                   border:`1.5px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
-                  color: actif ? OR : C.muted, fontSize:13.5, fontWeight:800,
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                  color: actif ? OR : C.muted, fontSize:12.5, fontWeight:800,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:5,
                   touchAction:'manipulation',
                 }}
               >
@@ -858,7 +1017,14 @@ export function SentinelleOverlay({ onClose, C }) {
           })}
         </div>
 
-        {onglet === 'agir' ? (
+        {onglet === 'demander' ? (
+          <div style={{ marginTop:16 }}>
+            <PanneauDemander
+              onUtiliserCode={(code) => { setPrefill(code); setActionOuverte('sanctionner'); setOnglet('agir'); }}
+              C={C}
+            />
+          </div>
+        ) : onglet === 'agir' ? (
           <div style={{ marginTop:16 }}>
             <PanneauActions
               ouvrir={actionOuverte} prefill={prefill} onOuvrir={setActionOuverte}
