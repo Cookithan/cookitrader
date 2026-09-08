@@ -2,6 +2,7 @@ import { ChevronLeft, Check, Lock } from "lucide-react";
 import { LEVEL_NAMES, xpRequired } from "../../data/constants.js";
 import { GOLD, ESPRESSO, levelTier } from "../../data/themes.js";
 import { useTranslation } from "../../i18n/index.js";
+import { LevelCookieMedal } from "../LevelCookieMedal.jsx";
 
 /* ════════════════════════════════════════════════════
    LevelsModal — popup "Voir les niveaux"
@@ -92,26 +93,18 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
                   opacity: isCurrent ? .12 : locked ? .07 : .13,
                 }}>{n}</div>
 
-                {/* Médaille ronde — les cartes de jeu ont une tuile carrée,
-                    on change de forme pour changer de registre. */}
-                <div style={{
-                  width:44, height:44, borderRadius:'50%', flexShrink:0,
-                  background: passed
-                    ? `linear-gradient(140deg, ${tier.base}, ${tier.edge})`
-                    : isCurrent ? 'rgba(212,160,23,.22)' : C.card,
-                  border: passed
-                    ? '2px solid rgba(255,255,255,.35)'
-                    : `2px solid ${isCurrent ? '#D4A017' : C.border}`,
-                  boxShadow: passed
-                    ? `0 3px 10px ${tier.soft}, inset 0 1px 0 rgba(255,255,255,.4)`
-                    : isCurrent ? '0 0 0 3px rgba(212,160,23,.15)' : 'none',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  fontWeight:900, fontSize:16,
-                  color: passed ? '#fff' : isCurrent ? '#D4A017' : C.muted,
-                  position:'relative',
-                }}>
+                {/* Médaille en cookie — les cartes de jeu ont une tuile
+                    carrée, on change de forme ET de matière pour changer
+                    de registre. Le biscuit est en retrait derrière le
+                    numéro : c'est un support, pas un sujet. */}
+                <LevelCookieMedal
+                  size={44}
+                  tier={tier}
+                  variant={locked ? 'locked' : isCurrent ? 'active' : 'earned'}
+                  C={C}
+                >
                   {locked ? <Lock size={16} /> : n}
-                </div>
+                </LevelCookieMedal>
 
                 <div style={{ flex:1, minWidth:0, position:'relative' }}>
                   <div style={{ fontSize:10, fontWeight:700, letterSpacing:1.5, textTransform:'uppercase', color: isCurrent ? 'rgba(255,255,255,.6)' : C.muted, marginBottom:2 }}>

@@ -26,6 +26,7 @@ import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
+import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
@@ -4191,29 +4192,19 @@ export default function CookiMiner() {
                   le niveau devient une décoration qu'on porte plutôt
                   qu'une ligne de texte. */}
               <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12, marginTop:14 }}>
-                {(() => {
-                  const tier = levelTier(level);
-                  return (
-                    <div style={{
-                      width:54, height:54, borderRadius:'50%', flexShrink:0,
-                      background:`linear-gradient(140deg, ${tier.base}, ${tier.edge})`,
-                      border:'2px solid rgba(255,255,255,.4)',
-                      boxShadow:'0 4px 14px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.45)',
-                      display:'flex', alignItems:'center', justifyContent:'center',
-                      fontSize:21, fontWeight:900, color:'#fff',
-                      textShadow:'0 1px 3px rgba(0,0,0,.35)',
-                      /* relative + overflow : le reflet doit être coupé par
-                         le cercle, sinon il déborde en rectangle. */
-                      position:'relative', overflow:'hidden',
-                    }}>
-                      {level}
-                      {/* Éclat métallique, déphasé du reflet de la carte
-                          (4,5 s contre 6 s) — les deux ne passent jamais
-                          en même temps, la médaille reste distincte. */}
-                      <span className="level-glint" aria-hidden />
-                    </div>
-                  );
-                })()}
+                {/* Le biscuit porte le numéro (cf. LevelCookieMedal) : une
+                    bille brillante avec un chiffre dessus ressemblait à
+                    n'importe quel jeu, un cookie nous appartient. `glint`
+                    n'est activé qu'ici — dans la liste des 25 paliers, 25
+                    éclats simultanés feraient une guirlande. */}
+                <LevelCookieMedal
+                  level={level}
+                  tier={levelTier(level)}
+                  variant="earned"
+                  size={54}
+                  glint
+                  C={C}
+                />
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:2, display:'flex', alignItems:'center', gap:6 }}>
                     {t('home.level_uppercase')}
