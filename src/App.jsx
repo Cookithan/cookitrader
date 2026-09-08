@@ -43,7 +43,7 @@ import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, getMarketState } from "./lib/market.js";
-import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
+import { isAdminName, ADMIN_NAMES, peutVoirSentinelle } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
@@ -2535,7 +2535,7 @@ export default function CookiMiner() {
       /* La pastille n'est calculée que pour un admin : une vigie qu'il
          faut penser à consulter ne sert qu'aux jours où on y pense,
          mais un joueur normal n'a rien à faire des rapports. */
-      if(isAdminName(userName)) alertesEnCours().then(setAlertesSentinelle).catch(()=>{});
+      if(peutVoirSentinelle(userName, userCode)) alertesEnCours().then(setAlertesSentinelle).catch(()=>{});
     });
   }, [userCode, userName, pullDone]);
 
@@ -4865,7 +4865,7 @@ export default function CookiMiner() {
           userCode={userCode}
           restorePin={restorePin}
           onOpenCollection={()=>{ playSound('tab'); setShowSettings(false); goToTab('collection'); }}
-          onOpenSentinelle={isAdminName(userName) ? (()=>{ setShowSettings(false); setShowSentinelle(true); }) : undefined}
+          onOpenSentinelle={peutVoirSentinelle(userName, userCode) ? (()=>{ setShowSettings(false); setShowSentinelle(true); }) : undefined}
           C={C}
         />
       )}
@@ -4974,7 +4974,7 @@ export default function CookiMiner() {
       {/* Sentinelle — admins seulement. Le double garde-fou (état ET
           isAdminName) évite qu'un état resté à true après un changement
           de pseudo n'expose l'écran à un joueur. */}
-      {showSentinelle && isAdminName(userName) && (
+      {showSentinelle && peutVoirSentinelle(userName, userCode) && (
         <SentinelleOverlay
           onClose={()=>setShowSentinelle(false)}
           C={C}
