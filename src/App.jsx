@@ -28,7 +28,7 @@ import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
 import { SentinelleOverlay } from "./components/overlays/SentinelleOverlay.jsx";
-import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire } from "./lib/sentinelle.js";
+import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire, alertesEnCours } from "./lib/sentinelle.js";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
@@ -880,6 +880,7 @@ export default function CookiMiner() {
   const [showAbout,        setShowAbout]        = useState(false);
   /* Sentinelle — ecran admin (cf. lib/sentinelle.js). */
   const [showSentinelle,   setShowSentinelle]   = useState(false);
+  const [alertesSentinelle, setAlertesSentinelle] = useState(0);
   /* Notification "nouvelle version" : on garde en LS la dernière version
      vue par l'user. Au mount, si APP_INFO.version diffère → popup.
      Pour un fresh install, lastSeenVersion vaut '' → on calibre direct
@@ -2530,7 +2531,12 @@ export default function CookiMiner() {
     signalerOuverture(userCode, userName);
     /* Volontairement non attendu : une ronde ne doit jamais retarder
        l'affichage de l'app. */
-    rondeSiNecessaire();
+    rondeSiNecessaire().then(() => {
+      /* La pastille n'est calculée que pour un admin : une vigie qu'il
+         faut penser à consulter ne sert qu'aux jours où on y pense,
+         mais un joueur normal n'a rien à faire des rapports. */
+      if(isAdminName(userName)) alertesEnCours().then(setAlertesSentinelle).catch(()=>{});
+    });
   }, [userCode, userName, pullDone]);
 
   /* ── Frais de garde — RETIRÉS le 08/09/2026 ───────────────
@@ -4114,8 +4120,17 @@ export default function CookiMiner() {
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-          <button onClick={()=>{ playSound('modal'); setShowSettings(true); }} aria-label="Paramètres" style={{ width:34, height:34, borderRadius:11, background:C.card, border:`1px solid ${C.border}`, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <button onClick={()=>{ playSound('modal'); setShowSettings(true); }} aria-label="Paramètres" style={{ position:'relative', width:34, height:34, borderRadius:11, background:C.card, border:`1px solid ${C.border}`, color:C.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Settings size={15} />
+            {/* Pastille sentinelle — admins seulement. Discrète (6 px, pas
+                de chiffre) : elle dit qu'il y a quelque chose à lire, pas
+                qu'il faut paniquer. Teinte moka, jamais rouge. */}
+            {alertesSentinelle > 0 && (
+              <span className="pulse-ring" aria-hidden style={{
+                position:'absolute', top:-2, right:-2, width:8, height:8, borderRadius:'50%',
+                background:'#8B5A2B', border:`2px solid ${C.bg}`,
+              }} />
+            )}
           </button>
           <div style={{ display:'flex', alignItems:'center', gap:5, background:ESPRESSO, borderRadius:20, padding:'8px 12px', border:'1.5px solid rgba(212,160,23,.5)', boxShadow:'0 4px 12px rgba(74,44,23,.4)' }} title={`${cafes} cafés`}>
             <Coffee size={14} color="#F0C050" />
