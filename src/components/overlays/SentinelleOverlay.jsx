@@ -58,6 +58,19 @@ function quand(iso) {
   return `il y a ${Math.round(h / 24)} j`;
 }
 
+/* La date exacte, en plus du « il y a » — parce que « il y a 3 j » ne
+   permet pas de recouper avec ce qu'on a fait ce jour-là, alors qu'une
+   date le permet. Les deux ensemble : l'un pour l'urgence, l'autre pour
+   l'enquête. */
+const MOIS = ['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+function dateCourte(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()} ${MOIS[d.getMonth()]} à ${hh}h${mm}`;
+}
+
 /* Cherche un code joueur dans le détail d'un constat, pour pré-remplir
    l'action proposée dessous. Format des codes : XXX-XXX. */
 function codeDansDetail(detail = []) {
@@ -122,17 +135,24 @@ function Constat({ r, age, onAgir, C }) {
                 borderRadius:7, background:ton.ruban, color:'#fff',
               }}>NOUVEAU</span>
             )}
-            {age && !neuf && r.verdict !== 'ok' && (
-              <span style={{ fontSize:9.5, fontWeight:700, color:C.muted }}>
-                depuis {age.rondes} rondes
-              </span>
-            )}
           </span>
           <span style={{ display:'block', fontSize:14, fontWeight:800, color:C.text, lineHeight:1.4 }}>
             {r.titre}
           </span>
+
+          {/* QUAND, systématiquement. Sans date, un point apparu il y a
+              dix minutes se retrouve enterré sous une alerte qui traîne
+              depuis trois jours — et on traite dans le mauvais ordre. */}
+          {age?.depuis && r.verdict !== 'ok' && (
+            <span style={{ display:'block', fontSize:11.5, color:C.muted, marginTop:5, lineHeight:1.45 }}>
+              <strong style={{ color:C.text, fontWeight:700 }}>Apparu {quand(age.depuis)}</strong>
+              {` · ${dateCourte(age.depuis)}`}
+              {age.rondes > 1 && ` · ${age.rondes} rondes de suite`}
+            </span>
+          )}
+
           {detail.length > 0 && !ouvert && (
-            <span style={{ display:'block', fontSize:11.5, color:C.muted, marginTop:5 }}>
+            <span style={{ display:'block', fontSize:11.5, color:C.muted, marginTop:3 }}>
               {detail.length} détail{detail.length > 1 ? 's' : ''} — appuie pour voir
             </span>
           )}
@@ -531,6 +551,8 @@ export function SentinelleOverlay({ onClose, C }) {
   const [actionOuverte, setActionOuverte] = useState(null);
   const [prefill, setPrefill]       = useState(null);
   const [toutVoir, setToutVoir]     = useState(false);
+  /* 'gravite' (defaut) ou 'nouveaute' — cf. le tri plus bas. */
+  const [tri, setTri]               = useState('gravite');
 
   const charger = useCallback(async () => {
     setChargement(true);
@@ -558,7 +580,30 @@ export function SentinelleOverlay({ onClose, C }) {
     setOnglet('agir');
   };
 
-  const tries     = [...rapports].sort((a, b) => (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9));
+  /* Deux façons de lire, et elles ne disent pas la même chose :
+     · par GRAVITÉ — ce qui fait le plus mal en premier ;
+     · par NOUVEAUTÉ — ce qui vient d'arriver en premier.
+
+     Le tri par gravité seul peut enterrer un incident survenu il y a
+     dix minutes sous une alerte qu'on traîne depuis trois jours. Or
+     c'est souvent le récent qui a une cause qu'on peut encore trouver.
+     À gravité égale, on reprend l'autre critère comme départage. */
+  const dateApparition = (r) => {
+    const a = anciennete(historique, r);
+    return a?.depuis ? new Date(a.depuis).getTime() : 0;
+  };
+
+  const tries = [...rapports].sort((a, b) => {
+    if (tri === 'nouveaute') {
+      const d = dateApparition(b) - dateApparition(a);
+      if (d !== 0) return d;
+      return (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9);
+    }
+    const g = (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9);
+    if (g !== 0) return g;
+    return dateApparition(b) - dateApparition(a);
+  });
+
   const problemes = tries.filter(r => r.verdict !== 'ok');
   const sains     = tries.filter(r => r.verdict === 'ok');
   const alertes   = problemes.filter(r => r.verdict === 'alerte').length;
@@ -690,7 +735,29 @@ export function SentinelleOverlay({ onClose, C }) {
           </div>
         ) : (
           <>
-            {problemes.length > 0 && <Section C={C}>À traiter</Section>}
+            {problemes.length > 1 && (
+              <>
+                <Section C={C}>À traiter</Section>
+                <div style={{ display:'flex', gap:7, marginBottom:12 }}>
+                  {[['gravite', 'Le plus grave'], ['nouveaute', 'Le plus récent']].map(([id, label]) => {
+                    const actif = tri === id;
+                    return (
+                      <button
+                        key={id}
+                        onPointerDown={() => setTri(id)}
+                        style={{
+                          flex:1, padding:'9px 0', borderRadius:11, fontSize:12, fontWeight:800,
+                          background: actif ? 'rgba(212,160,23,.16)' : C.card,
+                          border:`1px solid ${actif ? 'rgba(212,160,23,.45)' : C.border}`,
+                          color: actif ? OR : C.muted, touchAction:'manipulation',
+                        }}
+                      >{label}</button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+            {problemes.length === 1 && <Section C={C}>À traiter</Section>}
             {problemes.map((r, i) => (
               <Constat key={r.id ?? i} r={r} age={immediat ? null : anciennete(historique, r)} onAgir={allerAgir} C={C} />
             ))}
