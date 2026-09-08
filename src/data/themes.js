@@ -107,6 +107,36 @@ export const THEMES = {
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';
 export const ESPRESSO = 'linear-gradient(140deg,#4A2C17,#7D4E1F)';
 
+/* ── La Sentinelle : la seule surface non-café de l'app ──────────
+   Ce n'est pas un thème de jeu : il ne se débloque pas, ne s'achète
+   pas, n'apparaît pas en boutique, et ne suit pas le thème équipé par
+   le joueur. Il habille les deux écrans de l'outil — la console admin
+   et l'entonnoir de signalement ouvert à tout le monde.
+
+   C'est justement le but qu'il détonne : quand ce bleu apparaît, on
+   n'est plus dans le jeu. Aucune confusion possible entre une alerte et
+   une bannière de boutique.
+
+   Clair, y compris pour un joueur en thème sombre. On ouvre ces écrans
+   quand quelque chose ne va pas, souvent dehors, sur un téléphone : du
+   texte foncé sur fond clair y tient mieux.
+
+   Même forme qu'un thème de jeu (bg/card/card2/text/muted/border) pour
+   que les sous-composants n'aient rien à savoir de tout ça.
+   L'interdiction du rouge tient : la gravité se dit par la PROFONDEUR
+   du bleu — SENTINELLE_MARINE pour le grave, ACIER pour l'actionnable. */
+export const SENTINELLE_THEME = {
+  bg:     'linear-gradient(170deg,#F3F9FD 0%,#E4F0F9 55%,#DAECF7 100%)',
+  card:   '#FFFFFF',
+  card2:  '#EAF3FA',
+  text:   '#0E3355',
+  muted:  '#5A7E9B',
+  border: '#CCE0EE',
+};
+export const SENTINELLE_BANNIERE = 'linear-gradient(140deg, #E6F3FC, #B3D9F2)';
+export const SENTINELLE_MARINE   = '#0B2E4D';
+export const SENTINELLE_ACIER    = '#1B5E8C';
+
 /* ─── Teintes de palier (v1.30) ─────────────────────────────────────
    Une teinte par tranche de 5 niveaux, pour que les bannières de niveau
    racontent un parcours : crème → caramel → moka → espresso → OR pour

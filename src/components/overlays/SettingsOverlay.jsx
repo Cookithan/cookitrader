@@ -24,7 +24,7 @@ import {
    ZONE SENSIBLE (reset progression, double validation).
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutIsNew = false, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, onOpenCollection, onOpenSentinelle, userCode, restorePin, C }) {
+export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutIsNew = false, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, onOpenCollection, onOpenSentinelle, sentinelleAdmin = false, sentinelleBadge = 0, userCode, restorePin, C }) {
   const { t, lang, setLang } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
@@ -236,14 +236,27 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
           </section>
         )}
 
-        {/* Sentinelle — n'apparaît QUE pour les admins (App.jsx ne passe
-            onOpenSentinelle que dans ce cas). Ni or ni moka : bleu,
-            comme la bannière de l'écran qu'elle ouvre. Ce n'est pas une
-            récompense ni une nouveauté, c'est un outil — et la seule
-            teinte de l'app qui le dise du premier coup d'œil. */}
+        {/* Sentinelle — visible par TOUT LE MONDE depuis la 1.30.
+
+            Elle n'était offerte qu'aux admins, et les joueurs n'avaient
+            donc aucun moyen de dire « ça ne marche pas » : au mieux un
+            message Discord, au pire rien. Or l'exploit du Memory a tenu
+            neuf semaines et n'a été découvert que parce qu'un joueur
+            avait fini par le raconter.
+
+            Même porte, deux écrans derrière. Un admin ouvre la console ;
+            tous les autres ouvrent l'entonnoir de signalement, qui ne
+            sait qu'envoyer. C'est App.jsx qui tranche (sentinelleAdmin),
+            jamais ce composant — et surtout jamais l'affichage : ce qui
+            protège les signalements des autres, c'est la phrase de
+            passe en base, pas le fait de cacher un bouton.
+
+            Ni or ni moka : bleu, comme l'écran qu'elle ouvre. Ce n'est
+            ni une récompense ni une nouveauté, c'est un outil — et la
+            seule teinte de l'app qui le dise du premier coup d'œil. */}
         {onOpenSentinelle && (
           <section>
-            {sectionLabel('Surveillance')}
+            {sectionLabel(sentinelleAdmin ? 'Surveillance' : t('report.section'))}
             <button
               onClick={onOpenSentinelle}
               style={{
@@ -277,12 +290,24 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
                   🛡️
                 </div>
                 <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>Sentinelle</div>
+                  <div style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>{t('report.title')}</div>
                   <div style={{ fontSize:11, color:'rgba(14,51,85,.68)', marginTop:2, lineHeight:1.4 }}>
-                    Elle surveille, elle répond, elle agit — sans ouvrir Supabase
+                    {sentinelleAdmin
+                      ? 'Elle surveille, elle répond, elle agit — sans ouvrir Supabase'
+                      : t('report.settings_sub')}
                   </div>
                 </div>
               </div>
+              {/* La pastille ne s'allume que côté console : un joueur n'a
+                  pas à savoir combien de signalements attendent. */}
+              {sentinelleAdmin && sentinelleBadge > 0 && (
+                <span style={{
+                  position:'relative', flexShrink:0,
+                  padding:'5px 10px', borderRadius:20,
+                  background:'#0B2E4D', color:'#EAF4FB',
+                  fontSize:11, fontWeight:900, whiteSpace:'nowrap',
+                }}>{t('report.badge', { n: sentinelleBadge })}</span>
+              )}
               <span style={{ position:'relative', flexShrink:0, fontSize:15, fontWeight:800, color:'rgba(14,51,85,.5)' }}>›</span>
             </button>
           </section>

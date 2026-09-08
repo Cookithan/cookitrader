@@ -3,7 +3,9 @@ import { ChevronLeft, RefreshCw } from "lucide-react";
 import {
   faireUneRonde, derniersRapports, grouperParRonde, anciennete, agir, journal, verifierPhrase,
   signatureConstat, listerIgnores, infosJoueur, prixMarche, enregistrerSiDifferent,
+  listerSignalements, traiterSignalement,
 } from "../../lib/sentinelle.js";
+import { STATUTS } from "../../data/signalements.js";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
 import { tousLesJoueurs, demander, EXEMPLES, correspondQuestion } from "../../lib/sentinelleQuestions.js";
@@ -914,6 +916,203 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
 }
 
 /* ════════════════════════════════════════════════════ */
+/* ── LA BOÎTE AUX LETTRES ─────────────────────────────
+   Ce que les joueurs ont envoyé. C'est le seul endroit de la console où
+   l'information ne vient pas d'un contrôle automatique mais d'un humain
+   — et c'est précisément sa valeur : l'exploit du Memory a tenu neuf
+   semaines et n'a été découvert que parce qu'un joueur l'a raconté.
+   Aucune ronde ne l'aurait vu.
+
+   Derrière la phrase de passe, comme le reste : un signalement est
+   nominatif — celui qui écrit, et souvent celui qu'il accuse. Mais on
+   ne la redemande pas : elle est déjà en mémoire si la console a été
+   ouverte dans l'onglet Agir. */
+function PanneauSignalements({ phrase, deverrouille, onAllerAgir, onUtiliserCode, C }) {
+  const [filtre, setFiltre]   = useState(null);      /* null = ce qui reste à traiter */
+  const [lignes, setLignes]   = useState([]);
+  const [charge, setCharge]   = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const charger = useCallback(async (statut) => {
+    if (!phrase) return;
+    setCharge(true);
+    const res = await listerSignalements(phrase, statut);
+    setCharge(false);
+    if (!res.ok) { setMessage(res.message || 'Lecture refusée'); setLignes([]); return; }
+    setMessage(null);
+    setLignes(res.lignes || []);
+  }, [phrase]);
+
+  useEffect(() => { if (deverrouille) charger(filtre); }, [deverrouille, filtre, charger]);
+
+  const classer = async (id, statut) => {
+    const res = await traiterSignalement(phrase, id, statut);
+    setMessage(res?.message || null);
+    /* On relit plutôt que de retirer la ligne à la main : la liste et le
+       compteur doivent venir de la même source, sinon ils divergent. */
+    if (res?.ok) charger(filtre);
+  };
+
+  if (!deverrouille) {
+    return (
+      <div style={{
+        background:C.card, border:`1.5px solid ${C.border}`, borderRadius:18,
+        padding:'26px 20px', textAlign:'center',
+      }}>
+        <div style={{ fontSize:34, marginBottom:10 }}>🔒</div>
+        <div style={{ fontSize:14, fontWeight:800, color:C.text, marginBottom:6 }}>La boîte est fermée</div>
+        <div style={{ fontSize:12.5, color:C.muted, lineHeight:1.6, maxWidth:290, margin:'0 auto 16px' }}>
+          Un signalement dit qui l&apos;a écrit, et souvent qui il accuse.
+          Il ne se lit qu&apos;avec la phrase de passe.
+        </div>
+        <button
+          onPointerDown={onAllerAgir}
+          style={{
+            padding:'12px 22px', borderRadius:13, background:MARINE,
+            border:'none', color:'#EAF4FB', fontSize:13, fontWeight:900,
+            touchAction:'manipulation',
+          }}
+        >Ouvrir la console</button>
+      </div>
+    );
+  }
+
+  const FILTRES = [
+    [null,         '📮', 'À traiter'],
+    ['traite',     '✅', 'Traités'],
+    ['sans_suite', '🗄️', 'Sans suite'],
+  ];
+
+  return (
+    <>
+      <div style={{ display:'flex', gap:7, marginBottom:14 }}>
+        {FILTRES.map(([id, emoji, label]) => {
+          const actif = filtre === id;
+          return (
+            <button
+              key={label}
+              onPointerDown={() => setFiltre(id)}
+              style={{
+                flex:1, minWidth:0, padding:'10px 0', borderRadius:12,
+                background: actif ? 'rgba(43,124,178,.18)' : C.card,
+                border:`1.5px solid ${actif ? 'rgba(43,124,178,.45)' : C.border}`,
+                color: actif ? ACIER : C.muted, fontSize:11.5, fontWeight:800,
+                display:'flex', alignItems:'center', justifyContent:'center', gap:4,
+                touchAction:'manipulation',
+              }}
+            >
+              <span style={{ fontSize:13 }}>{emoji}</span>{label}
+            </button>
+          );
+        })}
+      </div>
+
+      {message && (
+        <div style={{
+          marginBottom:12, padding:'11px 14px', borderRadius:13,
+          background:'rgba(43,124,178,.11)', border:'1.5px solid rgba(43,124,178,.35)',
+          fontSize:12.5, fontWeight:700, color:ACIER,
+        }}>{message}</div>
+      )}
+
+      {charge && !lignes.length && (
+        <div style={{ textAlign:'center', color:C.muted, fontSize:13, padding:'30px 0' }}>Lecture…</div>
+      )}
+
+      {!charge && !lignes.length && (
+        <div style={{
+          background:C.card, border:`1.5px solid ${C.border}`, borderRadius:18,
+          padding:'26px 20px', textAlign:'center', color:C.muted, fontSize:13, lineHeight:1.7,
+        }}>
+          <div style={{ fontSize:30, marginBottom:8 }}>📭</div>
+          {filtre === null
+            ? "Rien à traiter. Personne n'a rien signalé."
+            : 'Rien dans cette pile.'}
+        </div>
+      )}
+
+      {lignes.map(sg => {
+        const st     = STATUTS[sg.statut] || STATUTS.nouveau;
+        const ctx    = sg.contexte || {};
+        const extras = ctx.extras || {};
+        return (
+          <div key={sg.id} style={{
+            background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16,
+            padding:'14px 15px', marginBottom:10,
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:8, flexWrap:'wrap' }}>
+              <span style={{ fontSize:15 }}>{st.emoji}</span>
+              <span style={{ fontSize:11, fontWeight:800, color:ACIER, textTransform:'uppercase', letterSpacing:1 }}>
+                {st.label}
+              </span>
+              <span style={{ flex:1 }} />
+              <span style={{ fontSize:11, color:C.muted }}>{dateCourte(sg.cree_le)}</span>
+            </div>
+
+            {/* Le chemin d'abord : il dit de quoi on parle avant même
+                qu'on lise le message, et c'est lui qui trie l'urgence. */}
+            <div style={{ fontSize:12.5, fontWeight:800, color:C.text, lineHeight:1.45, marginBottom:8 }}>
+              {sg.chemin}
+            </div>
+
+            <div style={{
+              fontSize:13, color:C.text, lineHeight:1.6, whiteSpace:'pre-wrap',
+              background:C.card2, borderRadius:11, padding:'11px 12px', marginBottom:9,
+            }}>{sg.message}</div>
+
+            {!!Object.keys(extras).length && (
+              <div style={{ fontSize:11.5, color:C.muted, lineHeight:1.6, marginBottom:8 }}>
+                {Object.entries(extras).filter(([, v]) => v).map(([k, v]) => `${k} : ${v}`).join(' · ')}
+              </div>
+            )}
+
+            {/* L'identité complète, sans avoir eu à la demander : c'est
+                la moitié du travail d'enquête, et exactement ce qu'un
+                joueur ne pense jamais à donner. */}
+            <div style={{ fontSize:11, color:C.muted, lineHeight:1.6 }}>
+              {sg.user_name || '(sans pseudo)'}
+              {sg.user_code ? ` · ${sg.user_code}` : ''}
+              {ctx.niveau != null ? ` · niv ${ctx.niveau}` : ''}
+              {sg.app_version ? ` · v${sg.app_version}` : ''}
+              {ctx.plateforme ? ` · ${ctx.plateforme}` : ''}
+            </div>
+
+            <div style={{ display:'flex', gap:6, marginTop:11, flexWrap:'wrap' }}>
+              {!['vu', 'traite', 'sans_suite'].includes(sg.statut) && (
+                <button onPointerDown={() => classer(sg.id, 'vu')} style={boutonPetit(C, false)}>👁️ Lu</button>
+              )}
+              {sg.statut !== 'traite' && (
+                <button onPointerDown={() => classer(sg.id, 'traite')} style={boutonPetit(C, true)}>✅ Traité</button>
+              )}
+              {sg.statut !== 'sans_suite' && (
+                <button onPointerDown={() => classer(sg.id, 'sans_suite')} style={boutonPetit(C, false)}>🗄️ Sans suite</button>
+              )}
+              {(extras.joueur || sg.user_code) && (
+                <button
+                  onPointerDown={() => onUtiliserCode(String(extras.joueur || sg.user_code).trim().toUpperCase())}
+                  style={boutonPetit(C, false)}
+                >⚙️ Agir sur ce compte</button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/* Les boutons de classement : petits, nombreux, de la même famille.
+   `plein` marque le seul qui range vraiment — Traité. */
+function boutonPetit(C, plein) {
+  return {
+    padding:'8px 12px', borderRadius:11,
+    background: plein ? 'rgba(43,124,178,.18)' : C.card2,
+    border:`1.5px solid ${plein ? 'rgba(43,124,178,.45)' : C.border}`,
+    color: plein ? ACIER : C.muted,
+    fontSize:11.5, fontWeight:800, touchAction:'manipulation',
+  };
+}
+
 /* Seul overlay de l'app qui ne reçoit PAS `C` : il a son thème à lui
    (cf. THEME_SENTINELLE), donc App.jsx n'a rien à lui passer. Le nom
    reste `C` en interne pour que les sous-composants, eux, gardent la
@@ -1176,29 +1375,39 @@ export function SentinelleOverlay({ onClose }) {
         )}
 
         {/* Deux onglets, gros et lisibles */}
-        <div style={{ display:'flex', gap:8, marginBottom:6 }}>
-          {[['etat', '🔍', 'État'], ['demander', '💬', 'Demander'], ['agir', '⚙️', 'Agir']].map(([id, emoji, label]) => {
+        <div style={{ display:'flex', gap:6, marginBottom:6 }}>
+          {[['etat', '🔍', 'État'], ['demander', '💬', 'Demander'], ['boite', '📮', 'Boîte'], ['agir', '⚙️', 'Agir']].map(([id, emoji, label]) => {
             const actif = onglet === id;
             return (
               <button
                 key={id}
                 onPointerDown={() => setOnglet(id)}
                 style={{
-                  flex:1, padding:'12px 0', borderRadius:14,
+                  flex:1, minWidth:0, padding:'12px 0', borderRadius:14,
                   background: actif ? 'linear-gradient(140deg, rgba(43,124,178,.22), rgba(104,164,205,.12))' : C.card,
                   border:`1.5px solid ${actif ? 'rgba(43,124,178,.5)' : C.border}`,
-                  color: actif ? ACIER : C.muted, fontSize:12.5, fontWeight:800,
-                  display:'flex', alignItems:'center', justifyContent:'center', gap:5,
+                  color: actif ? ACIER : C.muted, fontSize:11.5, fontWeight:800,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:4,
                   touchAction:'manipulation',
                 }}
               >
-                <span style={{ fontSize:15 }}>{emoji}</span>{label}
+                <span style={{ fontSize:14 }}>{emoji}</span>{label}
               </button>
             );
           })}
         </div>
 
-        {onglet === 'demander' ? (
+        {onglet === 'boite' ? (
+          <div style={{ marginTop:16 }}>
+            <PanneauSignalements
+              phrase={phrase}
+              deverrouille={deverrouille}
+              onAllerAgir={() => setOnglet('agir')}
+              onUtiliserCode={(code) => { setPrefill(code); setActionOuverte('sanctionner'); setOnglet('agir'); }}
+              C={C}
+            />
+          </div>
+        ) : onglet === 'demander' ? (
           <div style={{ marginTop:16 }}>
             <PanneauDemander
               onUtiliserCode={(code) => { setPrefill(code); setActionOuverte('sanctionner'); setOnglet('agir'); }}

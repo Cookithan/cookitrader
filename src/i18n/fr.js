@@ -1161,4 +1161,30 @@ export const FR = {
     open_collect:    'Récolter 🎉',
     surprise_label:  '+ surprise',
   },
+  /* ── Sentinelle en mode invité : signaler un problème ──
+     Écran ouvert à TOUS les joueurs (la console, elle, reste derrière
+     la phrase de passe). L'entonnoir de choix vit dans
+     data/signalements.js et se traduit par label_en. */
+  report: {
+    title:         'Sentinelle',
+    section:       'Un problème ?',
+    settings_sub:  'Signale un bug, ou souffle une idée à Cookithan',
+    badge:         '{n} en attente',
+    guest:         'mode invité',
+    hero_title:    'Un souci ? Dis-le.',
+    hero_sub:      'Deux ou trois questions, et Cookithan reçoit ton signalement avec tout le contexte.',
+    question:      "De quoi s'agit-il ?",
+    precise:       'Précise',
+    restart:       'Recommencer',
+    message_label: 'Raconte en quelques mots',
+    message_hint:  "Ce que tu faisais, et ce qui s'est passé.",
+    attached:      'Ton pseudo, ton code de compte, ton niveau et ta version partent automatiquement — tu n’as rien à recopier.',
+    send:          'Envoyer',
+    sending:       'Envoi…',
+    too_short:     'Écris au moins une phrase : sans description, personne ne pourra reproduire le problème.',
+    sent_title:    'Reçu, merci.',
+    sent_sub:      'Ton signalement est arrivé dans la boîte de la Sentinelle.',
+    recap:         'Ce que tu as signalé',
+    again:         'Signaler autre chose',
+  },
 };
