@@ -1,4 +1,5 @@
 import { supabase, isSupabaseEnabled } from './supabase';
+import { APP_INFO } from './appInfo.js';
 import { notifySupabaseError } from './supabaseError';
 import { createInboxMessage } from './inbox.js';
 import { isAdminName, notInLeaderboard } from '../utils/admin.js';
@@ -1243,6 +1244,23 @@ export async function upsertProfile(p){
         user_code:    p.userCode,
         user_name:    p.userName,
         user_avatar:  String(p.userAvatar ?? '0'),
+        /* ── LA VERSION QUI TOURNE VRAIMENT ────────────────
+           Estampillée à CHAQUE synchronisation, donc connue pour tout
+           joueur qui ouvre l'app — pas seulement pour ceux qui ont
+           rapporté une ouverture à la sentinelle.
+
+           On ne peut PAS déduire la version d'un joueur de sa date de
+           dernière connexion : le 08/09/2026, celui qui a fait tomber
+           le cours à 300 était actif à la seconde près, et tournait
+           pourtant sur la version de juillet. Une PWA garde son code en
+           cache ; la date dit quand il s'est synchronisé, jamais quel
+           code s'exécute chez lui.
+
+           Effet de bord précieux : un client ANCIEN n'envoie pas cette
+           colonne, donc elle reste vide chez lui. Une colonne vide avec
+           une activité récente, c'est la signature d'un client périmé —
+           exactement ce qu'on cherchait à repérer. */
+        app_version:  APP_INFO.version,
         level:        p.level,
         total_earned: p.totalEarned,
         cookies:      p.coins,
