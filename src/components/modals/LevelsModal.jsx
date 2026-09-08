@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { ChevronLeft, Check, Lock } from "lucide-react";
 import { LEVEL_NAMES, xpRequired } from "../../data/constants.js";
 import { GOLD, ESPRESSO, levelTier } from "../../data/themes.js";
@@ -31,9 +32,32 @@ const LEVELS = Array.from({ length: TOTAL_LEVELS }, (_, i) => i + 1);
 export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
   const { t, localizedLevelName } = useTranslation();
 
+  /* ── S'ouvrir SUR son palier ─────────────────────────
+     La liste s'ouvrait en haut, au niveau 1. Passé le palier 6, il
+     fallait donc faire défiler pour se trouver — à chaque ouverture, et
+     de plus en plus longtemps à mesure qu'on progresse. Or on ouvre cet
+     écran pour voir où l'on en est, pas pour relire le début.
+
+     On mesure plutôt que d'utiliser scrollIntoView : la liste est dans
+     une modale, et scrollIntoView remonte toute la chaîne des
+     conteneurs — il aurait aussi bougé la page derrière.
+
+     useLayoutEffect, pas useEffect : le placement doit être fait AVANT
+     que l'écran soit peint, sinon on voit la liste sauter. */
+  const conteneur = useRef(null);
+  const palier    = useRef(null);
+
+  useLayoutEffect(() => {
+    const boite = conteneur.current;
+    const ligne = palier.current;
+    if(!boite || !ligne) return;
+    const decalage = ligne.getBoundingClientRect().top - boite.getBoundingClientRect().top;
+    boite.scrollTop += decalage - boite.clientHeight / 2 + ligne.offsetHeight / 2;
+  }, []);
+
   return (
     <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(15,8,4,.78)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:80, backdropFilter:'blur(6px)', padding:18 }}>
-      <div onClick={e=>e.stopPropagation()} className="bi" style={{ background:C.card, borderRadius:24, padding:'22px 18px 18px', width:'100%', maxWidth:380, maxHeight:'85vh', overflowY:'auto', border:`1px solid ${C.border}`, boxShadow:'0 24px 64px rgba(0,0,0,.45)' }}>
+      <div ref={conteneur} onClick={e=>e.stopPropagation()} className="bi" style={{ background:C.card, borderRadius:24, padding:'22px 18px 18px', width:'100%', maxWidth:380, maxHeight:'85vh', overflowY:'auto', border:`1px solid ${C.border}`, boxShadow:'0 24px 64px rgba(0,0,0,.45)' }}>
 
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
           <div>
@@ -65,7 +89,7 @@ export function LevelsModal({ currentLevel, xp, xpReq, onClose, C }) {
                 : C.card2;
 
             return (
-              <div key={n} className={isCurrent ? 'pulse-ring' : ''} style={{
+              <div key={n} ref={isCurrent ? palier : null} className={isCurrent ? 'pulse-ring' : ''} style={{
                 position:'relative', overflow:'hidden',
                 display:'flex', alignItems:'center', gap:13,
                 padding:'14px 16px 14px 19px', borderRadius:18,

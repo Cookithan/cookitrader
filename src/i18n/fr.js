@@ -195,6 +195,7 @@ export const FR = {
 
   /* ── Boutique / Premium ────────────────────────── */
   shop: {
+    equipped_now:  'équipé',
     title:                'BOUTIQUE',
     tab_shop:             'BOUTIQUE',
     tab_premium:          'PREMIUM',

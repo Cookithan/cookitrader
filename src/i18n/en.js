@@ -185,6 +185,7 @@ export const EN = {
   },
 
   shop: {
+    equipped_now:  'equipped',
     title:                'SHOP',
     tab_shop:             'SHOP',
     tab_premium:          'PREMIUM',

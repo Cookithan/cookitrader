@@ -14,10 +14,15 @@ import { useTranslation } from "../../i18n/index.js";
    - RÈGLE : 2 clics = 1 🍪 (rewardPerClick = 0.5)
    - PAS DE CAP COOKIES sur la partie — l'auto-cheat est borné via
      l'anticheat (15 CPS × durée mode).
-   - 3 MODES sélectionnables avant chaque partie :
+   - 2 MODES sélectionnables avant chaque partie :
      · Normal       — 5 s · 2 clics = 1 🍪
-     · Rapide       — 3 s · 2 clics = 1 🍪 (court intense)
      · Frénétique   — 8 s · 2 clics = 1 🍪 · cookie qui bouge
+
+     « Rapide » a été retiré (08/09/2026) : trois secondes de moins que
+     Normal pour exactement la même récompense par clic, c'était le même
+     mode en plus court — donc strictement moins bon, et personne n'avait
+     de raison de le choisir. Un choix qui n'en est pas un encombre
+     l'écran avant chaque partie.
 
    Anti auto-clicker — délégué au ClickTracker refondu (12/05/2026) :
    - isTrusted check (filtre les events synthétiques JS)
@@ -46,7 +51,6 @@ const GOLDEN_TAP_REWARD = 50;
 
 const MODES = {
   normal:     { label:'Normal',     emoji:'☕', desc:'5 s · 2 clics = 1 🍪',                                       duration:5, rewardPerClick:0.5, moves:false, moveIntervalMs:0,    cookieSize:'88%', moveRange:[50,50] },
-  rapide:     { label:'Rapide',     emoji:'⚡', desc:'3 s · 2 clics = 1 🍪 (court intense)',                       duration:3, rewardPerClick:0.5, moves:false, moveIntervalMs:0,    cookieSize:'88%', moveRange:[50,50] },
   frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 1 clic = 1 🍪 · cookie petit + bouge vite (×2 reward)', duration:8, rewardPerClick:1.0, moves:true,  moveIntervalMs:700,  cookieSize:'35%', moveRange:[15,85] },
 };
 
@@ -322,7 +326,7 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
 
     /* Accumule rewardPerClick (0.5 ou 1.0 selon mode). On affiche
        une particule uniquement quand le floor() augmente — adaptatif
-       au reward par clic : 2-clics-pour-1🍪 (normal/rapide) → 1 particule
+       au reward par clic : 2-clics-pour-1🍪 (normal) → 1 particule
        tous les 2 clics ; 1-clic-pour-1🍪 (frénétique) → 1 particule
        chaque clic. */
     const delta = modeCfg.rewardPerClick;

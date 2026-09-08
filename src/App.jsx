@@ -3858,6 +3858,22 @@ export default function CookiMiner() {
       spendCoins(r.cost);
     }
     setUnlocked(u=>[...u,id]);
+
+    /* ── Un thème acheté s'équipe tout de suite ──────────
+       Avant : on payait, l'écran ne bougeait pas, et il fallait aller le
+       chercher dans Ma Collection pour le voir. Acheter une couleur et ne
+       pas la voir, c'est le moment exact où l'achat devient décevant.
+
+       Seuls les thèmes : ils changent l'app entière, donc on VOIT
+       immédiatement ce qu'on vient de payer. Les autres cosmétiques
+       (skin, avatar, titre, roue) restent à équiper à la main — un titre
+       s'affiche sur le pseudo devant tout le monde, ce n'est pas à
+       l'achat d'en décider. */
+    if(r.type === 'Thème'){
+      setActiveTheme(id);
+      showToast(`🎨 ${localizedField(r, 'name', 'REWARDS')} ${t('shop.equipped_now')}`);
+    }
+
     /* Son d'achat dédié (caisse enregistreuse) + haptic medium. */
     playSound('purchase');
     haptic('medium');
