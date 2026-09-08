@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette } from "lucide-react";
 
-import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
+import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired, bonusNiveau, CAFE_MILESTONES_NIVEAUX } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, levelTier } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
@@ -1849,21 +1849,16 @@ export default function CookiMiner() {
     playSound('levelup');
     /* Haptic success — 3 pulses, équivalent ressenti du son de niveau. */
     haptic('success');
-    /* Bonus de level-up :
-       - Paliers majeurs (6, 10, 15, 20, 25) → +1 ☕ (les "milestones")
-       - Autres paliers post-6 → cookies bonus 50+10*nl
-       - Niv 1-5 → cookies bonus 10*nl (inchangé)
-       Cuts -45% sur la production de café (rareté demandée). */
-    const isCafeMilestone = (nl === 6 || nl === 10 || nl === 15 || nl === 20 || nl === 25);
-    if(isCafeMilestone){
+    /* Bonus de level-up — formule unique dans constants.js, partagée
+       avec LevelUpModal pour que l'écran annonce exactement ce que l'app
+       verse. Les paliers majeurs ajoutent 1 ☕ PAR-DESSUS les cookies :
+       avant, ils ne versaient que le café, et franchir un grand palier
+       ne rapportait rien de dépensable. */
+    const bonus = bonusNiveau(nl);
+    if(CAFE_MILESTONES_NIVEAUX.includes(nl)){
       setTimeout(()=>{ setCafes(c=>c+1); }, 700);
-    } else if(nl >= 6){
-      const bonus = 50 + 10 * nl;
-      setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
-    } else {
-      const bonus = 10*nl;
-      setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
     }
+    setTimeout(()=>{ setCoins(c=>c+bonus); setTotalEarned(t=>t+bonus); }, 700);
   },[prestigeLevel, boostUntil, nextGameDoubler, setNextGameDoubler]);
 
   const spendCoins   = useCallback((a)=>setCoins(c=>Math.max(0,c-a)),[]);

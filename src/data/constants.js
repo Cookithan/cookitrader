@@ -568,3 +568,42 @@ export const QUESTIONS = [
 
 /* Quiz : 1 disponible toutes les 5h */
 export const QUIZ_COOLDOWN_MS = 5 * 60 * 60 * 1000;
+
+
+/* ════════════════════════════════════════════════════
+   BONUS DE PASSAGE DE NIVEAU
+   ────────────────────────────────────────────────────
+   Ce que le joueur touche en franchissant un palier. Une seule
+   définition, appelée par addCoins (App.jsx) ET par LevelUpModal : la
+   formule a vécu en deux exemplaires, et le jour où l'une a changé,
+   l'écran annonçait un montant que l'app ne versait pas.
+
+   POURQUOI ELLE A CHANGÉ (09/09/2026)
+   Les gains montaient linéairement — 50 + 10 × niveau — pendant que
+   l'XP demandée était multipliée par 36 sur la même distance. Le palier
+   2 rapportait 133 🍪 pour 1000 XP, le palier 24 en rapportait 7 : le
+   rendement était divisé par dix-huit, et monter devenait une punition.
+
+   Le bonus suit maintenant l'effort réellement fourni, borné à
+   BONUS_NIVEAU_MAX au dernier palier. Le diviseur se DÉDUIT de ce
+   plafond plutôt que d'être écrit en dur : si la courbe d'XP rebouge,
+   la calibration suit toute seule.
+═══════════════════════════════════════════════════════ */
+
+/* Plafond au niveau 25, fixé par Régis. */
+export const BONUS_NIVEAU_MAX = 2000;
+
+/* Paliers qui versent AUSSI un café. Ils ne versaient QUE ça avant —
+   franchir un grand palier ne rapportait rien de dépensable. */
+export const CAFE_MILESTONES_NIVEAUX = [6, 10, 15, 20, 25];
+
+const BONUS_NIVEAU_DIV = xpRequired(24) / BONUS_NIVEAU_MAX;
+
+export function bonusNiveau(niveau){
+  const n = Number(niveau) || 1;
+  /* L'ancienne formule sert de plancher : aucun palier ne peut
+     rapporter moins qu'avant ce correctif. */
+  const plancher = n >= 6 ? 50 + 10 * n : 10 * n;
+  const effort   = Math.round(xpRequired(n - 1) / BONUS_NIVEAU_DIV);
+  return Math.min(BONUS_NIVEAU_MAX, Math.max(plancher, effort));
+}

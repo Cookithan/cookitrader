@@ -27,6 +27,7 @@ export const CHANGELOG = [
     title: '🎮 Des aires de jeu plus grandes',
     title_en: '🎮 Bigger play areas',
     changes: [
+      "🏅 Les bonus de niveau suivent enfin l’effort : ils plafonnaient à 290 🍪 alors que le palier coûtait 40 000 XP. Le niveau 25 rapporte désormais 2000 🍪, et les grands paliers versent les cookies EN PLUS du café",
       "🎮 Les aires de jeu s’agrandissent : Flappy Cookie gagne 60 % de surface, Café Express 27 %, Pile de Tasses et Réflexes s’élargissent aussi",
       "🥤 Café Express : les parties de 2 et 3 minutes rapportaient trois fois moins par minute que celle d’une minute. Les gains suivent enfin la durée",
       "🐦 Flappy Cookie : le ciel bleu laisse place à un dégradé café au lait, assorti aux tuyaux",
@@ -37,6 +38,7 @@ export const CHANGELOG = [
       "🎵 De la musique dans tous les mini-jeux : elle ne se coupe plus en route",
     ],
     changes_en: [
+      "🏅 Level-up bonuses finally follow the effort: they capped at 290 🍪 while a tier cost 40,000 XP. Level 25 now pays 2000 🍪, and the big tiers grant cookies ON TOP of the coffee",
       "🎮 Play areas get bigger: Flappy Cookie gains 60 % of surface, Café Express 27 %, Cup Stack and Reflexes widen too",
       "🥤 Café Express: the 2- and 3-minute runs paid three times less per minute than the 1-minute one. Rewards now follow the duration",
       "🐦 Flappy Cookie: the blue sky makes way for a café-au-lait gradient, matching the pipes",

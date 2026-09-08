@@ -1,5 +1,5 @@
 import { ShoppingBag } from "lucide-react";
-import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
+import { LEVEL_NAMES, REWARDS, bonusNiveau } from "../../data/constants.js";
 import { GOLD, levelTier } from "../../data/themes.js";
 import { useTranslation } from "../../i18n/index.js";
 
@@ -10,10 +10,12 @@ import { useTranslation } from "../../i18n/index.js";
    se déclenchent en même temps.
 
    ⚠️ LE BONUS AFFICHÉ DOIT REFLÉTER addCoins() (App.jsx, ~1798).
-   Règle réelle :
-     · paliers 6 / 10 / 15 / 20 / 25 → +1 ☕
-     · autres niveaux ≥ 6            → 50 + 10 × niveau cookies
-     · niveaux 1-5                   → 10 × niveau cookies
+   Le bonus n'est PLUS recalculé ici : il vient de bonusNiveau()
+   (data/constants.js), la même fonction qu'appelle addCoins. C'est le
+   seul moyen d'être sûr que l'écran annonce ce que l'app verse.
+   Règle réelle (09/09/2026) :
+     · le bonus suit l'XP demandée par le palier, borné à 2000 🍪 au 25
+     · paliers 6 / 10 / 15 / 20 / 25 → les cookies ET +1 ☕
 
    BUG CORRIGÉ EN v1.30 : la modale testait `level >= 6` et annonçait
    « +1 ☕ » à TOUS les niveaux à partir de 6, bouton « Récolter le café »
@@ -35,7 +37,7 @@ export function LevelUpModal({ level, onCollect }) {
   const tier       = levelTier(level);
 
   const isCafeMilestone = CAFE_MILESTONES.includes(level);
-  const coinBonus       = level >= 6 ? 50 + 10 * level : 10 * level;
+  const coinBonus       = bonusNiveau(level);
 
   /* Nouveautés de boutique : mêmes exclusions que la BoutiqueTab —
      le premium, les éditions limitées et l'ex-boutique $CKM ne font pas
@@ -86,7 +88,7 @@ export function LevelUpModal({ level, onCollect }) {
         <div style={{ background:'rgba(212,160,23,.15)', borderRadius:16, padding:'13px 18px', marginBottom:18, border:'1px solid rgba(212,160,23,.3)' }}>
           <div style={{ fontSize:11, color:'rgba(255,255,255,.6)', marginBottom:4 }}>{t('modal.bonus_offered')}</div>
           <div className="coin-pop" style={{ fontSize:26, fontWeight:800, color:'#D4A017' }}>
-            {isCafeMilestone ? '+1 ☕' : `+${coinBonus} 🍪`}
+            {isCafeMilestone ? `+${coinBonus} 🍪 + 1 ☕` : `+${coinBonus} 🍪`}
           </div>
           {newItems > 0 && (
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginTop:10, paddingTop:9, borderTop:'1px dashed rgba(212,160,23,.35)' }}>
