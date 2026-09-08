@@ -115,12 +115,37 @@ export const SECRET_PROMO_CODES = Object.entries(PROMO_CODES)
      (revealed = liste d'IDs déjà révélés par l'utilisateur)
    - rejette les codes inconnus
    - retourne `{ code, coins, cafes, ... }` enrichi sinon. */
-export function lookupPromoCode(rawInput, revealed = []){
+export function lookupPromoCode(rawInput, revealed = [], codesEnBase = []){
   const code = (rawInput || '').trim().toUpperCase();
   if(!code) return null;
+
   const entry = PROMO_CODES[code];
-  if(!entry) return null;
-  /* Code secret pas encore révélé pour cet utilisateur → invisible */
-  if(entry.secret && !revealed.includes(code)) return null;
-  return { code, ...entry };
+  if(entry){
+    /* Code secret pas encore révélé pour cet utilisateur → invisible */
+    if(entry.secret && !revealed.includes(code)) return null;
+    return { code, ...entry };
+  }
+
+  /* ── Codes créés depuis la Sentinelle ────────────────
+     Les 24 codes ci-dessus vivent dans le code de l'app : ils utilisent
+     des mécaniques riches (forcer un niveau, débloquer un mini-jeu,
+     révéler un code secret) qui n'auraient rien à faire en base.
+
+     Ceux-ci sont créés depuis le téléphone, sans redéploiement, et se
+     limitent aux trois récompenses courantes. Ils sont cherchés APRÈS
+     les autres : un code écrit dans l'app garde toujours la priorité,
+     donc personne ne peut en détourner un en créant le même nom. */
+  const enBase = (codesEnBase || []).find(c => String(c.code).toUpperCase() === code);
+  if(enBase && enBase.actif !== false){
+    return {
+      code,
+      coins:  Number(enBase.coins)  || 0,
+      cafes:  Number(enBase.cafes)  || 0,
+      shares: Number(enBase.shares) || 0,
+      label:  enBase.label || 'Code promo',
+      noXp:   true,   /* prudence : un code créé à la volée ne fait pas exploser les niveaux */
+    };
+  }
+
+  return null;
 }
