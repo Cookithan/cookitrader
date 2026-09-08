@@ -14,7 +14,7 @@ import { useTranslation } from "../../i18n/index.js";
    (data/constants.js), la même fonction qu'appelle addCoins. C'est le
    seul moyen d'être sûr que l'écran annonce ce que l'app verse.
    Règle réelle (09/09/2026) :
-     · le bonus suit l'XP demandée par le palier, borné à 2000 🍪 au 25
+     · le bonus suit l'XP demandée par le palier, borné à 600 🍪 au 25
      · paliers 6 / 10 / 15 / 20 / 25 → les cookies ET +1 ☕
 
    BUG CORRIGÉ EN v1.30 : la modale testait `level >= 6` et annonçait

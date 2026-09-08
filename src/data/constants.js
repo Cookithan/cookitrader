@@ -590,8 +590,19 @@ export const QUIZ_COOLDOWN_MS = 5 * 60 * 60 * 1000;
    la calibration suit toute seule.
 ═══════════════════════════════════════════════════════ */
 
-/* Plafond au niveau 25, fixé par Régis. */
-export const BONUS_NIVEAU_MAX = 2000;
+/* Plafond au niveau 25.
+
+   Calé sur ce que rapporte une PARTIE, pas sur la seule arithmétique de
+   l'effort. Repères du jour : Pile de Tasses 80 🍪, roue 200 au meilleur
+   segment, Café Express 300 en une minute, machine à sous 400 sur un
+   diamant et 1000 sur le jackpot rare.
+
+   Un premier essai à 2000 rendait le rendement constant mais écrasait
+   les mini-jeux : franchir un palier valait cinq bonnes parties, et tout
+   le reste du jeu devenait négligeable à côté. À 600, le palier reste un
+   événement — deux Café Express, ou trois tours de roue chanceux — sans
+   voler la vedette à ce qu'on fait tous les jours. */
+export const BONUS_NIVEAU_MAX = 600;
 
 /* Paliers qui versent AUSSI un café. Ils ne versaient QUE ça avant —
    franchir un grand palier ne rapportait rien de dépensable. */
