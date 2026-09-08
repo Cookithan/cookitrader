@@ -24,8 +24,9 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
      à l'ouverture de la modale. Si la lecture échoue (hors ligne, table
      absente), la liste reste vide et seuls les codes historiques
      répondent — le joueur ne voit jamais d'erreur pour autant. */
-  const [codesBase, setCodesBase] = useState([]);
-  useEffect(() => { codesPromoEnBase().then(setCodesBase).catch(() => {}); }, []);
+  const [codesBase, setCodesBase] = useState(null);   /* null = pas encore lu */
+  useEffect(() => { codesPromoEnBase().then(setCodesBase).catch(() => setCodesBase([])); }, []);
+  const enCours = useRef(false);
   const { t } = useTranslation();
   const [input,    setInput]    = useState('');
   const [feedback, setFeedback] = useState(null);  // { type: 'ok'|'err', msg }
@@ -38,9 +39,22 @@ export function PromoCodeModal({ onCancel, onRedeem, usedCodes = [], revealedCod
     return () => clearTimeout(t);
   }, []);
 
-  const submit = () => {
-    if(loading) return;
-    const promo = lookupPromoCode(input, revealedCodes, codesBase);
+  const submit = async () => {
+    if(loading || enCours.current) return;
+
+    /* La base fait foi, y compris pour dire qu'un code a été supprimé.
+       Valider avant qu'elle ait répondu, c'est risquer d'accepter un
+       code qui n'existe plus. Le premier envoi attend donc la lecture —
+       quelques dizaines de millisecondes au pire, et une seule fois. */
+    let base = codesBase;
+    if(base === null){
+      enCours.current = true;
+      base = await codesPromoEnBase().catch(() => []);
+      enCours.current = false;
+      setCodesBase(base);
+    }
+
+    const promo = lookupPromoCode(input, revealedCodes, base);
     if(!promo){
       setFeedback({ type:'err', msg: t('modal.promo_invalid') });
       setShake(true);

@@ -28,7 +28,8 @@ import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
 import { SentinelleOverlay } from "./components/overlays/SentinelleOverlay.jsx";
-import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire, alertesEnCours } from "./lib/sentinelle.js";
+import { SignalementOverlay } from "./components/overlays/SignalementOverlay.jsx";
+import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire, alertesEnCours, signalementsOuverts } from "./lib/sentinelle.js";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
@@ -879,8 +880,15 @@ export default function CookiMiner() {
   const [showInbox,        setShowInbox]        = useState(false);
   const [showAbout,        setShowAbout]        = useState(false);
   /* Sentinelle — ecran admin (cf. lib/sentinelle.js). */
-  const [showSentinelle,   setShowSentinelle]   = useState(false);
+  /* null | 'console' | 'signalement'. Un booleen ne suffisait plus :
+     un admin doit pouvoir ouvrir l'entonnoir des joueurs pour l'essayer,
+     sans quoi on ne decouvre ses defauts que par un signalement rate. */
+  const [vueSentinelle, setVueSentinelle] = useState(null);
   const [alertesSentinelle, setAlertesSentinelle] = useState(0);
+  /* Signalements envoyes par les joueurs et pas encore traites. Le
+     compteur est public en base (un entier, rien de plus), mais on ne
+     le lit que pour un admin : un joueur n a rien a faire du nombre. */
+  const [signalementsAttente, setSignalementsAttente] = useState(0);
   /* Notification "nouvelle version" : on garde en LS la dernière version
      vue par l'user. Au mount, si APP_INFO.version diffère → popup.
      Pour un fresh install, lastSeenVersion vaut '' → on calibre direct
@@ -2535,7 +2543,10 @@ export default function CookiMiner() {
       /* La pastille n'est calculée que pour un admin : une vigie qu'il
          faut penser à consulter ne sert qu'aux jours où on y pense,
          mais un joueur normal n'a rien à faire des rapports. */
-      if(peutVoirSentinelle(userName, userCode)) alertesEnCours().then(setAlertesSentinelle).catch(()=>{});
+      if(peutVoirSentinelle(userName, userCode)){
+        alertesEnCours().then(setAlertesSentinelle).catch(()=>{});
+        signalementsOuverts().then(setSignalementsAttente).catch(()=>{});
+      }
     });
   }, [userCode, userName, pullDone]);
 
@@ -4125,7 +4136,7 @@ export default function CookiMiner() {
             {/* Pastille sentinelle — admins seulement. Discrète (6 px, pas
                 de chiffre) : elle dit qu'il y a quelque chose à lire, pas
                 qu'il faut paniquer. Teinte moka, jamais rouge. */}
-            {alertesSentinelle > 0 && (
+            {(alertesSentinelle + signalementsAttente) > 0 && (
               <span className="pulse-ring" aria-hidden style={{
                 position:'absolute', top:-2, right:-2, width:8, height:8, borderRadius:'50%',
                 background:'#8B5A2B', border:`2px solid ${C.bg}`,
@@ -4865,7 +4876,15 @@ export default function CookiMiner() {
           userCode={userCode}
           restorePin={restorePin}
           onOpenCollection={()=>{ playSound('tab'); setShowSettings(false); goToTab('collection'); }}
-          onOpenSentinelle={peutVoirSentinelle(userName, userCode) ? (()=>{ setShowSettings(false); setShowSentinelle(true); }) : undefined}
+          onOpenSentinelle={(vue)=>{
+            setShowSettings(false);
+            /* Le garde-fou ne fait JAMAIS confiance a ce que demande
+               l ecran : un non-admin tombe sur l entonnoir, quoi qu il
+               ait cliqué. */
+            setVueSentinelle(peutVoirSentinelle(userName, userCode) ? (vue || 'console') : 'signalement');
+          }}
+          sentinelleAdmin={peutVoirSentinelle(userName, userCode)}
+          sentinelleBadge={signalementsAttente}
           C={C}
         />
       )}
@@ -4971,13 +4990,36 @@ export default function CookiMiner() {
         />
       )}
 
-      {/* Sentinelle — admins seulement. Le double garde-fou (état ET
-          isAdminName) évite qu'un état resté à true après un changement
-          de pseudo n'expose l'écran à un joueur. */}
-      {showSentinelle && peutVoirSentinelle(userName, userCode) && (
-        <SentinelleOverlay
-          onClose={()=>setShowSentinelle(false)}
-          C={C}
+      {/* Sentinelle — une porte, deux écrans.
+
+          Un admin ouvre la console (constats, questions, actions). Tous
+          les autres ouvrent l'entonnoir de signalement, qui ne sait
+          qu'envoyer : il ne lit ni les constats, ni les signalements des
+          autres. Le double garde-fou (état ET peutVoirSentinelle) évite
+          qu'un état resté à true après un changement de pseudo ne fasse
+          basculer un joueur du mauvais côté.
+
+          Ce qui protège vraiment, ce n'est pas ce branchement : c'est la
+          phrase de passe, vérifiée en base, sans laquelle rien ne se lit
+          ni ne s'exécute. Cacher un écran n'a jamais protégé personne. */}
+      {vueSentinelle === 'console' && peutVoirSentinelle(userName, userCode) && (
+        <SentinelleOverlay onClose={()=>setVueSentinelle(null)} />
+      )}
+
+      {vueSentinelle === 'signalement' && (
+        <SignalementOverlay
+          onClose={()=>{
+            setVueSentinelle(null);
+            /* Relire le compteur en sortant : un admin qui vient
+               d'essayer l'entonnoir doit voir sa pastille bouger tout de
+               suite, sinon il croit que rien n'est parti. */
+            if(peutVoirSentinelle(userName, userCode)){
+              signalementsOuverts().then(setSignalementsAttente).catch(()=>{});
+            }
+          }}
+          userCode={userCode}
+          userName={userName}
+          level={level}
         />
       )}
 

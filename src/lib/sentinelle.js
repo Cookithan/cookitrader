@@ -773,15 +773,22 @@ export async function listerIgnores() {
   }
 }
 
-/* Les codes promo créés depuis la console. Lus par la modale de saisie,
-   en plus des codes écrits dans l'app. Silencieux si la table n'existe
-   pas : le joueur ne doit jamais voir une erreur parce qu'une
-   fonctionnalité d'administration n'est pas installée. */
+/* Les codes promo en base — les 24 historiques recopiés par
+   CODES_HISTORIQUES_EN_BASE.sql comme ceux créés depuis la console. Lus
+   par la modale de saisie. Silencieux si la table n'existe pas : le
+   joueur ne doit jamais voir une erreur parce qu'une fonctionnalité
+   d'administration n'est pas installée.
+
+   On lit AUSSI les codes désactivés, et c'est volontaire : c'est le
+   client qui applique la suppression, et il ne peut le faire que s'il
+   voit la ligne morte. Filtrer sur `actif` ici reviendrait à masquer la
+   preuve de la suppression, donc à laisser le code écrit dans l'app
+   reprendre la main — exactement ce qu'on veut empêcher. Le tri se fait
+   dans lookupPromoCode. */
 export async function codesPromoEnBase() {
   if (!isSupabaseEnabled()) return [];
   try {
-    const { data } = await supabase
-      .from('promo_codes').select('code, coins, cafes, shares, label, actif').eq('actif', true);
+    const { data } = await supabase.from('promo_codes').select('*');
     return data || [];
   } catch {
     return [];
@@ -802,5 +809,107 @@ export async function journal(limite = 30) {
     return data || [];
   } catch {
     return [];
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   LA BOÎTE AUX LETTRES
+   ────────────────────────────────────────────────────
+   Jusqu'ici la Sentinelle ne parlait qu'à son propriétaire. Ces quatre
+   fonctions ouvrent le sens inverse : n'importe quel joueur peut lui
+   signaler quelque chose, et elle le range.
+
+   Rien ne passe par la table directement — elle est fermée, même en
+   lecture. Tout passe par les fonctions security definer de
+   SIGNALEMENTS.sql, qui comptent, freinent et vérifient. Un signalement
+   est nominatif (celui qui écrit, et souvent celui qu'il accuse) : le
+   rendre lisible avec la clé publique reviendrait à publier les
+   dénonciations.
+═══════════════════════════════════════════════════════ */
+
+/* Message rendu quand la migration n'a pas encore été collée. Dit quoi
+   faire, plutôt que de laisser un échec muet. */
+function manquePeutEtre(error, quoi) {
+  const absente = /function|does not exist|schema cache/i.test(error?.message || '');
+  return absente
+    ? `La boîte aux lettres n'est pas installée en base (SIGNALEMENTS.sql).`
+    : `Erreur ${quoi} : ${error?.message || 'inconnue'}`;
+}
+
+/* Le code de refus qui va avec, pour que l'écran choisisse SA phrase.
+   La base ne connaît pas la langue du joueur, et la lui envoyer
+   obligerait à maintenir les traductions à deux endroits. */
+function codeErreur(error) {
+  return /function|does not exist|schema cache/i.test(error?.message || '')
+    ? 'pas_installe'
+    : 'reseau';
+}
+
+/* Envoyer — ouvert à tout le monde. Les freins (une minute entre deux,
+   huit par jour, trois cents par heure) vivent en base : les mettre ici
+   ne protégerait de rien, le client est réécrivable. */
+export async function envoyerSignalement({ userCode, userName, categorie, chemin, message, contexte }) {
+  if (!isSupabaseEnabled()) {
+    return { ok: false, code: 'hors_ligne',
+      message: "Pas de connexion : le signalement ne peut pas partir. Réessaie une fois en ligne." };
+  }
+  try {
+    const { data, error } = await supabase.rpc('envoyer_signalement', {
+      p_user_code:   userCode   || null,
+      p_user_name:   userName   || null,
+      p_app_version: APP_INFO.version,
+      p_categorie:   categorie,
+      p_chemin:      chemin,
+      p_message:     message,
+      p_contexte:    contexte || {},
+    });
+    if (error) return { ok: false, code: codeErreur(error), message: manquePeutEtre(error, "d'envoi") };
+    return data || { ok: false, code: 'reseau', message: 'Réponse vide' };
+  } catch (e) {
+    return { ok: false, code: 'reseau', message: `Erreur : ${e.message}` };
+  }
+}
+
+/* Le compteur, sans la phrase : un entier, rien d'autre. De quoi
+   allumer une pastille sur la bannière sans rien laisser fuiter. */
+export async function signalementsOuverts() {
+  if (!isSupabaseEnabled()) return 0;
+  try {
+    const { data, error } = await supabase.rpc('signalements_ouverts');
+    if (error) return 0;
+    return Number(data) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/* Lire — exige la phrase. `statut` à null renvoie ce qui reste ouvert
+   (nouveau + lu), c'est-à-dire ce qu'il reste à traiter. */
+export async function listerSignalements(phrase, statut = null, limite = 60) {
+  if (!isSupabaseEnabled()) return { ok: false, message: 'Hors ligne', lignes: [] };
+  if (!phrase) return { ok: false, message: 'Phrase de passe requise', lignes: [] };
+  try {
+    const { data, error } = await supabase.rpc('signalements_lister', {
+      p_phrase: phrase, p_statut: statut, p_limite: limite,
+    });
+    if (error) return { ok: false, message: manquePeutEtre(error, 'de lecture'), lignes: [] };
+    return { ok: !!data?.ok, message: data?.message, lignes: data?.lignes || [] };
+  } catch (e) {
+    return { ok: false, message: `Erreur : ${e.message}`, lignes: [] };
+  }
+}
+
+/* Classer — exige la phrase, et laisse une trace au registre. */
+export async function traiterSignalement(phrase, id, statut, note = null) {
+  if (!isSupabaseEnabled()) return { ok: false, message: 'Hors ligne' };
+  if (!phrase) return { ok: false, message: 'Phrase de passe requise' };
+  try {
+    const { data, error } = await supabase.rpc('signalements_traiter', {
+      p_phrase: phrase, p_id: id, p_statut: statut, p_note: note,
+    });
+    if (error) return { ok: false, message: manquePeutEtre(error, 'de mise à jour') };
+    return data || { ok: false, message: 'Réponse vide' };
+  } catch (e) {
+    return { ok: false, message: `Erreur : ${e.message}` };
   }
 }

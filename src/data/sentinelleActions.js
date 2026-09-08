@@ -123,7 +123,7 @@ export const ACTIONS_SENTINELLE = [
     groupe: 'app',
     titre: 'Créer un code promo',
     resume: "Un nouveau code utilisable tout de suite, sans redéploiement",
-    aide: "Les 24 codes historiques restent écrits dans l'app et continuent de marcher. Celui-ci vit en base : il est actif dès que tu valides. Chaque joueur ne peut l'utiliser qu'une fois. Réutiliser un code existant en modifie les récompenses.",
+    aide: "Actif dès que tu valides, sans redéploiement. Chaque joueur ne peut l'utiliser qu'une fois. Retaper un code qui existe déjà — les 24 historiques compris — en modifie les récompenses, et le remet en service s'il avait été supprimé.",
     danger: true,
     champs: [
       { nom:'code',   label:'Le code (majuscules automatiques)', type:'text',   requis:true, exemple:'RENTREE25' },
@@ -138,7 +138,7 @@ export const ACTIONS_SENTINELLE = [
     groupe: 'app',
     titre: 'Supprimer un code promo',
     resume: "Le code cesse de marcher et sort de la liste",
-    aide: "Il disparaît de « les codes promo » et ne fonctionne plus. Ceux qui l'ont déjà utilisé gardent leur récompense — on ne reprend rien. La ligne reste en base, marquée supprimée, pour qu'on sache qu'il a existé. Ne marche que sur les codes créés depuis la console : les 24 historiques vivent dans le code de l'app.",
+    aide: "Il sort de « les codes promo » et cesse de marcher — les 24 historiques compris. Ceux qui l'ont déjà utilisé gardent leur récompense, on ne reprend rien. La ligne reste en base, marquée supprimée : c'est précisément elle qui empêche l'app de retomber sur sa copie écrite en dur. Pour le remettre en service, recrée-le avec le même nom.",
     champs: [
       { nom:'code', label:'Le code à désactiver', type:'text', requis:true, exemple:'RENTREE25' },
     ],

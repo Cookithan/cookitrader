@@ -13,7 +13,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.30.0',
+  version: '1.30.1',
   releaseDate: '2026-09-08',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -21,11 +21,32 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
-  /* ⚠️ LA 1.30 N'EST PAS TERMINÉE — celle-ci en est la première moitié,
-     mise en ligne le 08/09/2026 pour être éprouvée par les joueurs. Le
-     reste arrivera par-dessus. Le changelog ci-dessous décrit ce qui est
-     RÉELLEMENT parti : quand la suite sortira, on AJOUTE une entrée, on
-     ne réécrit pas celle-ci (les joueurs l'auront déjà lue). */
+  /* La 1.30 continue : on AJOUTE une entrée, on ne réécrit pas la
+     précédente — les joueurs l'ont déjà lue.
+
+     Celle-ci ne parle que de ce qui est VISIBLE pour eux. La console
+     d'administration, son thème bleu et les codes promo passés en base
+     sont sortis dans la même livraison, mais un joueur ne les verra
+     jamais : les annoncer ne ferait que noyer la seule ligne qui le
+     concerne. */
+  {
+    version: '1.30.1',
+    date: '2026-09-08',
+    title: '🛡️ Dis-nous ce qui ne va pas',
+    title_en: "🛡️ Tell us what's wrong",
+    changes: [
+      "🛡️ La Sentinelle arrive dans les Paramètres : signale un bug, un souci de cookies, un joueur, ou souffle une idée",
+      "🎯 Deux ou trois questions guidées suffisent : tu choisis l'écran, puis ce qui cloche, et tu racontes en une phrase",
+      "📮 Ton pseudo, ton niveau et ta version partent avec — rien à recopier, et de quoi reproduire le problème",
+      "🌍 Tout l'écran existe en français et en anglais",
+    ],
+    changes_en: [
+      "🛡️ The Sentinel lands in Settings: report a bug, a cookie problem, a player, or drop an idea",
+      "🎯 Two or three guided questions is all it takes: pick the screen, then what went wrong, then tell us in one sentence",
+      "📮 Your name, level and app version travel with it — nothing to copy out, and enough to reproduce the problem",
+      "🌍 The whole screen exists in French and in English",
+    ],
+  },
   {
     version: '1.30.0',
     date: '2026-09-08',
@@ -120,46 +141,6 @@ export const CHANGELOG = [
       "⚡ Café Express now runs smoothly on all phones — fixed a bug where the game was too slow on some devices",
       "⏱ Choose your match duration: 60s, 2 min or 3 min (reward tiers scale accordingly)",
       "🎨 Switch theme straight from the Café Express screen — no need to open Settings",
-    ],
-  },
-  {
-    version: '1.24.0',
-    date: '2026-05-26',
-    title: '⚡ Café Express + thèmes de mini-jeu',
-    title_en: '⚡ Café Express + game themes',
-    changes: [
-      "⚡ Nouveau mini-jeu Café Express : glisse ta tasse pour attraper les 🍪 et ☕, évite les 🧊 qui figent la tasse !",
-      "🎨 10 nouveaux thèmes pour personnaliser tes mini-jeux (Café Express, Flappy, Devine la commande, Memory) — disponibles en boutique et activables dans les Paramètres",
-      "🎁 Série du jour étoffée : 2 semaines progressives, jackpot 2 ☕ au J7 et 3 ☕ au J14, palier max maintenu après",
-      "🏆 Classement « Cette semaine » : seuls les joueurs ayant joué cette semaine y apparaissent (plus juste)",
-      "📚 Tutoriel guidé : plus aucune pop-up ne vient le masquer, et tu peux le refaire depuis les Paramètres",
-      "🛒 Boutique : filtres mieux organisés sur 2 lignes avec icônes",
-    ],
-    changes_en: [
-      "⚡ New mini-game Café Express: slide your cup to catch the 🍪 and ☕, avoid the 🧊 that freeze the cup!",
-      "🎨 10 new themes to customize your mini-games (Café Express, Flappy, Guess the order, Memory) — available in the shop and activable from Settings",
-      "🎁 Beefed-up daily streak: 2 progressive weeks, jackpot 2 ☕ on day 7 and 3 ☕ on day 14, max tier maintained after",
-      "🏆 'This week' leaderboard: only players who played this week show up (fairer)",
-      "📚 Guided tutorial: no more pop-ups blocking it, and you can replay it from Settings",
-      "🛒 Shop: filters better organized on 2 rows with icons",
-    ],
-  },
-  {
-    version: '1.23.0',
-    date: '2026-05-19',
-    title: '🏆 Classement cumulé + quiz corsé',
-    title_en: '🏆 All-time leaderboard + tougher quiz',
-    changes: [
-      "🏆 Nouveau classement « Depuis le début » : les cookies cumulés de toujours, en plus du classement de la semaine",
-      "📚 Quiz : la difficulté Facile laisse place à plus de questions Moyen et Expert",
-      "🍪 Memory : petit bonus en complétant toutes les paires",
-      "✨ …et d'autres surprises à débusquer en jouant 👀",
-    ],
-    changes_en: [
-      "🏆 New \"All-time\" leaderboard: your lifetime cookies, alongside the weekly ranking",
-      "📚 Quiz: the Easy difficulty makes way for more Medium and Expert questions",
-      "🍪 Memory: a small bonus for clearing all the pairs",
-      "✨ …and other surprises to uncover while playing 👀",
     ],
   },
 ];
