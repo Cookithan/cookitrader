@@ -27,6 +27,8 @@ import { GLOBAL_CSS } from "./styles/globalStyles.js";
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
+import { SentinelleOverlay } from "./components/overlays/SentinelleOverlay.jsx";
+import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire } from "./lib/sentinelle.js";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
@@ -378,6 +380,14 @@ export default function CookiMiner() {
      le webhook + les re-pulls finaliser sans race condition (l'upsert
      client écrasait sinon les cafés crédités par Stripe). */
   const [pauseUpsertUntil, setPauseUpsertUntil] = useState(0);
+
+  /* Adoption forcée des valeurs serveur — compteur gardé PAR APPAREIL.
+     C'est toute la différence avec applyPatchOnce, qui est par COMPTE :
+     le 08/09/2026, la sanction de Fedider a été effacée parce que son
+     verrou avait été consommé sur un premier téléphone, et qu'un second
+     appareil au localStorage périmé a repoussé les anciennes valeurs.
+     Ici, CHAQUE appareil compare son compteur à celui du serveur. */
+  const [adoptVersion,     setAdoptVersion]     = useLocalStorage('adoptVersion', 0);
   useEffect(()=>{
     if(!isSupabaseEnabled()){ setPullDone(true); return; }
     if(!userCode || !userName){ return; }
@@ -390,11 +400,26 @@ export default function CookiMiner() {
          monotone : total_earned (gameplay) OU cafes (paiement Stripe via
          webhook). Sans le check cafes, un paiement Stripe créditait la
          DB sans que le client le voie (l'upsert client écrasait derrière). */
+      /* ── ADOPTION FORCÉE ──────────────────────────────────────
+         Quand le serveur porte un compteur supérieur à celui de CET
+         appareil, on prend ses valeurs telles quelles, même plus
+         basses. C'est le seul moyen qu'une correction faite à la main
+         (sanction, remise à plat) tienne : sans ça, le client garde son
+         localStorage gonflé et le repousse en base dans les 5 secondes.
+
+         On met l'upsert en pause 8 s, le temps que les setState écrivent,
+         sinon le debounce republierait les anciennes valeurs par-dessus. */
+      const doitAdopter = server && Number(server.forceAdoptVersion || 0) > Number(adoptVersion || 0);
+      if(doitAdopter){
+        setPauseUpsertUntil(Date.now() + 8000);
+        setAdoptVersion(Number(server.forceAdoptVersion));
+      }
+
       const serverAhead = server && (
         Number(server.totalEarned) > totalEarned ||
         Number(server.cafes) > cafes
       );
-      if(serverAhead){
+      if(serverAhead || doitAdopter){
         setCoins(server.coins);
         setCafes(server.cafes);
         setTotalEarned(server.totalEarned);
@@ -407,7 +432,9 @@ export default function CookiMiner() {
         setActiveTitle(server.activeTitle || '');
         setNameChangeCount(server.nameChangeCount || 0);
         setPrestigeLevel(server.prestigeLevel || 0);
-        showToastRef.current?.('☁️ Données synchronisées');
+        showToastRef.current?.(doitAdopter
+          ? '☁️ Ton compte a été mis à jour depuis le serveur'
+          : '☁️ Données synchronisées');
       }
       /* Anti-cheat cross-device : on merge TOUJOURS les compteurs
          quotidiens, indépendamment de serverAhead. Sinon, se reconnecter
@@ -851,6 +878,8 @@ export default function CookiMiner() {
      Compteur rafraîchi toutes les 30s tant qu'on a un userCode + Supabase actif. */
   const [showInbox,        setShowInbox]        = useState(false);
   const [showAbout,        setShowAbout]        = useState(false);
+  /* Sentinelle — ecran admin (cf. lib/sentinelle.js). */
+  const [showSentinelle,   setShowSentinelle]   = useState(false);
   /* Notification "nouvelle version" : on garde en LS la dernière version
      vue par l'user. Au mount, si APP_INFO.version diffère → popup.
      Pour un fresh install, lastSeenVersion vaut '' → on calibre direct
@@ -2477,6 +2506,32 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
     /* eslint-enable no-unreachable */
   }, [userCode, pullDone]);
+
+  /* ── Sentinelle ───────────────────────────────────────────────
+     Trois gestes au démarrage, tous silencieux et sans effet de bord :
+       1. brancher l'ErrorBoundary sur la vigie (window.cookiOnError,
+          le point d'accroche prévu « pour une télémétrie future ») ;
+       2. déposer un rapport d'ouverture — c'est LUI qui donne la
+          répartition des versions en circulation, le chiffre qui
+          manquait le 08/09 quand un client resté en 1.27 rabotait le
+          cours du marché ;
+       3. lancer une ronde SI l'intervalle est écoulé. Le premier client
+          qui ouvre l'app fait le travail pour tout le monde — c'est ce
+          qui rend la vigie autonome : ni PC, ni ligne de commande, ni
+          personne pour la déclencher.
+
+     Tout est enveloppé : si MIGRATION_SENTINELLE.sql n'est pas passé,
+     les tables n'existent pas et la vigie se tait. L'app ne doit jamais
+     casser parce que la surveillance est absente.
+  ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    brancherRapportDeCrash();
+    signalerOuverture(userCode, userName);
+    /* Volontairement non attendu : une ronde ne doit jamais retarder
+       l'affichage de l'app. */
+    rondeSiNecessaire();
+  }, [userCode, userName, pullDone]);
 
   /* ── Frais de garde — RETIRÉS le 08/09/2026 ───────────────
      Ils grignotaient 0,5 %/jour des actions d'un joueur qui n'avait pas
@@ -4795,6 +4850,7 @@ export default function CookiMiner() {
           userCode={userCode}
           restorePin={restorePin}
           onOpenCollection={()=>{ playSound('tab'); setShowSettings(false); goToTab('collection'); }}
+          onOpenSentinelle={isAdminName(userName) ? (()=>{ setShowSettings(false); setShowSentinelle(true); }) : undefined}
           C={C}
         />
       )}
@@ -4896,6 +4952,16 @@ export default function CookiMiner() {
       {showAbout && (
         <AboutModal
           onClose={()=>setShowAbout(false)}
+          C={C}
+        />
+      )}
+
+      {/* Sentinelle — admins seulement. Le double garde-fou (état ET
+          isAdminName) évite qu'un état resté à true après un changement
+          de pseudo n'expose l'écran à un joueur. */}
+      {showSentinelle && isAdminName(userName) && (
+        <SentinelleOverlay
+          onClose={()=>setShowSentinelle(false)}
           C={C}
         />
       )}

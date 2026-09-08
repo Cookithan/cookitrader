@@ -3,6 +3,7 @@ import { COOKIE_SKINS, GOLD } from "../../data/themes.js";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { ClickTracker } from "../../lib/antiCheat.js";
+import { signalerTriche } from "../../lib/sentinelle.js";
 import { playSound } from "../../lib/audio.js";
 import { useTranslation } from "../../i18n/index.js";
 
@@ -154,6 +155,10 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
     if(trackerRef.current?.cheatDetected){
       // eslint-disable-next-line no-console
       console.warn('[anticheat] Cheat detected:', trackerRef.current.cheatReason);
+      /* Le signal ne restait que dans la console du joueur — donc
+         personne ne le voyait jamais. Il part maintenant à la
+         sentinelle, qui le recoupe avec les chiffres du serveur. */
+      signalerTriche(trackerRef.current.cheatReason || 'signal anti-clic');
     }
     /* Event 'click_sprint' : 60 clics ou plus en une partie */
     onEventChallenge?.('click_sprint', finalClicks);
