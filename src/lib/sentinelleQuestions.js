@@ -3,6 +3,7 @@ import { MARKET_CONFIG } from './market.js';
 import { APP_INFO } from './appInfo.js';
 import { isAdminName } from '../utils/admin.js';
 import { versionsParJoueur, controleVersions } from './sentinelle.js';
+import { CODES_CONCERNES_129 } from '../data/accountNotices.js';
 
 /* ════════════════════════════════════════════════════
    sentinelleQuestions.js — poser une question à la vigie
@@ -88,6 +89,30 @@ export function chercherJoueur(joueurs, texte) {
   return joueurs.find(j => nettoyer(j.user_name).includes(t)) || null;
 }
 
+/* La version d'un joueur, dite avec le bon degré de certitude.
+
+   Trois qualités de preuve, et les confondre serait mentir :
+   · SYNC / RAPPORT — l'app a elle-même annoncé sa version : c'est exact.
+   · PATCH — il a appliqué un correctif qui n'existe qu'à partir d'une
+     version donnée : on sait seulement qu'il a fait tourner AU MOINS
+     celle-là. Écrire « version 1.20 » serait faux ; il peut être en
+     1.30 sans avoir eu de patch récent à appliquer.
+   · CONCERNÉ SANS PATCH — il devait recevoir un message en 1.29 et ne
+     l'a jamais appliqué : là, l'absence PROUVE qu'il n'a pas lancé la
+     1.29. C'est la seule déduction négative qui tienne. */
+function ligneVersion(j) {
+  if (j.version && (j.source === 'sync' || j.source === 'rapport')) {
+    return `Version ${j.version}${j.version !== APP_INFO.version ? ' ⚠️ périmée' : ' ✅ à jour'}`;
+  }
+  if (j.version) {
+    return `A fait tourner au moins la ${j.version} — version exacte inconnue`;
+  }
+  if (CODES_CONCERNES_129.includes(j.user_code)) {
+    return "⛔ N'a jamais lancé la 1.29 : son app date d'avant septembre";
+  }
+  return "Version inconnue — aucune trace depuis que la vigie écoute";
+}
+
 function ficheJoueur(j) {
   const minutes = num(j.total_play_time) / 60;
   const rendement = minutes >= 10 ? Math.round(num(j.total_earned) / minutes) : null;
@@ -101,9 +126,7 @@ function ficheJoueur(j) {
       `${fmt(j.cookies)} 🍪 en poche · ${num(j.cafes)} ☕`,
       `${Math.round(minutes)} min de jeu${rendement ? ` · ${rendement} 🍪/min` : ''}`,
       j.last_active ? `Vu pour la dernière fois le ${new Date(j.last_active).toLocaleString('fr-FR')}` : null,
-      j.version
-        ? `Application en version ${j.version}${j.version !== APP_INFO.version ? ' ⚠️ périmée' : ''}`
-        : "Version inconnue — ce compte n'a pas ouvert l'app depuis que la vigie écoute",
+      ligneVersion(j),
     ].filter(Boolean),
   };
 }
