@@ -3,6 +3,7 @@ import { MARKET_CONFIG } from './market.js';
 import { APP_INFO } from './appInfo.js';
 import { xpRequired } from '../data/constants.js';
 import { isAdminName } from '../utils/admin.js';
+import { CODES_CONCERNES_129 } from '../data/accountNotices.js';
 
 /* ════════════════════════════════════════════════════
    sentinelle.js — la vigie qui tourne toute seule
@@ -345,60 +346,55 @@ function controleMarche(state, portefeuilles, users) {
    importante du lot, parce que c'est là que se cachent les clients
    périmés. Ne compter que ceux qui se signalent donnerait un joli
    « tout le monde est à jour » parfaitement faux. */
-function controleVersions(users, versions) {
+export function controleVersions(users, versions) {
   const total = users.length;
   if (!total) return faire('voir', 'versions', 'Aucun compte en base');
 
-  /* Un joueur inactif depuis longtemps n'est pas inquiétant : il
-     n'ouvre pas l'app, donc il n'écrit rien. On distingue donc les
-     inconnus RÉCEMMENT ACTIFS (eux, ils écrivent) des dormants. */
+  const actifs = users.filter(u => jours(u.last_active) <= 60);
   const parVersion = {};
-  let jamaisVueActifs = 0;
-  let dormants = 0;
+  const perimesCertains = [];
+  const inconnus = [];
 
-  for (const u of users) {
+  for (const u of actifs) {
     const info = versions.get(u.user_code);
     if (info) {
-      parVersion[info.version] = (parVersion[info.version] || 0) + 1;
-    } else if (jours(u.last_active) <= 30) {
-      /* 30 jours et non 7 : un joueur revenu après trois semaines
-         rouvre son app avec le code qu'il avait laissé, et se remet à
-         écrire dans les mêmes tables. La fenêtre doit couvrir ceux qui
-         PEUVENT revenir, pas seulement ceux qui étaient là hier. */
-      jamaisVueActifs++;
-    } else {
-      dormants++;
+      const cle = info.minimum ? `${info.version} ou plus` : info.version;
+      (parVersion[cle] = parVersion[cle] || []).push(u.user_name);
+      continue;
     }
+    /* Concerné par un message de la 1.29 et jamais appliqué : preuve
+       qu'il n'a jamais lancé la 1.29. */
+    if (CODES_CONCERNES_129.includes(u.user_code)) perimesCertains.push(u.user_name);
+    else inconnus.push(u.user_name);
   }
 
   const lignes = Object.entries(parVersion)
-    .sort((a, b) => b[1] - a[1])
-    .map(([v, n]) => `${v === APP_INFO.version ? '✅' : '⚠️'} ${v} — ${n} joueur(s)`);
+    .sort((a, b) => rangVersion(b[0]) - rangVersion(a[0]))
+    .map(([v, noms]) => `${v.startsWith(APP_INFO.version) ? '✅' : '⚠️'} ${v} — ${noms.length} : ${noms.slice(0, 6).join(', ')}`);
 
-  if (jamaisVueActifs) lignes.push(`❔ version inconnue — ${jamaisVueActifs} joueur(s) actif(s) dont l'app n'a jamais estampillé sa version : signature d'un client ANTÉRIEUR à la 1.30.1`);
-  if (dormants)        lignes.push(`💤 ${dormants} compte(s) sans activité depuis plus d'un mois`);
-  lignes.push(`Total : ${total} compte(s) en base`);
+  if (perimesCertains.length) {
+    lignes.push(`⛔ jamais lancé la 1.29 — ${perimesCertains.length} : ${perimesCertains.join(', ')}`);
+  }
+  if (inconnus.length) {
+    lignes.push(`❔ aucune trace — ${inconnus.length} : ${inconnus.join(', ')}`);
+  }
+  lignes.push(`${actifs.length} joueur(s) vus depuis 2 mois · ${total} comptes en base`);
 
-  const anciennes = Object.entries(parVersion).filter(([v]) => v !== APP_INFO.version);
-  const aJour = parVersion[APP_INFO.version] || 0;
-
-  if (anciennes.length) {
-    const combien = anciennes.reduce((a, [, n]) => a + n, 0);
-    return faire('alerte', 'versions', `${combien} joueur(s) sur une version périmée`, [
+  /* Un client dont on sait qu'il n'a jamais lancé la 1.29 est le cas du
+     08/09 : il écrit dans les mêmes tables avec les règles de juillet. */
+  if (perimesCertains.length) {
+    return faire('alerte', 'versions', `${perimesCertains.length} joueur(s) actif(s) sur un client d'avant la 1.29`, [
       ...lignes,
-      'Un vieux client écrit dans les mêmes tables avec ses anciennes règles.',
+      "Preuve : ces comptes devaient recevoir un message en lançant la 1.29, et ne l'ont jamais appliqué.",
       "Remède : forcer la mise à jour (onglet Agir → L'application).",
     ]);
   }
 
-  if (jamaisVueActifs) {
-    return faire('voir', 'versions', `${aJour} joueur(s) à jour, ${jamaisVueActifs} encore inconnu(s)`, [
-      ...lignes,
-      "Un joueur actif jamais vu par la vigie peut tourner sur n'importe quelle version.",
-    ]);
+  const aJour = (parVersion[APP_INFO.version] || []).length;
+  if (inconnus.length) {
+    return faire('voir', 'versions', `${aJour} joueur(s) à jour, ${inconnus.length} sans trace`, lignes);
   }
-
-  return faire('ok', 'versions', `Les ${aJour} joueur(s) actifs sont en ${APP_INFO.version}`, lignes);
+  return faire('ok', 'versions', `Les ${actifs.length} joueurs actifs ont une version connue`, lignes);
 }
 
 /* ── Crashs et signaux de triche remontés par les clients ── */
@@ -635,6 +631,31 @@ export async function verifierPhrase(phrase) {
   return { ok: false, message: r?.message || 'Phrase incorrecte' };
 }
 
+/* ── Ce qu'un patch prouve ────────────────────────────
+   Chaque patch n'existe qu'à partir d'une version donnée. L'avoir
+   appliqué PROUVE qu'on a fait tourner au moins celle-là — une preuve
+   rétroactive, disponible pour des comptes qui n'ont jamais rien
+   rapporté à la vigie.
+
+   ⚠️ Et l'ABSENCE d'un patch ne prouve rien... sauf pour un compte qui
+   était CONCERNÉ par lui. Les messages de la 1.29 ne visaient que 18
+   comptes : un joueur hors liste n'avait rien à appliquer, son silence
+   est normal. Un joueur de la liste, actif, qui ne l'a pas appliqué n'a
+   jamais exécuté la 1.29 — c'est un client périmé, certain. */
+const VERSION_DU_PATCH = {
+  'noticeV130_split500':     '1.30.0',
+  'noticeV130_sanction':     '1.29.0',
+  'noticeV130_reward':       '1.29.0',
+  'marketRebalance10pct_v1': '1.20',
+  'marketRefund_2026_05_10': '1.15',
+};
+
+/* Compare deux numéros de version : 1.9 doit passer AVANT 1.30. */
+function rangVersion(v) {
+  return String(v || '0').split('.').slice(0, 3)
+    .map(n => String(parseInt(n, 10) || 0).padStart(3, '0')).join('');
+}
+
 /* ── Qui tourne sur quelle version ────────────────────
    Rend une Map user_code → { version, vueLe } en ne gardant que le
    DERNIER rapport d'ouverture de chaque joueur. Un joueur qui a mis à
@@ -661,6 +682,23 @@ export async function versionsParJoueur() {
       carte.set(u.user_code, { version: u.app_version, vueLe: u.last_active, source: 'sync' });
     }
   } catch { /* colonne pas encore créée : on se rabat sur app_health */ }
+
+  /* TROISIÈME SOURCE : les patchs appliqués. Rétroactive, elle couvre
+     des comptes qui n'ont jamais rien rapporté — mais elle ne donne
+     qu'un MINIMUM (« au moins la 1.29 »), pas la version exacte. */
+  try {
+    const { data } = await supabase
+      .from('applied_patches')
+      .select('user_code, patch_key, applied_at')
+      .limit(5000);
+    for (const r of data || []) {
+      const v = VERSION_DU_PATCH[r.patch_key];
+      if (!v || !r.user_code) continue;
+      const deja = carte.get(r.user_code);
+      if (deja && (deja.source !== 'patch' || rangVersion(deja.version) >= rangVersion(v))) continue;
+      carte.set(r.user_code, { version: v, vueLe: r.applied_at, source: 'patch', minimum: true });
+    }
+  } catch { /* table absente : on se passe de cette source */ }
 
   /* SOURCE DE SECOURS : les rapports d'ouverture. Utile tant que la
      colonne n'existe pas, et pour les joueurs qui ont rapporté une

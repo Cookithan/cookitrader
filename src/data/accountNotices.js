@@ -162,6 +162,18 @@ export const SPLIT_NOTICES = Object.fromEntries(
   })
 );
 
+/* Les comptes CONCERNÉS par un message de la 1.29. Sert à la vigie :
+   ces comptes-là DEVAIENT appliquer un patch en lançant la 1.29. S'ils
+   ne l'ont pas fait alors qu'ils sont actifs, c'est la preuve qu'ils
+   n'ont jamais exécuté la 1.29 ni rien de plus récent.
+
+   L'absence de patch n'est concluante QUE pour eux : un joueur non
+   concerné n'avait rien à appliquer, donc son silence ne prouve rien. */
+export const CODES_CONCERNES_129 = [
+  ...Object.keys(SANCTION_NOTICES),
+  ...Object.keys(REWARD_NOTICES),
+];
+
 /* Retourne LES messages qui concernent ce compte, du plus ancien au
    plus récent, sous forme de liste. C'est l'appelant (App.jsx) qui
    affiche le premier dont le patch n'a pas encore été consommé.
