@@ -40,7 +40,7 @@ import { getAccountNotices } from "./data/accountNotices.js";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
-import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, applyHoldDecayIfDue, getMarketState } from "./lib/market.js";
+import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, getMarketState } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
@@ -2466,31 +2466,17 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
-  /* ── Decay continu — anti-thésaurisation ──────────────────────
-     Au mount, on check si l'user a un hold ≥ 7 j SANS activité
-     depuis ≥ 24 h. Si oui, on retire 0.5 %/jour idle (cappé à 10 j
-     = 5 % max par session). Pousse les holders passifs à trader.
-     applyHoldDecayIfDue gère elle-même les conditions d'application
-     (throttle via updated_at) → pas besoin d'applyPatchOnce ici.
-  ────────────────────────────────────────────────────────────── */
-  useEffect(() => {
-    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
-    let cancelled = false;
-    (async () => {
-      const res = await applyHoldDecayIfDue(userCode);
-      if(cancelled || !res || !res.sharesLost) return;
-      await createInboxMessage(
-        userCode,
-        'hold_decay',
-        '⏳ Frais de garde appliqués',
-        `Tu n'as pas tradé tes actions $CKM depuis ${res.daysIdle} jour${res.daysIdle > 1 ? 's' : ''}. ` +
-        `${res.sharesLost} action${res.sharesLost > 1 ? 's' : ''} ${res.sharesLost > 1 ? 'ont' : 'a'} été versée${res.sharesLost > 1 ? 's' : ''} dans le pool disponible.\n\n` +
-        `Pour éviter ce decay : trade au moins une fois par 24 h après 7 jours de hold.`,
-        { sharesLost: res.sharesLost, daysIdle: res.daysIdle, newShares: res.newShares }
-      );
-    })();
-    return () => { cancelled = true; };
-  }, [userCode, pullDone]);
+  /* ── Frais de garde — RETIRÉS le 08/09/2026 ───────────────
+     Ils grignotaient 0,5 %/jour des actions d'un joueur qui n'avait pas
+     tradé depuis 7 jours, pour décourager la thésaurisation. Ils partent
+     en même temps que le bonus de hold, et pour la raison inverse : une
+     fois le bonus retiré, garder ses actions n'était plus que puni. Or
+     le marché de la 1.30 ne monte que si la communauté accumule — on ne
+     peut pas viser une action rare et rogner ceux qui la gardent.
+     La fonction applyHoldDecayIfDue a été supprimée de lib/market.js
+     avec l'effet : une fonction qui retire des actions à un joueur ne
+     doit pas traîner sans appelant.
+  ─────────────────────────────────────────────────────────── */
 
   /* ── Palier communautaire 500 000 🍪 ──────────────────────────
      Quand la somme des total_earned de tous les joueurs (hors admins)

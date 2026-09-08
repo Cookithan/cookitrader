@@ -537,100 +537,6 @@ export async function applyMarketRebalance10pct(userCode) {
   }
 }
 
-/* ════════════════════════════════════════════════════
-   applyHoldDecayIfDue — Decay continu 0.5 %/jour après 7 j de hold
-   ────────────────────────────────────────────────────
-   Mécanisme anti-thésaurisation : pousse les holders très longs à
-   vendre (ou trader) en grignotant leurs actions s'ils restent passifs.
-
-   Conditions cumulées pour appliquer :
-   - portfolio.shares >= 10 (sinon négligeable, on n'embête pas)
-   - weighted_buy_at présent ET hold >= 7 jours
-   - updated_at >= 24 h dans le passé (== aucune activité depuis 1 jour)
-
-   Le decay est proportionnel aux jours idle, cappé à 10 jours (5 %
-   max par session). updated_at est mis à jour → auto-throttle 24 h
-   pour la prochaine application.
-
-   Race condition : 2 tabs ouverts peuvent appliquer 2x en parallèle.
-   Accepté — l'écart reste minime (1-2 actions max), et la 2e appli
-   verra updated_at déjà mis à jour au tick suivant.
-
-   ⚠️ SUSPENDU QUAND LE MARCHÉ EST FERMÉ (08/09/2026). Le decay punit
-   l'inaction — mais quand le marché est fermé, l'inaction est imposée.
-   Les 16 porteurs à qui la 1.29 a rendu leurs actions le 07/09 auraient
-   été prélevés le 14/09 pour n'avoir pas tradé pendant une fermeture.
-   On ne facture pas des frais de garde sur un coffre qu'on a verrouillé
-   soi-même.
-
-   Retour : { sharesLost, daysIdle, newShares } ou null si rien à faire. */
-export async function applyHoldDecayIfDue(userCode) {
-  if (!isSupabaseEnabled() || !userCode) return null;
-  if (MARKET_CONFIG.CLOSED || MARKET_CONFIG.MAINTENANCE_MODE) return null;
-  try {
-    const { data: portfolio } = await supabase
-      .from('market_portfolio')
-      .select('shares, total_invested, weighted_buy_at, updated_at')
-      .eq('user_code', userCode)
-      .maybeSingle();
-    if (!portfolio || !portfolio.shares || portfolio.shares < 10) return null;
-    if (!portfolio.weighted_buy_at || !portfolio.updated_at) return null;
-
-    const now = Date.now();
-    const SEVEN_DAYS = 7 * 24 * 3600 * 1000;
-    const ONE_DAY    = 24 * 3600 * 1000;
-
-    const holdMs = now - new Date(portfolio.weighted_buy_at).getTime();
-    if (holdMs < SEVEN_DAYS) return null;
-
-    const sinceUpdate = now - new Date(portfolio.updated_at).getTime();
-    if (sinceUpdate < ONE_DAY) return null;
-
-    /* Cap à 10 jours idle (5 % par session) — évite chocs énormes
-       au retour après plusieurs semaines d'absence. */
-    const daysIdle = Math.min(10, Math.floor(sinceUpdate / ONE_DAY));
-    const decayRate = 0.005; // 0.5 % / jour
-    const sharesLost = Math.floor(portfolio.shares * decayRate * daysIdle);
-    if (sharesLost < 1) return null;
-
-    const newShares = portfolio.shares - sharesLost;
-    const newInvested = newShares === 0
-      ? 0
-      : Math.floor((Number(portfolio.total_invested) || 0) * newShares / portfolio.shares);
-
-    const { error: pErr } = await supabase
-      .from('market_portfolio')
-      .update({
-        shares: newShares,
-        total_invested: newInvested,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_code', userCode);
-    if (pErr) return null;
-
-    /* Pool dispo : les shares decayed retournent à la circulation négative
-       (i.e. shares_in_circulation diminue → available augmente). */
-    const { data: state } = await supabase
-      .from('market_state')
-      .select('shares_in_circulation')
-      .eq('id', 1)
-      .maybeSingle();
-    if (state) {
-      await supabase
-        .from('market_state')
-        .update({
-          shares_in_circulation: Math.max(0, (Number(state.shares_in_circulation) || 0) - sharesLost),
-        })
-        .eq('id', 1);
-    }
-
-    return { sharesLost, daysIdle, newShares };
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[market] applyHoldDecayIfDue error:', e);
-    return null;
-  }
-}
 
 /* ════════════════════════════════════════════════════
    getMarketPulse — Snapshot communautaire du marché sur 24 h
@@ -642,7 +548,7 @@ export async function applyHoldDecayIfDue(userCode) {
 
    Admin compté (cohérent avec getMarketTraderCount, pas de JOIN coûteux).
    Limite 5000 rows par sécurité — largement au-delà du volume réel
-   journalier (cap actuel : 1000 actions / 24 h / user × ~quelques dizaines
+   journalier (cap actuel : 200 actions / 24 h / user × ~quelques dizaines
    de traders). */
 export async function getMarketPulse() {
   if (!isSupabaseEnabled()) return null;
