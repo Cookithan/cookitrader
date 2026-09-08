@@ -429,15 +429,163 @@ function controleIncidents(sante) {
 /* Exécute tous les contrôles et renvoie la liste des verdicts.
    `enregistrer` = false permet à l'écran admin de relancer une ronde
    pour REGARDER sans polluer l'historique. */
+/* ── Ce que la Sentinelle ne savait pas voir ──────────
+   Règle posée par Régis le 08/09/2026 : chaque bug découvert qu'une
+   ronde n'aurait pas pu détecter devient un contrôle. Corriger traite le
+   cas ; ajouter le contrôle traite la famille.
+
+   Les six ci-dessous viennent tous d'un incident réel, daté. Aucun n'est
+   théorique. */
+
+/* Le marché a rouvert ce jour-là avec une circulation reconstruite : les
+   transactions d'avant portent sur un flottant qui n'existe plus (et un
+   split 5-pour-1 entre les deux). Les compter mélangerait deux mondes. */
+const MARCHE_ROUVERT_LE = '2026-09-08T00:00:00Z';
+
+/* Écart constaté au moment où le contrôle a été écrit : 334 actions en
+   circulation pour 91 tracées par des transactions. Les 243 de
+   différence sont la restitution de la réouverture — voulue — plus les
+   cadeaux d'avant le correctif, qui ne laissaient aucune trace.
+
+   On ne peut pas les démêler rétroactivement, alors on fige : à partir
+   d'ici, tout cadeau écrit sa transaction. Si l'écart GRANDIT, c'est
+   qu'une action est entrée sans passer par le marché — et ça, c'est un
+   bug, pas de l'histoire. La marge de 5 absorbe une restitution
+   manuelle isolée sans rendre le contrôle bavard. */
+const ECART_ACTIONS_CONNU = 243;
+const ECART_ACTIONS_MARGE = 5;
+
+/* Au-delà, un code promo ressemble à une faute de frappe plutôt qu'à une
+   intention (un zéro de trop se voit vite à ces montants). */
+const PROMO_COOKIES_MAX = 5000;
+const PROMO_CAFES_MAX   = 20;
+const PROMO_ACTIONS_MAX = 50;
+
+/* ── 1. Des actions entrées sans transaction ──────────
+   Le bug du 08/09 : un code promo créditait des actions sans toucher au
+   cours ni écrire d'historique. Circulation et portefeuilles restaient
+   cohérents entre eux, donc le contrôle existant passait au vert — et
+   30 actions pouvaient apparaître sans que la courbe bouge. */
+function controleActionsSansTrace(state, transactions) {
+  if (!state) return null;
+  const circulation = num(state.shares_in_circulation);
+  const net = transactions.reduce((a, t) => {
+    const n = num(t.shares);
+    return t.type === 'sell' ? a - n : a + n;   /* buy et gift entrent */
+  }, 0);
+  const ecart = circulation - net;
+
+  if (ecart > ECART_ACTIONS_CONNU + ECART_ACTIONS_MARGE) {
+    return faire('alerte', 'marché', `${ecart - ECART_ACTIONS_CONNU} action(s) entrée(s) sans transaction`, [
+      `${circulation} actions en circulation, ${net} seulement expliquées par des ordres depuis la réouverture.`,
+      `Écart connu et figé : ${ECART_ACTIONS_CONNU} (restitution de la réouverture + cadeaux d'avant le correctif).`,
+      'Depuis le 08/09, un cadeau écrit sa transaction : tout dépassement est une écriture qui a contourné le marché.',
+    ]);
+  }
+  return faire('ok', 'marché', `Circulation expliquée (${net} tracées, ${ecart} d'héritage connu)`);
+}
+
+/* ── 2. Un portefeuille sans prix de revient ──────────
+   La mine du 08/09 : des actions offertes arrivaient avec
+   total_invested à 0, donc un prix de revient nul. Les revendre comptait
+   pour 100 % de plus-value, et le bonus de hold doublait le tout —
+   214 400 🍪 de gains fantômes pour 107 200 🍪 d'actions rendues.
+   Corrigé, mais rien n'aurait signalé la rechute. */
+function controlePrixDeRevient(portefeuilles) {
+  const nuls = portefeuilles.filter(p => num(p.shares) > 0 && num(p.total_invested) <= 0);
+  if (!nuls.length) return faire('ok', 'marché', 'Tous les portefeuilles ont un prix de revient');
+  return faire('alerte', 'marché', `${nuls.length} portefeuille(s) à prix de revient nul`, [
+    ...nuls.slice(0, 8).map(p => `${p.user_code} — ${num(p.shares)} action(s) achetées 0 🍪`),
+    'Revendues, elles compteraient pour 100 % de plus-value : de la valeur créée à partir de rien.',
+    "Corriger total_invested au prix du marché du jour × le nombre d'actions.",
+  ]);
+}
+
+/* ── 3. Des actions avant l'ouverture du marché ───────
+   Un code promo à actions marchait dès le niveau 1 : le joueur arrivait
+   au niveau 3 avec un portefeuille déjà garni, sans avoir jamais vu le
+   marché. Le garde est posé côté app — ce contrôle vérifie qu'il tient. */
+function controleActionsPrecoces(users, portefeuilles) {
+  const niveaux = new Map(users.map(u => [u.user_code, num(u.level)]));
+  const trop = portefeuilles.filter(p => {
+    const lv = niveaux.get(p.user_code);
+    return num(p.shares) > 0 && lv != null && lv < MARKET_CONFIG.UNLOCK_LEVEL;
+  });
+  if (!trop.length) return faire('ok', 'marché', "Personne ne détient d'actions avant l'ouverture");
+  return faire('voir', 'marché', `${trop.length} joueur(s) ont des actions sous le niveau ${MARKET_CONFIG.UNLOCK_LEVEL}`,
+    trop.slice(0, 8).map(p => `${p.user_code} — ${num(p.shares)} action(s), niveau ${niveaux.get(p.user_code)}`)
+      .concat(['Un code promo à actions ne devrait plus passer sous ce niveau depuis le 08/09.']));
+}
+
+/* ── 4. Une sanction qui se défait ────────────────────
+   Le cas du 08/09 : une sanction appliquée sur un compte a été annulée
+   par un second appareil qui a réécrit ses anciennes valeurs en cinq
+   secondes. Le mur en base bloque désormais l'écriture, mais rien ne
+   disait si un compte repassait au-dessus du plafond qu'on lui a fixé. */
+function controleSurveillance(users, surveilles) {
+  if (!surveilles.length) return null;
+  const parCode = new Map(users.map(u => [u.user_code, u]));
+  const repartis = [];
+  for (const s of surveilles) {
+    const u = parCode.get(s.user_code);
+    if (!u) continue;
+    const depassements = [];
+    if (s.plafond_earned  != null && num(u.total_earned) > num(s.plafond_earned))  depassements.push(`cumul ${num(u.total_earned)} > ${num(s.plafond_earned)}`);
+    if (s.plafond_cookies != null && num(u.cookies)      > num(s.plafond_cookies)) depassements.push(`cookies ${num(u.cookies)} > ${num(s.plafond_cookies)}`);
+    if (s.plafond_cafes   != null && num(u.cafes)        > num(s.plafond_cafes))   depassements.push(`cafés ${num(u.cafes)} > ${num(s.plafond_cafes)}`);
+    if (s.plafond_level   != null && num(u.level)        > num(s.plafond_level))   depassements.push(`niveau ${num(u.level)} > ${num(s.plafond_level)}`);
+    if (depassements.length) repartis.push(`${u.user_name || s.user_code} (${s.user_code}) — ${depassements.join(', ')}`);
+  }
+  if (!repartis.length) return faire('ok', 'triche', `${surveilles.length} compte(s) sous surveillance, tous dans les clous`);
+  return faire('alerte', 'triche', `${repartis.length} compte(s) sanctionné(s) repassé(s) au-dessus de leur plafond`, [
+    ...repartis,
+    "Le mur en base devrait l'interdire : vérifier que LE_MUR_CORRECTIF.sql est bien passé (security definer).",
+  ]);
+}
+
+/* ── 5. Un code promo aux montants aberrants ──────────
+   Les codes se créent depuis le téléphone, en quelques secondes, sans
+   relecture. Un zéro de trop et c'est l'économie qui part. */
+function controleCodesPromo(codes) {
+  const actifs = codes.filter(c => c.actif !== false);
+  const gros = actifs.filter(c =>
+    num(c.coins) > PROMO_COOKIES_MAX || num(c.cafes) > PROMO_CAFES_MAX || num(c.shares) > PROMO_ACTIONS_MAX);
+  if (!gros.length) return faire('ok', 'app', `${actifs.length} code(s) promo actif(s), montants raisonnables`);
+  return faire('alerte', 'app', `${gros.length} code(s) promo au montant anormal`, [
+    ...gros.map(c => `${c.code} — ${num(c.coins)} 🍪, ${num(c.cafes)} ☕, ${num(c.shares)} action(s)`),
+    `Seuils : ${PROMO_COOKIES_MAX} 🍪 / ${PROMO_CAFES_MAX} ☕ / ${PROMO_ACTIONS_MAX} actions.`,
+    "Un zéro de trop à la saisie ressemble exactement à ça. Désactiver le code, puis le recréer au bon montant.",
+  ]);
+}
+
+/* ── 6. Des signalements qui dorment ──────────────────
+   La boîte ouverte aux joueurs ne sert à rien si personne ne l'ouvre.
+   La ronde le rappelle, sans jamais montrer le contenu — il est
+   nominatif et reste derrière la phrase de passe. */
+function controleSignalements(enAttente) {
+  if (!enAttente) return faire('ok', 'app', 'Aucun signalement en attente');
+  return faire('voir', 'app', `${enAttente} signalement(s) de joueurs en attente`, [
+    "Onglet Boîte de la console pour les lire (phrase de passe requise).",
+    "Un signalement qu'on ne lit pas, c'est un joueur qui n'en enverra pas d'autre.",
+  ]);
+}
+
 export async function faireUneRonde({ enregistrer = true } = {}) {
   if (!isSupabaseEnabled()) return [];
 
-  const [users, state, portefeuilles, sante, versions] = await Promise.all([
+  const [users, state, portefeuilles, sante, versions, transactions, surveilles, codes, signalements] = await Promise.all([
     supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level, cookies, cafes').limit(2000).then(r => r.data || []),
     supabase.from('market_state').select('*').eq('id', 1).maybeSingle().then(r => r.data),
     supabase.from('market_portfolio').select('user_code, shares, total_invested').limit(2000).then(r => r.data || []),
     supabase.from('app_health').select('kind, user_code, user_name, app_version, detail, created_at, id').order('created_at', { ascending: false }).limit(500).then(r => r.data || []),
     versionsParJoueur(),
+    /* Seulement depuis la réouverture : les ordres d'avant portent sur un
+       flottant qui n'existe plus (et un split 5-pour-1 entre les deux). */
+    supabase.from('market_transactions').select('type, shares')
+      .gte('created_at', MARCHE_ROUVERT_LE).limit(5000).then(r => r.data || []),
+    supabase.from('comptes_sous_surveillance').select('*').limit(200).then(r => r.data || [], () => []),
+    supabase.from('promo_codes').select('code, coins, cafes, shares, actif').limit(500).then(r => r.data || [], () => []),
+    signalementsOuverts(),
   ]);
 
   const rapports = [
@@ -448,7 +596,17 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
     ...controleMarche(state, portefeuilles, users),
     controleVersions(users, versions),
     ...controleIncidents(sante),
-  ];
+    /* Ajoutés le 08/09/2026 — un par incident réel de la journée.
+       `filter(Boolean)` : deux d'entre eux se taisent quand il n'y a
+       rien à surveiller (aucun compte sous surveillance, pas d'état de
+       marché), plutôt que de rendre un « ok » qui n'apprend rien. */
+    controleActionsSansTrace(state, transactions),
+    controlePrixDeRevient(portefeuilles),
+    controleActionsPrecoces(users, portefeuilles),
+    controleSurveillance(users, surveilles),
+    controleCodesPromo(codes),
+    controleSignalements(signalements),
+  ].filter(Boolean);
 
   if (enregistrer) {
     try {
