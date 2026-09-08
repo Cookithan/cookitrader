@@ -148,7 +148,7 @@ export const ACTIONS_SENTINELLE = [
     groupe: 'app',
     titre: 'Forcer la mise à jour',
     resume: "Affiche « Mise à jour disponible » à qui n'est pas sur cette version",
-    aide: "C'est le remède quand la sentinelle signale des versions périmées en circulation : un vieux client écrit dans les mêmes tables avec ses anciennes règles. Laisser vide pour annuler.",
+    aide: "C'est le remède quand la sentinelle signale des versions périmées. ⚠️ L'effet n'est PAS immédiat : ça pose un drapeau que le joueur ne verra qu'en rouvrant son app, parfois des jours plus tard. Le constat restera donc affiché — mais rangé dans « traité, en attente d'effet ». Laisser vide pour annuler.",
     champs: [
       { nom:'version', label:'Version à imposer', type:'text', exemple:'1.30.0' },
     ],
