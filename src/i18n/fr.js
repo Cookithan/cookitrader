@@ -1193,7 +1193,7 @@ export const FR = {
        formulaire, c'est quelqu'un qui répond. */
     hello:           'Bonjour {nom}',
     hello_anon:      'Bonjour',
-    hello_guest:     'Je suis la Sentinelle. Dis-moi ce qui ne va pas.',
+    hello_guest:     'Pose ta tasse, raconte-moi.',
 
     err_trop_court:  'Écris au moins une phrase : sans description, personne ne pourra reproduire le problème.',
     err_trop_long:   'Message trop long : 1200 caractères maximum.',

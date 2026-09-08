@@ -1157,7 +1157,7 @@ export const EN = {
     sending:       'Sending…',
     hello:           'Hello {nom}',
     hello_anon:      'Hello',
-    hello_guest:     "I'm the Sentinel. Tell me what's wrong.",
+    hello_guest:     'Put your cup down, tell me.',
 
     err_trop_court:  'Write at least one sentence: without a description, nobody can reproduce the problem.',
     err_trop_long:   'Message too long: 1200 characters maximum.',

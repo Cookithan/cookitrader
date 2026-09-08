@@ -56,7 +56,12 @@ export function SentinelleBienvenue({ nom, admin = false, onFini }) {
   };
 
   const titre = nom ? t('report.hello', { nom }) : t('report.hello_anon');
-  const sous  = admin ? 'La ronde est à jour. Voyons ça.' : t('report.hello_guest');
+  /* Le ton du jeu plutôt que celui d'un outil d'administration : on
+     est dans une app de café, la Sentinelle n'a pas de raison de
+     parler comme un formulaire. Côté console la phrase reste en
+     français — c'est le seul écran qui ne soit pas ouvert aux
+     joueurs. */
+  const sous  = admin ? 'Le café est chaud. Voyons.' : t('report.hello_guest');
 
   return (
     <div
