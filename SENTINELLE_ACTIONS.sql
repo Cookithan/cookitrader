@@ -110,15 +110,17 @@ begin
   end if;
 end $$;
 
-/* ── 2 ter. Les codes promo créés depuis la console ───────────
-   Les 24 codes historiques restent écrits en dur dans l'app
-   (src/data/promoCodes.js) : ils utilisent des mécaniques riches —
-   forcer un niveau, débloquer un mini-jeu, révéler un code secret —
-   qu'on ne va pas déplacer en base pour le plaisir.
+/* ── 2 ter. Les codes promo ───────────────────────────────────
+   Cette table sert d'abord aux codes que Régis crée DEPUIS SON
+   TÉLÉPHONE, avec les trois récompenses courantes : cookies, cafés,
+   actions.
 
-   Cette table sert aux codes que Régis crée DEPUIS SON TÉLÉPHONE, avec
-   les trois récompenses courantes : cookies, cafés, actions. L'app lit
-   les deux sources et les fusionne.
+   ⚠️ Depuis CODES_HISTORIQUES_EN_BASE.sql, elle accueille AUSSI les 24
+   codes historiques, avec les colonnes nécessaires à leurs mécaniques
+   riches (débloquer un thème, ouvrir un mini-jeu, rester secret). Colle
+   ce fichier-là après celui-ci : sans lui, les historiques continuent
+   de marcher mais restent invisibles et insupprimables depuis la
+   console.
 
    Lecture publique — il le faut, c'est le client qui vérifie le code
    saisi. Écriture réservée à la fonction : sinon n'importe qui

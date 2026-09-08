@@ -248,36 +248,57 @@ const QUESTIONS = [
        mémoire. */
     async repondre() {
       const rows = await q('promo_codes', '*');
-      const actifs   = rows.filter(c => c.actif !== false);
-      const retires  = rows.filter(c => c.actif === false);
+      const actifs  = rows.filter(c => c.actif !== false);
+      const retires = rows.filter(c => c.actif === false);
 
       const decrire = (c) => {
         const gains = [
           num(c.coins)  ? `${fmt(c.coins)} 🍪`  : null,
           num(c.cafes)  ? `${num(c.cafes)} ☕`  : null,
           num(c.shares) ? `${num(c.shares)} action(s)` : null,
+          num(c.total_earned_only) ? `${fmt(c.total_earned_only)} 🍪 au classement seul` : null,
+          c.unlock      ? `débloque ${c.unlock}`        : null,
+          c.unlock_game ? `ouvre le jeu ${c.unlock_game}` : null,
         ].filter(Boolean).join(' + ') || 'rien';
-        const quand = c.cree_le ? new Date(c.cree_le).toLocaleDateString('fr-FR') : '';
-        return `${c.code} → ${gains}${c.label ? ` · « ${c.label} »` : ''}${quand ? ` · créé le ${quand}` : ''}`;
+        const secret = c.secret ? ' · 🔒 à mériter' : '';
+        /* La date n'a de sens que pour ceux que tu as créés : pour les
+           historiques, `cree_le` est le jour où on les a recopiés, pas
+           celui où ils sont nés. Autant ne rien dire que dire faux. */
+        const quand = (c.origine !== 'app' && c.cree_le)
+          ? ` · créé le ${new Date(c.cree_le).toLocaleDateString('fr-FR')}` : '';
+        return `${c.code} → ${gains}${c.label ? ` · « ${c.label} »` : ''}${secret}${quand}`;
       };
 
-      if (!actifs.length && !retires.length) {
+      /* Rien du tout : la migration n'a pas été collée ET aucun code
+         n'a été créé. On dit quoi faire, pas juste ce qui manque. */
+      if (!rows.length) {
         return {
-          titre: 'Aucun code créé depuis la console',
+          titre: 'Aucun code promo en base',
           lignes: [
-            "Tu peux en créer un dans l'onglet Agir → L'application.",
-            "Les 24 codes historiques vivent dans le code de l'app : ils continuent de marcher, ils ne sont simplement pas listés ici.",
+            "La table est vide. Colle CODES_HISTORIQUES_EN_BASE.sql dans Supabase pour y verser les 24 codes historiques.",
+            "En attendant ils fonctionnent toujours — ils vivent dans le code de l'app — mais tu ne peux ni les voir ni les supprimer d'ici.",
+            "Pour en créer un nouveau : Agir → L'application → Créer un code promo.",
           ],
         };
       }
 
+      const historiques = actifs.filter(c => c.origine === 'app');
+      const maison      = actifs.filter(c => c.origine !== 'app');
+
+      const bloc = (titre, liste) => (liste.length ? [titre, ...liste.map(decrire), ''] : []);
+
       return {
         titre: `${actifs.length} code(s) promo actif(s)`,
         lignes: [
-          ...actifs.map(decrire),
-          ...(retires.length ? ['', `${retires.length} code(s) supprimé(s) : ${retires.map(c => c.code).join(', ')} — ils ne fonctionnent plus, ceux qui les ont utilisés gardent leur récompense.`] : []),
-          '',
-          "Les 24 codes historiques vivent dans le code de l'app et ne sont pas listés ici.",
+          ...bloc(`— ${historiques.length} historique(s), recopiés en base :`, historiques),
+          ...bloc(`— ${maison.length} créé(s) depuis la console :`, maison),
+          ...(retires.length
+            ? [`— ${retires.length} supprimé(s) : ${retires.map(c => c.code).join(', ')}`,
+               "Ils ne marchent plus. Ceux qui les avaient déjà utilisés gardent leur récompense — on ne reprend rien."]
+            : []),
+          ...(!historiques.length
+            ? ["⚠️ Les 24 codes historiques ne sont pas encore en base : colle CODES_HISTORIQUES_EN_BASE.sql pour pouvoir les gérer d'ici."]
+            : []),
         ],
       };
     },

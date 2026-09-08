@@ -773,15 +773,22 @@ export async function listerIgnores() {
   }
 }
 
-/* Les codes promo créés depuis la console. Lus par la modale de saisie,
-   en plus des codes écrits dans l'app. Silencieux si la table n'existe
-   pas : le joueur ne doit jamais voir une erreur parce qu'une
-   fonctionnalité d'administration n'est pas installée. */
+/* Les codes promo en base — les 24 historiques recopiés par
+   CODES_HISTORIQUES_EN_BASE.sql comme ceux créés depuis la console. Lus
+   par la modale de saisie. Silencieux si la table n'existe pas : le
+   joueur ne doit jamais voir une erreur parce qu'une fonctionnalité
+   d'administration n'est pas installée.
+
+   On lit AUSSI les codes désactivés, et c'est volontaire : c'est le
+   client qui applique la suppression, et il ne peut le faire que s'il
+   voit la ligne morte. Filtrer sur `actif` ici reviendrait à masquer la
+   preuve de la suppression, donc à laisser le code écrit dans l'app
+   reprendre la main — exactement ce qu'on veut empêcher. Le tri se fait
+   dans lookupPromoCode. */
 export async function codesPromoEnBase() {
   if (!isSupabaseEnabled()) return [];
   try {
-    const { data } = await supabase
-      .from('promo_codes').select('code, coins, cafes, shares, label, actif').eq('actif', true);
+    const { data } = await supabase.from('promo_codes').select('*');
     return data || [];
   } catch {
     return [];

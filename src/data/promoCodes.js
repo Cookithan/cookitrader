@@ -110,42 +110,86 @@ export const SECRET_PROMO_CODES = Object.entries(PROMO_CODES)
   .filter(([_, v]) => v.secret)
   .map(([k]) => k);
 
+/* fusionner — une ligne de base par-dessus l'entrée écrite dans l'app.
+
+   On part TOUJOURS de l'entrée écrite pour ne rien perdre en route : si
+   la migration des colonnes riches n'a pas encore été collée, la ligne
+   de base ne connaît que cookies/cafés/actions, et BLACK doit continuer
+   de débloquer son thème. La base impose donc ses montants (c'est ce
+   qu'on modifie depuis le téléphone) et complète le reste seulement
+   quand elle a quelque chose à dire. */
+function fusionner(ecrit, base){
+  const ou = (deBase, deLApp) => (deBase === null || deBase === undefined || deBase === '' ? deLApp : deBase);
+
+  /* Un code qui ne vient PAS du fichier ci-dessus a été tapé à la
+     volée depuis la console : on lui interdit de donner de l'XP, pour
+     qu'un zéro de trop dans le champ « cookies » ne catapulte personne
+     au niveau 25. Les 24 codes historiques, eux, gardent leur réglage
+     d'origine — c'est le sens de `origine = 'app'`. */
+  const venuDeLApp = base.origine === 'app';
+
+  return {
+    ...(ecrit || {}),
+    coins:  Number(base.coins)  || 0,
+    cafes:  Number(base.cafes)  || 0,
+    shares: Number(base.shares) || 0,
+    label:  ou(base.label, ecrit?.label) || 'Code promo',
+
+    unlock:     ou(base.unlock,      ecrit?.unlock),
+    unlockGame: ou(base.unlock_game, ecrit?.unlockGame),
+    level:      ou(base.niveau,      ecrit?.level),
+    totalEarnedOnly:  ou(base.total_earned_only,  ecrit?.totalEarnedOnly),
+    totalEarnedFloor: ou(base.total_earned_floor, ecrit?.totalEarnedFloor),
+
+    /* Jamais dé-secrétisable depuis la base : BARISTA05 se mérite. */
+    secret: base.secret === true || ecrit?.secret === true,
+    noXp:   venuDeLApp ? !!(base.no_xp ?? ecrit?.noXp) : true,
+  };
+}
+
 /* lookupPromoCode :
    - rejette les codes secrets non encore révélés
      (revealed = liste d'IDs déjà révélés par l'utilisateur)
    - rejette les codes inconnus
-   - retourne `{ code, coins, cafes, ... }` enrichi sinon. */
+   - retourne `{ code, coins, cafes, ... }` enrichi sinon.
+
+   QUI DÉCIDE, DE LA BASE OU DU FICHIER
+   ────────────────────────────────────
+   La base fait foi. Trois cas, dans cet ordre :
+
+     · ligne active en base    → c'est elle (fusionnée avec l'entrée
+                                 écrite, cf. ci-dessus)
+     · ligne marquée supprimée → le code est mort, on ne retombe PAS
+                                 sur le fichier
+     · aucune ligne            → l'entrée écrite dans ce fichier
+
+   Le deuxième cas est le seul qui rende la suppression réelle. Sans
+   lui, « supprimer BLACK » depuis la console n'aurait rien supprimé :
+   l'app serait retombée sur sa copie en dur et le code aurait continué
+   de marcher, en affichant le contraire. La ligne morte laissée en base
+   est ce qui interdit ce retour en arrière.
+
+   Le troisième est le filet : tant que CODES_HISTORIQUES_EN_BASE.sql
+   n'est pas collé — ou si Supabase est injoignable — tout fonctionne
+   comme avant. */
 export function lookupPromoCode(rawInput, revealed = [], codesEnBase = []){
   const code = (rawInput || '').trim().toUpperCase();
   if(!code) return null;
 
-  const entry = PROMO_CODES[code];
-  if(entry){
-    /* Code secret pas encore révélé pour cet utilisateur → invisible */
-    if(entry.secret && !revealed.includes(code)) return null;
-    return { code, ...entry };
+  const ecrit  = PROMO_CODES[code] || null;
+  const enBase = (codesEnBase || []).find(c => String(c.code).toUpperCase() === code) || null;
+
+  let entry;
+  if(enBase){
+    if(enBase.actif === false) return null;
+    entry = fusionner(ecrit, enBase);
+  } else {
+    if(!ecrit) return null;
+    entry = ecrit;
   }
 
-  /* ── Codes créés depuis la Sentinelle ────────────────
-     Les 24 codes ci-dessus vivent dans le code de l'app : ils utilisent
-     des mécaniques riches (forcer un niveau, débloquer un mini-jeu,
-     révéler un code secret) qui n'auraient rien à faire en base.
+  /* Code secret pas encore révélé pour cet utilisateur → invisible */
+  if(entry.secret && !revealed.includes(code)) return null;
 
-     Ceux-ci sont créés depuis le téléphone, sans redéploiement, et se
-     limitent aux trois récompenses courantes. Ils sont cherchés APRÈS
-     les autres : un code écrit dans l'app garde toujours la priorité,
-     donc personne ne peut en détourner un en créant le même nom. */
-  const enBase = (codesEnBase || []).find(c => String(c.code).toUpperCase() === code);
-  if(enBase && enBase.actif !== false){
-    return {
-      code,
-      coins:  Number(enBase.coins)  || 0,
-      cafes:  Number(enBase.cafes)  || 0,
-      shares: Number(enBase.shares) || 0,
-      label:  enBase.label || 'Code promo',
-      noXp:   true,   /* prudence : un code créé à la volée ne fait pas exploser les niveaux */
-    };
-  }
-
-  return null;
+  return { code, ...entry };
 }
