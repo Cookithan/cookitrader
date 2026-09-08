@@ -92,9 +92,7 @@ export function MarketRefundModal({ amount, onClose, C }){
             <ul style={{ fontSize:12, color:C.text, lineHeight:1.6, paddingLeft:18, margin:0 }}>
               <li>{t('refund.change_cap_20')}</li>
               <li>{t('refund.change_cooldown')}</li>
-              <li>{t('refund.change_hold_bonus')}</li>
               <li>{t('refund.change_circuit_breaker')}</li>
-              <li>{t('refund.change_market_size')}</li>
             </ul>
           </div>
 

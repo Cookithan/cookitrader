@@ -258,6 +258,59 @@ export const GLOBAL_CSS = `
   .tab-slide-in-right { animation:tabSlideInRight .2s cubic-bezier(.16,.84,.44,1) both; will-change:transform }
   .tab-slide-in-left  { animation:tabSlideInLeft  .2s cubic-bezier(.16,.84,.44,1) both; will-change:transform }
 
+  /* ── Onglet Jeux (v1.30) ─────────────────────────────────────────
+     .game-card   : retour tactile. Le doigt enfonce la carte, le ressort
+                    du cubic-bezier la fait « popper » au relâchement.
+                    Transform seul → composité GPU, aucun reflow.
+     .game-emoji  : dérive lente du filigrane. La rotation est REPRISE
+                    dans le keyframe, sinon l'animation écraserait le
+                    rotate(-12deg) inline. Chaque carte reçoit un
+                    animationDelay différent : synchronisées, les 10
+                    cartes feraient mécanique, pas vivant.
+     .game-overlay-in : entrée du jeu. Le translateX(-50%) de centrage
+                    est repris dans le keyframe, même raison. */
+  /* .tap-pop : le retour tactile générique de l'app — tout ce qui se
+     tape peut le porter (cartes de jeu, boutons d'achat, pastilles).
+     ⚠️ À ne JAMAIS poser sur un élément qui a déjà .su : son
+     animation-fill-mode:both garde un transform appliqué par l'animation,
+     qui l'emporte sur le :active et neutralise l'effet. Mettre .su sur
+     un wrapper et .tap-pop sur l'élément tapable.
+     ⚠️⚠️ AUCUN BACKTICK dans ce fichier, même en commentaire : tout le
+     contenu est un template literal, un backtick le FERME. La syntaxe
+     reste valide, le build passe, et l'app meurt au chargement. */
+  .tap-pop,.game-card{transition:transform .16s cubic-bezier(.34,1.56,.64,1),box-shadow .16s ease;will-change:transform}
+  .tap-pop:active,.game-card:active{transform:scale(.955)}
+  /* Pop joué AVANT l'ouverture du jeu (200 ms, cf. launchGame).
+     Il DÉMARRE à l'échelle enfoncée : sinon la carte redescendait une
+     seconde fois au relâchement et on voyait deux rebonds au lieu d'un.
+     Le doigt fait la descente, l'animation fait la remontée. */
+  @keyframes gamePop{0%{transform:scale(.955)}55%{transform:scale(1.04)}100%{transform:scale(1)}}
+  .game-pop{animation:gamePop .2s cubic-bezier(.34,1.56,.64,1) both}
+  @keyframes gameEmojiDrift{0%,100%{transform:rotate(-12deg) translate3d(0,0,0)}50%{transform:rotate(-6deg) translate3d(0,-8px,0)}}
+  .game-emoji{animation:gameEmojiDrift 4.8s ease-in-out infinite;will-change:transform}
+  @keyframes gameOverlayIn{from{opacity:0;transform:translateX(-50%) scale(.94)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+  .game-overlay-in{animation:gameOverlayIn .26s cubic-bezier(.16,.84,.44,1) both}
+
+  /* ── Carte niveau de l'Accueil (v1.30) ───────────────────────────
+     Trois boucles d'ambiance, transform + opacity uniquement (composité
+     GPU, aucun reflow). Ce sont des animations de FOND : elles dépassent
+     les 700 ms de la convention, qui vise les transitions d'interface —
+     même exception que float 3s, shimmer 2.6s ou glow 2s déjà en place.
+     Déphasées entre elles (6s / 4.5s / 5.5s) pour que la carte respire
+     au lieu de battre la mesure.
+     AUCUN BACKTICK dans ce fichier, même en commentaire. */
+  @keyframes levelSheen{0%{transform:translateX(-140%) skewX(-18deg)}42%{transform:translateX(320%) skewX(-18deg)}100%{transform:translateX(320%) skewX(-18deg)}}
+  .level-sheen,.card-sheen{position:absolute;top:-30%;left:0;width:52%;height:170%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,236,190,.26),rgba(255,255,255,.30),rgba(255,236,190,.26),transparent);animation:levelSheen 5s ease-in-out infinite;will-change:transform}
+  /* Lueur chaude qui enfle et retombe dans le coin haut-gauche : la
+     surface brune ne bouge pas, mais la lumiere qui tombe dessus si.
+     Opacite seule -> composite, aucun repaint du degrade de fond. */
+  @keyframes levelWarm{0%,100%{opacity:0}50%{opacity:.17}}
+  .level-warm,.card-warm{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 95% at 18% -10%, rgba(255,224,150,.95), transparent 62%);animation:levelWarm 7s ease-in-out infinite;will-change:opacity}
+  @keyframes levelGlint{0%{transform:translateX(-160%)}38%{transform:translateX(260%)}100%{transform:translateX(260%)}}
+  .level-glint{position:absolute;top:0;left:0;width:45%;height:100%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:levelGlint 4.5s ease-in-out infinite;will-change:transform}
+  @keyframes levelBubble{0%,100%{transform:scale(1);opacity:.05}50%{transform:scale(1.18);opacity:.1}}
+  .level-bubble{animation:levelBubble 5.5s ease-in-out infinite;will-change:transform,opacity}
+
   .su{animation:slideUp .35s ease-out both}
   .bi{animation:bounceIn .55s cubic-bezier(.36,.07,.19,.97) both}
   /* Retour tactile generique : le bouton s enfonce sous le doigt.

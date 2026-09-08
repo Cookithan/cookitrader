@@ -320,8 +320,14 @@ export const REWARDS = [
   // ONE-SHOT (fix mai 2026 anti-exploit) : ajoutés à `unlocked` après
   // achat, disparaissent de la boutique. Avant le fix, c'était consommable
   // et un joueur pouvait grinder cookies + acheter en boucle jusqu'au cap.
-  { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:450, type:'Pack', emoji:'📈', levelRequired:7 },
-  { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:850, type:'Pack', emoji:'📊', levelRequired:12 },
+  //
+  // ⚠️ PRIX INDEXÉ SUR LE COURS (08/09/2026) : quand l'action est passée
+  // de 100 à 500, ces packs sont devenus des imprimantes à cookies —
+  // 450 🍪 pour 5 actions qui en valaient 2 500. On garde la remise
+  // historique (−10 % pour le pack 5, −15 % pour le pack 10) mais sur la
+  // nouvelle échelle. À REVOIR À CHAQUE CHANGEMENT DE PRIX DE BASE.
+  { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:2250, type:'Pack', emoji:'📈', levelRequired:7 },
+  { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:4250, type:'Pack', emoji:'📊', levelRequired:12 },
 
   /* Coffres / Boîtes — items one-shot avec animation cinéma à l'ouverture.
      Préfixe `box_` ou `chest_` selon le tier (boîte basique → coffre rare).
@@ -383,14 +389,17 @@ export const REWARDS = [
   { id:'theme_forge',        currency:'cafe', applyAs:'theme',              name:'Thème Forge Caféinée',desc:'Palette volcanique sombre · bordeaux brûlé + or saturé', cost:12, type:'Premium', emoji:'🌋', levelRequired:3 },
   { id:'bulk_trade_pass',    currency:'cafe', applyAs:'bulk_trade_pass',    name:'Trade Express $CKM',  desc:'1 charge : achète ou vends tout ton portefeuille d\'un seul coup, sans limite de quantité',          cost:3, type:'Premium', emoji:'📦', levelRequired:3 },
 
-  /* ─── BOUTIQUE ACTIONS (17/05/2026) ─────────────────────────────
-     Cosmétiques EXCLUSIFs payés en actions $CKM (`currency:'shares'`,
-     flag `inActionsShop:true`). Accessibles uniquement via la sous-vue
-     dédiée quand le solde d'actions ≥ 500 ; 1 achat par cycle puis il
-     faut regagner 500 actions (cf. ActionsShopView). Exclus de la
-     boutique 🍪 et Premium ☕ (filtres `inActionsShop`). Titres : l'id
-     DOIT matcher une clé TITLE_STYLES (titles.js). One-shot (unlocked).
-     Coûts 120-500 actions. */
+  /* ─── EX-BOUTIQUE ACTIONS (17/05/2026 → SUPPRIMÉE en v1.30) ─────
+     Cosmétiques payés en actions $CKM (`currency:'shares'`, flag
+     `inActionsShop:true`). La sous-vue dédiée (ActionsShopView, gated à
+     500 actions) a été SUPPRIMÉE : elle était un rayon secret de plus
+     dans une app déjà trop dense. Ces items ne sont donc PLUS achetables.
+
+     ⚠️ NE PAS les retirer de REWARDS : les joueurs qui les possèdent
+     déjà les ont dans `unlocked`, et Ma Collection les lit depuis ici
+     pour les afficher/équiper. Les supprimer ferait disparaître leurs
+     cosmétiques. Ils sont exclus des vitrines (filtres `inActionsShop`
+     dans BoutiqueTab) et des décomptes « à débloquer » (CollectionOverlay). */
   { id:'as_badge_diamond', inActionsShop:true, currency:'shares', name:'Mains de Diamant',  desc:'Tu ne vends jamais dans la panique',         cost:300, type:'Badge',  emoji:'💎', levelRequired:3 },
   { id:'as_badge_whale',   inActionsShop:true, currency:'shares', name:'Baleine du Marché', desc:'Tes ordres font bouger le $CKM',             cost:500, type:'Badge',  emoji:'🐋', levelRequired:3 },
   { id:'as_theme_parquet', inActionsShop:true, currency:'shares', applyAs:'theme',  name:'Thème Parquet',     desc:'Salle des marchés — espresso & or',  cost:250, type:'Thème',  emoji:'📊', levelRequired:3 },
@@ -415,7 +424,7 @@ export const ACHIEVEMENTS = [
   { id:'level_6',        name:'Légende !',          desc:'Tu as atteint le niveau 6 — Légende',      emoji:'👑', bonus:100, cafesBonus:1 },
   { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau 10 — Éternel',     emoji:'♾️', bonus:200, cafesBonus:2 },
   { id:'level_15',       name:'Cookie Originel !',  desc:'Tu as atteint le niveau 15 — Cookie Originel', emoji:'🌌', bonus:500, cafesBonus:3 },
-  { id:'trader',         name:'Trader !',           desc:'Tu as investi 500 cookies en $CKM',        emoji:'💹', bonus:40  },
+  { id:'trader',         name:'Trader !',           desc:'Tu as investi 2 500 cookies en $CKM',        emoji:'💹', bonus:40  },
   /* Apex final : niveau 25 (endgame) atteint + tous les autres succès visibles débloqués. */
   { id:'end_game',       name:'Légende Vivante !',  desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:12 },
 ];

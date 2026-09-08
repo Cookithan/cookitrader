@@ -1,31 +1,31 @@
 import { useState } from "react";
-import { ChevronLeft, ChevronDown, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle } from "lucide-react";
-import { REWARDS } from "../../data/constants.js";
-import { THEMES, LT, GOLD } from "../../data/themes.js";
-import { THEMABLE_GAMES, getThemesForGame, getActiveTheme, isThemeUnlocked } from "../../data/gameThemes.js";
+import { ChevronLeft, ChevronDown, Check, Lock, AlertTriangle, Download, Share, Info, Eye, EyeOff, Copy, MessagesSquare, Globe, HelpCircle, Palette } from "lucide-react";
+import { GOLD } from "../../data/themes.js";
+import { APP_INFO } from "../../lib/appInfo.js";
 import { ResetProgressButton } from "../profile/ResetProgressButton.jsx";
 import { useTranslation } from "../../i18n/index.js";
 import {
-  MUSICS,
   getAudioSettings,
   setUiSoundEnabled,
   setMusicEnabled,
-  playMusic,
   playSound,
-  getCurrentMusicId,
 } from "../../lib/audio.js";
 
 /* ════════════════════════════════════════════════════
    SettingsOverlay — plein écran z-index 60
-   - Sections : APPARENCE (onglets Thèmes/Skins/Roues) · DONNÉES · ZONE SENSIBLE
-   - L'onglet Apparence ne montre QUE ce que l'utilisateur a débloqué
-     (le défaut n'est jamais "verrouillé")
-   - Reset progression : double validation (bouton dashed → confirmation espresso)
-   - L'item premium (applyAs:'theme'/'skin') s'affiche aussi dans son onglet
+   ────────────────────────────────────────────────────
+   RÉGLAGES UNIQUEMENT (v1.30). Tout ce qui s'ÉQUIPE (thèmes de l'app,
+   thèmes de mini-jeu, choix de la piste musicale) a déménagé dans
+   CollectionOverlay : un seul endroit pour équiper, un seul pour régler.
+   Il ne reste ici que l'entrée « Ma Collection » en tête d'écran.
+
+   Sections : PERSONNALISATION (entrée Collection) · AUDIO (2 toggles) ·
+   LANGUE · DONNÉES · INSTALLATION · COMMUNAUTÉ · AIDE · À PROPOS ·
+   ZONE SENSIBLE (reset progression, double validation).
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme, gameThemes, setGameThemes, onReset, install, onOpenAbout, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, userCode, restorePin, C }) {
-  const { t, lang, setLang, localizedField } = useTranslation();
+export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutIsNew = false, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, onOpenCollection, userCode, restorePin, C }) {
+  const { t, lang, setLang } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
   const [pinRevealed,      setPinRevealed]      = useState(false);
@@ -33,9 +33,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
   const [codeCopied,       setCodeCopied]       = useState(false);
   /* Carte 'Mes infos de récupération' collapsée par défaut (trop volumineuse) */
   const [recoveryRevealed, setRecoveryRevealed] = useState(false);
-  /* Section "Thèmes de jeu" — un seul jeu déplié à la fois (accordéon).
-     null = tout collapsé. */
-  const [expandedGame, setExpandedGame] = useState(null);
+  /* Groupe DONNÉES replié par défaut : on n'y touche qu'exceptionnellement
+     (changer d'appareil, repartir de zéro), il n'a pas à occuper un tiers
+     de l'écran à chaque passage dans les Paramètres. */
+  const [dataRevealed, setDataRevealed] = useState(false);
 
   const copyText = async (txt, kind) => {
     try{
@@ -46,11 +47,9 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
   };
 
   /* État audio synchronisé avec audio.js (LS). Re-render local à chaque
-     changement pour refléter le toggle / la musique en lecture. */
-  const [audio, setAudio] = useState(() => ({
-    ...getAudioSettings(),
-    currentMusicId: getCurrentMusicId(),
-  }));
+     changement pour refléter les toggles. Le CHOIX de la piste vit
+     désormais dans Ma Collection. */
+  const [audio, setAudio] = useState(() => getAudioSettings());
   const toggleUi = () => {
     const next = !audio.uiSoundEnabled;
     setUiSoundEnabled(next);
@@ -60,68 +59,70 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
   const toggleMusic = () => {
     const next = !audio.musicEnabled;
     setMusicEnabled(next);
-    setAudio(a => ({ ...a, musicEnabled: next, currentMusicId: getCurrentMusicId() }));
+    setAudio(a => ({ ...a, musicEnabled: next }));
     playSound('toggle');
   };
-  const chooseMusic = (id) => {
-    playSound('tap');
-    playMusic(id);
-    setAudio(a => ({ ...a, currentMusicId: id }));
+
+  /* Ligne de navigation standard (icône + titre + sous-titre + chevron).
+     Toutes les entrées « qui mènent ailleurs » partagent ce rendu pour
+     que l'écran se lise d'un seul coup d'œil. */
+  /* `flat` : la rangée perd sa carte (fond + bord + coins) pour s'insérer
+     dans un conteneur groupé — cf. la section DONNÉES, où quatre cartes
+     empilées sont devenues un seul bloc à séparateurs. */
+  const navRow = ({ key, icon, title, sub, onClick, href, arrow = '→', flat = false }) => {
+    const inner = (
+      <>
+        <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+          <div style={{
+            width:38, height:38, borderRadius:10,
+            background:'rgba(212,160,23,.12)',
+            border:'1px solid rgba(212,160,23,.3)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            flexShrink:0, fontSize:18,
+          }}>
+            {icon}
+          </div>
+          <div style={{ minWidth:0 }}>
+            <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{title}</div>
+            {sub && <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{sub}</div>}
+          </div>
+        </div>
+        <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>{arrow}</span>
+      </>
+    );
+    const style = flat ? {
+      width:'100%', border:'none', background:'transparent',
+      padding:'13px 4px',
+      display:'flex', alignItems:'center', justifyContent:'space-between',
+      cursor:'pointer', textAlign:'left',
+      textDecoration:'none', color:'inherit', boxSizing:'border-box',
+    } : {
+      width:'100%', borderRadius:16,
+      background:C.card, border:`1px solid ${C.border}`,
+      padding:'14px 16px',
+      display:'flex', alignItems:'center', justifyContent:'space-between',
+      cursor:'pointer', textAlign:'left',
+      textDecoration:'none', color:'inherit', boxSizing:'border-box',
+    };
+    if(href){
+      return (
+        <a key={key} href={href} target="_blank" rel="noopener noreferrer" onClick={()=>playSound('modal')} style={style}>
+          {inner}
+        </a>
+      );
+    }
+    return (
+      <button key={key} onClick={onClick} style={style}>
+        {inner}
+      </button>
+    );
   };
 
-  /* Musiques disponibles : la gratuite + celles débloquées via items
-     boutique 'music_<key>' → MUSICS[key]. */
-  const availableMusics = Object.values(MUSICS).filter(m =>
-    m.free || unlocked.includes('music_' + m.id)
+  const sectionLabel = (txt, icon) => (
+    <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
+      {icon}{txt}
+    </div>
   );
-
-  const unlockedThemes = REWARDS.filter(r => unlocked.includes(r.id) && (r.type==='Thème' || (r.type==='Premium' && r.applyAs==='theme')));
-
-  const renderItem = (item, isActive, onToggle, swatch) => (
-    <button
-      key={item.id}
-      onClick={onToggle}
-      style={{
-        display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12,
-        background: isActive ? 'rgba(212,160,23,.12)' : 'transparent',
-        border: `1.5px solid ${isActive ? '#D4A017' : C.border}`,
-        cursor:'pointer', textAlign:'left', width:'100%'
-      }}
-    >
-      {swatch}
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{(localizedField(item, 'name', 'REWARDS') || '').replace(/^(Thème|Cookie|Roue|Theme)\s+/, '').replace(/\s(Theme|Cookie)$/, '')}</div>
-        <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{item.desc}</div>
-      </div>
-      {isActive && <Check size={16} color="#D4A017" />}
-    </button>
-  );
-
-  const defaultRow = (label, sub, isActive, onClick) => (
-    <button
-      onClick={onClick}
-      style={{
-        display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12,
-        background: isActive ? 'rgba(212,160,23,.12)' : 'transparent',
-        border: `1.5px solid ${isActive ? '#D4A017' : C.border}`,
-        cursor:'pointer', textAlign:'left', width:'100%'
-      }}
-    >
-      <div style={{ width:36, height:36, borderRadius:10, background:LT.bg, border:`1px solid ${LT.border}`, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, color:C.muted }}>—</div>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{label}</div>
-        <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>{sub}</div>
-      </div>
-      {isActive && <Check size={16} color="#D4A017" />}
-    </button>
-  );
-
-  const themeSwatch = (id) => {
-    const palette = THEMES[id];
-    const swatchBg = palette ? palette.bg : LT.bg;
-    const filter = palette && palette.hueRotate ? `hue-rotate(${palette.hueRotate}deg) saturate(${palette.saturate||1})` : 'none';
-    return <div style={{ width:36, height:36, borderRadius:10, background:swatchBg, border:`1px solid ${palette?palette.border:C.border}`, flexShrink:0, filter }} />;
-  };
 
   return (
     <div style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:60, display:'flex', flexDirection:'column' }}>
@@ -134,144 +135,113 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
 
       <div style={{ flex:1, overflowY:'auto', padding:20, display:'flex', flexDirection:'column', gap:18 }}>
 
-        {/* Apparence — uniquement les thèmes (skins cookie/roue retirés) */}
-        <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_appearance')}</div>
-          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14, display:'flex', flexDirection:'column', gap:10 }}>
-            {defaultRow(t('settings.theme_default'), t('settings.theme_default_desc'), activeTheme==='', ()=>setActiveTheme(''))}
-            {unlockedThemes.length === 0 ? (
-              <div style={{ display:'flex', alignItems:'center', gap:10, color:C.muted, fontSize:12, padding:'8px 4px', fontStyle:'italic' }}>
-                <Lock size={14} /> {t('settings.themes_locked_hint')}
-              </div>
-            ) : (
-              unlockedThemes.map(t => renderItem(
-                t, activeTheme === t.id,
-                ()=>setActiveTheme(activeTheme === t.id ? '' : t.id),
-                themeSwatch(t.id)
-              ))
-            )}
-          </div>
-        </section>
-
-        {/* Thèmes de mini-jeu — accordéon par jeu. Cf. data/gameThemes.js.
-            Le default est toujours débloqué. Les locked apparaissent grisés
-            avec leur prix (achat via la boutique). */}
-        {setGameThemes && (
+        {/* Personnalisation — porte d'entrée unique vers Ma Collection.
+            Remplace les anciennes sections APPARENCE + THÈMES DE JEU. */}
+        {onOpenCollection && (
           <section>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_game_themes')}</div>
-            <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:8, display:'flex', flexDirection:'column' }}>
-              {THEMABLE_GAMES.map((gameId, idx) => {
-                const themes      = getThemesForGame(gameId);
-                const activeTh    = getActiveTheme(gameId, gameThemes);
-                const isExpanded  = expandedGame === gameId;
-                return (
-                  <div key={gameId}>
-                    {/* Header de jeu — tap pour expand */}
-                    <button
-                      onClick={() => { playSound('tap'); setExpandedGame(isExpanded ? null : gameId); }}
-                      style={{
-                        width:'100%', display:'flex', alignItems:'center', gap:12,
-                        padding:'10px 8px', background:'transparent', border:'none',
-                        cursor:'pointer', textAlign:'left',
-                        borderTop: idx > 0 ? `1px solid ${C.border}` : 'none',
-                      }}
-                    >
-                      <div style={{
-                        width:36, height:36, borderRadius:10,
-                        background:'rgba(212,160,23,.12)',
-                        border:'1px solid rgba(212,160,23,.3)',
-                        display:'flex', alignItems:'center', justifyContent:'center',
-                        fontSize:20, flexShrink:0,
-                      }}>
-                        {activeTh?.preview || '🎮'}
-                      </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                          {t('games_list.' + gameId + '_title')}
-                        </div>
-                        <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>
-                          {localizedField(activeTh || {}, 'name') || '—'}
-                          {activeTh?.type === 'variant' && (
-                            <span style={{ marginLeft:6, fontSize:9, fontWeight:800, color:'#D4A017' }}>VARIANTE</span>
-                          )}
-                        </div>
-                      </div>
-                      <ChevronDown
-                        size={18}
-                        color={C.muted}
-                        style={{ transform: isExpanded ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}
-                      />
-                    </button>
-
-                    {/* Liste dépliée des thèmes du jeu */}
-                    {isExpanded && (
-                      <div style={{ display:'flex', flexDirection:'column', gap:6, padding:'0 4px 10px' }}>
-                        {themes.map(theme => {
-                          const unlocked_ = isThemeUnlocked(theme, unlocked);
-                          const isActive  = activeTh?.id === theme.id;
-                          return (
-                            <button
-                              key={theme.id}
-                              onClick={() => {
-                                if(!unlocked_) return;
-                                playSound('tap');
-                                setGameThemes({ ...gameThemes, [gameId]: theme.id });
-                              }}
-                              disabled={!unlocked_}
-                              style={{
-                                display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12,
-                                background: isActive ? 'rgba(212,160,23,.12)' : 'transparent',
-                                border: `1.5px solid ${isActive ? '#D4A017' : C.border}`,
-                                cursor: unlocked_ ? 'pointer' : 'not-allowed',
-                                opacity: unlocked_ ? 1 : 0.55,
-                                textAlign:'left', width:'100%',
-                              }}
-                            >
-                              <div style={{
-                                width:32, height:32, borderRadius:9,
-                                background:LT.bg, border:`1px solid ${LT.border}`,
-                                display:'flex', alignItems:'center', justifyContent:'center',
-                                fontSize:18, flexShrink:0,
-                              }}>
-                                {theme.preview || '🎨'}
-                              </div>
-                              <div style={{ flex:1, minWidth:0 }}>
-                                <div style={{ fontSize:12, fontWeight:800, color:C.text, display:'flex', alignItems:'center', gap:6 }}>
-                                  {localizedField(theme, 'name')}
-                                  {theme.type === 'variant' && (
-                                    <span style={{ fontSize:8, fontWeight:800, color:'#D4A017', padding:'1px 5px', borderRadius:8, background:'rgba(212,160,23,.15)', border:'1px solid rgba(212,160,23,.4)' }}>VARIANTE</span>
-                                  )}
-                                </div>
-                                <div style={{ fontSize:10, color:C.muted, marginTop:1 }}>
-                                  {localizedField(theme, 'description')}
-                                </div>
-                              </div>
-                              {isActive ? (
-                                <Check size={16} color="#D4A017" />
-                              ) : !unlocked_ ? (
-                                <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:11, fontWeight:800, color:C.muted }}>
-                                  <Lock size={11} />
-                                  <span>{theme.cost}{theme.currency === 'cafe' ? '☕' : '🍪'}</span>
-                                </div>
-                              ) : null}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+            {sectionLabel(t('settings.section_appearance'))}
+            <button
+              onClick={() => { playSound('modal'); onOpenCollection(); }}
+              style={{
+                width:'100%', borderRadius:16,
+                background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.07))',
+                border:'1px solid rgba(212,160,23,.35)',
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.14)',
+                  border:'1px solid rgba(212,160,23,.35)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0,
+                }}>
+                  <Palette size={18} color="#D4A017" />
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    {t('settings.collection_title')}
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    {t('settings.collection_sub')}
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:18, color:'#D4A017', flexShrink:0 }}>→</span>
+            </button>
           </section>
         )}
 
-        {/* Audio (BRIEF_AUDIO) */}
+        {/* À propos — remonté en 2e position (v1.30, demande de Régis) :
+            c'est l'écran qui porte le changelog, les stats de la communauté
+            et les crédits, il était la 3e ligne grise d'AIDE & INFOS.
+            Accent doré + numéro de version, et pastille NOUVEAU tant que
+            le changelog de cette version n'a pas été ouvert. */}
+        {onOpenAbout && (
+          <section>
+            {sectionLabel(t('settings.section_about'))}
+            <button
+              onClick={onOpenAbout}
+              style={{
+                width:'100%', borderRadius:16,
+                background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.07))',
+                border:`1px solid rgba(212,160,23,${aboutIsNew ? '.6' : '.35'})`,
+                boxShadow: aboutIsNew ? '0 3px 12px rgba(212,160,23,.18)' : 'none',
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left', gap:10,
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.14)',
+                  border:'1px solid rgba(212,160,23,.35)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0,
+                }}>
+                  <Info size={18} color="#D4A017" />
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text, display:'flex', alignItems:'center', gap:7 }}>
+                    {t('settings.about_title')}
+                    {aboutIsNew && (
+                      <span className="pulse-ring" style={{
+                        fontSize:8.5, fontWeight:900, letterSpacing:.6,
+                        padding:'2px 6px', borderRadius:7,
+                        background:GOLD, color:'#fff', flexShrink:0,
+                      }}>
+                        {t('common.new').toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    {t('settings.about_sub')}
+                  </div>
+                </div>
+              </div>
+              <span style={{
+                flexShrink:0, fontSize:10.5, fontWeight:800, color:'#D4A017',
+                padding:'4px 9px', borderRadius:9,
+                background:'rgba(212,160,23,.14)',
+                border:'1px solid rgba(212,160,23,.35)',
+                fontFamily:'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace',
+              }}>
+                v{APP_INFO.version}
+              </span>
+            </button>
+          </section>
+        )}
+
+        {/* Audio — les 2 interrupteurs. Le choix de la piste est dans
+            Ma Collection (catégorie Musiques). */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_audio')}</div>
+          {sectionLabel(t('settings.section_audio'))}
           <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
 
-            {/* Toggle sons UI */}
             <button
               onClick={toggleUi}
               style={{
@@ -289,7 +259,6 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
 
             <div style={{ height:1, background:C.border, opacity:.5, margin:'4px 0' }} />
 
-            {/* Toggle musique */}
             <button
               onClick={toggleMusic}
               style={{
@@ -305,44 +274,9 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
               <Switch enabled={audio.musicEnabled} />
             </button>
 
-            {/* Sélecteur de musique (si musique activée) */}
-            {audio.musicEnabled && (
-              <div style={{ marginTop:10, paddingTop:12, borderTop:`1px dashed ${C.border}` }}>
-                <div style={{ fontSize:11, color:C.muted, marginBottom:8, textTransform:'uppercase', letterSpacing:1.5, fontWeight:700 }}>
-                  {t('settings.audio_current_music')}
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  {availableMusics.map(m => {
-                    const active = audio.currentMusicId === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={()=>chooseMusic(m.id)}
-                        style={{
-                          padding:'10px 12px', borderRadius:11,
-                          border: active ? '2px solid #D4A017' : `1.5px solid ${C.border}`,
-                          background: active
-                            ? 'linear-gradient(135deg, rgba(212,160,23,.12), rgba(193,127,60,.12))'
-                            : 'transparent',
-                          color:C.text,
-                          fontSize:13, fontWeight:700,
-                          display:'flex', alignItems:'center', justifyContent:'space-between',
-                          cursor:'pointer', textAlign:'left',
-                        }}
-                      >
-                        <span>{m.emoji} {m.name}</span>
-                        {active && (
-                          <span style={{ fontSize:10, fontWeight:800, color:'#D4A017', letterSpacing:.3 }}>{t('settings.audio_now_playing')}</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-                {availableMusics.length === 1 && (
-                  <div style={{ fontSize:11, color:C.muted, marginTop:10, fontStyle:'italic', textAlign:'center', lineHeight:1.45 }}>
-                    {t('settings.audio_unlock_hint')}
-                  </div>
-                )}
+            {audio.musicEnabled && onOpenCollection && (
+              <div style={{ fontSize:11, color:C.muted, padding:'8px 4px 2px', fontStyle:'italic', lineHeight:1.45 }}>
+                {t('settings.audio_pick_hint')}
               </div>
             )}
           </div>
@@ -351,13 +285,8 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
         {/* Langue / Language — switch FR ↔ EN, ré-rend toute l'app en live
             via le hook useTranslation (useSyncExternalStore). */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
-            <Globe size={11} /> {t('settings.section_language')}
-          </div>
+          {sectionLabel(t('settings.section_language'), <Globe size={11} />)}
           <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
-            <div style={{ fontSize:11, color:C.muted, marginBottom:10 }}>
-              {t('settings.lang_select')}
-            </div>
             <div style={{ display:'flex', gap:8 }}>
               {[
                 { id:'fr', flag:'🇫🇷', label:t('settings.lang_fr') },
@@ -388,15 +317,109 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
           </div>
         </section>
 
-        {/* Données */}
+        {/* Code promo — au-dessus des données (v1.30). C'est ce qu'on vient
+            saisir volontairement ; les données, on ne les ouvre qu'en cas
+            de besoin. Il garde sa carte orange, seul de son espèce ici. */}
+        {onOpenPromoCode && (
+          <section>
+            {sectionLabel(t('settings.section_promo'))}
+            <button
+              onClick={() => { playSound('modal'); onOpenPromoCode(); }}
+              style={{
+                width:'100%', borderRadius:16,
+                background:'linear-gradient(135deg, #C25822 0%, #E8985A 100%)',
+                border:'1px solid #A0451A',
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left',
+                boxShadow:'0 4px 14px rgba(160, 69, 26, 0.3)',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(255,255,255,.18)',
+                  border:'1px solid rgba(255,255,255,.32)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>
+                  🎟️
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:'#fff', letterSpacing:.2 }}>
+                    {t('settings.data_promo')}
+                  </div>
+                  <div style={{ fontSize:11, color:'rgba(255,255,255,.85)', marginTop:2 }}>
+                    {t('settings.data_promo_sub')}
+                  </div>
+                </div>
+              </div>
+              <span style={{ fontSize:18, color:'#fff', flexShrink:0, fontWeight:800 }}>→</span>
+            </button>
+          </section>
+        )}
+
+        {/* Données — bloc REPLIÉ par défaut (v1.30). C'étaient quatre cartes
+            empilées ; regroupées, elles restaient quatre pavés qu'on croise
+            à chaque passage dans les Paramètres alors qu'on n'y touche
+            qu'exceptionnellement (changer d'appareil, repartir de zéro).
+            Une ligne suffit, on déplie quand on en a besoin.
+            Deux niveaux de repli assumés : ouvrir la section ne révèle PAS
+            le PIN, qui garde son propre bouton. */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_data')}</div>
-          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16, marginBottom:8 }}>
-            <div style={{ fontSize:13, color:C.text, marginBottom:4 }}>{t('settings.data_local_save')}</div>
-            <div style={{ fontSize:11, color:C.muted, lineHeight:1.5 }}>
-              {t('settings.data_local_desc')}
+          {sectionLabel(t('settings.section_data'))}
+          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:'4px 14px' }}>
+
+            <button
+              onClick={() => {
+                playSound('tap');
+                setDataRevealed(v => {
+                  /* En refermant, on remasque le PIN : sinon il resterait
+                     affiché en clair au prochain dépliage. */
+                  if(v){ setRecoveryRevealed(false); setPinRevealed(false); }
+                  return !v;
+                });
+              }}
+              style={{
+                width:'100%', padding:'13px 4px', background:'transparent', border:'none',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                gap:10, cursor:'pointer', textAlign:'left',
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(212,160,23,.12)',
+                  border:'1px solid rgba(212,160,23,.3)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>💾</div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
+                    {t('settings.data_group_title')}
+                  </div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    {t('settings.data_group_sub')}
+                  </div>
+                </div>
+              </div>
+              <ChevronDown
+                size={18} color={C.muted}
+                style={{ flexShrink:0, transform: dataRevealed ? 'rotate(180deg)' : 'none', transition:'transform .2s' }}
+              />
+            </button>
+
+            {dataRevealed && (<>
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
+
+            <div style={{ padding:'14px 4px 12px' }}>
+              <div style={{ fontSize:13, fontWeight:700, color:C.text, marginBottom:4 }}>{t('settings.data_local_save')}</div>
+              <div style={{ fontSize:11, color:C.muted, lineHeight:1.5 }}>
+                {t('settings.data_local_desc')}
+              </div>
             </div>
-          </div>
+
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
 
           {/* Carte infos de récupération — collapsée par défaut, révélée
               au tap pour ne pas occuper trop de place. */}
@@ -404,10 +427,8 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             <button
               onClick={() => setRecoveryRevealed(true)}
               style={{
-                width:'100%', borderRadius:16,
-                background:'linear-gradient(140deg, rgba(212,160,23,.08), rgba(193,127,60,.06))',
-                border:'1px solid rgba(212,160,23,.32)',
-                padding:'14px 16px', marginBottom:8,
+                width:'100%', border:'none', background:'transparent',
+                padding:'13px 4px',
                 display:'flex', alignItems:'center', justifyContent:'space-between',
                 cursor:'pointer', textAlign:'left',
               }}
@@ -439,10 +460,10 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
 
           {(userCode || restorePin) && recoveryRevealed && (
             <div style={{
-              borderRadius:16,
-              background:'linear-gradient(140deg, rgba(212,160,23,.08), rgba(193,127,60,.06))',
+              borderRadius:14,
+              background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.07))',
               border:'1px solid rgba(212,160,23,.32)',
-              padding:'14px 16px', marginBottom:8,
+              padding:'12px 14px', margin:'10px 0',
             }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, marginBottom:10 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:8, minWidth:0 }}>
@@ -557,118 +578,35 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
             </div>
           )}
 
-          {onOpenRestore && (
-            <button
-              onClick={() => { playSound('modal'); onOpenRestore(); }}
-              style={{
-                width:'100%', borderRadius:16,
-                background:C.card, border:`1px solid ${C.border}`,
-                padding:'14px 16px',
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                cursor:'pointer', textAlign:'left',
-                marginBottom:8,
-              }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                <div style={{
-                  width:38, height:38, borderRadius:10,
-                  background:'rgba(212,160,23,.12)',
-                  border:'1px solid rgba(212,160,23,.3)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0, fontSize:18,
-                }}>
-                  🔄
-                </div>
-                <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    {t('settings.data_restore')}
-                  </div>
-                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    {t('settings.data_restore_sub')}
-                  </div>
-                </div>
-              </div>
-              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
-            </button>
-          )}
+          {onOpenRestore && (<>
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
+            {navRow({
+              key:'restore', icon:'🔄',
+              title:t('settings.data_restore'), sub:t('settings.data_restore_sub'),
+              onClick:() => { playSound('modal'); onOpenRestore(); },
+              flat:true,
+            })}
+          </>)}
 
-          {onStartNewAccount && (
-            <button
-              onClick={() => { playSound('modal'); onStartNewAccount(); }}
-              style={{
-                width:'100%', borderRadius:16,
-                background:C.card, border:`1px solid ${C.border}`,
-                padding:'14px 16px',
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                cursor:'pointer', textAlign:'left',
-                marginBottom:8,
-              }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                <div style={{
-                  width:38, height:38, borderRadius:10,
-                  background:'rgba(212,160,23,.12)',
-                  border:'1px solid rgba(212,160,23,.3)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0, fontSize:18,
-                }}>
-                  🌱
-                </div>
-                <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    {t('settings.data_new_account')}
-                  </div>
-                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    {t('settings.data_new_account_sub')}
-                  </div>
-                </div>
-              </div>
-              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
-            </button>
-          )}
+          {onStartNewAccount && (<>
+            <div style={{ height:1, background:C.border, opacity:.6 }} />
+            {navRow({
+              key:'newaccount', icon:'🌱',
+              title:t('settings.data_new_account'), sub:t('settings.data_new_account_sub'),
+              onClick:() => { playSound('modal'); onStartNewAccount(); },
+              flat:true,
+            })}
+          </>)}
 
-          {onOpenPromoCode && (
-            <button
-              onClick={() => { playSound('modal'); onOpenPromoCode(); }}
-              style={{
-                width:'100%', borderRadius:16,
-                background:'linear-gradient(135deg, #C25822 0%, #E8985A 100%)',
-                border:'1px solid #A0451A',
-                padding:'14px 16px',
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                cursor:'pointer', textAlign:'left',
-                boxShadow:'0 4px 14px rgba(160, 69, 26, 0.3)',
-              }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                <div style={{
-                  width:38, height:38, borderRadius:10,
-                  background:'rgba(255,255,255,.18)',
-                  border:'1px solid rgba(255,255,255,.32)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0, fontSize:18,
-                }}>
-                  🎟️
-                </div>
-                <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:'#fff', letterSpacing:.2 }}>
-                    {t('settings.data_promo')}
-                  </div>
-                  <div style={{ fontSize:11, color:'rgba(255,255,255,.85)', marginTop:2 }}>
-                    {t('settings.data_promo_sub')}
-                  </div>
-                </div>
-              </div>
-              <span style={{ fontSize:18, color:'#fff', flexShrink:0, fontWeight:800 }}>→</span>
-            </button>
-          )}
+          </>)}
+          </div>
         </section>
 
         {/* Installation PWA — bouton si Android/Desktop, instruction si iOS,
             badge "déjà installée" si standalone, rien sinon. */}
         {install && (install.canInstall || install.isIos || install.isStandalone) && (
           <section>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_installation')}</div>
+            {sectionLabel(t('settings.section_installation'))}
             <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:16 }}>
               {install.isStandalone ? (
                 <div style={{ display:'flex', alignItems:'center', gap:10, color:'#D4A017', fontSize:13, fontWeight:700 }}>
@@ -711,129 +649,29 @@ export function SettingsOverlay({ onClose, unlocked, activeTheme, setActiveTheme
           </section>
         )}
 
-        {/* Communauté — serveur Discord pour bugs & suggestions */}
+        {/* Aide & infos — tutoriel + Discord. « À propos » a sa propre
+            section, remontée juste sous Personnalisation. */}
         <section>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_community')}</div>
-          <a
-            href="https://discord.gg/EMDQXDBV39"
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => playSound('modal')}
-            style={{
-              width:'100%', borderRadius:16,
-              background:C.card, border:`1px solid ${C.border}`,
-              padding:'14px 16px',
-              display:'flex', alignItems:'center', justifyContent:'space-between',
-              cursor:'pointer', textAlign:'left',
-              textDecoration:'none', color:'inherit',
-              boxSizing:'border-box',
-            }}
-          >
-            <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-              <div style={{
-                width:38, height:38, borderRadius:10,
-                background:'rgba(212,160,23,.12)',
-                border:'1px solid rgba(212,160,23,.3)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                flexShrink:0,
-              }}>
-                <MessagesSquare size={18} color="#D4A017" />
-              </div>
-              <div style={{ minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                  {t('settings.community_title')}
-                </div>
-                <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                  {t('settings.community_sub')}
-                </div>
-              </div>
-            </div>
-            <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>↗</span>
-          </a>
+          {sectionLabel(t('settings.section_help'))}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {onRestartTutorial && navRow({
+              key:'tutorial',
+              icon:<HelpCircle size={18} color="#D4A017" />,
+              title:t('settings.restart_tutorial_title'), sub:t('settings.restart_tutorial_sub'),
+              onClick:() => { playSound('modal'); onRestartTutorial(); },
+            })}
+            {navRow({
+              key:'discord',
+              icon:<MessagesSquare size={18} color="#D4A017" />,
+              title:t('settings.community_title'), sub:t('settings.community_sub'),
+              href:'https://discord.gg/EMDQXDBV39', arrow:'↗',
+            })}
+          </div>
         </section>
-
-        {/* Aide — refaire le tutoriel guidé */}
-        {onRestartTutorial && (
-          <section>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_help')}</div>
-            <button
-              onClick={() => { playSound('modal'); onRestartTutorial(); }}
-              style={{
-                width:'100%', borderRadius:16,
-                background:C.card, border:`1px solid ${C.border}`,
-                padding:'14px 16px',
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                cursor:'pointer', textAlign:'left',
-              }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                <div style={{
-                  width:38, height:38, borderRadius:10,
-                  background:'rgba(212,160,23,.12)',
-                  border:'1px solid rgba(212,160,23,.3)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0,
-                }}>
-                  <HelpCircle size={18} color="#D4A017" />
-                </div>
-                <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    {t('settings.restart_tutorial_title')}
-                  </div>
-                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    {t('settings.restart_tutorial_sub')}
-                  </div>
-                </div>
-              </div>
-              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
-            </button>
-          </section>
-        )}
-
-        {/* À propos — version, changelog, stats communauté */}
-        {onOpenAbout && (
-          <section>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>{t('settings.section_about')}</div>
-            <button
-              onClick={() => { playSound('modal'); onOpenAbout(); }}
-              style={{
-                width:'100%', borderRadius:16,
-                background:C.card, border:`1px solid ${C.border}`,
-                padding:'14px 16px',
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                cursor:'pointer', textAlign:'left',
-              }}
-            >
-              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                <div style={{
-                  width:38, height:38, borderRadius:10,
-                  background:'rgba(212,160,23,.12)',
-                  border:'1px solid rgba(212,160,23,.3)',
-                  display:'flex', alignItems:'center', justifyContent:'center',
-                  flexShrink:0,
-                }}>
-                  <Info size={18} color="#D4A017" />
-                </div>
-                <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>
-                    {t('settings.about_title')}
-                  </div>
-                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    {t('settings.about_sub')}
-                  </div>
-                </div>
-              </div>
-              <span style={{ fontSize:18, color:C.muted, flexShrink:0 }}>→</span>
-            </button>
-          </section>
-        )}
 
         {/* Zone à risque — repoussée tout en bas, palette espresso, double validation */}
         <section style={{ marginTop:'auto', paddingTop:14, borderTop:`1px dashed ${C.border}` }}>
-          <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
-            <AlertTriangle size={11} /> {t('settings.section_danger')}
-          </div>
-
+          {sectionLabel(t('settings.section_danger'), <AlertTriangle size={11} />)}
           <ResetProgressButton onReset={onReset} C={C} />
         </section>
 

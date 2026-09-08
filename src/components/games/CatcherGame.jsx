@@ -807,26 +807,42 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
           const isWarning = it._warning && !it._transformed;
           const scale = isFlashing ? (1.2 - flashAge/1100) : 1;
           return (
+            /* ⚠️ DEUX NOEUDS, ET C'EST OBLIGATOIRE.
+               L'extérieur POSITIONNE (translate3d), l'intérieur VIBRE.
+               Les deux sur le même noeud et le jeu devient injouable :
+               les keyframes de `shake` déclarent transform:translate(-2px,1px),
+               ce qui ÉCRASE le translate3d inline pendant toute la durée de
+               l'animation. Le cookie en sursis se téléportait donc en haut à
+               gauche de l'arène (translate ~0,0), puis retombait à sa vraie
+               place à la mutation. Même famille de piège que `.su` et
+               `.tap-pop` sur un même noeud : une animation qui touche à
+               transform gagne toujours contre le style inline. */
             <div
               key={it.id}
               style={{
                 position:'absolute', left:0, top:0,
                 width:ITEM_SIZE, height:ITEM_SIZE,
-                fontSize:42, lineHeight:1,
-                display:'flex', alignItems:'center', justifyContent:'center',
-                filter: isFlashing
-                  ? 'drop-shadow(0 0 14px rgba(255,255,255,.95)) drop-shadow(0 0 18px rgba(168,200,255,.9))'
-                  : isWarning
-                    ? 'drop-shadow(0 0 6px rgba(168,200,255,.7))'
-                    : (ITEM_GLOW[it.type] || 'none'),
                 transform:`translate3d(${it.x + wobbleX}px, ${it.y}px, 0)${isFlashing ? ` scale(${scale})` : ''}`,
                 willChange:'transform',
-                animation: isWarning && !isFlashing ? 'shake .12s ease-in-out infinite' : 'none',
                 pointerEvents:'none',
                 transition:'none',
               }}
             >
-              {itemEmojis[it.type]}
+              <div
+                style={{
+                  width:'100%', height:'100%',
+                  fontSize:42, lineHeight:1,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  filter: isFlashing
+                    ? 'drop-shadow(0 0 14px rgba(255,255,255,.95)) drop-shadow(0 0 18px rgba(168,200,255,.9))'
+                    : isWarning
+                      ? 'drop-shadow(0 0 6px rgba(168,200,255,.7))'
+                      : (ITEM_GLOW[it.type] || 'none'),
+                  animation: isWarning && !isFlashing ? 'shake .12s ease-in-out infinite' : 'none',
+                }}
+              >
+                {itemEmojis[it.type]}
+              </div>
             </div>
           );
         })}
@@ -852,19 +868,28 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
 
         {/* Pop FX "+5" "-5" */}
         {popFx && (
+          /* Même piège que les items : les keyframes de `floatUp` posent
+             transform:translate(-50%,0), ce qui effaçait le translate3d
+             de position. Le « +5 » s'envolait donc depuis le coin haut
+             gauche de l'arène au lieu de la tasse. Un noeud pour la
+             position, un noeud pour l'animation. */
           <div
             key={popFx.id}
             style={{
               position:'absolute', left:0, top:0,
+              pointerEvents:'none',
+              transform:`translate3d(${popFx.x}px, ${popFx.y}px, 0)`,
+            }}
+          >
+            <div style={{
               fontSize:16, fontWeight:900,
               color: popFx.value > 0 ? '#FFE89A' : '#7A4320',
               animation:'floatUp .7s ease-out both',
-              pointerEvents:'none',
               textShadow:'0 1px 3px rgba(0,0,0,.45)',
-              transform:`translate3d(${popFx.x}px, ${popFx.y}px, 0) translate(-50%, 0)`,
-            }}
-          >
-            {popFx.value > 0 ? `+${popFx.value}` : `${popFx.value}`}
+              whiteSpace:'nowrap',
+            }}>
+              {popFx.value > 0 ? `+${popFx.value}` : `${popFx.value}`}
+            </div>
           </div>
         )}
 

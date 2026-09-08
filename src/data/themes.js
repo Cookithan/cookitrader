@@ -107,6 +107,24 @@ export const THEMES = {
 export const GOLD     = 'linear-gradient(135deg,#D4A017,#C17F3C)';
 export const ESPRESSO = 'linear-gradient(140deg,#4A2C17,#7D4E1F)';
 
+/* ─── Teintes de palier (v1.30) ─────────────────────────────────────
+   Une teinte par tranche de 5 niveaux, pour que les bannières de niveau
+   racontent un parcours : crème → caramel → moka → espresso → OR pour
+   les 5 derniers. Faire défiler les 25 paliers doit se lire comme une
+   montée en intensité, pas comme 25 lignes identiques.
+   Utilisé par LevelsModal (bannières) et par la carte niveau de
+   l'Accueil (médaille), pour que les deux écrans parlent la même langue.
+   Café-only, aucun rouge ni vert. */
+export const LEVEL_TIERS = [
+  { base:'#D9B27A', soft:'rgba(217,178,122,.18)', edge:'rgba(217,178,122,.5)' },
+  { base:'#C98A46', soft:'rgba(201,138,70,.18)',  edge:'rgba(201,138,70,.5)'  },
+  { base:'#A9662F', soft:'rgba(169,102,47,.18)',  edge:'rgba(169,102,47,.5)'  },
+  { base:'#7D4520', soft:'rgba(125,69,32,.20)',   edge:'rgba(125,69,32,.5)'   },
+  { base:'#D4A017', soft:'rgba(212,160,23,.20)',  edge:'rgba(212,160,23,.6)'  },
+];
+export const levelTier = (n) =>
+  LEVEL_TIERS[Math.min(LEVEL_TIERS.length - 1, Math.max(0, Math.floor((n - 1) / 5)))];
+
 /* Aperçu Cosmos plus foncé, appliqué temporairement quand on est sur l'onglet Premium */
 export const PREMIUM_PALETTE = {
   dark: true,

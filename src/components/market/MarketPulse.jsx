@@ -9,6 +9,10 @@
    Caché si aucune activité sur 24 h.
    Style café-only (CLAUDE.md) : achats = or (#D4A017), ventes = moka (#7D4E1F).
 
+   v1.30 — PLUS DE CARTE À LUI : le composant ne rend qu'une ligne, il est
+   monté à l'intérieur de MarketFeed. Les deux disaient « ce que font les
+   autres » et occupaient deux encarts empilés dans l'onglet Marché.
+
    Props :
    - pulse : { activeTraders, buyVolume, sellVolume, totalVolume } | null
    - C     : thème
@@ -27,15 +31,11 @@ export function MarketPulse({ pulse, C }) {
 
   return (
     <div style={{
-      background: C.card,
-      border: `1px solid ${C.border}`,
-      borderRadius: 12,
-      padding: '10px 12px',
-      marginBottom: 12,
       display: 'flex',
       alignItems: 'center',
       gap: 14,
       flexWrap: 'wrap',
+      padding: '2px 4px 8px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: C.muted }}>
         <span style={{ fontSize: 13 }}>👥</span>

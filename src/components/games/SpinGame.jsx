@@ -173,32 +173,42 @@ export function SpinGame({ coins, onEarn, onSpend, onJackpot, onEventChallenge, 
               }}>{emoji}</span>
             );
           })}
-          {/* Texte géant SUPER JACKPOT */}
+          {/* Texte géant SUPER JACKPOT.
+              Deux noeuds : `popIn` déclare transform:scale() dans ses
+              keyframes et, avec fill-mode `both`, il EFFACE définitivement
+              le translate(-50%,-50%) de centrage. Le texte restait décalé
+              d'une demi-largeur vers le bas à droite. */}
           <div style={{
             position:'absolute', top:'42%', left:'50%',
             transform:'translate(-50%, -50%)',
-            fontSize:'clamp(36px, 11vw, 56px)',
-            fontWeight:900, letterSpacing:2,
-            color:'transparent',
-            background:'linear-gradient(180deg, #FFE89A 0%, #FFD700 40%, #C8960C 100%)',
-            WebkitBackgroundClip:'text', backgroundClip:'text',
-            textShadow:'0 0 40px rgba(255,215,0,.8)',
-            animation:'popIn .6s cubic-bezier(.36,.07,.19,.97) both',
             whiteSpace:'nowrap',
           }}>
-            🎉 +{superJackpot} 🍪 🎉
+            <div style={{
+              fontSize:'clamp(36px, 11vw, 56px)',
+              fontWeight:900, letterSpacing:2,
+              color:'transparent',
+              background:'linear-gradient(180deg, #FFE89A 0%, #FFD700 40%, #C8960C 100%)',
+              WebkitBackgroundClip:'text', backgroundClip:'text',
+              textShadow:'0 0 40px rgba(255,215,0,.8)',
+              animation:'popIn .6s cubic-bezier(.36,.07,.19,.97) both',
+            }}>
+              🎉 +{superJackpot} 🍪 🎉
+            </div>
           </div>
           <div style={{
             position:'absolute', top:'58%', left:'50%',
             transform:'translate(-50%, -50%)',
-            fontSize: superJackpot === 500 ? 16 : 14,
-            fontWeight:800, letterSpacing: superJackpot === 500 ? 4 : 6,
-            color:'#FFE89A',
-            textShadow:'0 2px 8px rgba(0,0,0,.6)',
-            animation:'popIn .8s cubic-bezier(.36,.07,.19,.97) both',
             whiteSpace:'nowrap',
           }}>
-            {superJackpot === 500 ? t('game_spin.secret_jackpot') : t('game_spin.jackpot')}
+            <div style={{
+              fontSize: superJackpot === 500 ? 16 : 14,
+              fontWeight:800, letterSpacing: superJackpot === 500 ? 4 : 6,
+              color:'#FFE89A',
+              textShadow:'0 2px 8px rgba(0,0,0,.6)',
+              animation:'popIn .8s cubic-bezier(.36,.07,.19,.97) both',
+            }}>
+              {superJackpot === 500 ? t('game_spin.secret_jackpot') : t('game_spin.jackpot')}
+            </div>
           </div>
         </div>
       )}

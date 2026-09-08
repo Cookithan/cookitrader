@@ -32,7 +32,9 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
      de tour remonte le jeu via key={duelInfo.turn}. */
   const botTurn = duelMode && duelInfo && duelInfo.turn === 'bot';
   return (
-    <div style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column' }}>
+    /* game-overlay-in : l'écran arrive en fondu-zoom (v1.30). Sans ça, le
+       jeu apparaissait sec, sans lien avec la carte qu'on venait de taper. */
+    <div className="game-overlay-in" style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column' }}>
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
         <button onClick={onClose} style={{ width:36, height:36, borderRadius:12, background:C.card2, display:'flex', alignItems:'center', justifyContent:'center', color:C.text }}>
           <ChevronLeft size={20} />

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5 } from "lucide-react";
+import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired } from "./data/constants.js";
-import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE } from "./data/themes.js";
+import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, levelTier } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { generateUserCode } from "./utils/userCode.js";
@@ -26,6 +26,7 @@ import { GLOBAL_CSS } from "./styles/globalStyles.js";
 
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
+import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
@@ -35,17 +36,19 @@ import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.j
 import { MarketRefundModal } from "./components/modals/MarketRefundModal.jsx";
 import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.jsx";
 import { AccountNoticeModal } from "./components/modals/AccountNoticeModal.jsx";
-import { getAccountNotice } from "./data/accountNotices.js";
+import { getAccountNotices } from "./data/accountNotices.js";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
-import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, applyHoldDecayIfDue } from "./lib/market.js";
+import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, getMarketState } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
 import { APP_INFO } from "./lib/appInfo.js";
 import { ProfileOverlay } from "./components/overlays/ProfileOverlay.jsx";
+import { CollectionContent } from "./components/overlays/CollectionOverlay.jsx";
+import { AchievementsOverlay } from "./components/overlays/AchievementsOverlay.jsx";
 import { GameOverlay } from "./components/overlays/GameOverlay.jsx";
 import { DuelResultModal } from "./components/modals/DuelResultModal.jsx";
 import { DuelStakeModal } from "./components/modals/DuelStakeModal.jsx";
@@ -129,6 +132,13 @@ import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
    reste défini pour l'onboarding (pseudo de référence) mais les checks
    utilisent isAdminName() qui accepte les 2. */
 const ADMIN_NAME = ADMIN_NAMES[0];
+
+/* Duels — MASQUÉS pendant la v1.30 (décision Régis : « on le fera une
+   prochaine fois, c'est pas le plus important »). Seule l'entrée « Trouver
+   un duel » de l'onglet Jeux est cachée : toute la machinerie reste en
+   place et fonctionnelle (matchmaking, auto-play du bot, mises, résultat).
+   Repasser à true suffit à tout réafficher — ne PAS supprimer le code. */
+const DUELS_VISIBLE = false;
 
 function fmtCompact(n){
   if(n < 10_000) return String(n);
@@ -565,6 +575,23 @@ export default function CookiMiner() {
   const [pendingLvUp,  setPendingLvUp]  = useState(null);
   const [tab,          setTab]          = useState('accueil');
   const [gameView,     setGameView]     = useState(null);
+  /* Carte de jeu en train de « popper ». L'overlay s'ouvrait dans le même
+     tick que le tap : l'animation existait mais était instantanément
+     recouverte, donc invisible. On joue le pop, PUIS on ouvre (200 ms).
+     Assez court pour ne pas se sentir comme de la latence, assez long
+     pour que le geste ait une réponse. */
+  const [poppingGame,  setPoppingGame]  = useState(null);
+  const popTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(popTimerRef.current), []);
+  const launchGame = (id) => {
+    if(poppingGame) return;            /* double-tap ignoré pendant le pop */
+    playSound('modal');
+    setPoppingGame(id);
+    popTimerRef.current = setTimeout(() => {
+      setGameView(id);
+      setPoppingGame(null);
+    }, 200);
+  };
   /* ── Duels 1v1 — Phase 2 : matchmaking « façon Valorant » + boucle bot ── */
   const [duelSession, setDuelSession] = useState(null);   // duel en cours { kind:'bot', gameKey, higherWins, botName, botTarget }
   const [duelResult,  setDuelResult]  = useState(null);   // écran de résultat post-duel
@@ -801,7 +828,7 @@ export default function CookiMiner() {
   /* Notice de la refonte économie café (mai 2026) — affichée 1 fois quand
      la migration cafesResetMay10 trigger pour expliquer le reset à 0. */
   const [showCafesResetNotice, setShowCafesResetNotice] = useState(false);
-  const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium'
+  const [boutiqueMode, setBoutiqueMode] = useState('shop'); // 'shop' | 'premium' | 'collection'
   const [cafeToast,    setCafeToast]    = useState(null);   // { amount, key } | null
   const cafeToastTimerRef = useRef(null);
   /* Popup festif "gain boosté" — déclenché par addCoins quand boost ×2
@@ -831,6 +858,19 @@ export default function CookiMiner() {
      un changelog d'ancien). Voir useEffect plus bas. */
   const [lastSeenVersion,  setLastSeenVersion]  = useLocalStorage('lastSeenVersion', '');
   const [showNewVersion,   setShowNewVersion]   = useState(false);
+  /* Pastille NOUVEAU sur « À propos » — distincte de lastSeenVersion, qui
+     est consommé par la NewVersionModal dès sa fermeture (donc éteint dans
+     la quasi-totalité des cas). Celle-ci ne s'éteint que quand l'écran
+     À propos est RÉELLEMENT ouvert, et se rallume à chaque nouvelle version.
+     Volontairement absent de resetProgress() : c'est un marqueur de lecture,
+     pas de la progression de jeu. */
+  const [aboutSeenVersion, setAboutSeenVersion] = useLocalStorage('aboutSeenVersion', '');
+  const aboutIsNew = aboutSeenVersion !== APP_INFO.version;
+  const openAbout = () => {
+    playSound('modal');
+    setAboutSeenVersion(APP_INFO.version);
+    setShowAbout(true);
+  };
   /* Maintenance LIVE — pilotée par la table Supabase public.system_status
      via Realtime. Permet de basculer l'app en maintenance OU de pousser
      un popup "Mise à jour disponible" sans devoir redéployer.
@@ -1207,6 +1247,8 @@ export default function CookiMiner() {
   useBackToClose(!!duelResult,      () => setDuelResult(null));
   useBackToClose(showSettings,      () => setShowSettings(false));
   useBackToClose(showProfile,       () => setShowProfile(false));
+  useBackToClose(showAllAchievements, () => setShowAllAchievements(false));
+  useBackToClose(!!accountNotice,   () => setAccountNotice(null));
   useBackToClose(showLevels,        () => setShowLevels(false));
   useBackToClose(showSkipConfirm,   () => setShowSkipConfirm(false));
   useBackToClose(showEventModal,    () => setShowEventModal(false));
@@ -1357,7 +1399,10 @@ export default function CookiMiner() {
      overlay/modal/jeu/tuto est ouvert, pour éviter les conflits.
      `slideDir` mémorise la direction du dernier changement pour
      animer le content entrant (depuis la droite ou la gauche). */
-  const TAB_ORDER = ['accueil','jeux','classement','marche','boutique'];
+  /* Classement en 3e position : avec 6 onglets de largeur égale aucun ne
+     tombe à 50 % (les centres sont à 8/25/42/58/75/92 %). Régis préfère
+     Classement juste AVANT le milieu (42 %) plutôt qu'après (58 %). */
+  const TAB_ORDER = ['accueil','jeux','classement','collection','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
 
   const goToTab = (target, source = 'click') => {
@@ -1378,7 +1423,7 @@ export default function CookiMiner() {
     setTab(target);
   };
 
-  const swipeBlocked = !!(gameView || showSettings || showProfile || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
+  const swipeBlocked = !!(gameView || showSettings || showProfile || showAllAchievements || showLevels || showOnboarding || showSkipConfirm || showEventModal || eventReward || showInbox || showAbout || showNewVersion || viewingProfile || secretBadgeReward || pendingFriendNotifs.length > 0 || tutorialStep > 0 || pendingLvUp || pendingAchievements.length > 0 || showBoss || bossReward || bossPenalty || matchmaking || duelResult || showStakeModal || duelHandoff);
   const swipe = useSwipe({
     enabled: !swipeBlocked,
     onLeft:  () => {
@@ -1480,7 +1525,7 @@ export default function CookiMiner() {
 
   /* Quand on quitte l'onglet boutique, reset auto le mode */
   useEffect(()=>{
-    if(tab !== 'boutique' && (boutiqueMode === 'premium' || boutiqueMode === 'actions')) setBoutiqueMode('shop');
+    if(tab !== 'boutique' && boutiqueMode !== 'shop') setBoutiqueMode('shop');
   },[tab, boutiqueMode]);
 
   /* Tick 10 s pour rafraîchir le countdown du Boost ×2 (lecture Date.now()
@@ -2144,13 +2189,21 @@ export default function CookiMiner() {
      partagé (cf. le commentaire « double-refund » plus haut).
 
      Ne se déclenche qu'à partir de cette mise à jour, puisque le
-     fichier accountNotices.js n'existe pas avant. */
+     fichier accountNotices.js n'existe pas avant.
+
+     PLUSIEURS MESSAGES POSSIBLES (08/09/2026) : on parcourt la liste et
+     on affiche le PREMIER dont le verrou n'a pas encore été consommé.
+     Auparavant la fonction n'en rendait qu'un seul, le plus ancien —
+     donc les 16 porteurs d'actions, qui ont tous reçu leur message de
+     compensation en 1.29, n'auraient jamais vu celui du regroupement.
+     Un seul message par ouverture d'app : deux modales d'affilée, c'est
+     un mur de texte que personne ne lit. */
   useEffect(() => {
     if(!userCode || !pullDone || !isSupabaseEnabled()) return;
-    const notice = getAccountNotice(userCode);
-    if(!notice) return;
+    const notices = getAccountNotices(userCode);
+    if(!notices.length) return;
     let cancelled = false;
-    applyPatchOnce({
+    const showNotice = (notice) => applyPatchOnce({
       userCode,
       lsKey:    'cookiminer:' + notice.patch,
       patchKey: notice.patch,
@@ -2171,19 +2224,27 @@ export default function CookiMiner() {
            mettant l'upsert en pause le temps d'écrire les états.
            C'est aussi ce qui explique qu'un changement fait à la main
            en base ne se voie pas dans l'app : ce n'est pas un cache,
-           c'est le client qui gagne. */
-        setPauseUpsertUntil(Date.now() + 8000);
-        const srv = await pullProfile(userCode);
-        if(srv && !cancelled){
-          setCoins(srv.coins);
-          setCafes(srv.cafes);
-          setTotalEarned(srv.totalEarned);
-          setWeeklyEarned(Number(srv.weeklyEarned) || 0);
-          setLevel(srv.level);   lvRef.current = srv.level;
-          setXp(srv.xp);         xpRef.current = srv.xp;
-          setUnlocked(srv.unlocked || []);
-          setActiveTheme(srv.activeTheme || '');
-          setActiveTitle(srv.activeTitle || '');
+           c'est le client qui gagne.
+
+           ⚠️ Réservé aux messages dont la correction touche la table
+           users (forceServerAdoption). Le regroupement d'actions, lui,
+           ne vit que dans market_portfolio : lui faire adopter les
+           valeurs serveur ferait perdre au joueur la progression
+           gagnée depuis son dernier envoi, sans rien corriger. */
+        if(notice.forceServerAdoption){
+          setPauseUpsertUntil(Date.now() + 8000);
+          const srv = await pullProfile(userCode);
+          if(srv && !cancelled){
+            setCoins(srv.coins);
+            setCafes(srv.cafes);
+            setTotalEarned(srv.totalEarned);
+            setWeeklyEarned(Number(srv.weeklyEarned) || 0);
+            setLevel(srv.level);   lvRef.current = srv.level;
+            setXp(srv.xp);         xpRef.current = srv.xp;
+            setUnlocked(srv.unlocked || []);
+            setActiveTheme(srv.activeTheme || '');
+            setActiveTitle(srv.activeTitle || '');
+          }
         }
         /* Le classement garde son cache de session : sans purge, le
            joueur verrait encore ses anciens chiffres jusqu'à la
@@ -2196,6 +2257,23 @@ export default function CookiMiner() {
         if(!cancelled) setAccountNotice(notice);
       },
     });
+
+    (async () => {
+      for(const notice of notices){
+        if(cancelled) return;
+        /* Message qui raconte une correction SQL pas encore passée :
+           on ne l'affiche pas et surtout on ne consomme pas son verrou.
+           Il ressortira à la prochaine ouverture, une fois le SQL joué. */
+        if(notice.requiresMarketPrice){
+          const st = await getMarketState();
+          if(cancelled) return;
+          if(!st || st.current_price < notice.requiresMarketPrice * 0.8) continue;
+        }
+        const shown = await showNotice(notice);
+        if(shown) return;   /* un seul message par ouverture */
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
@@ -2388,31 +2466,17 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
-  /* ── Decay continu — anti-thésaurisation ──────────────────────
-     Au mount, on check si l'user a un hold ≥ 7 j SANS activité
-     depuis ≥ 24 h. Si oui, on retire 0.5 %/jour idle (cappé à 10 j
-     = 5 % max par session). Pousse les holders passifs à trader.
-     applyHoldDecayIfDue gère elle-même les conditions d'application
-     (throttle via updated_at) → pas besoin d'applyPatchOnce ici.
-  ────────────────────────────────────────────────────────────── */
-  useEffect(() => {
-    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
-    let cancelled = false;
-    (async () => {
-      const res = await applyHoldDecayIfDue(userCode);
-      if(cancelled || !res || !res.sharesLost) return;
-      await createInboxMessage(
-        userCode,
-        'hold_decay',
-        '⏳ Frais de garde appliqués',
-        `Tu n'as pas tradé tes actions $CKM depuis ${res.daysIdle} jour${res.daysIdle > 1 ? 's' : ''}. ` +
-        `${res.sharesLost} action${res.sharesLost > 1 ? 's' : ''} ${res.sharesLost > 1 ? 'ont' : 'a'} été versée${res.sharesLost > 1 ? 's' : ''} dans le pool disponible.\n\n` +
-        `Pour éviter ce decay : trade au moins une fois par 24 h après 7 jours de hold.`,
-        { sharesLost: res.sharesLost, daysIdle: res.daysIdle, newShares: res.newShares }
-      );
-    })();
-    return () => { cancelled = true; };
-  }, [userCode, pullDone]);
+  /* ── Frais de garde — RETIRÉS le 08/09/2026 ───────────────
+     Ils grignotaient 0,5 %/jour des actions d'un joueur qui n'avait pas
+     tradé depuis 7 jours, pour décourager la thésaurisation. Ils partent
+     en même temps que le bonus de hold, et pour la raison inverse : une
+     fois le bonus retiré, garder ses actions n'était plus que puni. Or
+     le marché de la 1.30 ne monte que si la communauté accumule — on ne
+     peut pas viser une action rare et rogner ceux qui la gardent.
+     La fonction applyHoldDecayIfDue a été supprimée de lib/market.js
+     avec l'effet : une fonction qui retire des actions à un joueur ne
+     doit pas traîner sans appelant.
+  ─────────────────────────────────────────────────────────── */
 
   /* ── Palier communautaire 500 000 🍪 ──────────────────────────
      Quand la somme des total_earned de tous les joueurs (hors admins)
@@ -3676,7 +3740,11 @@ export default function CookiMiner() {
       if(isCafe) setCafes(c => Math.max(0, c - r.cost));
       else spendCoins(r.cost);
       (async () => {
-        const res = await creditFreeShares(userCode, n);
+        /* investedTotal : le joueur a payé, donc ces actions ont un vrai
+           prix de revient. Sans ça, revendre un pack compterait comme
+           une plus-value intégrale (et donnerait droit au bonus de hold
+           dessus) — le pack se transformerait en imprimante à cookies. */
+        const res = await creditFreeShares(userCode, n, isCafe ? {} : { investedTotal: r.cost });
         if(!res?.success){
           /* Rollback du débit si Supabase a refusé */
           if(isCafe) setCafes(c => c + r.cost);
@@ -3775,7 +3843,11 @@ export default function CookiMiner() {
       ['level_6',        level >= 6],
       ['level_10',       level >= 10],
       ['level_15',       level >= 15],
-      ['trader',         totalInvested >= 500],
+      /* Seuil ×5 le 08/09/2026, comme le prix de l'action : à 500 🍪
+         l'action, « investir 500 cookies » voulait dire en acheter UNE.
+         Ceux qui l'ont déjà décroché le gardent (les succès obtenus ne
+         se reprennent pas). */
+      ['trader',         totalInvested >= 2500],
       ['end_game',       endGameReady],
     ];
     for(const [id,ok] of checks){
@@ -3797,24 +3869,35 @@ export default function CookiMiner() {
        le prochain palier à débloquer (donne envie), pas tous les futurs jeux d'un coup.
      - `comingSoon:true` marque les jeux dont le code n'existe pas encore (PHASE 6B/6C/6D) :
        le clic reste bloqué même si le niveau est atteint, jusqu'à implémentation. */
+  /* `emoji` (v1.30) : filigrane géant au fond de la carte dans l'onglet
+     Jeux. Plusieurs jeux partagent la même icône lucide (Coffee pour
+     pour/pyramid/flappy/catcher) — l'emoji leur redonne une identité
+     propre au premier coup d'œil. */
   const GAMES = [
-    { id:'checkin', Icon:Gift,              title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: checkinReward.isJackpot ? t('games_list.checkin_reward_cf', { n: checkinReward.cafes }) : t('games_list.checkin_reward', { n: checkinReward.coins }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
-    { id:'quiz',    Icon:Star,              title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
-    { id:'spin',    Icon:CircleDot,         title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
-    { id:'click',   Icon:MousePointerClick, title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
-    { id:'pour',    Icon:Coffee,            title: t('games_list.pour_title'),         desc: t('games_list.pour_desc'),     reward: t('games_list.pour_reward'),      avail:true,        color:'#5A3520', levelRequired:1 },
-    { id:'memory',  Icon:LayoutGrid,        title: t('games_list.memory_title'),       desc: t('games_list.memory_desc'),         reward: t('games_list.memory_reward'), avail:coins>=10, color:'#A0784E', levelRequired:2 },
-    { id:'guess',   Icon:HelpCircle,        title: t('games_list.guess_title'),        desc: level >= 10 ? t('games_list.guess_desc_7') : t('games_list.guess_desc_5'), reward: t('games_list.guess_reward'), avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
-    { id:'reflex',  Icon:Timer,             title: t('games_list.reflex_title'),       desc: t('games_list.reflex_desc'), reward: t('games_list.reflex_reward'), avail:coins>=5, color:'#D4A017', levelRequired:6 },
-    { id:'pyramid', Icon:Coffee,            title: t('games_list.pyramid_title'),      desc: t('games_list.pyramid_desc'),         reward: t('games_list.pyramid_reward'), avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
-    { id:'slot',    Icon:Dice5,             title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
-    { id:'flappy',  Icon:Coffee,            title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
-    { id:'catcher', Icon:Coffee,            title: t('games_list.catcher_title'),      desc: t('games_list.catcher_desc'), reward: t('games_list.catcher_reward'), avail:coins>=10, color:'#B5793E', levelRequired:4 },
+    { id:'checkin', Icon:Gift,              emoji:'🎁', title: t('games_list.checkin_title'),     desc: t('games_list.checkin_desc'),     reward: checkinReward.isJackpot ? t('games_list.checkin_reward_cf', { n: checkinReward.cafes }) : t('games_list.checkin_reward', { n: checkinReward.coins }), avail:canCheckin, color:'#C17F3C', levelRequired:1 },
+    { id:'quiz',    Icon:Star,              emoji:'⭐', title: t('games_list.quiz_title'),         desc: t('games_list.quiz_desc'),         reward: t('games_list.quiz_reward'), avail:canQuiz, color:'#D4A017', levelRequired:1 },
+    { id:'spin',    Icon:CircleDot,         emoji:'🎡', title: t('games_list.spin_title'),         desc: t('games_list.spin_desc', { left:spinsLeft, cap:spinsCap }),       reward: t('games_list.spin_reward', { cost: level>=8?20:10 }), avail:coins>=(level>=8?20:10) && spinsLeft > 0, color:'#4A2C17', levelRequired:1 },
+    { id:'click',   Icon:MousePointerClick, emoji:'🍪', title: t('games_list.click_title'),        desc: t('games_list.click_desc'),       reward: t('games_list.click_reward'),  avail:coins>=5,    color:'#7D4E1F', levelRequired:1 },
+    { id:'pour',    Icon:Coffee,            emoji:'☕', title: t('games_list.pour_title'),         desc: t('games_list.pour_desc'),     reward: t('games_list.pour_reward'),      avail:true,        color:'#5A3520', levelRequired:1 },
+    { id:'memory',  Icon:LayoutGrid,        emoji:'🃏', title: t('games_list.memory_title'),       desc: t('games_list.memory_desc'),         reward: t('games_list.memory_reward'), avail:coins>=10, color:'#A0784E', levelRequired:2 },
+    { id:'guess',   Icon:HelpCircle,        emoji:'🤔', title: t('games_list.guess_title'),        desc: level >= 10 ? t('games_list.guess_desc_7') : t('games_list.guess_desc_5'), reward: t('games_list.guess_reward'), avail:coins>=10,  color:'#8B5A2B', levelRequired:5 },
+    { id:'reflex',  Icon:Timer,             emoji:'⚡', title: t('games_list.reflex_title'),       desc: t('games_list.reflex_desc'), reward: t('games_list.reflex_reward'), avail:coins>=5, color:'#D4A017', levelRequired:6 },
+    { id:'pyramid', Icon:Coffee,            emoji:'🗼', title: t('games_list.pyramid_title'),      desc: t('games_list.pyramid_desc'),         reward: t('games_list.pyramid_reward'), avail:coins>=10, color:'#7D4E1F', levelRequired:8 },
+    { id:'slot',    Icon:Dice5,             emoji:'🎰', title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
+    { id:'flappy',  Icon:Coffee,            emoji:'🐦', title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
+    { id:'catcher', Icon:Coffee,            emoji:'🥤', title: t('games_list.catcher_title'),      desc: t('games_list.catcher_desc'), reward: t('games_list.catcher_reward'), avail:coins>=10, color:'#B5793E', levelRequired:4 },
   ];
 
   const s = {
-    pill:(active)=>({ padding:'10px 12px', borderRadius:18, flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, transition:'all .2s', background:active?ESPRESSO:'transparent', color:active?'#fff':C.muted }),
+    /* 6 onglets depuis la v1.30 (ajout de Collection) : padding horizontal
+       réduit à 4px et libellé en 9.5px pour que « Classement » tienne sans
+       passer à la ligne, même sur un écran de 360 px. */
+    pill:(active)=>({ padding:'10px 4px', borderRadius:16, flex:1, minWidth:0, display:'flex', flexDirection:'column', alignItems:'center', gap:3, transition:'all .2s', background:active?ESPRESSO:'transparent', color:active?'#fff':C.muted }),
     card:{ borderRadius:18, background:C.card, border:`1px solid ${C.border}`, boxShadow:'0 2px 8px rgba(0,0,0,.05)' },
+    /* Pastille du pied de carte niveau (série, boosters actifs). Tout ce
+       qui est « état en cours » y tient en une ligne, au lieu d'une carte
+       pleine largeur chacun (v1.30). */
+    homeTag:{ display:'inline-flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:20, background:'rgba(255,255,255,.12)', border:'1px solid rgba(255,255,255,.18)', fontSize:11.5, fontWeight:800, color:'#fff', whiteSpace:'nowrap' },
     goldBtn:(disabled)=>({ padding:'13px 36px', borderRadius:20, fontSize:14, fontWeight:700, background:disabled?C.card:GOLD, color:disabled?C.muted:'#fff', border:`2px solid ${disabled?C.border:'transparent'}`, boxShadow:disabled?'none':'0 4px 16px rgba(212,160,23,.4)', cursor:disabled?'not-allowed':'pointer' }),
   };
 
@@ -3926,15 +4009,41 @@ export default function CookiMiner() {
           )}
           <div style={{ minWidth:0, flex:1 }}>
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{userName ? `BONJOUR ${userName.toUpperCase()}` : 'BIENVENUE'}</div>
-            <div style={{
-              fontSize:22, fontWeight:900,
-              /* theme_grains : haut du gradient = crème pâle, donc C.text
-                 (calé sur les cards sombres) devient illisible. On force
-                 un brun espresso foncé qui passe sur le crème ET reste
-                 lisible quand on scroll vers le bas. */
-              color: activeTheme === 'theme_grains' ? '#3D1808' : C.text,
-              fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap',
-            }}>Cooki<span style={{ color:'#C17F3C' }}>Miner</span></div>
+            {/* Le titre ouvre « À propos » (v1.30). Taper le logo pour voir
+                la version et les nouveautés est un réflexe répandu, et
+                l'écran était enterré en 3e ligne d'une section de
+                Paramètres alors qu'il porte le changelog. */}
+            <button
+              onClick={openAbout}
+              aria-label={t('settings.about_title')}
+              style={{
+                background:'transparent', border:'none', padding:0,
+                display:'block', textAlign:'left', cursor:'pointer', font:'inherit',
+                position:'relative',
+              }}
+            >
+              <div style={{
+                fontSize:22, fontWeight:900,
+                /* theme_grains : haut du gradient = crème pâle, donc C.text
+                   (calé sur les cards sombres) devient illisible. On force
+                   un brun espresso foncé qui passe sur le crème ET reste
+                   lisible quand on scroll vers le bas. */
+                color: activeTheme === 'theme_grains' ? '#3D1808' : C.text,
+                fontStyle:'italic', letterSpacing:'-0.5px', whiteSpace:'nowrap',
+                display:'inline-block',
+              }}>
+                Cooki<span style={{ color:'#C17F3C' }}>Miner</span>
+                {/* Point doré tant que le changelog de cette version n'a
+                    pas été ouvert. Pas de texte : le logo doit rester un
+                    logo, le point suffit à dire « il y a du neuf ici ». */}
+                {aboutIsNew && (
+                  <span className="pulse-ring" style={{
+                    display:'inline-block', width:7, height:7, borderRadius:'50%',
+                    background:'#D4A017', marginLeft:5, verticalAlign:'super',
+                  }} />
+                )}
+              </div>
+            </button>
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
@@ -4026,7 +4135,15 @@ export default function CookiMiner() {
             )}
             {/* Level card */}
             <button id="card-niveau" onClick={()=>{ playSound('modal'); setShowLevels(true); }} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
-              <div style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)' }} />
+              {/* Bulle décorative qui respire (v1.30) — elle était figée. */}
+              <div className="level-bubble" aria-hidden style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)', pointerEvents:'none' }} />
+              {/* Lueur chaude qui enfle et retombe (7 s) — la lumière qui
+                  tombe sur le brun, avant même le reflet. */}
+              <div className="level-warm" aria-hidden />
+              {/* Reflet qui balaie la carte toutes les 5 s : c'est ce qui
+                  fait passer le bloc d'« aplat sombre » à « objet qui
+                  accroche la lumière ». */}
+              <div className="level-sheen" aria-hidden />
               {/* Bannière Cookies premium — overlay décoratif (floating cookies) */}
               {activeBanner === 'banner_cookies' && (
                 <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden' }}>
@@ -4055,90 +4172,89 @@ export default function CookiMiner() {
               <div style={{ position:'absolute', top:14, right:16, fontSize:10, color:'rgba(255,255,255,.45)', display:'flex', alignItems:'center', gap:3, fontWeight:600 }}>
                 {t('home.see_all')} <ChevronLeft size={11} style={{ transform:'rotate(180deg)' }} />
               </div>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:12, marginTop:14 }}>
-                <div>
+              {/* Médaille du palier (v1.30) — même signature que les
+                  bannières de LevelsModal, dans la teinte de la tranche de
+                  5 niveaux : les deux écrans parlent la même langue, et
+                  le niveau devient une décoration qu'on porte plutôt
+                  qu'une ligne de texte. */}
+              <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:12, marginTop:14 }}>
+                {/* Le biscuit porte le numéro (cf. LevelCookieMedal) : une
+                    bille brillante avec un chiffre dessus ressemblait à
+                    n'importe quel jeu, un cookie nous appartient. `glint`
+                    n'est activé qu'ici — dans la liste des 25 paliers, 25
+                    éclats simultanés feraient une guirlande. */}
+                <LevelCookieMedal
+                  level={level}
+                  tier={levelTier(level)}
+                  variant="earned"
+                  size={54}
+                  glint
+                  C={C}
+                />
+                <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)', textTransform:'uppercase', letterSpacing:2, marginBottom:2, display:'flex', alignItems:'center', gap:6 }}>
-                    {t('home.level_uppercase')} {level}
+                    {t('home.level_uppercase')}
                     {prestigeLevel > 0 && (
                       <span title={`Prestige ${prestigeLevel} · multiplicateur x${(1 + prestigeLevel * 0.1).toFixed(1)}`} style={{ fontSize:11, fontWeight:800, color:'#FFE066', letterSpacing:.5 }}>
                         {prestigeLevel <= 5 ? '👑'.repeat(prestigeLevel) : `👑×${prestigeLevel}`}
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize:21, fontWeight:800, color:'#fff' }}>{localizedLevelName(level) || LEVEL_NAMES[level]}</div>
+                  <div style={{ fontSize:19, fontWeight:800, color:'#fff', lineHeight:1.15, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                    {localizedLevelName(level) || LEVEL_NAMES[level]}
+                  </div>
                 </div>
-                <div style={{ textAlign:'right' }}>
+                <div style={{ textAlign:'right', flexShrink:0 }}>
                   <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>{t('profile.stat_total')}</div>
-                  <div style={{ fontSize:20, fontWeight:800, color:'#fff' }}>{totalEarned} 🍪</div>
+                  <div style={{ fontSize:19, fontWeight:800, color:'#fff' }}>{totalEarned} 🍪</div>
                 </div>
               </div>
-              <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color:'rgba(255,255,255,.6)', marginBottom:5 }}>
-                <span>{t('home.experience')}</span><span>{xp}/{xpReq}</span>
+              {/* Le libellé « Expérience » a sauté : une barre sous une carte
+                  de niveau ne peut pas être autre chose. On garde le chiffre. */}
+              <div style={{ textAlign:'right', fontSize:10, color:'rgba(255,255,255,.6)', marginBottom:5 }}>
+                {xp}/{xpReq} XP
               </div>
               <div style={{ height:8, borderRadius:4, background:'rgba(255,255,255,.18)', overflow:'hidden', position:'relative' }}>
                 <div style={{ height:'100%', borderRadius:4, width:`${xpPct}%`, background:'rgba(255,255,255,.85)', transition:'width .8s cubic-bezier(.36,.07,.19,.97)', position:'relative', overflow:'hidden' }}>
                   <div className="shimmer-bar" />
                 </div>
               </div>
-              {badges.length>0 && (
-                <div style={{ display:'flex', gap:8, marginTop:10 }}>
-                  {badges.map(b=><span key={b.id} title={b.name} style={{ fontSize:20 }}>{b.emoji}</span>)}
-                </div>
-              )}
-            </button>
 
-            {/* Indicateurs boosters actifs (boost ×2 en cours / doubler armé) */}
-            {(() => {
-              const now = Date.now();
-              const boostActive = boostUntil && now < boostUntil;
-              if(!boostActive && !nextGameDoubler) return null;
-              const formatLeft = (ms) => {
-                const totalMin = Math.floor(ms / 60000);
-                const h = Math.floor(totalMin / 60);
-                const m = totalMin % 60;
-                return h > 0 ? `${h}h ${String(m).padStart(2,'0')}min` : `${m}min`;
-              };
-              return (
-                <div className="su" style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:14 }}>
-                  {boostActive && (
-                    <div style={{
-                      padding:'10px 14px', borderRadius:14,
-                      background:'linear-gradient(135deg, #D4A017, #C17F3C)',
-                      border:'1.5px solid rgba(212,160,23,.6)',
-                      boxShadow:'0 4px 14px rgba(212,160,23,.35)',
-                      color:'#fff', display:'flex', alignItems:'center', gap:10,
-                    }}>
-                      <span style={{ fontSize:22 }}>⚡</span>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase', opacity:.9 }}>
-                          Boost ×2 actif
-                        </div>
-                        <div style={{ fontSize:13, fontWeight:700 }}>
-                          {formatLeft(boostUntil - now)} restantes
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  {nextGameDoubler && (
-                    <div style={{
-                      padding:'10px 14px', borderRadius:14,
-                      background:C.card, border:`1.5px solid #D4A017`,
-                      color:C.text, display:'flex', alignItems:'center', gap:10,
-                    }}>
-                      <span style={{ fontSize:22 }}>🎯</span>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:11, fontWeight:900, letterSpacing:1.5, textTransform:'uppercase', color:'#D4A017' }}>
-                          Doubler armé
-                        </div>
-                        <div style={{ fontSize:12.5, fontWeight:600, color:C.muted }}>
-                          Le prochain gain 🍪 sera ×2
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
+              {/* Pied de carte : tout l'« état en cours » sur UNE ligne —
+                  série, boosters actifs, badges. Chacun avait sa carte
+                  pleine largeur avant la v1.30 (jusqu'à 3 blocs empilés). */}
+              {(() => {
+                const now = Date.now();
+                const boostActive = boostUntil && now < boostUntil;
+                const leftMin = boostActive ? Math.floor((boostUntil - now) / 60000) : 0;
+                const boostLabel = leftMin >= 60
+                  ? `${Math.floor(leftMin / 60)}h${String(leftMin % 60).padStart(2,'0')}`
+                  : `${leftMin}min`;
+                return (
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:12, flexWrap:'wrap' }}>
+                    <span style={s.homeTag}>
+                      <Flame size={12} color="#E8A060" />
+                      {streak} {t('home.streak_days', { s: streak > 1 ? 's' : '' })}
+                    </span>
+                    {boostActive && (
+                      <span style={{ ...s.homeTag, background:'linear-gradient(135deg,#D4A017,#C17F3C)', border:'1px solid rgba(255,255,255,.28)' }}>
+                        ⚡ ×2 · {boostLabel}
+                      </span>
+                    )}
+                    {nextGameDoubler && (
+                      <span style={{ ...s.homeTag, background:'rgba(240,192,80,.18)', border:'1px solid rgba(240,192,80,.45)', color:'#F0C050' }}>
+                        🎯 Doubler armé
+                      </span>
+                    )}
+                    {badges.length > 0 && (
+                      <span style={{ display:'flex', gap:6 }}>
+                        {badges.slice(-6).map(b=><span key={b.id} title={b.name} style={{ fontSize:18 }}>{b.emoji}</span>)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
+            </button>
 
             {/* Carte Prestige — visible quand niveau 25 atteint avec
                 60000 XP cumulés. Renaître = repartir lvl 1 avec un
@@ -4158,31 +4274,18 @@ export default function CookiMiner() {
               >
                 <div className="float-anim" style={{ fontSize:34, lineHeight:1 }}>🌟</div>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, fontWeight:900, color:'#FFE066', letterSpacing:1.5, textTransform:'uppercase', marginBottom:2 }}>
+                  <div style={{ fontSize:11, fontWeight:900, color:'#FFE066', letterSpacing:1.5, textTransform:'uppercase', marginBottom:3 }}>
                     Renaissance disponible
                   </div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'#fff', lineHeight:1.4, marginBottom:2 }}>
-                    Recommence niveau 1 — multiplicateur permanent
-                  </div>
-                  <div style={{ fontSize:11.5, color:'#F0C050', fontWeight:700 }}>
-                    Prochain bonus : x{(1 + (prestigeLevel + 1) * 0.1).toFixed(1)} 🍪
+                  {/* Une seule ligne : le détail (ce qu'on garde, ce qu'on perd)
+                      est dans la modale de confirmation, pas sur l'Accueil. */}
+                  <div style={{ fontSize:12.5, fontWeight:700, color:'#fff', lineHeight:1.4 }}>
+                    Repartir niveau 1 — gains ×{(1 + (prestigeLevel + 1) * 0.1).toFixed(1)} à vie
                   </div>
                 </div>
                 <ChevronLeft size={18} color="#F0C050" style={{ transform:'rotate(180deg)' }} />
               </button>
             )}
-
-            {/* Stats — Série uniquement (Record clics retiré) */}
-            <div style={{ marginBottom:14 }}>
-              <div style={{ ...s.card, padding:16, textAlign:'center' }}>
-                <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, marginBottom:6 }}>
-                  <Flame size={14} color="#E07040" />
-                  <span style={{ fontSize:11, color:C.muted, fontWeight:700 }}>Série</span>
-                </div>
-                <div style={{ fontSize:28, fontWeight:800, color:C.text }}>{streak}</div>
-                <div style={{ fontSize:11, color:C.muted }}>jour{streak>1?'s':''} consécutif{streak>1?'s':''}</div>
-              </div>
-            </div>
 
             {/* Games */}
             <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10 }}>TON CAFÉ DU JOUR</div>
@@ -4204,212 +4307,77 @@ export default function CookiMiner() {
               ))}
             </div>
 
-            {/* Achievements */}
+            {/* Mes Succès — carte compacte (v1.30). La grille complète des
+                22 succès occupait la moitié de l'Accueil (+ un « Voir plus »
+                qui la doublait) ; elle vit maintenant dans
+                AchievementsOverlay, ouvert au tap. */}
             {(() => {
-              const visibleAchievements = ACHIEVEMENTS;
-              const half = Math.ceil(visibleAchievements.length/2);
-              /* end_game est en dernière position dans ACHIEVEMENTS donc
-                 invisible tant que l'utilisateur ne déroule pas — surprise
-                 cachée à la fin pour récompenser la curiosité. */
-              const list = showAllAchievements ? visibleAchievements : visibleAchievements.slice(0, half);
+              const totalA = ACHIEVEMENTS.length;
+              const doneA  = earnedAchievements.length;
+              const pctA   = totalA > 0 ? Math.round((doneA / totalA) * 100) : 0;
+              /* Aperçu : les derniers succès obtenus, dans l'ordre de la
+                 liste. 6 max pour tenir sur une ligne sans wrap. */
+              const preview = ACHIEVEMENTS.filter(a => earnedAchievements.includes(a.id)).slice(-6);
               return (
-                <>
-                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginTop:22, marginBottom:10 }}>
-                    <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>MES SUCCÈS 🏆</div>
-                    <div style={{ fontSize:11, color:C.muted, fontWeight:600 }}>{earnedAchievements.length} / {visibleAchievements.length}</div>
+                <button
+                  onClick={()=>{ playSound('modal'); setShowAllAchievements(true); }}
+                  style={{
+                    width:'100%', marginTop:20, padding:'14px 16px', borderRadius:18,
+                    ...s.card, textAlign:'left', cursor:'pointer', display:'block',
+                  }}
+                >
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:9 }}>
+                    <span style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>
+                      {t('achievements.title')} 🏆
+                    </span>
+                    <span style={{ fontSize:12, fontWeight:800, color:'#D4A017' }}>
+                      {doneA} / {totalA}
+                    </span>
                   </div>
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
-                    {list.map(a=>{
-                      const got = earnedAchievements.includes(a.id);
-                      const isEndGame = a.id === 'end_game';
-                      const isApex = isEndGame;
-                      /* Pour end_game (apex final), on calcule la progression
-                         de chaque condition pour que le user sache exactement
-                         ce qu'il lui manque. */
-                      let endGamePrereqs = null;
-                      if(isEndGame && !got){
-                        const succesList = ACHIEVEMENTS.filter(x => x.id !== 'end_game');
-                        const succesDone = succesList.filter(p => earnedAchievements.includes(p.id)).length;
-                        const shopList = REWARDS.filter(r => r.currency !== 'cafe' && !r.limited);
-                        const shopDone = shopList.filter(r => unlocked.includes(r.id)).length;
-                        const secretList = Object.values(SECRET_BADGES);
-                        const secretDone = secretList.filter(b => unlocked.includes(b.id)).length;
-                        const eventList = REWARDS.filter(r => r.limited);
-                        const eventDone = eventList.filter(r => unlocked.includes(r.id)).length;
-                        endGamePrereqs = {
-                          levelOk:    level >= 25,
-                          succesDone, succesTotal: succesList.length,
-                          succesOk:   succesDone === succesList.length,
-                          shopDone,   shopTotal:   shopList.length,
-                          shopOk:     shopDone === shopList.length,
-                          secretDone, secretTotal: secretList.length,
-                          secretOk:   secretDone === secretList.length,
-                          eventDone,  eventTotal:  eventList.length,
-                          eventOk:    eventDone === eventList.length,
-                        };
-                      }
-                      /* Style apex spécial — différencié obtenu vs verrouillé :
-                           · OBTENU : fond or vif éclatant + halo pulsant
-                           · VERROUILLÉ : fond espresso sombre + cadenas, pas de halo
-                         Dans les 2 cas la carte ressort fort (gradient + span 2). */
-                      const apexStyle = isEndGame
-                        ? (got
-                            ? { background:'linear-gradient(135deg, #FFE5A0, #F0C050, #E8B040)', border:'2px solid #D4A017' }
-                            : { background:'linear-gradient(135deg, #3D2010, #2C1810, #1F0E08)', border:'2px solid rgba(212,160,23,.55)' })
-                        : { border: isApex ? '1.5px solid rgba(212,160,23,.55)' : undefined };
-                      /* Couleurs de texte selon état apex */
-                      const apexTitleColor   = isEndGame ? (got ? '#5D3A1F' : '#F0C050') : C.text;
-                      const apexDescColor    = isEndGame ? (got ? '#7D4E1F' : '#C8A878') : C.muted;
-                      const apexBonusColor   = isEndGame ? (got ? '#5D3A1F' : '#F0C050') : '#D4A017';
-                      const apexBoxBg        = isEndGame && !got ? 'rgba(0,0,0,.25)' : 'rgba(255,255,255,.5)';
-                      const apexBoxBorder    = isEndGame && !got ? '1px dashed rgba(212,160,23,.4)' : '1px dashed rgba(93,58,31,.45)';
-                      const apexCheckColor   = isEndGame && !got ? '#F0C050' : '#5D3A1F';
-                      const apexUncheckColor = isEndGame && !got ? '#A88060' : '#A07854';
 
-                      return (
-                        <div
-                          key={a.id}
-                          className={isEndGame && got ? 'glow-anim' : ''}
-                          style={{
-                            ...s.card,
-                            padding:'12px 12px',
-                            display:'flex', alignItems:'flex-start', gap:10,
-                            opacity:got ? 1 : (isEndGame ? 1 : .55),
-                            position:'relative',
-                            gridColumn: isEndGame ? 'span 2' : undefined,
-                            ...apexStyle,
-                          }}
-                        >
-                          {/* Cadenas overlay quand l'apex est verrouillé */}
-                          {isEndGame && !got && (
-                            <div style={{
-                              position:'absolute', top:8, right:8,
-                              width:26, height:26, borderRadius:'50%',
-                              background:'rgba(15,8,4,.7)',
-                              border:'1.5px solid rgba(212,160,23,.6)',
-                              display:'flex', alignItems:'center', justifyContent:'center',
-                              fontSize:13, lineHeight:1,
-                              boxShadow:'0 2px 6px rgba(0,0,0,.4)',
-                            }}>
-                              🔒
-                            </div>
-                          )}
-                          <div style={{
-                            fontSize: isEndGame ? 30 : 24,
-                            flexShrink:0,
-                            filter: got
-                              ? 'none'
-                              : isEndGame
-                                ? 'grayscale(.4) brightness(.85)'
-                                : 'grayscale(.7)',
-                            opacity: isEndGame && !got ? .85 : 1,
-                            lineHeight:1,
-                          }}>
-                            {got ? a.emoji : (isEndGame ? '🏆' : '🔒')}
-                          </div>
-                          <div style={{ minWidth:0, flex:1 }}>
-                            <div style={{
-                              fontSize: isEndGame ? 13 : 11,
-                              fontWeight:900,
-                              color: apexTitleColor,
-                              lineHeight:1.2, marginBottom:2,
-                              letterSpacing: isEndGame ? .3 : 0,
-                            }}>
-                              {a.name}
-                            </div>
-                            <div style={{
-                              fontSize:10,
-                              color: apexDescColor,
-                              lineHeight:1.3,
-                              fontWeight: isEndGame ? 600 : 'normal',
-                            }}>
-                              {a.desc}
-                            </div>
-                            {endGamePrereqs && (
-                              <div style={{
-                                marginTop:6, padding:'7px 9px', borderRadius:8,
-                                background: apexBoxBg,
-                                border: apexBoxBorder,
-                                fontSize:10, lineHeight:1.65, fontWeight:700,
-                              }}>
-                                <div style={{ color: endGamePrereqs.levelOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.levelOk ? '✓' : '○'} Niveau {level}/25
-                                </div>
-                                <div style={{ color: endGamePrereqs.succesOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.succesOk ? '✓' : '○'} {endGamePrereqs.succesDone}/{endGamePrereqs.succesTotal} autres succès
-                                </div>
-                                <div style={{ color: endGamePrereqs.shopOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.shopOk ? '✓' : '○'} {endGamePrereqs.shopDone}/{endGamePrereqs.shopTotal} items boutique 🍪
-                                </div>
-                                <div style={{ color: endGamePrereqs.secretOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.secretOk ? '✓' : '○'} {endGamePrereqs.secretDone}/{endGamePrereqs.secretTotal} badges secrets
-                                </div>
-                                <div style={{ color: endGamePrereqs.eventOk ? apexCheckColor : apexUncheckColor }}>
-                                  {endGamePrereqs.eventOk ? '✓' : '○'} {endGamePrereqs.eventDone}/{endGamePrereqs.eventTotal} récompenses événements
-                                </div>
-                              </div>
-                            )}
-                            <div style={{
-                              fontSize:10,
-                              color: apexBonusColor,
-                              fontWeight:800, marginTop:4,
-                            }}>
-                              +{a.bonus} 🍪{a.cafesBonus ? ` · +${a.cafesBonus} ☕` : ''}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div style={{ height:6, background:C.card2, borderRadius:3, overflow:'hidden', marginBottom:10 }}>
+                    <div style={{
+                      width:`${pctA}%`, height:'100%',
+                      background:'linear-gradient(90deg, #D4A017, #F0C050)',
+                      transition:'width .5s ease-out',
+                    }} />
                   </div>
-                  {visibleAchievements.length > half && (
-                    <button
-                      onClick={()=>setShowAllAchievements(v=>!v)}
-                      style={{ width:'100%', marginTop:10, padding:'10px', borderRadius:12, background:'transparent', border:`1px dashed ${C.border}`, color:C.muted, fontSize:12, fontWeight:700, letterSpacing:.3 }}
-                    >
-                      {showAllAchievements ? 'Voir moins ↑' : `Voir plus (${visibleAchievements.length - half}) ↓`}
-                    </button>
-                  )}
-                </>
+
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10 }}>
+                    <span style={{ display:'flex', gap:5, minWidth:0, overflow:'hidden' }}>
+                      {preview.length > 0
+                        ? preview.map(a => <span key={a.id} style={{ fontSize:19, lineHeight:1 }}>{a.emoji}</span>)
+                        : <span style={{ fontSize:11.5, color:C.muted, fontStyle:'italic' }}>{t('achievements.none_yet')}</span>}
+                    </span>
+                    <span style={{ fontSize:12, fontWeight:700, color:'#D4A017', flexShrink:0 }}>
+                      {t('achievements.see_all')} →
+                    </span>
+                  </div>
+                </button>
               );
             })()}
 
             {/* Bandeau Discord — bugs & suggestions communauté.
                 Clic = ouvre invitation Discord dans un nouvel onglet. */}
+            {/* v1.30 : réduit à une ligne discrète. C'était une carte
+                gradient de 42px de haut sur l'écran le plus vu de l'app,
+                alors que l'entrée existe aussi dans Paramètres. */}
             <a
               href="https://discord.gg/EMDQXDBV39"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => playSound('modal')}
               style={{
-                display:'flex', alignItems:'center', gap:12,
-                marginTop:18, padding:'13px 14px', borderRadius:16,
-                /* Opacités renforcées (.10/.18 → .22/.36) — sur thème clair
-                   le beige du bg avalait les anciennes valeurs. .55 sur le
-                   border + box-shadow plus présent → le bandeau se détache
-                   sur cream comme sur espresso. */
-                background:'linear-gradient(135deg, rgba(212,160,23,.22), rgba(193,127,60,.36))',
-                border:'1.5px solid rgba(212,160,23,.55)',
-                boxShadow:'0 4px 14px rgba(212,160,23,.18)',
-                textDecoration:'none', color:'inherit',
-                cursor:'pointer',
+                display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                marginTop:16, padding:'11px 14px', borderRadius:14,
+                background:'transparent',
+                border:`1px dashed ${C.border}`,
+                textDecoration:'none', color:C.muted,
+                fontSize:12, fontWeight:700, cursor:'pointer',
               }}
             >
-              <div style={{
-                width:42, height:42, borderRadius:12, flexShrink:0,
-                background:'linear-gradient(135deg,#FFE89A,#D4A017)',
-                display:'flex', alignItems:'center', justifyContent:'center',
-                fontSize:22,
-                boxShadow:'0 3px 10px rgba(212,160,23,.4)',
-              }}>💬</div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:13.5, fontWeight:900, color:C.text, letterSpacing:.2 }}>
-                  Un bug ? Une suggestion ?
-                </div>
-                <div style={{ fontSize:11, color:C.muted, marginTop:2, lineHeight:1.4 }}>
-                  Rejoins notre Discord pour nous le dire 🍪
-                </div>
-              </div>
-              <span style={{ fontSize:16, color:'#D4A017', fontWeight:900, flexShrink:0 }}>↗</span>
+              💬 <span>{t('home.discord_line')}</span>
+              <span style={{ color:'#D4A017', fontWeight:900 }}>↗</span>
             </a>
 
           </div>
@@ -4418,9 +4386,14 @@ export default function CookiMiner() {
         {/* ── JEUX ── */}
         {tab==='jeux' && (
           <div className="su">
+            {/* Entrée des Duels — masquée en v1.30 (cf. DUELS_VISIBLE en
+                tête de fichier). Le reste de la fonctionnalité est intact,
+                seul ce bouton la rendait atteignable. */}
+            {DUELS_VISIBLE && (
             <button
               onClick={startMatchmaking}
-              style={{ width:'100%', marginBottom:16, padding:'15px 16px', borderRadius:18, border:'1px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.16), rgba(212,160,23,.04))', display:'flex', alignItems:'center', gap:12, cursor:'pointer', textAlign:'left' }}
+              className="tap-pop"
+              style={{ width:'100%', marginBottom:20, padding:'16px 17px', borderRadius:20, border:'1.5px solid #D4A017', background:'linear-gradient(135deg, rgba(212,160,23,.20), rgba(193,127,60,.08))', boxShadow:'0 4px 16px rgba(212,160,23,.18)', display:'flex', alignItems:'center', gap:13, cursor:'pointer', textAlign:'left' }}
             >
               <span style={{ fontSize:24 }}>⚔️</span>
               <span style={{ flex:1 }}>
@@ -4429,71 +4402,148 @@ export default function CookiMiner() {
               </span>
               <span style={{ fontSize:18, color:'#D4A017', fontWeight:900 }}>›</span>
             </button>
-            <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12, paddingTop:4 }}>CHOISIR UN JEU</div>
-            {GAMES.filter(g => g.id !== 'checkin' && g.id !== 'quiz' && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))).map(g=>{
-              /* Override force-unlock par code promo (cf. unlockedGames).
-                 Si l'id du jeu est dans unlockedGames, on ignore le
-                 niveau requis (utile pour les codes starter pack). */
-              const locked     = level < g.levelRequired && !unlockedGames.includes(g.id);
-              const comingSoon = !locked && g.comingSoon;
-              const blocked    = locked || comingSoon;
-              const onClick    = blocked ? undefined : ()=>{ playSound('modal'); setGameView(g.id); };
-
-              return (
-                <button
-                  key={g.id}
-                  onClick={onClick}
-                  disabled={blocked}
-                  style={{
-                    width:'100%', borderRadius:20, overflow:'hidden',
-                    boxShadow: blocked ? '0 2px 8px rgba(0,0,0,.06)' : '0 4px 16px rgba(0,0,0,.1)',
-                    marginBottom:12, textAlign:'left', display:'block',
-                    cursor: blocked ? 'not-allowed' : 'pointer',
-                    opacity: locked ? .65 : 1,
-                  }}
-                >
-                  <div style={{
-                    padding:18,
-                    background: locked ? 'linear-gradient(135deg,#3D2010,#2A1508)' : g.color,
-                    display:'flex', alignItems:'center', gap:14,
-                    filter: locked ? 'grayscale(.4)' : 'none',
-                  }}>
-                    <div style={{ width:54, height:54, borderRadius:16, background:'rgba(255,255,255,.15)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, position:'relative' }}>
-                      <g.Icon size={26} color="#fff" />
-                      {locked && (
-                        <div style={{ position:'absolute', bottom:-4, right:-4, width:22, height:22, borderRadius:'50%', background:'#1A0E08', border:'2px solid #4A2C17', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          <Lock size={11} color="#F0E0C0" />
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:17, fontWeight:800, color:'#fff' }}>{g.title}</div>
-                      <div style={{ fontSize:12, color:'rgba(255,255,255,.7)', marginTop:2 }}>{g.desc}</div>
-                    </div>
-                    <div style={{ textAlign:'right', flexShrink:0 }}>
-                      <div style={{ fontSize:10, color:'rgba(255,255,255,.6)' }}>Récompense</div>
-                      <div style={{ fontSize:13, fontWeight:700, color:'#fff' }}>{g.reward}</div>
-                    </div>
-                  </div>
-                  <div style={{ padding:'10px 18px', background:C.card, borderTop:`1px solid ${C.border}`, display:'flex', justifyContent: locked ? 'center' : (g.avail ? 'space-between' : 'flex-end'), alignItems:'center', gap:6 }}>
-                    {locked ? (
-                      <span style={{ fontSize:12, fontWeight:700, color:C.muted, display:'flex', alignItems:'center', gap:6, letterSpacing:.3 }}>
-                        <Lock size={12} /> Niveau {g.levelRequired} requis
-                      </span>
-                    ) : comingSoon ? (
-                      <span style={{ fontSize:12, fontWeight:700, color:'#C17F3C', letterSpacing:.3 }}>
-                        ✨ Bientôt disponible
-                      </span>
-                    ) : (
-                      <>
-                        {g.avail && <span style={{ fontSize:12, fontWeight:700, color:'#D4A017', display:'flex', alignItems:'center', gap:5 }}><span style={{ width:6, height:6, borderRadius:'50%', background:'#D4A017', display:'inline-block' }} />Disponible</span>}
-                        <span style={{ fontSize:12, color:C.muted, fontWeight:600 }}>Jouer →</span>
-                      </>
-                    )}
-                  </div>
-                </button>
+            )}
+            {/* v1.30 — chaque jeu tenait sur DEUX blocs : l'en-tête coloré
+                plus une barre blanche en pied qui répétait « ● Disponible »
+                et « Jouer → » sur une carte évidemment tapable. Dix jeux =
+                dix barres inutiles et ~1200 px à faire défiler.
+                Un seul bloc désormais, et les jeux verrouillés passent en
+                rangée compacte — on ne peut pas y jouer, ils n'ont pas
+                besoin d'une carte pleine taille. */}
+            {(() => {
+              const list = GAMES.filter(g =>
+                g.id !== 'checkin' && g.id !== 'quiz'
+                && (g.levelRequired - level <= 1 || unlockedGames.includes(g.id))
               );
-            })}
+              /* Override force-unlock par code promo (cf. unlockedGames) :
+                 si l'id est dans unlockedGames, on ignore le niveau requis. */
+              const isLocked = (g) => level < g.levelRequired && !unlockedGames.includes(g.id);
+              const playable = list.filter(g => !isLocked(g));
+              const locked   = list.filter(isLocked);
+
+              return (<>
+                <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:14, paddingTop:6 }}>
+                  {t('games_list.section_pick')}
+                </div>
+
+                {playable.map((g, i) => {
+                  const comingSoon = !!g.comingSoon;
+                  return (
+                    /* Deux éléments, et c'est indispensable : `.su` utilise
+                       animation-fill-mode:both, donc l'élément GARDE le
+                       transform de slideUp appliqué par l'animation une fois
+                       celle-ci finie — et une animation l'emporte sur une
+                       déclaration normale. Sur le même nœud, ni :active ni
+                       .game-pop ne pouvaient s'appliquer : la carte ne
+                       réagissait pas au doigt. L'entrée en cascade vit donc
+                       sur le wrapper, le retour tactile sur le bouton. */
+                    <div key={g.id} className={`su stagger-${(i % 4) + 1}`} style={{ marginBottom:14 }}>
+                    <button
+                      onClick={comingSoon ? undefined : ()=>launchGame(g.id)}
+                      disabled={comingSoon}
+                      className={`game-card${poppingGame === g.id ? ' game-pop' : ''}`}
+                      style={{
+                        width:'100%', borderRadius:20,
+                        padding:'16px 17px',
+                        /* Couleur du jeu + voile clair→sombre : la teinte plate
+                           rendait les 10 cartes ternes et interchangeables. */
+                        backgroundColor:g.color,
+                        backgroundImage:'linear-gradient(145deg, rgba(255,255,255,.16), rgba(0,0,0,.24))',
+                        border:'1px solid rgba(255,255,255,.12)',
+                        boxShadow:'0 6px 20px rgba(0,0,0,.16)',
+                        display:'flex', alignItems:'center', gap:14,
+                        textAlign:'left', position:'relative', overflow:'hidden',
+                        cursor: comingSoon ? 'not-allowed' : 'pointer',
+                        /* Pas assez de cookies / plus de parties : la carte
+                           s'estompe. Pas de texte — le jeu l'explique à
+                           l'ouverture, et l'écrire 10 fois serait du bruit. */
+                        opacity: comingSoon ? .6 : (g.avail ? 1 : .72),
+                      }}
+                    >
+                      {/* Halo à gauche, derrière l'icône : donne du volume
+                          sans concurrencer le filigrane de droite. */}
+                      <div aria-hidden style={{
+                        position:'absolute', top:-38, left:-28,
+                        width:110, height:110, borderRadius:'50%',
+                        background:'rgba(255,255,255,.08)', pointerEvents:'none',
+                      }} />
+
+                      {/* Filigrane géant — l'identité du jeu. Quatre jeux
+                          partagent l'icône Coffee ; débordant et incliné,
+                          l'emoji les distingue immédiatement. La pastille de
+                          récompense a un fond opaque, elle passe par-dessus. */}
+                      <div aria-hidden className="game-emoji" style={{
+                        position:'absolute', right:-14, bottom:-24,
+                        fontSize:82, lineHeight:1, opacity:.15,
+                        transform:'rotate(-12deg)', pointerEvents:'none',
+                        filter:'drop-shadow(0 2px 6px rgba(0,0,0,.35))',
+                        /* Déphasage par carte : sans ça les 10 emojis
+                           montent et descendent au même rythme. */
+                        animationDelay:`${(i % 5) * 0.55}s`,
+                      }}>{g.emoji}</div>
+
+                      <div className={g.avail && !comingSoon ? 'float-anim' : ''} style={{
+                        width:50, height:50, borderRadius:15, flexShrink:0,
+                        background:'rgba(255,255,255,.18)',
+                        border:'1px solid rgba(255,255,255,.22)',
+                        boxShadow:'inset 0 1px 0 rgba(255,255,255,.28), 0 3px 8px rgba(0,0,0,.16)',
+                        display:'flex', alignItems:'center', justifyContent:'center',
+                        position:'relative',
+                      }}>
+                        <g.Icon size={24} color="#fff" />
+                      </div>
+
+                      <div style={{ flex:1, minWidth:0, position:'relative' }}>
+                        <div style={{ fontSize:15.5, fontWeight:800, color:'#fff', display:'flex', alignItems:'center', gap:7, letterSpacing:'-.2px' }}>
+                          {g.title}
+                          {g.avail && !comingSoon && (
+                            <span className="live-pulse" style={{ width:6, height:6, borderRadius:'50%', background:'#fff', display:'inline-block', flexShrink:0 }} />
+                          )}
+                        </div>
+                        <div style={{ fontSize:11.5, color:'rgba(255,255,255,.74)', marginTop:3, lineHeight:1.35 }}>
+                          {comingSoon ? '✨ Bientôt disponible' : g.desc}
+                        </div>
+                      </div>
+
+                      {/* Récompense en pastille : détachée du fond, elle se lit
+                          d'un coup d'œil au lieu de se fondre dans la couleur. */}
+                      <div style={{
+                        flexShrink:0, maxWidth:'34%', position:'relative',
+                        padding:'7px 10px', borderRadius:12,
+                        background:'rgba(0,0,0,.22)',
+                        border:'1px solid rgba(255,255,255,.14)',
+                        textAlign:'right', fontSize:10.5, fontWeight:700,
+                        color:'rgba(255,255,255,.95)', lineHeight:1.35,
+                      }}>
+                        {g.reward}
+                      </div>
+                    </button>
+                    </div>
+                  );
+                })}
+
+                {locked.length > 0 && (<>
+                  <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, margin:'22px 0 12px' }}>
+                    {t('games_list.section_locked')}
+                  </div>
+                  {locked.map(g => (
+                    <div key={g.id} style={{
+                      display:'flex', alignItems:'center', gap:11,
+                      padding:'12px 14px', borderRadius:14, marginBottom:10,
+                      background:C.card, border:`1px dashed ${C.border}`,
+                    }}>
+                      <Lock size={14} color={C.muted} />
+                      <span style={{ flex:1, minWidth:0, fontSize:12.5, fontWeight:700, color:C.muted, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                        {g.title}
+                      </span>
+                      <span style={{ flexShrink:0, fontSize:11, fontWeight:800, color:'#D4A017' }}>
+                        {t('profile.level_n', { n: g.levelRequired })}
+                      </span>
+                    </div>
+                  ))}
+                </>)}
+              </>);
+            })()}
           </div>
         )}
 
@@ -4523,7 +4573,7 @@ export default function CookiMiner() {
                 onConsumeBulkPass={() => setBulkTradePasses(n => Math.max(0, (n || 0) - 1))}
                 onTradeComplete={(result)=>{
                   if(result.type === 'buy'){
-                    /* L'achievement 'trader' attend totalInvested >= 500 cookies */
+                    /* L'achievement 'trader' attend totalInvested >= 2 500 cookies */
                     setTotalInvested(t => t + result.cost);
                   } else if(result.type === 'sell'){
                     /* Le badge secret 'investisseur' attend marketRealized >= 1000 */
@@ -4533,7 +4583,6 @@ export default function CookiMiner() {
                     checkEventChallenge('market_profit', profit);
                   }
                 }}
-                onOpenActionsShop={()=>{ playSound('tab'); setBoutiqueMode('actions'); setTab('boutique'); }}
                 C={C}
               />
             ) : (
@@ -4541,21 +4590,34 @@ export default function CookiMiner() {
             )
           )}
 
-          {/* ── BOUTIQUE ── */}
-          {tab==='boutique' && (
-            <BoutiqueTab
-              coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
-              mode={boutiqueMode} setMode={setBoutiqueMode}
+          {/* ── MA COLLECTION ── onglet à part entière (v1.30). Décision
+              de Régis : surtout PAS dans la boutique — acheter et équiper
+              sont deux gestes différents. */}
+          {tab==='collection' && (
+            <CollectionContent
+              unlocked={unlocked}
               activeTheme={activeTheme}   setActiveTheme={setActiveTheme}
               activeBanner={activeBanner} setActiveBanner={setActiveBanner}
               activeSkin={activeSkin}     setActiveSkin={setActiveSkin}
               activeTitle={activeTitle}   setActiveTitle={setActiveTitle}
               userAvatar={userAvatar}     setUserAvatar={setUserAvatar}
+              gameThemes={gameThemes}     setGameThemes={setGameThemes}
+              userName={userName} level={level} prestigeLevel={prestigeLevel}
+              earnedAchievements={earnedAchievements}
+              onOpenShop={()=>{ playSound('tab'); setBoutiqueMode('shop'); goToTab('boutique'); }}
+              C={C}
+            />
+          )}
+
+          {/* ── BOUTIQUE ── */}
+          {tab==='boutique' && (
+            <BoutiqueTab
+              coins={coins} cafes={cafes} unlocked={unlocked} level={level} onUnlock={unlockReward}
+              mode={boutiqueMode} setMode={setBoutiqueMode}
               spinsLeft={spinsLeft}       slotPlaysLeft={slotPlaysLeft}
               userCode={userCode}
               vipPurchasesToday={vipPurchasesToday}
-              onGrantUnlock={(id)=> setUnlocked(u => (u||[]).includes(id) ? u : [...(u||[]), id])}
-              onGrantCafes={(n)=> { if(n>0) setCafes(c => (c||0) + n); }}
+              onOpenCollection={()=>{ playSound('tab'); goToTab('collection'); }}
               C={C}
             />
           )}
@@ -4565,17 +4627,17 @@ export default function CookiMiner() {
       {/* NAV */}
       <nav style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, padding:'0 16px 16px', zIndex:40 }}>
         <div style={{ background:isDark?'rgba(30,16,10,.95)':'rgba(253,250,246,.95)', backdropFilter:'blur(12px)', borderRadius:24, border:`1px solid ${C.border}`, boxShadow:'0 8px 32px rgba(0,0,0,.12)', display:'flex', padding:8 }}>
-          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
+          {[{id:'accueil',Icon:Home,label:t('nav.home')},{id:'jeux',Icon:Gamepad2,label:t('nav.games')},{id:'classement',Icon:Trophy,label:t('nav.leaderboard')},{id:'collection',Icon:Palette,label:t('nav.collection')},{id:'marche',Icon:TrendingUp,label:t('nav.market')},{id:'boutique',Icon:ShoppingBag,label:t('nav.shop')}].map(item=>{
             const showDot = item.id==='accueil' && (canCheckin || canQuiz);
             return (
               <button key={item.id} id={`nav-${item.id}`} onClick={()=>goToTab(item.id)} style={s.pill(tab===item.id)}>
                 <span style={{ position:'relative', display:'inline-flex', lineHeight:0 }}>
-                  <item.Icon size={20} />
+                  <item.Icon size={19} />
                   {showDot && (
                     <span className="pulse-ring" style={{ position:'absolute', top:-3, right:-4, width:8, height:8, borderRadius:'50%', background:'#D4A017', boxShadow:'0 0 0 2px '+(isDark?'rgba(30,16,10,.95)':'rgba(253,250,246,.95)') }} />
                   )}
                 </span>
-                <span style={{ fontSize:11, fontWeight:700 }}>{item.label}</span>
+                <span style={{ fontSize:9.5, fontWeight:700, letterSpacing:'-.2px', maxWidth:'100%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.label}</span>
               </button>
             );
           })}
@@ -4710,18 +4772,29 @@ export default function CookiMiner() {
       {showSettings && (
         <SettingsOverlay
           onClose={()=>setShowSettings(false)}
-          unlocked={unlocked}
-          activeTheme={activeTheme} setActiveTheme={setActiveTheme}
-          gameThemes={gameThemes} setGameThemes={setGameThemes}
           onReset={()=>{ resetProgress(); setShowSettings(false); }}
           install={installPrompt}
-          onOpenAbout={()=>setShowAbout(true)}
+          onOpenAbout={openAbout}
+          aboutIsNew={aboutIsNew}
           onOpenRestore={()=>setRestoreMode('replace')}
           onStartNewAccount={handleStartNewAccount}
           onOpenPromoCode={()=>setShowPromoCode(true)}
           onRestartTutorial={restartTutorial}
           userCode={userCode}
           restorePin={restorePin}
+          onOpenCollection={()=>{ playSound('tab'); setShowSettings(false); goToTab('collection'); }}
+          C={C}
+        />
+      )}
+
+      {/* MES SUCCÈS — sorti de l'Accueil en v1.30 (la grille y prenait la
+          moitié de l'écran le plus consulté). */}
+      {showAllAchievements && (
+        <AchievementsOverlay
+          onClose={()=>setShowAllAchievements(false)}
+          earnedAchievements={earnedAchievements}
+          unlocked={unlocked}
+          level={level}
           C={C}
         />
       )}
@@ -4823,7 +4896,7 @@ export default function CookiMiner() {
             setShowNewVersion(false);
             setLastSeenVersion(APP_INFO.version);
           }}
-          onOpenAbout={() => setShowAbout(true)}
+          onOpenAbout={openAbout}
           C={C}
         />
       )}
@@ -4872,8 +4945,10 @@ export default function CookiMiner() {
           onClose={()=>setShowProfile(false)}
           onOpenLevels={()=>{ setShowProfile(false); setShowLevels(true); }}
           onOpenSettings={()=>{ setShowProfile(false); setShowSettings(true); }}
+          onOpenCollection={()=>{ playSound('tab'); setShowProfile(false); goToTab('collection'); }}
+          onOpenAbout={openAbout}
           userName={userName} setUserName={setUserName}
-          userAvatar={userAvatar} setUserAvatar={setUserAvatar}
+          userAvatar={userAvatar}
           joinDate={joinDate}
           coins={coins} spendCoins={spendCoins}
           nameChangeCount={nameChangeCount} setNameChangeCount={setNameChangeCount}
@@ -4884,9 +4959,7 @@ export default function CookiMiner() {
           earnedAchievements={earnedAchievements} achievementsTotal={ACHIEVEMENTS.length}
           marketRealized={marketRealized}
           totalPlayTime={totalPlayTime}
-          activeTheme={activeTheme}
-          activeSkin={activeSkin}   setActiveSkin={setActiveSkin}
-          activeTitle={activeTitle} setActiveTitle={setActiveTitle}
+          activeTitle={activeTitle}
           onReset={()=>{ resetProgress(); setShowProfile(false); }}
           supabaseEnabled={isSupabaseEnabled()}
           supabaseSyncOk={!supabaseError}

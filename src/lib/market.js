@@ -13,17 +13,32 @@ import { isAdminName, notAdmin } from '../utils/admin.js';
    - getUserPortfolio(uc)  : portfolio d'un utilisateur (ou {0,0} par défaut)
    - buyShares(uc, n)      : achat — retourne { success, type, cost, ... }
    - sellShares(uc, n)     : vente — retourne { success, type, gained, profit, ... }
-   - maintenanceTick()     : inflation horaire + régression vers la moyenne
-                              + snapshot historique (idempotent : skip si <1h)
+   - maintenanceTick()     : circuit breaker + snapshot historique
+                              (ne touche PLUS au prix — cf. ci-dessous)
+
+   ⚠️ REFONTE DU 08/09/2026 — LE PRIX NE BOUGE QUE PAR LES JOUEURS.
+   Toutes les forces automatiques ont été retirées : plus d'inflation
+   quotidienne, plus de retour vers 100, plus de plafond doux, plus de
+   mean reversion. Le cours est désormais le produit exact des achats et
+   des ventes : prix = 500 × Π(1 ± IMPACT_PER_SHARE × n). Entre deux
+   transactions il ne se passe rien, et c'est voulu (décision Régis) —
+   une courbe plate est le prix à payer pour une courbe honnête.
+   Conséquence à connaître : rien ne ramène le prix vers une valeur de
+   confort. S'il monte, c'est que des joueurs ont acheté ; s'il s'effondre,
+   c'est que des joueurs ont vendu. La seule limite reste PRICE_MIN /
+   PRICE_MAX, et la masse de cookies en circulation dans le jeu.
 
    Toutes les fonctions sont safe en mode dégradé (Supabase off → return null
    ou {error:'Hors ligne'}). RLS permissive : la sécurité passe par le client.
 ═══════════════════════════════════════════════════════ */
 
 export const MARKET_CONFIG = {
-  PRICE_MIN: 10,
-  PRICE_MAX: 300,                 // Plafond du prix — le marché ne peut pas monter au-dessus, même si tous achètent (le calcul théorique donne ~270 si tous achètent, donc 300 est un peu au-dessus pour laisser une marge).
-  PRICE_INITIAL: 100,
+  /* Échelle du 08/09/2026 : l'action vaut 500 de base (avant : 100).
+     Les bornes suivent la même multiplication — un plafond resté à 300
+     aurait rendu le prix de base impossible à atteindre. */
+  PRICE_MIN: 100,                 // Plancher — 1/5 du prix de base. En dessous, l'action ne vaudrait plus rien et le marché n'aurait plus d'enjeu.
+  PRICE_MAX: 2500,                // Plafond — 5× le prix de base. Inatteignable en pratique (il faudrait ~1 600 actions achetées, soit 800 000 🍪, quand le jeu entier en contient 275 000), mais garde un garde-fou dur.
+  PRICE_INITIAL: 500,
   /* ⚠️ MAINTENANCE — quand true, le marché est fermé en permanence
      (au-delà des horaires habituels). Affiche "Marché en maintenance"
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.
@@ -43,61 +58,73 @@ export const MARKET_CONFIG = {
 
      Repasser à false pour rouvrir — rien d'autre à toucher. */
   CLOSED: true,
-  TOTAL_SHARES: 10000,           // 10× plus d'actions pour un marché vraiment profond. Cap PCT 0.05 = 500 actions max/user.
-  IMPACT_PER_SHARE: 0.0003,       // +0.03 % par action — impact triplé pour rendre l'offre/demande visible (avant 0.0001 → prix scotché à 100 même avec 2000 actions écoulées). 30 actions/tx = 0.9 % impact (sensible). Range théorique 5-700 (toutes achetées / toutes vendues), bornée par PRICE_MIN/PRICE_MAX et la mean reversion.
-  MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout)
-  DAILY_INFLATION: 0.001,         // +0.1% par jour
-  /* Plafond doux : au-dessus de HIGH_PRICE_THRESHOLD, le prix est tiré
-     vers le bas de HIGH_PRICE_DECAY_PER_DAY par jour (proportionnel au
-     temps écoulé). Empêche le prix de rester durablement très haut, sans
-     réintroduire de mean reversion en dessous du seuil — le marché
-     flotte librement tant qu'il ne dépasse pas 170. */
-  HIGH_PRICE_THRESHOLD:     170,
-  HIGH_PRICE_DECAY_PER_DAY: 1,    // -1 / jour quand le prix dépasse le seuil
-  MEAN_REVERSION_TARGET: 100,     // Prix cible (vestigial — reversion désactivée)
-  MEAN_REVERSION_RATE: 0,         // DÉSACTIVÉ (demande user 14/05/2026) — le prix ne revient plus vers 100. Le marché flotte librement, contraint uniquement par PRICE_MIN / PRICE_MAX. Remettre 0.10 pour réactiver.
-  MEAN_REVERSION_LOW: 30,         // (vestigial — non utilisé)
-  MEAN_REVERSION_HIGH: 700,       // (vestigial — non utilisé)
-  /* Réversion vers 100 (demande user 04/07/2026) : le prix « revient à
-     100 » de REVERT_PER_HOUR par heure — −10/h quand il est au-dessus de
-     100, +10/h quand il est en dessous —, sans jamais dépasser la cible.
-     Convergence LINÉAIRE (pas proportionnelle à la distance) : de 300 il
-     faut ~20 h pour revenir à 100, de 170 ~7 h. Domine de fait le plafond
-     doux (qui ne mordait qu'au-dessus de 170). Mettre REVERT_TO_100:false
-     pour laisser le marché flotter librement. */
-  REVERT_TO_100:   true,
-  REVERT_TARGET:   100,
-  REVERT_PER_HOUR: 10,
+  /* Profondeur ramenée à l'échelle réelle du jeu (08/09/2026) : à 500 🍪
+     l'action, les 275 000 🍪 que possèdent TOUS les comptes réunis ne
+     peuvent en acheter que ~550. Un flottant de 10 000 affichait « 9 785
+     actions disponibles » — un chiffre qui ne voulait plus rien dire.
+     ⚠️ market_state.total_shares_supply doit valoir la même chose en base
+     (c'est LUI qui alimente available_shares) — cf. SPLIT_MARCHE_500.sql. */
+  TOTAL_SHARES: 2000,             // Cap PCT 0.05 = 100 actions max/user, soit 50 000 🍪 — une limite qui mord enfin pour les gros portefeuilles.
+  IMPACT_PER_SHARE: 0.001,        // +0.1 % par action. Relevé (0.0003 → 0.001) parce que plus rien d'autre ne bouge la courbe : il faut qu'un ordre se VOIE. 30 actions/tx = 3 %, 100 actions = 10,5 %. Toutes les actions du flottant achetées = ×7,4 (borné par PRICE_MAX).
+  MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout via un pass premium)
   /* Circuit breaker auto : si le prix bouge de plus de
      CIRCUIT_BREAKER_THRESHOLD en CIRCUIT_BREAKER_WINDOW_MS, le marché
      se ferme automatiquement pendant CIRCUIT_BREAKER_PAUSE_MS.
-     Stocké via market_state.circuit_breaker_until (timestamptz, SQL). */
-  CIRCUIT_BREAKER_THRESHOLD:    0.15,           // 15 % de variation
+     Stocké via market_state.circuit_breaker_until (timestamptz, SQL).
+     Seuil relevé et pause raccourcie le 08/09/2026 : avec un impact à
+     0,1 %/action, 150 actions échangées en 5 min suffisaient à déclencher
+     l'ancien seuil de 15 %, et punir 1 h une journée animée à 7 traders
+     actifs, c'était fermer le marché pour l'avoir utilisé. */
+  CIRCUIT_BREAKER_THRESHOLD:    0.20,           // 20 % de variation
   CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
-  CIRCUIT_BREAKER_PAUSE_MS:     60 * 60 * 1000, // pause 1 h
-  /* Bonus de hold — multiplie la PnL POSITIVE à la vente selon la durée
-     de détention (timestamp pondéré par achats successifs). Récompense
-     les hodlers patients. Pertes inchangées (pas de bonus négatif). */
-  HOLD_BONUS_TIERS: [
-    { minMs:  7 * 24 * 3600 * 1000, bonus: 1.00, label: '1 semaine+' },  // +100 % (double profit)
-    { minMs: 24 * 3600 * 1000,      bonus: 0.30, label: '24 h+'      },  // +30 %
-    { minMs:  1 * 3600 * 1000,      bonus: 0.10, label: '1 h+'       },  // +10 %
-    { minMs:  0,                    bonus: 0,    label: '< 1 h'      },  // pas de bonus
-  ],
-  MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du total = 500 actions max par user (un whale n'influence le prix que de ~5 %)
-  MAX_SHARES_PER_TX:       30,    // Max 30 actions par tx (bypass possible via item premium "tout-acheter/vendre"). 30 actions = 0.9 % impact prix avec IPS triplé.
-  MAX_DAILY_VOLUME:        1000,  // Volume cumulé (achats + ventes) sur 24 h, ajusté à la nouvelle profondeur
+  CIRCUIT_BREAKER_PAUSE_MS:     30 * 60 * 1000, // pause 30 min
+  /* ⚠️ BONUS DE HOLD RETIRÉ le 08/09/2026 (demande Régis). Il multipliait
+     la plus-value positive par 1,1 / 1,3 / 2 selon la durée de détention
+     — donc il fabriquait des cookies par-dessus le marché, en dehors de
+     tout mouvement de prix. Vendre au même cours qu'à l'achat pouvait
+     rapporter. Dans un marché dont le cours n'obéit plus qu'à l'offre et
+     à la demande, le gain doit venir du cours et de rien d'autre.
+     `weighted_buy_at` reste écrit et sert toujours : il affiche la durée
+     de détention et alimente les frais de garde. */
+  MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du flottant = 100 actions max par user, soit 50 000 🍪 : personne ne peut à lui seul faire la pluie et le beau temps
+  MAX_SHARES_PER_TX:       30,    // Max 30 actions par tx (bypass possible via item premium "tout-acheter/vendre"). 30 actions = 3 % d'impact prix, et 15 000 🍪 à l'achat.
+  MAX_DAILY_VOLUME:        200,   // Volume cumulé (achats + ventes) sur 24 h et par joueur — 200 actions = 100 000 🍪, ramené à l'échelle du nouveau prix
   /* Cooldowns distincts par sens — anti-exploit pump-and-dump conservé,
      mais on assouplit l'achat-pur pour que le joueur puisse réagir au
      marché (DCA, ajout après une baisse) sans attendre 1 minute. */
   BUY_COOLDOWN_MS:  15_000,       // 15 s entre 2 achats consécutifs (assoupli — slippage symétrique + caps tx/jour suffisent à protéger)
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente, ET entre 2 ventes (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump)
   HISTORY_HOURS: 24,
-  SNAPSHOT_SECONDS: 5,            // un snapshot toutes les 5s (max — partagé entre clients)
+  SNAPSHOT_SECONDS: 1800,         // Battement de coeur : 1 point / 30 min (avant 5 s). Le prix ne bougeant plus tout seul, un point par minute ne faisait que gonfler market_history — 43 000 lignes pour une fenêtre d'un mois, rapatriées à chaque rafraîchissement. Les ordres posent leur propre point, et getMarketHistory ajoute une ancre à gauche et une queue à droite : la courbe reste juste avec très peu de relevés.
   /* Horaires d'ouverture (heure locale du joueur). Ouvert quand
      openHour ≤ heure < closeHour. closeHour = 24 → ferme à minuit pile. */
   HOURS: { openHour: 6, closeHour: 24 },
 };
+
+/* ── Ouverture forcée pour la mise au point (08/09/2026) ──────
+   Le marché reste FERMÉ pour les joueurs (MARKET_CONFIG.CLOSED), mais
+   on a besoin de l'ouvrir chez nous pour éprouver la nouvelle échelle
+   sur la vraie base : c'est le seul endroit où le prix, la profondeur
+   et le fil d'activité sont réels.
+
+   DEUX VERROUS, les deux obligatoires :
+     1. import.meta.env.DEV       → jamais dans un build de production,
+                                    donc jamais chez un joueur
+     2. VITE_MARKET_FORCE_OPEN=1  → dans .env.local, qui n'est pas
+                                    versionné (cf. .gitignore)
+   Autrement dit : impossible d'ouvrir le marché aux joueurs par
+   accident en oubliant de retirer une ligne avant de déployer. Pour
+   les rouvrir pour de bon, il faudra passer CLOSED à false, et c'est
+   un geste délibéré.
+
+   ⚠️ Ce que ça implique : les ordres passés ainsi sont de VRAIS ordres.
+   Ils bougent le vrai cours, consomment le vrai flottant et laissent
+   des lignes dans market_transactions. Nettoyer avec
+   RESET_APRES_ESSAIS.sql avant la réouverture. */
+const DEV_FORCE_OPEN = (() => {
+  try { return !!import.meta.env?.DEV && import.meta.env?.VITE_MARKET_FORCE_OPEN === '1'; }
+  catch { return false; }
+})();
 
 /* Statut du marché (ouvert / fermé) basé sur l'heure LOCALE du client.
    Retourne { open, nextChange, maintenance, circuitBreaker } où
@@ -108,7 +135,7 @@ export function getMarketStatus(now = new Date(), serverState = null) {
   /* Fermeture officielle : passe AVANT le circuit breaker, sinon un CB
      résiduel en base (il en traînait un jusqu'en 2126 suite à un UPDATE
      manuel raté) afficherait "réouverture à …" avec une date absurde. */
-  if (MARKET_CONFIG.CLOSED) {
+  if (MARKET_CONFIG.CLOSED && !DEV_FORCE_OPEN) {
     return { open: false, nextChange: null, maintenance: true, closed: true };
   }
   if (MARKET_CONFIG.MAINTENANCE_MODE) {
@@ -197,7 +224,51 @@ export async function getMarketHistory(rangeMinutes = MARKET_CONFIG.HISTORY_HOUR
     .select('price, recorded_at')
     .gte('recorded_at', since)
     .order('recorded_at', { ascending: true });
-  return (data || []).map(d => ({ ...d, price: parseFloat(d.price) }));
+
+  const rows = (data || []).map(d => ({ ...d, price: parseFloat(d.price) }));
+
+  /* Point d'ancrage (08/09/2026) : le dernier relevé AVANT la fenêtre.
+     Depuis que le prix ne bouge plus tout seul, une journée sans le
+     moindre ordre ne laisse presque aucun point — la vue « 1 h » d'un
+     marché calme se retrouvait vide, et affichait « aucune donnée »
+     alors que le cours existe et n'a simplement pas bougé. On repêche
+     donc la dernière valeur connue pour que la courbe démarre au bord
+     gauche, à plat. Sans lui, plus la fenêtre est large, plus le vide
+     est probable — c'est l'inverse de ce qu'on attend. */
+  if (rows.length < 2) {
+    const { data: before } = await supabase
+      .from('market_history')
+      .select('price, recorded_at')
+      .lt('recorded_at', since)
+      .order('recorded_at', { ascending: false })
+      .limit(1);
+    const anchor = (before || [])[0];
+    if (anchor) {
+      rows.unshift({
+        price: parseFloat(anchor.price),
+        /* On le date au bord de la fenêtre, pas à sa vraie date : sinon
+           un point vieux de trois semaines écraserait toute l'échelle
+           de temps d'une vue « 1 h ». */
+        recorded_at: since,
+      });
+    }
+  }
+
+  /* Point de queue : la courbe doit toucher le bord droit. Le battement
+     de coeur ne tombe qu'une fois par demi-heure, donc sans ça la ligne
+     s'arrêtait jusqu'à 30 minutes avant « maintenant » et donnait
+     l'impression d'un marché figé ou d'un bug. Le prix affiché est le
+     dernier connu — et c'est exactement la vérité : rien ne l'a bougé
+     depuis, sinon un ordre aurait posé son propre point. */
+  const lastRow = rows[rows.length - 1];
+  if (lastRow) {
+    const ageMs = Date.now() - new Date(lastRow.recorded_at).getTime();
+    if (ageMs > 60_000) {
+      rows.push({ price: lastRow.price, recorded_at: new Date().toISOString() });
+    }
+  }
+
+  return rows;
 }
 
 export async function getDailyVolume() {
@@ -216,16 +287,13 @@ export async function getDailyVolume() {
   return result;
 }
 
-/* Calcule le bonus de hold à partir d'un timestamp pondéré.
-   Retourne { tier, pct, label } — pct est le multiplicateur appliqué
-   à la PnL positive (0 si perte). */
-export function getHoldBonus(weightedBuyAt) {
-  if (!weightedBuyAt) return { tier: 0, pct: 0, label: '< 1 h' };
-  const holdMs = Date.now() - new Date(weightedBuyAt).getTime();
-  for (const t of MARKET_CONFIG.HOLD_BONUS_TIERS) {
-    if (holdMs >= t.minMs) return { holdMs, pct: t.bonus, label: t.label };
-  }
-  return { holdMs, pct: 0, label: '< 1 h' };
+/* Durée de détention, en millisecondes, depuis le timestamp pondéré par
+   les achats successifs. Purement informatif depuis le retrait du bonus
+   de hold : sert à afficher « détenu depuis 3 j » dans le portefeuille.
+   Retourne 0 si le portefeuille est antérieur à la colonne SQL. */
+export function getHoldDuration(weightedBuyAt) {
+  if (!weightedBuyAt) return 0;
+  return Math.max(0, Date.now() - new Date(weightedBuyAt).getTime());
 }
 
 /* Volume quotidien (24 h) d'UN user — pour le cap MAX_DAILY_VOLUME.
@@ -355,9 +423,17 @@ export async function getMyMarketRank(userCode) {
 export async function getMarketActivity(limit = 15) {
   if (!isSupabaseEnabled()) return [];
   try {
+    /* Fenêtre de 7 jours (08/09/2026) : le feed dit « ce qui vient de se
+       passer ». Sans borne, il ressortait les ordres d'il y a des semaines
+       — et après le passage à 500, il aurait affiché « a acheté 5 actions
+       à 100 » juste sous un cours à 500. Un feed vide est plus honnête
+       qu'un feed périmé. Les transactions restent en base (npm run audit
+       s'en sert), on ne fait que ne plus les afficher. */
+    const since = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
     const { data: txs } = await supabase
       .from('market_transactions')
       .select('user_code, type, shares, price_per_share, created_at')
+      .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(limit);
     if (!txs || txs.length === 0) return [];
@@ -461,92 +537,6 @@ export async function applyMarketRebalance10pct(userCode) {
   }
 }
 
-/* ════════════════════════════════════════════════════
-   applyHoldDecayIfDue — Decay continu 0.5 %/jour après 7 j de hold
-   ────────────────────────────────────────────────────
-   Mécanisme anti-thésaurisation : pousse les holders très longs à
-   vendre (ou trader) en grignotant leurs actions s'ils restent passifs.
-
-   Conditions cumulées pour appliquer :
-   - portfolio.shares >= 10 (sinon négligeable, on n'embête pas)
-   - weighted_buy_at présent ET hold >= 7 jours
-   - updated_at >= 24 h dans le passé (== aucune activité depuis 1 jour)
-
-   Le decay est proportionnel aux jours idle, cappé à 10 jours (5 %
-   max par session). updated_at est mis à jour → auto-throttle 24 h
-   pour la prochaine application.
-
-   Race condition : 2 tabs ouverts peuvent appliquer 2x en parallèle.
-   Accepté — l'écart reste minime (1-2 actions max), et la 2e appli
-   verra updated_at déjà mis à jour au tick suivant.
-
-   Retour : { sharesLost, daysIdle, newShares } ou null si rien à faire. */
-export async function applyHoldDecayIfDue(userCode) {
-  if (!isSupabaseEnabled() || !userCode) return null;
-  try {
-    const { data: portfolio } = await supabase
-      .from('market_portfolio')
-      .select('shares, total_invested, weighted_buy_at, updated_at')
-      .eq('user_code', userCode)
-      .maybeSingle();
-    if (!portfolio || !portfolio.shares || portfolio.shares < 10) return null;
-    if (!portfolio.weighted_buy_at || !portfolio.updated_at) return null;
-
-    const now = Date.now();
-    const SEVEN_DAYS = 7 * 24 * 3600 * 1000;
-    const ONE_DAY    = 24 * 3600 * 1000;
-
-    const holdMs = now - new Date(portfolio.weighted_buy_at).getTime();
-    if (holdMs < SEVEN_DAYS) return null;
-
-    const sinceUpdate = now - new Date(portfolio.updated_at).getTime();
-    if (sinceUpdate < ONE_DAY) return null;
-
-    /* Cap à 10 jours idle (5 % par session) — évite chocs énormes
-       au retour après plusieurs semaines d'absence. */
-    const daysIdle = Math.min(10, Math.floor(sinceUpdate / ONE_DAY));
-    const decayRate = 0.005; // 0.5 % / jour
-    const sharesLost = Math.floor(portfolio.shares * decayRate * daysIdle);
-    if (sharesLost < 1) return null;
-
-    const newShares = portfolio.shares - sharesLost;
-    const newInvested = newShares === 0
-      ? 0
-      : Math.floor((Number(portfolio.total_invested) || 0) * newShares / portfolio.shares);
-
-    const { error: pErr } = await supabase
-      .from('market_portfolio')
-      .update({
-        shares: newShares,
-        total_invested: newInvested,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_code', userCode);
-    if (pErr) return null;
-
-    /* Pool dispo : les shares decayed retournent à la circulation négative
-       (i.e. shares_in_circulation diminue → available augmente). */
-    const { data: state } = await supabase
-      .from('market_state')
-      .select('shares_in_circulation')
-      .eq('id', 1)
-      .maybeSingle();
-    if (state) {
-      await supabase
-        .from('market_state')
-        .update({
-          shares_in_circulation: Math.max(0, (Number(state.shares_in_circulation) || 0) - sharesLost),
-        })
-        .eq('id', 1);
-    }
-
-    return { sharesLost, daysIdle, newShares };
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('[market] applyHoldDecayIfDue error:', e);
-    return null;
-  }
-}
 
 /* ════════════════════════════════════════════════════
    getMarketPulse — Snapshot communautaire du marché sur 24 h
@@ -558,7 +548,7 @@ export async function applyHoldDecayIfDue(userCode) {
 
    Admin compté (cohérent avec getMarketTraderCount, pas de JOIN coûteux).
    Limite 5000 rows par sécurité — largement au-delà du volume réel
-   journalier (cap actuel : 1000 actions / 24 h / user × ~quelques dizaines
+   journalier (cap actuel : 200 actions / 24 h / user × ~quelques dizaines
    de traders). */
 export async function getMarketPulse() {
   if (!isSupabaseEnabled()) return null;
@@ -701,6 +691,16 @@ export async function buyShares(userCode, shares, options = {}) {
 
   if (updateErr) return { error: 'Erreur de mise à jour du marché' };
 
+  /* Point d'historique immédiat (08/09/2026) : depuis que le tick ne
+     touche plus au prix, un ordre est le SEUL événement qui bouge la
+     courbe. Sans ce snapshot, la marche d'escalier n'apparaîtrait qu'au
+     prochain battement de coeur — le joueur ne verrait pas son propre
+     achat pousser le cours. */
+  await supabase.from('market_history').insert({
+    price: newPrice,
+    shares_circulating: state.shares_in_circulation + shares,
+  });
+
   await supabase.from('market_transactions').insert({
     user_code: userCode,
     type: 'buy',
@@ -754,8 +754,13 @@ export async function buyShares(userCode, shares, options = {}) {
    avec la mécanique offre/demande. Pas d'impact sur le prix (pas de
    slippage appliqué). Pas d'enregistrement dans market_transactions
    (ce n'est pas un achat).
+
+   options.investedTotal : cookies réellement dépensés par le joueur pour
+   ces actions (packs boutique). Omis = cadeau → le prix de revient est
+   inscrit à la valeur de marché du jour. Voir le bloc ⚠️ plus bas :
+   sans base de coût, un cadeau devient une plus-value fantôme.
 ═══════════════════════════════════════════════════════ */
-export async function creditFreeShares(userCode, sharesToAdd) {
+export async function creditFreeShares(userCode, sharesToAdd, options = {}) {
   if (!isSupabaseEnabled()) return { success: false, error: 'Hors ligne' };
   if (!userCode || !sharesToAdd || sharesToAdd <= 0) return { success: false };
 
@@ -777,7 +782,7 @@ export async function creditFreeShares(userCode, sharesToAdd) {
     /* Incrémente shares_in_circulation pour cohérence */
     const { data: state } = await supabase
       .from('market_state')
-      .select('shares_in_circulation')
+      .select('shares_in_circulation, current_price')
       .eq('id', 1)
       .maybeSingle();
     if (state) {
@@ -787,14 +792,30 @@ export async function creditFreeShares(userCode, sharesToAdd) {
         .eq('id', 1);
     }
 
-    /* Upsert le portfolio (le total_invested reste inchangé puisque
-       l'utilisateur n'a rien dépensé pour ces actions). On set aussi
-       weighted_buy_at = now pour que ces actions aient un point de
-       départ pour le bonus de hold. */
+    /* ⚠️ PRIX DE REVIENT (corrigé le 08/09/2026) — avant, ces actions
+       arrivaient avec un total_invested inchangé, donc un prix de revient
+       de 0. Conséquence : les revendre comptait pour 100 % de plus-value,
+       et le bonus de hold (qui DOUBLE la plus-value au bout d'une semaine)
+       transformait un cadeau de 5 actions en deux fois sa valeur. C'est
+       ce qui a mis 214 400 🍪 de gains fantômes sous la réouverture du
+       marché, pour 107 200 🍪 d'actions rendues.
+
+       Désormais on inscrit toujours une base : le coût réel quand le
+       joueur a payé (options.investedTotal, cas des packs boutique), la
+       valeur de marché du jour sinon (cadeau, restitution, code promo).
+       Le joueur garde exactement la valeur qu'on lui donne — elle cesse
+       simplement d'être comptée comme un bénéfice qu'il aurait réalisé. */
+    const priceNow = Number(state?.current_price) || MARKET_CONFIG.PRICE_INITIAL;
+    const addedBasis = options.investedTotal != null
+      ? Math.max(0, Math.round(options.investedTotal))
+      : Math.round(priceNow * sharesToAdd);
+
+    /* weighted_buy_at = now : ces actions démarrent leur horloge de hold
+       aujourd'hui. */
     await supabase.from('market_portfolio').upsert({
       user_code: userCode,
       shares: newShares,
-      total_invested: Number(portfolio?.total_invested) || 0,
+      total_invested: (Number(portfolio?.total_invested) || 0) + addedBasis,
       updated_at: new Date().toISOString(),
       weighted_buy_at: new Date().toISOString(),
     }, { onConflict: 'user_code' });
@@ -951,13 +972,10 @@ export async function sellShares(userCode, shares, options = {}) {
   const ratio = shares / portfolio.shares;
   const investedReleased = portfolio.total_invested * ratio;
 
-  /* Bonus de hold : multiplie la PnL POSITIVE par le pct du tier
-     (calculé depuis weighted_buy_at). Pas de bonus sur les pertes.
-     Récompense les hodlers patients sans pénaliser les traders actifs. */
-  const profitRaw   = totalGainedRaw - investedReleased;
-  const holdBonus   = getHoldBonus(portfolio.weighted_buy_at);
-  const bonusAmount = profitRaw > 0 ? Math.floor(profitRaw * holdBonus.pct) : 0;
-  const totalGained = totalGainedRaw + bonusAmount;
+  /* Le produit de la vente, c'est le cours et rien d'autre (08/09/2026).
+     Le bonus de hold qui majorait ici la plus-value de 10 à 100 % a été
+     retiré : il créait des cookies sans qu'aucun prix n'ait bougé. */
+  const totalGained = totalGainedRaw;
 
   await supabase
     .from('market_state')
@@ -967,6 +985,13 @@ export async function sellShares(userCode, shares, options = {}) {
       last_updated: new Date().toISOString(),
     })
     .eq('id', 1);
+
+  /* Point d'historique immédiat — cf. buyShares : une vente est un des
+     deux seuls événements capables de faire bouger la courbe. */
+  await supabase.from('market_history').insert({
+    price: newPrice,
+    shares_circulating: state.shares_in_circulation - shares,
+  });
 
   await supabase.from('market_transactions').insert({
     user_code: userCode,
@@ -995,8 +1020,6 @@ export async function sellShares(userCode, shares, options = {}) {
     newPrice,
     sharesNow: newShares,
     profit: totalGained - investedReleased,
-    /* Détails du bonus pour l'UI : afficher 'Bonus hold +30 %' au toast */
-    holdBonus: { pct: holdBonus.pct, label: holdBonus.label, amount: bonusAmount },
   };
 }
 
@@ -1004,8 +1027,15 @@ export async function sellShares(userCode, shares, options = {}) {
 // MAINTENANCE — appelée fréquemment côté client (~15s)
 // Throttle global via market_state.last_inflation_at : un seul snapshot
 // est inséré par fenêtre de SNAPSHOT_SECONDS, peu importe combien de
-// clients sont connectés. Inflation + régression vers la moyenne en
-// même temps que le snapshot, proportionnelles au temps écoulé.
+// clients sont connectés.
+//
+// ⚠️ Depuis le 08/09/2026 ce tick NE TOUCHE PLUS AU PRIX. Il ne reste
+// que deux missions : surveiller le circuit breaker, et poser le
+// battement de coeur de la courbe (un point d'historique régulier, pour
+// que le graphe 1 h / 24 h ait une ligne à tracer même quand personne ne
+// trade). Le prix, lui, ne change que dans buyShares / sellShares.
+// La colonne last_inflation_at garde son nom pour ne pas casser le
+// schéma : elle signifie désormais « dernier snapshot ».
 // ═══════════════════════════════════════════
 let bootstrapChecked = false;  /* cache module-level — évite un count par tick */
 
@@ -1082,63 +1112,22 @@ export async function maintenanceTick() {
   const secondsSince = (now - lastInflation) / 1000;
 
   if (secondsSince < MARKET_CONFIG.SNAPSHOT_SECONDS) return;
-  const hoursSince = secondsSince / 3600;
 
-  let newPrice = state.current_price;
-
-  /* 1. Inflation par jour (proportionnelle au temps écoulé) */
-  const daysSince = hoursSince / 24;
-  newPrice = newPrice * (1 + MARKET_CONFIG.DAILY_INFLATION * daysSince);
-
-  /* 1b. Plafond doux : si le prix dépasse HIGH_PRICE_THRESHOLD, on le
-     tire vers le bas de HIGH_PRICE_DECAY_PER_DAY par jour (proportionnel
-     au temps écoulé). Le decay ne fait jamais passer SOUS le seuil — en
-     dessous de 170 le prix reste libre (les trades peuvent toujours l'y
-     emmener). */
-  if (newPrice > MARKET_CONFIG.HIGH_PRICE_THRESHOLD) {
-    newPrice = Math.max(
-      MARKET_CONFIG.HIGH_PRICE_THRESHOLD,
-      newPrice - MARKET_CONFIG.HIGH_PRICE_DECAY_PER_DAY * daysSince
-    );
-  }
-
-  /* 1c. Réversion vers 100 : convergence linéaire de REVERT_PER_HOUR par
-     heure vers REVERT_TARGET, sans overshoot (−10/h au-dessus de 100,
-     +10/h en dessous). Demande user 04/07/2026 — le marché « revient à
-     100 ». Proportionnelle au temps écoulé (hoursSince) → indépendante de
-     la fréquence de tick : la somme fait bien ±10 sur une heure. */
-  if (MARKET_CONFIG.REVERT_TO_100) {
-    const tgt  = MARKET_CONFIG.REVERT_TARGET;
-    const step = MARKET_CONFIG.REVERT_PER_HOUR * hoursSince;
-    if (newPrice > tgt)      newPrice = Math.max(tgt, newPrice - step);
-    else if (newPrice < tgt) newPrice = Math.min(tgt, newPrice + step);
-  }
-
-  /* 2. Mean reversion vers TARGET (100) — DÉSACTIVÉE (rate=0).
-     Le marché flotte librement, contraint uniquement par PRICE_MIN
-     et PRICE_MAX. Si MEAN_REVERSION_RATE > 0, on retombe sur l'ancien
-     comportement (correction ~50 % en 12 h vers 100).
-     Le calcul reste en place pour ne pas casser un futur revert. */
-  if (MARKET_CONFIG.MEAN_REVERSION_RATE > 0) {
-    const target   = MARKET_CONFIG.MEAN_REVERSION_TARGET;
-    const distance = target - newPrice;
-    newPrice += distance * MARKET_CONFIG.MEAN_REVERSION_RATE * hoursSince;
-  }
-
-  newPrice = Math.max(MARKET_CONFIG.PRICE_MIN, Math.min(MARKET_CONFIG.PRICE_MAX, newPrice));
+  /* Battement de coeur : on réinscrit le prix ACTUEL, inchangé. Aucune
+     force automatique n'existe plus — inflation, plafond doux, retour
+     vers 100 et mean reversion ont été retirés le 08/09/2026. Ce point
+     ne sert qu'à donner au graphe une ligne continue entre deux ordres :
+     sans lui, une journée sans transaction n'aurait aucun point à
+     tracer et la courbe apparaîtrait vide. */
+  const price = state.current_price;
 
   await supabase
     .from('market_state')
-    .update({
-      current_price: newPrice,
-      last_inflation_at: new Date().toISOString(),
-      last_updated: new Date().toISOString(),
-    })
+    .update({ last_inflation_at: new Date().toISOString() })
     .eq('id', 1);
 
-  /* 3. Snapshot historique */
   await supabase.from('market_history').insert({
-    price: newPrice,
+    price,
     shares_circulating: state.shares_in_circulation,
   });
 }

@@ -1,14 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   getMarketState, getMarketHistory, getMarketActivity, getMarketPulse,
-  getUserPortfolio, maintenanceTick, getMarketStatus,
+  getUserPortfolio, maintenanceTick, getMarketStatus, MARKET_CONFIG,
 } from '../../lib/market';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { MarketStateCard } from '../market/MarketStateCard.jsx';
 import { MarketChart } from '../market/MarketChart.jsx';
 import { MarketFeed } from '../market/MarketFeed.jsx';
-import { MarketPulse } from '../market/MarketPulse.jsx';
 import { PortfolioCard } from '../market/PortfolioCard.jsx';
 import { TradePanel } from '../market/TradePanel.jsx';
 import { MarketWelcomeModal } from '../market/MarketWelcomeModal.jsx';
@@ -17,16 +16,22 @@ import { useTranslation } from '../../i18n/index.js';
 /* ════════════════════════════════════════════════════
    MarketTab — onglet marché $CKM en ligne (Supabase)
    - Fetch initial + refresh auto toutes les 15s
-   - Maintenance (inflation + snapshot historique) toutes les 5 min
-     (idempotente côté lib si <1h depuis le dernier tick)
+   - Maintenance (circuit breaker + battement de coeur de la courbe) —
+     depuis le 08/09/2026 elle ne touche plus au prix : seuls les achats
+     et les ventes le font bouger
    - Au PREMIER accès : MarketWelcomeModal (3 étapes), flag persisté
    - onTradeSuccess(result) : applique l'effet sur les cookies (addCoins),
      incrémente le compteur de plus-value réalisée (badge Investisseur),
      puis refresh.
    - Mode dégradé : si Supabase off → message clair, pas de crash.
+
+   v1.30 — l'écran est réordonné autour de l'action : prix → courbe →
+   mon portefeuille → acheter/vendre → activité des autres. Le titre
+   « MARCHÉ » a sauté (l'onglet de nav le dit) et MarketPulse est monté
+   dans MarketFeed : les deux encarts répondaient à la même question.
 ═══════════════════════════════════════════════════════ */
 
-export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, onOpenActionsShop, C }) {
+export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingDisabled, bulkTradePasses = 0, onConsumeBulkPass, C }) {
   const { t } = useTranslation();
   const [state, setState] = useState(null);
   const [history, setHistory] = useState([]);
@@ -44,21 +49,18 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
     setWelcomeSeen(true);
   };
 
-  const refresh = useCallback(async () => {
+  /* Le vivant : prix, portefeuille, activité, variation du jour. Léger,
+     donc rapatrié souvent. La COURBE n'est pas là — cf. refreshChart. */
+  const refreshLive = useCallback(async () => {
     if (!isSupabaseEnabled()) return;
-    /* En parallèle : prix courant, courbe (fenêtre choisie), historique 24h
-       (sert au dayChange + au feed pour détecter les sauts), portfolio user,
-       activité globale récente (alimente le feed live). */
-    const [s, hRange, h24, p, act, pls] = await Promise.all([
+    const [s, h24, p, act, pls] = await Promise.all([
       getMarketState(),
-      getMarketHistory(chartRange),
       getMarketHistory(24 * 60),
       userCode ? getUserPortfolio(userCode) : Promise.resolve(null),
       getMarketActivity(15),
       getMarketPulse(),
     ]);
     setState(s);
-    setHistory(hRange);
     setActivity(act);
     setPulse(pls);
     setPortfolio(p);
@@ -74,21 +76,40 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
     } else {
       setDayChange(0);
     }
-  }, [userCode, chartRange]);
+  }, [userCode]);
+
+  const refreshChart = useCallback(async () => {
+    if (!isSupabaseEnabled()) return;
+    setHistory(await getMarketHistory(chartRange));
+  }, [chartRange]);
 
   useEffect(() => {
-    refresh();
+    refreshLive();
     maintenanceTick();
-    /* Maintenance + refresh à 5s pour matcher SNAPSHOT_SECONDS — courbe
-       très fluide en vue 1m (12 points/min). Le throttle global empêche
-       les doublons même avec plusieurs clients connectés. */
+    /* 5 s : c'est le délai pour voir l'ordre d'un autre joueur apparaître.
+       Le tick, lui, est throttlé côté lib à SNAPSHOT_SECONDS — on
+       l'appelle souvent, il ne fait rien la plupart du temps. Le throttle
+       est global : pas de doublon même avec plusieurs clients. */
     const tickInt = setInterval(maintenanceTick, 5 * 1000);
-    const refreshInt = setInterval(refresh, 5 * 1000);
+    const liveInt = setInterval(refreshLive, 5 * 1000);
     return () => {
       clearInterval(tickInt);
-      clearInterval(refreshInt);
+      clearInterval(liveInt);
     };
-  }, [refresh]);
+  }, [refreshLive]);
+
+  /* La courbe a son propre rythme, indexé sur la largeur de la fenêtre.
+     Rapatrier un mois de relevés toutes les 5 secondes, c'est des
+     dizaines de Mo par heure sur le forfait mobile du joueur — pour
+     redessiner une courbe qui, sur un mois, ne bouge pas à l'oeil entre
+     deux rafraîchissements. */
+  const CHART_MS = { 60: 5000, 1440: 15000, 10080: 60000, 43200: 60000 };
+  useEffect(() => {
+    refreshChart();
+    const every = CHART_MS[chartRange] || 15000;
+    const int = setInterval(refreshChart, every);
+    return () => clearInterval(int);
+  }, [refreshChart, chartRange]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Applique l'effet d'un trade réussi sur les cookies, puis remonte
      le résultat à App.jsx pour qu'il alimente les compteurs locaux
@@ -109,8 +130,11 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
       addCoins(result.gained, profit, { noMult: true });
     }
     if (onTradeComplete) onTradeComplete(result);
-    refresh();
-  }, [addCoins, onTradeComplete, refresh]);
+    /* Un ordre à soi doit se voir tout de suite, y compris sur une
+       fenêtre large qui ne se rafraîchit qu'à la minute. */
+    refreshLive();
+    refreshChart();
+  }, [addCoins, onTradeComplete, refreshLive, refreshChart]);
 
   /* Mode dégradé : Supabase indisponible */
   if (!isSupabaseEnabled()) {
@@ -138,51 +162,38 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
 
   return (
     <div style={{ padding: 16, paddingBottom: 100 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14, paddingTop:4 }}>
-        <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2 }}>{t('market.title')}</div>
-        <div style={{ fontSize:11, color:C.muted }}>{t('market.shared_subtitle')}</div>
-      </div>
-
-      {/* Bandeau Maintenance / Circuit Breaker — fond espresso sombre +
-          bord doré épais + halo doré pulsant pour attirer l'attention.
-          Palette café-only respectée (or + crème + espresso). */}
-      {/* Fermeture officielle (v1.29) — bandeau distinct de la maintenance :
-          pas de compte à rebours, pas de "réouverture bientôt". On dit
-          pourquoi c'est fermé et surtout que rien n'est perdu, sinon le
-          joueur qui a 300 actions croit qu'on les lui a confisquées. */}
+      {/* Bandeau Maintenance / Circuit Breaker — compacté en v1.30 : il
+          faisait 4 blocs de texte, un emoji de 44 px et un ruban diagonal,
+          alors que la carte de prix juste dessous affiche déjà le statut.
+          Une ligne suffit à dire pourquoi on ne peut pas trader. */}
+      {/* Fermeture officielle (v1.29, conservée en 1.30) — distincte de la
+          maintenance : pas de compte à rebours, pas de "réouverture
+          bientôt". On dit pourquoi c'est fermé et surtout que rien n'est
+          perdu, sinon le joueur qui a 300 actions croit qu'on les lui a
+          confisquées. Compacté au format 1.30 (une ligne + le rassurant). */}
       {marketStatus?.closed && (
         <div style={{
           background: 'linear-gradient(135deg, #2E1808 0%, #4A2A12 55%, #2E1808 100%)',
           border: '2px solid rgba(201,154,46,.55)',
-          borderRadius: 18,
-          padding: '22px 22px 18px',
-          marginBottom: 16,
-          textAlign: 'center',
+          borderRadius: 16,
+          padding: '13px 16px 14px',
+          marginBottom: 14,
         }}>
-          <div style={{ fontSize: 42, lineHeight: 1, marginBottom: 10 }}>🔒</div>
-          <div style={{
-            fontSize: 10, fontWeight: 800, color: 'rgba(255,232,154,.6)',
-            letterSpacing: 3, textTransform: 'uppercase', marginBottom: 7,
-          }}>
-            {t('market.closed_label')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+            <div style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>🔒</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 900, color: '#FFE066', marginBottom: 2 }}>
+                {t('market.closed_title')}
+              </div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,232,154,.78)', lineHeight: 1.45 }}>
+                {t('market.closed_desc')}
+              </div>
+            </div>
           </div>
           <div style={{
-            fontSize: 17, fontWeight: 900, color: '#FFE066',
-            letterSpacing: .3, marginBottom: 10,
-          }}>
-            {t('market.closed_title')}
-          </div>
-          <div style={{
-            fontSize: 12, fontWeight: 600, color: 'rgba(255,232,154,.72)',
-            lineHeight: 1.55, maxWidth: 320, margin: '0 auto 12px',
-          }}>
-            {t('market.closed_desc')}
-          </div>
-          <div style={{
-            fontSize: 11.5, fontWeight: 700, color: '#F3D9A4',
-            lineHeight: 1.5, background: 'rgba(0,0,0,.22)',
-            border: '1px solid rgba(201,154,46,.3)',
-            borderRadius: 12, padding: '10px 12px',
+            fontSize: 11.5, fontWeight: 700, color: '#F3D9A4', lineHeight: 1.45,
+            background: 'rgba(0,0,0,.22)', border: '1px solid rgba(201,154,46,.3)',
+            borderRadius: 11, padding: '9px 11px', marginTop: 11,
           }}>
             {t('market.closed_keep')}
           </div>
@@ -193,120 +204,54 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
         <div className="glow-anim" style={{
           background: 'linear-gradient(135deg, #3D2010 0%, #5C3317 50%, #3D2010 100%)',
           border: '2px solid #D4A017',
-          borderRadius: 18,
-          padding: '20px 22px',
-          marginBottom: 16,
-          textAlign: 'center',
-          position: 'relative',
-          overflow: 'hidden',
+          borderRadius: 16,
+          padding: '13px 16px',
+          marginBottom: 14,
+          display: 'flex', alignItems: 'center', gap: 13,
         }}>
-          {/* Bandeau décoratif diagonal "PAUSE" en arrière-plan */}
-          <div aria-hidden style={{
-            position: 'absolute',
-            top: -8, right: -40,
-            transform: 'rotate(20deg)',
-            background: 'rgba(212,160,23,.18)',
-            color: 'rgba(255,232,154,.35)',
-            padding: '4px 50px',
-            fontSize: 9,
-            fontWeight: 900,
-            letterSpacing: 4,
-            textTransform: 'uppercase',
-            pointerEvents: 'none',
-          }}>
-            {t('market.pause_label')}
-          </div>
-
-          <div style={{
-            fontSize: 44, lineHeight: 1, marginBottom: 8,
-            filter: 'drop-shadow(0 0 10px rgba(212,160,23,.7)) drop-shadow(0 2px 4px rgba(0,0,0,.4))',
-          }}>
+          <div style={{ fontSize: 26, lineHeight: 1, flexShrink: 0 }}>
             {marketStatus.circuitBreaker ? '⚡' : '🛠️'}
           </div>
-          <div style={{
-            fontSize: 11, fontWeight: 800, color: 'rgba(255,232,154,.7)',
-            letterSpacing: 3, textTransform: 'uppercase', marginBottom: 6,
-          }}>
-            {marketStatus.circuitBreaker ? t('market.cb_label') : t('market.maintenance_label')}
-          </div>
-          <div style={{
-            fontSize: 17, fontWeight: 900, color: '#FFE066',
-            letterSpacing: .3, marginBottom: 8,
-            textShadow: '0 0 12px rgba(212,160,23,.6)',
-          }}>
-            {marketStatus.circuitBreaker ? t('market.cb_title') : t('market.maintenance_title')}
-          </div>
-          <div style={{
-            fontSize: 12, fontWeight: 600, color: 'rgba(255,232,154,.78)',
-            lineHeight: 1.5, maxWidth: 320, margin: '0 auto',
-          }}>
-            {marketStatus.circuitBreaker ? t('market.cb_desc') : t('market.maintenance_desc')}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 900, color: '#FFE066', marginBottom: 2 }}>
+              {marketStatus.circuitBreaker ? t('market.cb_title') : t('market.maintenance_title')}
+            </div>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: 'rgba(255,232,154,.78)', lineHeight: 1.45 }}>
+              {marketStatus.circuitBreaker ? t('market.cb_desc') : t('market.maintenance_desc')}
+            </div>
           </div>
         </div>
       )}
 
+      {/* Ordre de lecture (v1.30) : le prix, la courbe, CE QUE JE POSSÈDE,
+          puis L'ACTION. Le panneau d'achat/vente — le seul endroit où l'on
+          fait quelque chose — était relégué après deux encarts sociaux.
+          Ceux-ci passent en pied de page, fusionnés en un seul. */}
       <MarketStateCard state={state} dayChange={dayChange} marketStatus={marketStatus} />
-      <MarketPulse pulse={pulse} C={C} />
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
-      <MarketFeed activity={activity} C={C} />
-      <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
-
-      {/* Accroche Boutique Actions — découvrabilité : un joueur dans le
-          Marché doit savoir qu'il peut dépenser ses actions $CKM en
-          cosmétiques exclusifs. Clic → onglet Boutique, sous-vue Actions. */}
-      {onOpenActionsShop && (() => {
-        const sh = Number(portfolio?.shares) || 0;
-        const ready = sh >= 500;
-        return (
-          <button
-            onClick={ready ? onOpenActionsShop : undefined}
-            disabled={!ready}
-            style={{
-              width:'100%', textAlign:'left', cursor: ready ? 'pointer' : 'default',
-              background:'linear-gradient(135deg, rgba(201,154,46,.16), rgba(139,90,43,.22))',
-              border:`1.5px solid ${ready ? '#C99A2E' : 'rgba(201,154,46,.45)'}`,
-              borderRadius:16, padding:'14px 16px', margin:'14px 0',
-              display:'flex', alignItems:'center', gap:14,
-              boxShadow: ready ? '0 4px 16px rgba(201,154,46,.28)' : 'none',
-              opacity: ready ? 1 : .85,
-            }}
-          >
-            <div style={{ fontSize:30, lineHeight:1, filter: ready ? 'none' : 'grayscale(.4)' }}>{ready ? '🏦' : '🔒'}</div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:13, fontWeight:800, color:C.text, marginBottom:2 }}>
-                {t('market.actions_shop_title')}
-              </div>
-              <div style={{ fontSize:11, color:C.muted, lineHeight:1.45 }}>
-                {ready
-                  ? t('market.actions_shop_ready')
-                  : t('market.actions_shop_progress', { have: sh, need: 500 })}
-              </div>
-            </div>
-            {ready && <div style={{ fontSize:18, color:'#C99A2E', fontWeight:900, lineHeight:1 }}>›</div>}
-          </button>
-        );
-      })()}
+      <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? MARKET_CONFIG.PRICE_INITIAL} C={C} />
 
       {/* Marché officiellement fermé : on retire le panneau d'échange au
           lieu de l'afficher grisé — le bandeau du haut a déjà tout dit,
           et un formulaire mort avec une heure de réouverture bidon
           (nextChange est null quand c'est une fermeture) ferait croire
-          à un bug. La Boutique Actions, elle, reste ouverte : les
-          actions gardent une utilité. */}
+          à un bug. */}
       {!marketStatus?.closed && (
-      <TradePanel
-        state={state}
-        portfolio={portfolio}
-        userCode={userCode}
-        coins={coins}
-        onTradeSuccess={handleTradeSuccess}
-        marketStatus={marketStatus}
-        tradingDisabled={tradingDisabled}
-        bulkTradePasses={bulkTradePasses}
-        onConsumeBulkPass={onConsumeBulkPass}
-        C={C}
-      />
+        <TradePanel
+          state={state}
+          portfolio={portfolio}
+          userCode={userCode}
+          coins={coins}
+          onTradeSuccess={handleTradeSuccess}
+          marketStatus={marketStatus}
+          tradingDisabled={tradingDisabled}
+          bulkTradePasses={bulkTradePasses}
+          onConsumeBulkPass={onConsumeBulkPass}
+          C={C}
+        />
       )}
+
+      <MarketFeed activity={activity} pulse={pulse} C={C} />
 
       {showWelcome && <MarketWelcomeModal onClose={closeWelcome} />}
     </div>

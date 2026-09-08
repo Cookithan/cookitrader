@@ -66,7 +66,12 @@ export function ClassementTab({ userCode, userName, userAvatar, earnedAchievemen
   const { t } = useTranslation();
   const enabled = isSupabaseEnabled();
   const isAdmin = isAdminName(userName);
-  const [mode, setMode] = useState('cookies'); /* 'cookies' | 'market' */
+  /* UN seul sélecteur à 3 segments (v1.30). Avant : deux barres de toggles
+     empilées (🍪 Cookies / 📈 Marché, puis Depuis le début / Cette semaine)
+     PLUS une ligne de titre qui répétait le segment actif. Trois niveaux
+     de navigation pour trois classements — ils tiennent sur une ligne.
+     Clé LS renommée : l'ancienne ne stockait que la sous-vue cookies. */
+  const [tab, setTab] = useLocalStorage('classementTab', 'alltime'); /* 'alltime' | 'weekly' | 'market' */
 
   /* Cas Supabase off : placeholder, pas de bots fictifs */
   if(!enabled){
@@ -89,14 +94,14 @@ export function ClassementTab({ userCode, userName, userAvatar, earnedAchievemen
   }
 
   return (
-    <div className="su" style={{ paddingTop:4, paddingBottom:8 }}>
-      <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:12 }}>{t('leaderboard.title')}</div>
+    <div className="su" style={{ paddingTop:8, paddingBottom:8 }}>
+      {/* Pas de titre « CLASSEMENT » : l'onglet de la barre de nav le dit
+          déjà, et il était suivi de deux toggles qui le redisaient. */}
+      <LeaderboardTabs tab={tab} setTab={setTab} C={C} />
 
-      {/* Toggle Cookies / Marché */}
-      <ModeToggle mode={mode} setMode={setMode} C={C} />
-
-      {mode === 'cookies' ? (
+      {tab !== 'market' ? (
         <CookiesView
+          view={tab}
           userCode={userCode}
           userName={userName}
           userAvatar={userAvatar}
@@ -124,12 +129,14 @@ export function ClassementTab({ userCode, userName, userAvatar, earnedAchievemen
   );
 }
 
-/* Toggle pill 2 segments. Style assorti aux toggles boutique
-   (fond carte, segment actif espresso/or). */
-function ModeToggle({ mode, setMode, C }){
+/* Sélecteur unique — les 3 classements de l'app sur une ligne.
+   Pas d'emoji dans les libellés : à 3 segments sur un écran de 360 px,
+   « Depuis le début » a besoin de toute la largeur disponible. */
+function LeaderboardTabs({ tab, setTab, C }){
   const segs = [
-    { id:'cookies', label:'🍪 Cookies' },
-    { id:'market',  label:'📈 Marché'  },
+    { id:'alltime', label:'Depuis le début' },
+    { id:'weekly',  label:'Cette semaine'  },
+    { id:'market',  label:'Marché'         },
   ];
   return (
     <div style={{
@@ -138,52 +145,18 @@ function ModeToggle({ mode, setMode, C }){
       background:C.card, border:`1px solid ${C.border}`,
     }}>
       {segs.map(s => {
-        const active = mode === s.id;
+        const active = tab === s.id;
         return (
           <button
             key={s.id}
-            onClick={()=>setMode(s.id)}
+            onClick={()=>setTab(s.id)}
             style={{
-              flex:1, padding:'10px 8px', borderRadius:10,
+              flex:1, minWidth:0, padding:'9px 4px', borderRadius:10,
               border:'none', cursor:'pointer',
               background: active ? ESPRESSO : 'transparent',
               color: active ? '#F0C050' : C.muted,
-              fontSize:12, fontWeight:800, letterSpacing:.5,
-              transition:'background .15s, color .15s',
-              touchAction:'manipulation', userSelect:'none',
-            }}>
-            {s.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/* Sous-toggle de la vue Cookies : cumul (défaut) / hebdo. */
-function CookiesSubToggle({ view, setView, C }){
-  const segs = [
-    { id:'alltime', label:'🏆 Depuis le début' },
-    { id:'weekly',  label:'📅 Cette semaine'  },
-  ];
-  return (
-    <div style={{
-      display:'flex', gap:4, marginBottom:14,
-      padding:4, borderRadius:14,
-      background:C.card, border:`1px solid ${C.border}`,
-    }}>
-      {segs.map(s => {
-        const active = view === s.id;
-        return (
-          <button
-            key={s.id}
-            onClick={()=>setView(s.id)}
-            style={{
-              flex:1, padding:'9px 8px', borderRadius:10,
-              border:'none', cursor:'pointer',
-              background: active ? ESPRESSO : 'transparent',
-              color: active ? '#F0C050' : C.muted,
-              fontSize:11.5, fontWeight:800, letterSpacing:.3,
+              fontSize:11.5, fontWeight:800, letterSpacing:'-.1px',
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
               transition:'background .15s, color .15s',
               touchAction:'manipulation', userSelect:'none',
             }}>
@@ -198,11 +171,10 @@ function CookiesSubToggle({ view, setView, C }){
 /* ════════════════════════════════════════════════════
    Vue Cookies — cumul (défaut) ou hebdo (weekly_earned)
 ═══════════════════════════════════════════════════════ */
-function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activeTitle, isAdmin, onOpenProfile, onOpenUserProfile, C }){
+function CookiesView({ view, userCode, userName, userAvatar, earnedAchievements, activeTitle, isAdmin, onOpenProfile, onOpenUserProfile, C }){
   const { t } = useTranslation();
-  /* Sous-vue : 'alltime' (cumul depuis le début — DÉFAUT) ou
-     'weekly' (classement hebdo + CF podium, inchangé). */
-  const [view, setView] = useLocalStorage('classementCookiesView', 'alltime');
+  /* `view` ('alltime' | 'weekly') est piloté par le sélecteur unique du
+     parent depuis la v1.30 — plus de sous-toggle interne. */
   const cacheKey = CACHE_KEY_COOKIES + ':' + view;
   const cached = loadCache(cacheKey);
   const [list,    setList]    = useState(cached?.list  ?? []);
@@ -318,13 +290,9 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
 
   return (
     <>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-        <div style={{
-          fontSize:10, fontWeight:800, color:C.muted, letterSpacing:1.5,
-          textTransform:'uppercase',
-        }}>
-          {view === 'alltime' ? '🏆 Depuis le début' : '📅 Cycle hebdo'}
-        </div>
+      {/* Compteurs seuls : le libellé qui était à gauche répétait mot pour
+          mot le segment actif du sélecteur, juste au-dessus. */}
+      <div style={{ display:'flex', justifyContent:'flex-end', alignItems:'center', marginBottom:10 }}>
         <div style={{ fontSize:11, fontWeight:600, color:C.muted, display:'flex', alignItems:'center', gap:8 }}>
           {online != null && online > 0 && (
             <span title={`${online} joueur${online>1?'s':''} actif${online>1?'s':''} dans les 3 dernières minutes`} style={{
@@ -347,16 +315,12 @@ function CookiesView({ userCode, userName, userAvatar, earnedAchievements, activ
         </div>
       </div>
 
-      {/* Sous-toggle : Depuis le début (cumul, défaut) / Cette semaine */}
-      <CookiesSubToggle view={view} setView={setView} C={C} />
-
+      {/* Une ligne au lieu d'une carte : la moitié du texte décrivait
+          l'onglet où l'on se trouve déjà. Ne reste que l'info non
+          évidente — c'est le classement HEBDO qui verse les ☕. */}
       {view === 'alltime' && (
-        <div style={{
-          fontSize:10.5, color:C.muted, lineHeight:1.4,
-          marginBottom:14, padding:'9px 12px', borderRadius:12,
-          background:C.card, border:`1px solid ${C.border}`,
-        }}>
-          🍪 Classement <strong style={{ color:C.text }}>depuis le début</strong> (cookies cumulés). Les ☕ se gagnent sur le podium <strong style={{ color:C.text }}>hebdomadaire</strong> → onglet « Cette semaine ».
+        <div style={{ fontSize:10.5, color:C.muted, lineHeight:1.45, marginBottom:12 }}>
+          Les ☕ se gagnent sur le podium de <strong style={{ color:C.text }}>Cette semaine</strong>.
         </div>
       )}
 

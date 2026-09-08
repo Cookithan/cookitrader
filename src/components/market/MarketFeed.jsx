@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { activityToFeedItem, formatRelativeTime } from '../../lib/marketFeed';
+import { MarketPulse } from './MarketPulse.jsx';
 import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
@@ -47,7 +48,7 @@ function FeedLine({ item, C, now, t }) {
   );
 }
 
-export function MarketFeed({ activity, C }) {
+export function MarketFeed({ activity, pulse = null, C }) {
   const { t } = useTranslation();
   /* Force re-render toutes les 30s pour rafraîchir les "il y a X min". */
   const [, forceRender] = useState(0);
@@ -56,10 +57,14 @@ export function MarketFeed({ activity, C }) {
     return () => clearInterval(id);
   }, []);
 
-  if (!activity || activity.length === 0) return null;
+  const hasLines = !!activity && activity.length > 0;
+  /* Même condition d'affichage que MarketPulse lui-même : sans ça, un
+     `pulse` à zéro laisserait une carte vide avec son seul en-tête. */
+  const hasPulse = !!pulse && ((pulse.activeTraders || 0) > 0 || (pulse.totalVolume || 0) > 0);
+  if (!hasLines && !hasPulse) return null;
 
   const now = Date.now();
-  const items = activity.map(activityToFeedItem).slice(0, 3);
+  const items = hasLines ? activity.map(activityToFeedItem).slice(0, 3) : [];
 
   return (
     <div style={{
@@ -68,7 +73,6 @@ export function MarketFeed({ activity, C }) {
       borderRadius: 12,
       padding: '6px 8px',
       marginBottom: 12,
-      marginTop: -4,
     }}>
       <div style={{
         fontSize: 9,
@@ -80,11 +84,14 @@ export function MarketFeed({ activity, C }) {
       }}>
         {t('feed.recent_activity')}
       </div>
-      <div>
-        {items.map(item => (
-          <FeedLine key={item.id} item={item} C={C} now={now} t={t} />
-        ))}
-      </div>
+
+      {/* Chiffres de la foule (24 h) puis les 3 derniers échanges — un seul
+          encart depuis la v1.30, les deux répondaient à la même question. */}
+      <MarketPulse pulse={hasPulse ? pulse : null} C={C} />
+
+      {items.map(item => (
+        <FeedLine key={item.id} item={item} C={C} now={now} t={t} />
+      ))}
     </div>
   );
 }

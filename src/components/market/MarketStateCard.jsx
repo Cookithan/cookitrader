@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/index.js';
+import { MARKET_CONFIG } from '../../lib/market';
 
 /* ════════════════════════════════════════════════════
-   MarketStateCard — bandeau prix + stock
-   - state    : { current_price, available_shares, total_shares_supply }
-   - dayChange: variation % vs il y a 24h (pour le label trend)
-   Trend = "Plus haut qu'hier" / "Plus bas qu'hier" / "Stable" — pas de %
-   affiché côté joueur (UX simplifiée). Bulle d'aide (?) explique la mécanique.
+   MarketStateCard — bandeau prix + rareté
+   - state    : { current_price, shares_in_circulation, total_shares_supply }
+   - dayChange: variation % vs il y a 24h
+   Trend = "Plus haut qu'hier" / "Plus bas qu'hier" / "Stable", suivi du
+   pourcentage réel. La jauge du bas montre la part du flottant DÉTENUE
+   par les joueurs : elle se remplit à mesure que la communauté accumule.
+   Bulle d'aide (?) explique la mécanique.
 ═══════════════════════════════════════════════════════ */
 
 function fmtHM(date) {
@@ -38,9 +41,14 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
     prevPriceRef.current = curr;
   }, [state?.current_price]);
 
-  const available = state?.available_shares ?? 0;
-  const total = state?.total_shares_supply ?? 1000;
-  const availablePct = (available / total) * 100;
+  const total = state?.total_shares_supply ?? MARKET_CONFIG.TOTAL_SHARES;
+  const held  = state?.shares_in_circulation ?? 0;
+  /* Jauge inversée le 08/09/2026 : on montre ce que la communauté
+     DÉTIENT, pas ce qui reste en rayon. À 2 000 actions de flottant, la
+     barre « disponibles » était pleine à 89 % en permanence et ne
+     racontait rien. Remplie par les achats, elle raconte la raréfaction
+     — exactement l'objectif de la refonte. */
+  const heldPct = Math.max(0, Math.min(100, (held / Math.max(total, 1)) * 100));
 
   let trendText, trendColor, arrow;
   if (dayChange > 1) {
@@ -50,6 +58,10 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
   } else {
     trendText = t('market_card.stable'); trendColor = 'rgba(255,255,255,0.7)'; arrow = '→';
   }
+  /* Le chiffre, en plus de la phrase. Il avait été retiré par souci de
+     simplicité ; dans un marché qui n'obéit plus qu'aux joueurs, la
+     variation du jour EST l'information. */
+  const showPct = Number.isFinite(dayChange) && Math.abs(dayChange) >= 0.1;
 
   return (
     <div style={{
@@ -59,7 +71,20 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
       color: '#fff',
       marginBottom: 12,
       boxShadow: '0 8px 24px rgba(74,44,23,.35)',
+      /* relative + overflow:hidden : sans les deux, le reflet balaierait
+         par-dessus les cartes voisines au lieu de rester dans les coins
+         arrondis de la bannière. */
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {/* Lueur chaude qui enfle et retombe (7 s), puis reflet qui balaie
+          la bannière (5 s). Mêmes animations que la carte de niveau de
+          l'Accueil — c'est le même objet : une plaque brune qui doit
+          accrocher la lumière au lieu de rester un aplat. Transform et
+          opacity seulement : composité GPU, aucun reflow. */}
+      <div className="card-warm" aria-hidden />
+      <div className="card-sheen" aria-hidden />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 2 }}>
@@ -78,8 +103,18 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
             </span>
             <span style={{ fontSize: 18, color: 'rgba(212,160,23,0.7)', marginLeft: 6 }}>🍪</span>
           </div>
-          <div style={{ fontSize: 13, color: trendColor, marginTop: 4, fontWeight: 700 }}>
-            {arrow} {trendText}
+          <div style={{ fontSize: 13, color: trendColor, marginTop: 5, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span>{arrow} {trendText}</span>
+            {showPct && (
+              <span style={{
+                fontSize: 11, fontWeight: 900, letterSpacing: .2,
+                background: 'rgba(0,0,0,.22)',
+                border: `1px solid ${dayChange > 0 ? 'rgba(240,192,80,.45)' : 'rgba(168,128,96,.45)'}`,
+                borderRadius: 8, padding: '2px 7px', whiteSpace: 'nowrap',
+              }}>
+                {dayChange > 0 ? '+' : ''}{dayChange.toFixed(1)} % <span style={{ opacity: .65, fontWeight: 700 }}>{t('market_card.over_24h')}</span>
+              </span>
+            )}
           </div>
         </div>
         {(() => {
@@ -126,7 +161,7 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>
-              💎 {t('market_card.available_shares')}
+              💎 {t('market_card.held_shares')}
             </span>
             <button
               onClick={() => setShowHelp(!showHelp)}
@@ -140,14 +175,16 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
               }}
             >?</button>
           </div>
-          <span style={{ color: '#D4A017', fontWeight: 700, fontSize: 11 }}>
-            {available.toLocaleString()} / {total.toLocaleString()}
+          <span style={{ color: '#D4A017', fontWeight: 800, fontSize: 11 }}>
+            {held.toLocaleString('fr-FR')} <span style={{ opacity: .6, fontWeight: 700 }}>/ {total.toLocaleString('fr-FR')}</span>
           </span>
         </div>
         <div style={{ height: 8, background: 'rgba(0,0,0,0.3)', borderRadius: 4, overflow: 'hidden' }}>
           <div style={{
             height: '100%',
-            width: `${availablePct}%`,
+            /* Minimum visible : à 11 % de flottant détenu, une barre
+               strictement proportionnelle ressemble à une barre vide. */
+            width: `${Math.max(heldPct, 2)}%`,
             background: 'linear-gradient(90deg, #C17F3C, #D4A017)',
             borderRadius: 4,
             transition: 'width 0.5s ease',
