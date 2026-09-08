@@ -1168,7 +1168,7 @@ export const FR = {
   report: {
     title:         'Sentinelle',
     section:       'Un problème ?',
-    settings_sub:  'Signale un bug, ou souffle une idée à Cookithan',
+    settings_sub:  'Elle surveille, elle répond, elle agit',
     badge:         '{n} en attente',
     guest:         'mode invité',
     hero_title:    'Un souci ? Dis-le.',

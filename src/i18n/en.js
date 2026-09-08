@@ -1142,7 +1142,7 @@ export const EN = {
   report: {
     title:         'Sentinel',
     section:       'A problem?',
-    settings_sub:  'Report a bug, or drop an idea for Cookithan',
+    settings_sub:  'It watches, it answers, it acts',
     badge:         '{n} waiting',
     guest:         'guest mode',
     hero_title:    'Something wrong? Say it.',

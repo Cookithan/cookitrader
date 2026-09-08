@@ -299,10 +299,12 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
                 </div>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>{t('report.title')}</div>
+                  {/* La même phrase pour tout le monde. Elle décrit la
+                      Sentinelle, pas ce que le lecteur a le droit d'y
+                      faire — un joueur n'a donc pas besoin d'une version
+                      au rabais, et il n'y a plus qu'un texte à tenir. */}
                   <div style={{ fontSize:11, color:'rgba(14,51,85,.68)', marginTop:2, lineHeight:1.4 }}>
-                    {sentinelleAdmin
-                      ? 'Elle surveille, elle répond, elle agit'
-                      : t('report.settings_sub')}
+                    {t('report.settings_sub')}
                   </div>
                 </div>
               </div>
