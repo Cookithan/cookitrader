@@ -65,12 +65,30 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
     [chemin],
   );
 
+  /* Le placeholder du champ de message, hérité du choix le plus précis.
+     Il passe par localizedField comme les libellés : c'est lui qui
+     montre ce qu'on attend, et le laisser en français dans une app en
+     anglais le rendrait muet pour ceux qui en ont le plus besoin. */
   const exemple = useMemo(() => {
     for (let i = chemin.length - 1; i >= 0; i--) {
-      if (chemin[i].exemple) return chemin[i].exemple;
+      const ex = localizedField(chemin[i], 'exemple');
+      if (ex) return ex;
     }
     return t('report.message_hint');
   }, [chemin, t]);
+
+  /* Le texte d'un refus. La base renvoie un CODE stable, jamais
+     affiché ; l'app choisit la phrase, dans la langue du joueur. Le
+     message français reste en secours : si un code n'était pas prévu
+     ici, mieux vaut une phrase française qu'un écran muet. t() renvoie
+     `[cle]` quand la clé manque — c'est ce qu'on teste. */
+  const texteRefus = (res) => {
+    if (res?.code) {
+      const traduit = t(`report.err_${res.code}`);
+      if (!traduit.startsWith('[')) return traduit;
+    }
+    return res?.message || t('report.err_reseau');
+  };
 
   const choisir = (noeud) => { setChemin(c => [...c, noeud]); setRetour(null); };
   const revenir = (n)     => { setChemin(c => c.slice(0, n)); setRetour(null); };
@@ -81,7 +99,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
   const envoyer = async () => {
     if (envoi) return;
     if (message.trim().length < 5) {
-      setRetour({ ok: false, message: t('report.too_short') });
+      setRetour({ ok: false, code: 'trop_court' });
       return;
     }
     setEnvoi(true);
@@ -343,7 +361,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                     background:'rgba(30,80,125,.12)', border:'1.5px solid rgba(14,51,85,.4)',
                     fontSize:12.5, fontWeight:700, color:SENTINELLE_MARINE, lineHeight:1.5,
                   }}>
-                    ⛔ {retour.message}
+                    ⛔ {texteRefus(retour)}
                   </div>
                 )}
 

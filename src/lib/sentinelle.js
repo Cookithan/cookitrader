@@ -836,12 +836,22 @@ function manquePeutEtre(error, quoi) {
     : `Erreur ${quoi} : ${error?.message || 'inconnue'}`;
 }
 
+/* Le code de refus qui va avec, pour que l'écran choisisse SA phrase.
+   La base ne connaît pas la langue du joueur, et la lui envoyer
+   obligerait à maintenir les traductions à deux endroits. */
+function codeErreur(error) {
+  return /function|does not exist|schema cache/i.test(error?.message || '')
+    ? 'pas_installe'
+    : 'reseau';
+}
+
 /* Envoyer — ouvert à tout le monde. Les freins (une minute entre deux,
    huit par jour, trois cents par heure) vivent en base : les mettre ici
    ne protégerait de rien, le client est réécrivable. */
 export async function envoyerSignalement({ userCode, userName, categorie, chemin, message, contexte }) {
   if (!isSupabaseEnabled()) {
-    return { ok: false, message: "Pas de connexion : le signalement ne peut pas partir. Réessaie une fois en ligne." };
+    return { ok: false, code: 'hors_ligne',
+      message: "Pas de connexion : le signalement ne peut pas partir. Réessaie une fois en ligne." };
   }
   try {
     const { data, error } = await supabase.rpc('envoyer_signalement', {
@@ -853,10 +863,10 @@ export async function envoyerSignalement({ userCode, userName, categorie, chemin
       p_message:     message,
       p_contexte:    contexte || {},
     });
-    if (error) return { ok: false, message: manquePeutEtre(error, "d'envoi") };
-    return data || { ok: false, message: 'Réponse vide' };
+    if (error) return { ok: false, code: codeErreur(error), message: manquePeutEtre(error, "d'envoi") };
+    return data || { ok: false, code: 'reseau', message: 'Réponse vide' };
   } catch (e) {
-    return { ok: false, message: `Erreur : ${e.message}` };
+    return { ok: false, code: 'reseau', message: `Erreur : ${e.message}` };
   }
 }
 

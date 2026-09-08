@@ -1181,7 +1181,20 @@ export const FR = {
     attached:      'Ton pseudo, ton code de compte, ton niveau et ta version partent automatiquement — tu n’as rien à recopier.',
     send:          'Envoyer',
     sending:       'Envoi…',
-    too_short:     'Écris au moins une phrase : sans description, personne ne pourra reproduire le problème.',
+    /* ── Les refus ────────────────────────────────
+       La base renvoie un CODE stable (jamais affiché) et l'app choisit
+       la phrase : sans ça, un joueur en anglais recevait « Attends une
+       minute entre deux signalements », et un refus qu'on ne comprend
+       pas, c'est quelqu'un qui croit l'app cassée et n'essaie plus. */
+    err_trop_court:  'Écris au moins une phrase : sans description, personne ne pourra reproduire le problème.',
+    err_trop_long:   'Message trop long : 1200 caractères maximum.',
+    err_incomplet:   'Signalement incomplet — reprends depuis le début.',
+    err_sature:      'La boîte reçoit trop de messages en ce moment. Réessaie dans un moment.',
+    err_trop_vite:   'Attends une minute entre deux signalements.',
+    err_quota_jour:  'Tu as déjà envoyé 8 signalements aujourd\u2019hui. Reviens demain.',
+    err_hors_ligne:  'Pas de connexion : le signalement ne peut pas partir. Réessaie une fois en ligne.',
+    err_pas_installe:'La boîte aux lettres n\u2019est pas encore installée. Préviens Cookithan.',
+    err_reseau:      'Ça n\u2019est pas parti. Réessaie dans un instant.',
     sent_title:    'Reçu, merci.',
     sent_sub:      'Ton signalement est arrivé dans la boîte de la Sentinelle.',
     recap:         'Ce que tu as signalé',
