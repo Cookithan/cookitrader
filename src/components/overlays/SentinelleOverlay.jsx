@@ -436,66 +436,57 @@ function PanneauDemander({ onUtiliserCode, C }) {
   const [texte, setTexte]     = useState('');
   const [joueurs, setJoueurs] = useState([]);
   const [reponse, setReponse] = useState(null);
-  const [charge, setCharge]   = useState(true);
   const [copie, setCopie]     = useState(null);
 
-  useEffect(() => {
-    tousLesJoueurs().then(j => { setJoueurs(j); setCharge(false); });
-  }, []);
-
-  useEffect(() => {
-    if (!texte.trim()) { setReponse(null); return; }
-    let annule = false;
-    demander(texte, joueurs).then(r => { if (!annule) setReponse(r); });
-    return () => { annule = true; };
-  }, [texte, joueurs]);
+  useEffect(() => { tousLesJoueurs().then(setJoueurs); }, []);
 
   const copier = async (code) => {
     try { await navigator.clipboard.writeText(code); setCopie(code); setTimeout(() => setCopie(null), 1500); }
     catch { /* pas de presse-papier : le code reste lisible à l'écran */ }
   };
 
-  /* La liste se filtre en même temps que la question se pose : tant
-     qu'on n'a pas trouvé, on voit les candidats. */
-  const filtres = texte.trim()
-    ? joueurs.filter(j =>
-        `${j.user_name} ${j.user_code}`.toLowerCase().includes(texte.trim().toLowerCase()))
-    : joueurs;
+  const repondre = async (q) => {
+    setTexte(q);
+    setReponse(await demander(q, joueurs));
+  };
+
+  /* Les propositions n'apparaissent QU'EN TAPANT. Un écran vide avec une
+     seule barre ne demande rien à personne ; la même page couverte de
+     listes force à lire avant de pouvoir chercher. */
+  const t = texte.trim().toLowerCase();
+  const questions = t
+    ? EXEMPLES.filter(e => e.texte.toLowerCase().includes(t) || t.length < 3)
+    : [];
+  const trouves = t
+    ? joueurs.filter(j => `${j.user_name} ${j.user_code}`.toLowerCase().includes(t)).slice(0, 8)
+    : [];
 
   return (
     <>
       <input
         value={texte}
-        onChange={e => setTexte(e.target.value)}
-        placeholder="un pseudo, un code, ou une question…"
+        onChange={e => { setTexte(e.target.value); setReponse(null); }}
+        onKeyDown={e => {
+          if (e.key !== 'Enter') return;
+          if (trouves.length) repondre(trouves[0].user_name);
+          else if (questions.length) repondre(questions[0].texte);
+          else repondre(texte);
+        }}
+        placeholder="chercher un joueur, ou poser une question…"
         style={{
           width:'100%', boxSizing:'border-box',
           background:C.card, border:`1.5px solid ${C.border}`, borderRadius:14,
-          padding:'14px 15px', fontSize:14.5, color:C.text, marginBottom:10,
+          padding:'14px 15px', fontSize:14.5, color:C.text,
         }}
       />
 
-      {!texte.trim() && (
-        <div style={{ display:'flex', flexWrap:'wrap', gap:7, marginBottom:16 }}>
-          {EXEMPLES.map(ex => (
-            <button
-              key={ex.id}
-              onPointerDown={() => setTexte(ex.texte)}
-              style={{
-                padding:'8px 12px', borderRadius:11, background:C.card,
-                border:`1px solid ${C.border}`, color:C.muted, fontSize:11.5, fontWeight:700,
-                touchAction:'manipulation',
-              }}
-            >{ex.texte}</button>
-          ))}
-        </div>
-      )}
-
+      {/* La réponse, quand il y en a une */}
       {reponse && (
         <div style={{
+          marginTop:12,
           background: reponse.type === 'inconnu' ? C.card : 'rgba(212,160,23,.10)',
           border:`1.5px solid ${reponse.type === 'inconnu' ? C.border : 'rgba(212,160,23,.4)'}`,
-          borderRadius:16, padding:'14px 15px', marginBottom:16,
+          borderRadius:16, padding:'14px 15px',
         }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
             <div style={{ flex:1, fontSize:15, fontWeight:900, color:C.text, lineHeight:1.3 }}>
@@ -509,7 +500,7 @@ function PanneauDemander({ onUtiliserCode, C }) {
                   background:'rgba(212,160,23,.18)', border:'1.5px solid rgba(212,160,23,.45)',
                   color:OR, fontSize:11.5, fontWeight:800,
                 }}
-              >{copie === reponse.code ? 'copié ✓' : 'copier le code'}</button>
+              >{copie === reponse.code ? 'copié ✓' : 'copier'}</button>
             )}
           </div>
           <div style={{ fontSize:12.5, color:C.text, lineHeight:1.8 }}>
@@ -528,22 +519,35 @@ function PanneauDemander({ onUtiliserCode, C }) {
         </div>
       )}
 
-      <Section C={C}>
-        {texte.trim() ? `${filtres.length} joueur(s) trouvé(s)` : `Tous les joueurs (${joueurs.length})`}
-      </Section>
+      {/* Les propositions, tant qu'on n'a pas choisi */}
+      {!reponse && t && (
+        <div style={{ marginTop:10 }}>
+          {questions.map(q => (
+            <button
+              key={q.id}
+              onPointerDown={() => repondre(q.texte)}
+              style={{
+                width:'100%', textAlign:'left', marginBottom:7,
+                background:C.card, border:`1px solid ${C.border}`, borderRadius:12,
+                padding:'12px 14px', cursor:'pointer',
+                display:'flex', alignItems:'center', gap:10,
+              }}
+            >
+              <span style={{ fontSize:14 }}>💬</span>
+              <span style={{ flex:1, fontSize:13, fontWeight:700, color:C.text }}>{q.texte}</span>
+              <span style={{ fontSize:13, color:C.muted }}>›</span>
+            </button>
+          ))}
 
-      {charge ? (
-        <div style={{ fontSize:12.5, color:C.muted, padding:'6px 2px' }}>Lecture…</div>
-      ) : (
-        <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, overflow:'hidden' }}>
-          {filtres.slice(0, 60).map((j, i) => (
+          {trouves.map(j => (
             <button
               key={j.user_code}
-              onPointerDown={() => copier(j.user_code)}
+              onPointerDown={() => repondre(j.user_name)}
               style={{
-                width:'100%', textAlign:'left', background:'none', border:'none',
-                borderBottom: i === Math.min(filtres.length, 60) - 1 ? 'none' : `1px solid ${C.border}`,
-                padding:'11px 14px', display:'flex', alignItems:'center', gap:11, cursor:'pointer',
+                width:'100%', textAlign:'left', marginBottom:7,
+                background:C.card, border:`1px solid ${C.border}`, borderRadius:12,
+                padding:'11px 14px', cursor:'pointer',
+                display:'flex', alignItems:'center', gap:10,
               }}
             >
               <span style={{ flex:1, minWidth:0 }}>
@@ -555,19 +559,25 @@ function PanneauDemander({ onUtiliserCode, C }) {
                 </span>
               </span>
               <span style={{
-                flexShrink:0, fontSize:11.5, fontWeight:800,
-                color: copie === j.user_code ? OR : C.muted,
+                flexShrink:0, fontSize:11.5, fontWeight:800, color:C.muted,
                 fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace',
-              }}>
-                {copie === j.user_code ? 'copié ✓' : j.user_code}
-              </span>
+              }}>{j.user_code}</span>
             </button>
           ))}
-          {filtres.length > 60 && (
-            <div style={{ padding:'11px 14px', fontSize:11.5, color:C.muted }}>
-              … et {filtres.length - 60} autres. Affine ta recherche.
+
+          {!questions.length && !trouves.length && (
+            <div style={{ fontSize:12.5, color:C.muted, padding:'10px 2px', lineHeight:1.6 }}>
+              Aucun joueur ni question ne correspond. Tape moins de lettres,
+              ou appuie sur Entrée pour voir ce que je sais faire.
             </div>
           )}
+        </div>
+      )}
+
+      {!t && (
+        <div style={{ fontSize:11.5, color:C.muted, marginTop:12, lineHeight:1.6, padding:'0 2px' }}>
+          Un pseudo, un code de compte, ou une question — les propositions
+          apparaissent dès la première lettre.
         </div>
       )}
     </>
@@ -809,6 +819,7 @@ export function SentinelleOverlay({ onClose, C }) {
   const [ignores, setIgnores]       = useState([]);
   const [message, setMessage]       = useState(null);
   const [resultatRonde, setResultatRonde] = useState(null);
+  const [voirRanges, setVoirRanges]  = useState(false);
 
   const charger = useCallback(async () => {
     setChargement(true);
@@ -1117,8 +1128,25 @@ export function SentinelleOverlay({ onClose, C }) {
                 les chiffres bougent. */}
             {ranges.length > 0 && (
               <>
-                <Section C={C}>Classés sans suite</Section>
-                {ranges.map((r, i) => {
+                {/* Replié par défaut : ce qu'on a déjà jugé normal n'a
+                    pas à occuper la place de ce qui reste à traiter.
+                    C'est justement pour ça qu'on l'a classé. */}
+                <button
+                  onPointerDown={() => setVoirRanges(v => !v)}
+                  style={{
+                    width:'100%', textAlign:'left', marginTop:18,
+                    background:'none', border:'none', padding:'6px 2px', cursor:'pointer',
+                    display:'flex', alignItems:'center', gap:8,
+                    fontSize:11, fontWeight:800, color:C.muted,
+                    textTransform:'uppercase', letterSpacing:2,
+                  }}
+                >
+                  <span>{ranges.length} classé{ranges.length > 1 ? 's' : ''} sans suite</span>
+                  <span style={{ letterSpacing:0, textTransform:'none', fontWeight:700, opacity:.8 }}>
+                    {voirRanges ? '— masquer' : '— voir'}
+                  </span>
+                </button>
+                {voirRanges && ranges.map((r, i) => {
                   const sig = signatureConstat(r);
                   const info = ignores.find(x => x.signature === sig);
                   return (
