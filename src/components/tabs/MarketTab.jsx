@@ -49,21 +49,18 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
     setWelcomeSeen(true);
   };
 
-  const refresh = useCallback(async () => {
+  /* Le vivant : prix, portefeuille, activité, variation du jour. Léger,
+     donc rapatrié souvent. La COURBE n'est pas là — cf. refreshChart. */
+  const refreshLive = useCallback(async () => {
     if (!isSupabaseEnabled()) return;
-    /* En parallèle : prix courant, courbe (fenêtre choisie), historique 24h
-       (sert au dayChange + au feed pour détecter les sauts), portfolio user,
-       activité globale récente (alimente le feed live). */
-    const [s, hRange, h24, p, act, pls] = await Promise.all([
+    const [s, h24, p, act, pls] = await Promise.all([
       getMarketState(),
-      getMarketHistory(chartRange),
       getMarketHistory(24 * 60),
       userCode ? getUserPortfolio(userCode) : Promise.resolve(null),
       getMarketActivity(15),
       getMarketPulse(),
     ]);
     setState(s);
-    setHistory(hRange);
     setActivity(act);
     setPulse(pls);
     setPortfolio(p);
@@ -79,23 +76,40 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
     } else {
       setDayChange(0);
     }
-  }, [userCode, chartRange]);
+  }, [userCode]);
+
+  const refreshChart = useCallback(async () => {
+    if (!isSupabaseEnabled()) return;
+    setHistory(await getMarketHistory(chartRange));
+  }, [chartRange]);
 
   useEffect(() => {
-    refresh();
+    refreshLive();
     maintenanceTick();
-    /* Refresh à 5 s : c'est le délai pour VOIR l'ordre d'un autre joueur
-       apparaître sur la courbe. Le tick, lui, est throttlé côté lib à
-       SNAPSHOT_SECONDS (60 s) — on l'appelle souvent, il ne fait rien la
-       plupart du temps. Le throttle est global : pas de doublon même avec
-       plusieurs clients connectés. */
+    /* 5 s : c'est le délai pour voir l'ordre d'un autre joueur apparaître.
+       Le tick, lui, est throttlé côté lib à SNAPSHOT_SECONDS — on
+       l'appelle souvent, il ne fait rien la plupart du temps. Le throttle
+       est global : pas de doublon même avec plusieurs clients. */
     const tickInt = setInterval(maintenanceTick, 5 * 1000);
-    const refreshInt = setInterval(refresh, 5 * 1000);
+    const liveInt = setInterval(refreshLive, 5 * 1000);
     return () => {
       clearInterval(tickInt);
-      clearInterval(refreshInt);
+      clearInterval(liveInt);
     };
-  }, [refresh]);
+  }, [refreshLive]);
+
+  /* La courbe a son propre rythme, indexé sur la largeur de la fenêtre.
+     Rapatrier un mois de relevés toutes les 5 secondes, c'est des
+     dizaines de Mo par heure sur le forfait mobile du joueur — pour
+     redessiner une courbe qui, sur un mois, ne bouge pas à l'oeil entre
+     deux rafraîchissements. */
+  const CHART_MS = { 60: 5000, 1440: 15000, 10080: 60000, 43200: 60000 };
+  useEffect(() => {
+    refreshChart();
+    const every = CHART_MS[chartRange] || 15000;
+    const int = setInterval(refreshChart, every);
+    return () => clearInterval(int);
+  }, [refreshChart, chartRange]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Applique l'effet d'un trade réussi sur les cookies, puis remonte
      le résultat à App.jsx pour qu'il alimente les compteurs locaux
@@ -116,8 +130,11 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
       addCoins(result.gained, profit, { noMult: true });
     }
     if (onTradeComplete) onTradeComplete(result);
-    refresh();
-  }, [addCoins, onTradeComplete, refresh]);
+    /* Un ordre à soi doit se voir tout de suite, y compris sur une
+       fenêtre large qui ne se rafraîchit qu'à la minute. */
+    refreshLive();
+    refreshChart();
+  }, [addCoins, onTradeComplete, refreshLive, refreshChart]);
 
   /* Mode dégradé : Supabase indisponible */
   if (!isSupabaseEnabled()) {

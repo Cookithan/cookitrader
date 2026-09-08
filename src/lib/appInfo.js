@@ -40,6 +40,8 @@ export const CHANGELOG = [
       "ℹ️ Tape le logo CookiMiner en haut de l'écran pour retrouver les nouveautés à tout moment",
       "🏦 La boutique en actions $CKM ferme — ce que tu y avais obtenu reste à toi et s'équipe dans Ma Collection",
       "📈 Le marché $CKM change d'échelle : l'action vaut 500 🍪, et le cours ne bouge plus QUE par les achats et les ventes des joueurs — plus aucun retour automatique",
+      "📊 Nouvelle courbe : fenêtres 1 h / 24 h / 7 j / 1 mois, variation affichée, et chaque point posé à sa vraie date",
+      "⏳ Le bonus de hold disparaît : une vente rapporte le cours, et rien d'autre",
     ],
     changes_en: [
       "🎨 New My Collection tab: themes, avatars, skins, titles and music all in one place. Buy in the shop, equip here",
@@ -49,6 +51,8 @@ export const CHANGELOG = [
       "ℹ️ Tap the CookiMiner logo at the top to check what's new at any time",
       "🏦 The $CKM shares shop is closing — whatever you unlocked there stays yours and is equipped in My Collection",
       "📈 The $CKM market changes scale: a share is worth 500 🍪, and the price now moves ONLY when players buy and sell — no automatic drift back",
+      "📊 New chart: 1h / 24h / 7d / 1 month windows, change shown, and every point placed at its real date",
+      "⏳ The hold bonus is gone: a sale pays the market price, and nothing else",
     ],
   },
   {

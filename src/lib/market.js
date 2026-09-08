@@ -78,15 +78,14 @@ export const MARKET_CONFIG = {
   CIRCUIT_BREAKER_THRESHOLD:    0.20,           // 20 % de variation
   CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
   CIRCUIT_BREAKER_PAUSE_MS:     30 * 60 * 1000, // pause 30 min
-  /* Bonus de hold — multiplie la PnL POSITIVE à la vente selon la durée
-     de détention (timestamp pondéré par achats successifs). Récompense
-     les hodlers patients. Pertes inchangées (pas de bonus négatif). */
-  HOLD_BONUS_TIERS: [
-    { minMs:  7 * 24 * 3600 * 1000, bonus: 1.00, label: '1 semaine+' },  // +100 % (double profit)
-    { minMs: 24 * 3600 * 1000,      bonus: 0.30, label: '24 h+'      },  // +30 %
-    { minMs:  1 * 3600 * 1000,      bonus: 0.10, label: '1 h+'       },  // +10 %
-    { minMs:  0,                    bonus: 0,    label: '< 1 h'      },  // pas de bonus
-  ],
+  /* ⚠️ BONUS DE HOLD RETIRÉ le 08/09/2026 (demande Régis). Il multipliait
+     la plus-value positive par 1,1 / 1,3 / 2 selon la durée de détention
+     — donc il fabriquait des cookies par-dessus le marché, en dehors de
+     tout mouvement de prix. Vendre au même cours qu'à l'achat pouvait
+     rapporter. Dans un marché dont le cours n'obéit plus qu'à l'offre et
+     à la demande, le gain doit venir du cours et de rien d'autre.
+     `weighted_buy_at` reste écrit et sert toujours : il affiche la durée
+     de détention et alimente les frais de garde. */
   MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du flottant = 100 actions max par user, soit 50 000 🍪 : personne ne peut à lui seul faire la pluie et le beau temps
   MAX_SHARES_PER_TX:       30,    // Max 30 actions par tx (bypass possible via item premium "tout-acheter/vendre"). 30 actions = 3 % d'impact prix, et 15 000 🍪 à l'achat.
   MAX_DAILY_VOLUME:        200,   // Volume cumulé (achats + ventes) sur 24 h et par joueur — 200 actions = 100 000 🍪, ramené à l'échelle du nouveau prix
@@ -96,7 +95,7 @@ export const MARKET_CONFIG = {
   BUY_COOLDOWN_MS:  15_000,       // 15 s entre 2 achats consécutifs (assoupli — slippage symétrique + caps tx/jour suffisent à protéger)
   SELL_COOLDOWN_MS: 60_000,       // 60 s entre un achat et la prochaine vente, ET entre 2 ventes (anti day trading agressif — combiné au slippage symétrique, suffit à bloquer le pump-and-dump)
   HISTORY_HOURS: 24,
-  SNAPSHOT_SECONDS: 60,           // Battement de coeur : 1 point/min (avant 5 s). Le prix ne bougeant plus tout seul, 12 points identiques par minute ne servaient qu'à gonfler market_history de 17 000 lignes par jour. Les achats/ventes, eux, posent leur point immédiatement.
+  SNAPSHOT_SECONDS: 1800,         // Battement de coeur : 1 point / 30 min (avant 5 s). Le prix ne bougeant plus tout seul, un point par minute ne faisait que gonfler market_history — 43 000 lignes pour une fenêtre d'un mois, rapatriées à chaque rafraîchissement. Les ordres posent leur propre point, et getMarketHistory ajoute une ancre à gauche et une queue à droite : la courbe reste juste avec très peu de relevés.
   /* Horaires d'ouverture (heure locale du joueur). Ouvert quand
      openHour ≤ heure < closeHour. closeHour = 24 → ferme à minuit pile. */
   HOURS: { openHour: 6, closeHour: 24 },
@@ -225,7 +224,51 @@ export async function getMarketHistory(rangeMinutes = MARKET_CONFIG.HISTORY_HOUR
     .select('price, recorded_at')
     .gte('recorded_at', since)
     .order('recorded_at', { ascending: true });
-  return (data || []).map(d => ({ ...d, price: parseFloat(d.price) }));
+
+  const rows = (data || []).map(d => ({ ...d, price: parseFloat(d.price) }));
+
+  /* Point d'ancrage (08/09/2026) : le dernier relevé AVANT la fenêtre.
+     Depuis que le prix ne bouge plus tout seul, une journée sans le
+     moindre ordre ne laisse presque aucun point — la vue « 1 h » d'un
+     marché calme se retrouvait vide, et affichait « aucune donnée »
+     alors que le cours existe et n'a simplement pas bougé. On repêche
+     donc la dernière valeur connue pour que la courbe démarre au bord
+     gauche, à plat. Sans lui, plus la fenêtre est large, plus le vide
+     est probable — c'est l'inverse de ce qu'on attend. */
+  if (rows.length < 2) {
+    const { data: before } = await supabase
+      .from('market_history')
+      .select('price, recorded_at')
+      .lt('recorded_at', since)
+      .order('recorded_at', { ascending: false })
+      .limit(1);
+    const anchor = (before || [])[0];
+    if (anchor) {
+      rows.unshift({
+        price: parseFloat(anchor.price),
+        /* On le date au bord de la fenêtre, pas à sa vraie date : sinon
+           un point vieux de trois semaines écraserait toute l'échelle
+           de temps d'une vue « 1 h ». */
+        recorded_at: since,
+      });
+    }
+  }
+
+  /* Point de queue : la courbe doit toucher le bord droit. Le battement
+     de coeur ne tombe qu'une fois par demi-heure, donc sans ça la ligne
+     s'arrêtait jusqu'à 30 minutes avant « maintenant » et donnait
+     l'impression d'un marché figé ou d'un bug. Le prix affiché est le
+     dernier connu — et c'est exactement la vérité : rien ne l'a bougé
+     depuis, sinon un ordre aurait posé son propre point. */
+  const lastRow = rows[rows.length - 1];
+  if (lastRow) {
+    const ageMs = Date.now() - new Date(lastRow.recorded_at).getTime();
+    if (ageMs > 60_000) {
+      rows.push({ price: lastRow.price, recorded_at: new Date().toISOString() });
+    }
+  }
+
+  return rows;
 }
 
 export async function getDailyVolume() {
@@ -244,16 +287,13 @@ export async function getDailyVolume() {
   return result;
 }
 
-/* Calcule le bonus de hold à partir d'un timestamp pondéré.
-   Retourne { tier, pct, label } — pct est le multiplicateur appliqué
-   à la PnL positive (0 si perte). */
-export function getHoldBonus(weightedBuyAt) {
-  if (!weightedBuyAt) return { tier: 0, pct: 0, label: '< 1 h' };
-  const holdMs = Date.now() - new Date(weightedBuyAt).getTime();
-  for (const t of MARKET_CONFIG.HOLD_BONUS_TIERS) {
-    if (holdMs >= t.minMs) return { holdMs, pct: t.bonus, label: t.label };
-  }
-  return { holdMs, pct: 0, label: '< 1 h' };
+/* Durée de détention, en millisecondes, depuis le timestamp pondéré par
+   les achats successifs. Purement informatif depuis le retrait du bonus
+   de hold : sert à afficher « détenu depuis 3 j » dans le portefeuille.
+   Retourne 0 si le portefeuille est antérieur à la colonne SQL. */
+export function getHoldDuration(weightedBuyAt) {
+  if (!weightedBuyAt) return 0;
+  return Math.max(0, Date.now() - new Date(weightedBuyAt).getTime());
 }
 
 /* Volume quotidien (24 h) d'UN user — pour le cap MAX_DAILY_VOLUME.
@@ -1026,13 +1066,10 @@ export async function sellShares(userCode, shares, options = {}) {
   const ratio = shares / portfolio.shares;
   const investedReleased = portfolio.total_invested * ratio;
 
-  /* Bonus de hold : multiplie la PnL POSITIVE par le pct du tier
-     (calculé depuis weighted_buy_at). Pas de bonus sur les pertes.
-     Récompense les hodlers patients sans pénaliser les traders actifs. */
-  const profitRaw   = totalGainedRaw - investedReleased;
-  const holdBonus   = getHoldBonus(portfolio.weighted_buy_at);
-  const bonusAmount = profitRaw > 0 ? Math.floor(profitRaw * holdBonus.pct) : 0;
-  const totalGained = totalGainedRaw + bonusAmount;
+  /* Le produit de la vente, c'est le cours et rien d'autre (08/09/2026).
+     Le bonus de hold qui majorait ici la plus-value de 10 à 100 % a été
+     retiré : il créait des cookies sans qu'aucun prix n'ait bougé. */
+  const totalGained = totalGainedRaw;
 
   await supabase
     .from('market_state')
@@ -1077,8 +1114,6 @@ export async function sellShares(userCode, shares, options = {}) {
     newPrice,
     sharesNow: newShares,
     profit: totalGained - investedReleased,
-    /* Détails du bonus pour l'UI : afficher 'Bonus hold +30 %' au toast */
-    holdBonus: { pct: holdBonus.pct, label: holdBonus.label, amount: bonusAmount },
   };
 }
 

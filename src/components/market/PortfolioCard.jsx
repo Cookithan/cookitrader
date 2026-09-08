@@ -1,8 +1,8 @@
-import { getHoldBonus, MARKET_CONFIG } from '../../lib/market';
+import { getHoldDuration } from '../../lib/market';
 import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
-   PortfolioCard — Mes actions + PnL + hold bonus actif
+   PortfolioCard — ce que je possède, ce que ça vaut
    ────────────────────────────────────────────────────
    Props :
    - portfolio    : { shares, total_invested, weighted_buy_at } | null
@@ -10,13 +10,24 @@ import { useTranslation } from '../../i18n/index.js';
    - C            : thème
 
    Si 0 action : invite à acheter.
-   Sinon : valeur, gain/perte (cookies, sans %), et — si applicable —
-   barre de progression vers le prochain palier de bonus de hold.
+   Sinon : deux chiffres côte à côte (combien j'en ai / combien ça vaut),
+   la plus-value en bandeau, et le prix de revient + la durée de
+   détention en pied de carte.
 
-   Pas de prix moyen ni de % affiché — décision UX simplifiée (cf.
-   commentaire historique). Le bonus de hold reste affiché car c'est
-   une mécanique de récompense visible que le joueur doit comprendre.
+   v1.30 (08/09/2026) — le bloc « bonus de hold » a disparu avec la
+   mécanique elle-même : elle majorait la plus-value de 10 à 100 % selon
+   la durée de détention, donc elle fabriquait des cookies sans qu'aucun
+   prix n'ait bougé. La durée de détention reste affichée : elle est
+   informative (et les frais de garde s'y appuient toujours).
+
+   Le prix de revient, lui, réapparaît. Il avait été retiré par souci de
+   simplicité, mais dans un marché où le cours ne bouge plus que par les
+   joueurs, « à combien j'ai acheté » est LA question qu'on se pose
+   avant de vendre.
 ═══════════════════════════════════════════════════════ */
+
+const GOLD     = '#D4A017';
+const ESPRESSO = '#7D4E1F';
 
 function fmtDuration(ms) {
   if (!ms || ms < 0) return '< 1 min';
@@ -29,8 +40,11 @@ function fmtDuration(ms) {
   return '< 1 min';
 }
 
+const fmt = (n) => Math.round(n).toLocaleString('fr-FR');
+
 export function PortfolioCard({ portfolio, currentPrice, C }) {
   const { t } = useTranslation();
+
   if (!portfolio || portfolio.shares === 0) {
     return (
       <div style={{
@@ -51,106 +65,99 @@ export function PortfolioCard({ portfolio, currentPrice, C }) {
   }
 
   const currentValue = Math.floor(portfolio.shares * currentPrice);
-  const profit = Math.round(currentValue - portfolio.total_invested);
-  const profitColor = profit >= 0 ? '#D4A017' : '#7D4E1F';
-  const profitIcon  = profit > 0 ? '📈' : profit < 0 ? '📉' : '➖';
-
-  /* ─── Bonus de hold ──────────────────────────────────────
-     getHoldBonus retourne le tier actuel. On cherche aussi le prochain
-     tier (palier supérieur) pour afficher une jauge de progression.
-     Tiers sont triés desc dans MARKET_CONFIG → on les retri en asc
-     pour repérer "celui juste au-dessus du holdMs courant". */
-  const weightedBuyAt = portfolio.weighted_buy_at;
-  const hb = getHoldBonus(weightedBuyAt);
-  const tiersAsc = [...MARKET_CONFIG.HOLD_BONUS_TIERS].sort((a, b) => a.minMs - b.minMs);
-  const nextTier = tiersAsc.find(t => t.minMs > (hb.holdMs || 0));
-  const currentMinMs = tiersAsc
-    .filter(t => (hb.holdMs || 0) >= t.minMs)
-    .reduce((acc, t) => Math.max(acc, t.minMs), 0);
-  const progress = nextTier
-    ? Math.max(0, Math.min(1, ((hb.holdMs || 0) - currentMinMs) / (nextTier.minMs - currentMinMs)))
-    : 1;
+  const invested     = Math.round(Number(portfolio.total_invested) || 0);
+  const profit       = Math.round(currentValue - invested);
+  const avgPrice     = portfolio.shares > 0 ? invested / portfolio.shares : 0;
+  const profitPct    = invested > 0 ? (profit / invested) * 100 : 0;
+  const up           = profit > 0;
+  const flat         = profit === 0;
+  const profitColor  = up ? GOLD : flat ? C.muted : ESPRESSO;
+  const holdMs       = getHoldDuration(portfolio.weighted_buy_at);
 
   return (
     <div style={{
       background: C.card,
       borderRadius: 16,
-      padding: 16,
+      padding: '14px 16px 12px',
       marginBottom: 12,
       border: `1.5px solid ${C.border}`,
+      /* Filet doré à gauche : la carte « ce qui est à moi » se distingue
+         d'un coup d'oeil des cartes d'information au-dessus. */
+      borderLeft: `3px solid ${GOLD}`,
     }}>
-      <div style={{ fontSize: 11, color: C.muted, textTransform: 'uppercase', letterSpacing: 2, marginBottom: 10 }}>
+      <div style={{
+        fontSize: 10, color: C.muted, textTransform: 'uppercase',
+        letterSpacing: 2, fontWeight: 800, marginBottom: 12,
+      }}>
         💼 {t('portfolio.my_shares')}
       </div>
 
-      <div style={{ fontSize: 14, color: C.text, lineHeight: 1.4 }}>
-        {t('portfolio.you_own_intro')} <strong style={{ color: '#D4A017', fontSize: 16 }}>{portfolio.shares}</strong> {t('portfolio.shares_now_worth')} <strong style={{ color: '#D4A017', fontSize: 16 }}>{currentValue} 🍪</strong>
+      {/* Les deux chiffres qui comptent, côte à côte. Séparés par un
+          filet vertical plutôt que par un cadre : moins de bruit. */}
+      <div style={{ display: 'flex', alignItems: 'stretch', gap: 14 }}>
+        <div style={{ flex: '0 0 auto', minWidth: 74 }}>
+          <div style={{ fontSize: 30, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+            {portfolio.shares}
+          </div>
+          <div style={{ fontSize: 9.5, color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>
+            {t('portfolio.label_shares')}
+          </div>
+        </div>
+
+        <div style={{ width: 1, background: C.border, alignSelf: 'stretch', opacity: .8 }} />
+
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 30, fontWeight: 900, color: GOLD, lineHeight: 1, whiteSpace: 'nowrap' }}>
+            {fmt(currentValue)} <span style={{ fontSize: 18 }}>🍪</span>
+          </div>
+          <div style={{ fontSize: 9.5, color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 }}>
+            {t('portfolio.label_value')}
+          </div>
+        </div>
       </div>
 
+      {/* Plus-value : le chiffre ET le pourcentage, parce qu'un gain de
+          1 473 🍪 ne veut rien dire sans savoir sur quelle mise. */}
       <div style={{
-        marginTop: 10,
-        padding: '8px 12px',
-        background: profit >= 0 ? 'rgba(212,160,23,0.12)' : 'rgba(125,78,31,0.12)',
-        borderRadius: 10,
+        marginTop: 12,
+        padding: '9px 12px',
+        background: up ? 'rgba(212,160,23,0.12)' : flat ? 'rgba(160,130,100,0.10)' : 'rgba(125,78,31,0.14)',
+        border: `1px solid ${up ? 'rgba(212,160,23,.3)' : flat ? 'rgba(160,130,100,.22)' : 'rgba(125,78,31,.3)'}`,
+        borderRadius: 11,
         fontSize: 12,
         color: profitColor,
-        fontWeight: 700,
+        fontWeight: 800,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
+        gap: 10,
       }}>
-        <span>{profitIcon} {profit > 0 ? t('portfolio.current_gain') : profit < 0 ? t('portfolio.current_loss') : t('portfolio.even')}</span>
-        <span>{profit > 0 ? '+' : ''}{profit} 🍪</span>
+        <span>{up ? '📈' : flat ? '➖' : '📉'} {up ? t('portfolio.current_gain') : flat ? t('portfolio.even') : t('portfolio.current_loss')}</span>
+        <span style={{ whiteSpace: 'nowrap' }}>
+          {up ? '+' : ''}{fmt(profit)} 🍪
+          {invested > 0 && !flat && (
+            <span style={{ fontSize: 10.5, opacity: .75, marginLeft: 5 }}>
+              ({up ? '+' : ''}{profitPct.toFixed(1)} %)
+            </span>
+          )}
+        </span>
       </div>
 
-      {/* Hold bonus — affiché uniquement si weighted_buy_at présent.
-          Sinon (portefeuille hérité d'avant la colonne SQL), on saute. */}
-      {weightedBuyAt && (
-        <div style={{
-          marginTop: 10,
-          padding: '8px 12px',
-          background: 'rgba(168,128,96,.10)',
-          border: '1px solid rgba(168,128,96,.25)',
-          borderRadius: 10,
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontSize: 11,
-            color: C.text,
-            fontWeight: 700,
-          }}>
-            <span style={{ color: C.muted, fontWeight: 600 }}>
-              ⏳ {t('portfolio.hold_since')} <span style={{ color: C.text, fontWeight: 700 }}>{fmtDuration(hb.holdMs)}</span>
-            </span>
-            <span style={{ color: hb.pct > 0 ? '#D4A017' : C.muted }}>
-              {hb.pct > 0 ? t('portfolio.bonus_pct', { n: Math.round(hb.pct * 100) }) : t('portfolio.no_bonus')}
-            </span>
-          </div>
-
-          {nextTier && (
-            <div style={{ marginTop: 6 }}>
-              <div style={{
-                height: 4,
-                background: 'rgba(0,0,0,.18)',
-                borderRadius: 2,
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  width: `${progress * 100}%`,
-                  height: '100%',
-                  background: 'linear-gradient(90deg, #C17F3C, #D4A017)',
-                  transition: 'width 0.4s ease',
-                }} />
-              </div>
-              <div style={{ fontSize: 9, color: C.muted, marginTop: 3, textAlign: 'right' }}>
-                {t('portfolio.next_tier', { n: Math.round(nextTier.bonus * 100), at: nextTier.label })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Pied de carte : les deux repères utiles avant de vendre. */}
+      <div style={{
+        marginTop: 9,
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: 10,
+        fontSize: 10.5,
+        color: C.muted,
+        fontWeight: 600,
+      }}>
+        <span>{t('portfolio.label_avg')} <strong style={{ color: C.text }}>{fmt(avgPrice)} 🍪</strong></span>
+        {holdMs > 0 && (
+          <span>⏳ {t('portfolio.hold_since')} <strong style={{ color: C.text }}>{fmtDuration(holdMs)}</strong></span>
+        )}
+      </div>
     </div>
   );
 }
