@@ -38,10 +38,14 @@ android/
 # Le depot est public : ce fichier ne doit JAMAIS y entrer.
 A_LANCER_PRIVE.sql
 
-# Fichiers de travail temporaires (scripts de patch, verifications)
-_patch.py
-_check.mjs
-_verif.py
-_controles*.js
-_quiz.py
+# Fichiers de travail temporaires (scripts de patch, verifications).
+# Motif LARGE a dessein : la liste nominative laissait passer chaque
+# nouveau nom (_bonus.py est arrive jusqu'a un commit). Tout fichier
+# prefixe d'un underscore a la racine est un outil de session, jamais
+# du code de l'app — celui-ci vit dans src/.
+_*.py
+_*.mjs
+_*.js
+_*.jsx
+_*.sh
 .verif/
