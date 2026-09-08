@@ -24,7 +24,7 @@ import {
    ZONE SENSIBLE (reset progression, double validation).
 ═══════════════════════════════════════════════════════ */
 
-export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutIsNew = false, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, onOpenCollection, userCode, restorePin, C }) {
+export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutIsNew = false, onOpenRestore, onStartNewAccount, onOpenPromoCode, onRestartTutorial, onOpenCollection, onOpenSentinelle, userCode, restorePin, C }) {
   const { t, lang, setLang } = useTranslation();
 
   /* PIN reveal toggle + feedback copie */
@@ -232,6 +232,46 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
               }}>
                 v{APP_INFO.version}
               </span>
+            </button>
+          </section>
+        )}
+
+        {/* Sentinelle — n'apparaît QUE pour les admins (App.jsx ne passe
+            onOpenSentinelle que dans ce cas). Registre volontairement
+            sobre, en teinte moka plutôt qu'en or : ce n'est pas une
+            récompense ni une nouveauté, c'est un outil de contrôle. */}
+        {onOpenSentinelle && (
+          <section>
+            {sectionLabel('Surveillance')}
+            <button
+              onClick={onOpenSentinelle}
+              style={{
+                width:'100%', borderRadius:16,
+                background:C.card,
+                border:`1px solid ${C.border}`,
+                padding:'14px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left', gap:10,
+              }}
+            >
+              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:10,
+                  background:'rgba(139,90,43,.14)',
+                  border:'1px solid rgba(139,90,43,.35)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>
+                  🛡️
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Sentinelle</div>
+                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                    Santé de l'app : versions, marché, triche, crashs
+                  </div>
+                </div>
+              </div>
+              <span style={{ flexShrink:0, fontSize:14, color:C.muted }}>›</span>
             </button>
           </section>
         )}

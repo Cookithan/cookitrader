@@ -234,7 +234,13 @@ function marche(state, txs, portefeuilles) {
   if (!s) return alerte('Marché : aucun état en base (table market_state vide)');
 
   const prix = num(s.current_price);
-  if (prix < 10 || prix > 300) alerte(`Marché : prix hors bornes — ${prix.toFixed(1)} (attendu entre 10 et 300)`);
+  /* Bornes alignées sur MARKET_CONFIG après le passage de l'action à 500
+     (08/09/2026). Elles étaient restées à 10-300 : l'audit aurait crié
+     « prix hors bornes » sur un marché parfaitement sain. À resynchroniser
+     si l'échelle rechange — ou mieux, regarder la Sentinelle, qui les lit
+     directement dans MARKET_CONFIG et ne peut donc pas dériver. */
+  const BORNE_BASSE = 100, BORNE_HAUTE = 2500;
+  if (prix < BORNE_BASSE || prix > BORNE_HAUTE) alerte(`Marché : prix hors bornes — ${prix.toFixed(1)} (attendu entre ${BORNE_BASSE} et ${BORNE_HAUTE})`);
   else ok(`Marché : prix à ${prix.toFixed(1)}, dans les bornes`);
 
   const heures = jours(s.last_updated) * 24;

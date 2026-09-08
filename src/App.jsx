@@ -27,6 +27,8 @@ import { GLOBAL_CSS } from "./styles/globalStyles.js";
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
+import { SentinelleOverlay } from "./components/overlays/SentinelleOverlay.jsx";
+import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire } from "./lib/sentinelle.js";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
@@ -851,6 +853,8 @@ export default function CookiMiner() {
      Compteur rafraîchi toutes les 30s tant qu'on a un userCode + Supabase actif. */
   const [showInbox,        setShowInbox]        = useState(false);
   const [showAbout,        setShowAbout]        = useState(false);
+  /* Sentinelle — ecran admin (cf. lib/sentinelle.js). */
+  const [showSentinelle,   setShowSentinelle]   = useState(false);
   /* Notification "nouvelle version" : on garde en LS la dernière version
      vue par l'user. Au mount, si APP_INFO.version diffère → popup.
      Pour un fresh install, lastSeenVersion vaut '' → on calibre direct
@@ -2477,6 +2481,32 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
     /* eslint-enable no-unreachable */
   }, [userCode, pullDone]);
+
+  /* ── Sentinelle ───────────────────────────────────────────────
+     Trois gestes au démarrage, tous silencieux et sans effet de bord :
+       1. brancher l'ErrorBoundary sur la vigie (window.cookiOnError,
+          le point d'accroche prévu « pour une télémétrie future ») ;
+       2. déposer un rapport d'ouverture — c'est LUI qui donne la
+          répartition des versions en circulation, le chiffre qui
+          manquait le 08/09 quand un client resté en 1.27 rabotait le
+          cours du marché ;
+       3. lancer une ronde SI l'intervalle est écoulé. Le premier client
+          qui ouvre l'app fait le travail pour tout le monde — c'est ce
+          qui rend la vigie autonome : ni PC, ni ligne de commande, ni
+          personne pour la déclencher.
+
+     Tout est enveloppé : si MIGRATION_SENTINELLE.sql n'est pas passé,
+     les tables n'existent pas et la vigie se tait. L'app ne doit jamais
+     casser parce que la surveillance est absente.
+  ────────────────────────────────────────────────────────────── */
+  useEffect(() => {
+    if(!userCode || !pullDone || !isSupabaseEnabled()) return;
+    brancherRapportDeCrash();
+    signalerOuverture(userCode, userName);
+    /* Volontairement non attendu : une ronde ne doit jamais retarder
+       l'affichage de l'app. */
+    rondeSiNecessaire();
+  }, [userCode, userName, pullDone]);
 
   /* ── Frais de garde — RETIRÉS le 08/09/2026 ───────────────
      Ils grignotaient 0,5 %/jour des actions d'un joueur qui n'avait pas
@@ -4795,6 +4825,7 @@ export default function CookiMiner() {
           userCode={userCode}
           restorePin={restorePin}
           onOpenCollection={()=>{ playSound('tab'); setShowSettings(false); goToTab('collection'); }}
+          onOpenSentinelle={isAdminName(userName) ? (()=>{ setShowSettings(false); setShowSentinelle(true); }) : undefined}
           C={C}
         />
       )}
@@ -4896,6 +4927,16 @@ export default function CookiMiner() {
       {showAbout && (
         <AboutModal
           onClose={()=>setShowAbout(false)}
+          C={C}
+        />
+      )}
+
+      {/* Sentinelle — admins seulement. Le double garde-fou (état ET
+          isAdminName) évite qu'un état resté à true après un changement
+          de pseudo n'expose l'écran à un joueur. */}
+      {showSentinelle && isAdminName(userName) && (
+        <SentinelleOverlay
+          onClose={()=>setShowSentinelle(false)}
           C={C}
         />
       )}

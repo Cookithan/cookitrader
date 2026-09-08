@@ -1,0 +1,378 @@
+import { supabase, isSupabaseEnabled } from './supabase';
+import { MARKET_CONFIG } from './market.js';
+import { APP_INFO } from './appInfo.js';
+import { isAdminName } from '../utils/admin.js';
+
+/* ════════════════════════════════════════════════════
+   sentinelle.js — la vigie qui tourne toute seule
+   ────────────────────────────────────────────────────
+   POURQUOI ELLE EXISTE
+
+   Deux fois de suite, un problème grave est resté invisible jusqu'à ce
+   qu'un humain le remarque : l'exploit du Memory a tenu NEUF SEMAINES
+   (découvert parce qu'un joueur l'a signalé), et le 08/09/2026 le cours
+   du marché est tombé à 300 sans que rien ne sonne — il a fallu le
+   déduire après coup d'un chiffre trop rond.
+
+   `npm run audit` faisait déjà ces contrôles, mais il fallait un PC,
+   une ligne de commande et quelqu'un pour la taper. La sentinelle fait
+   le même travail SANS personne : chaque client qui ouvre l'app peut
+   lancer une ronde, et le premier qui arrive après l'intervalle la
+   lance pour tout le monde.
+
+   ─── LES DEUX MOITIÉS ───────────────────────────────
+
+   1. LA COLLECTE (continue, passive)
+      Chaque client dépose ce qu'il sait dans `app_health` :
+        · à l'ouverture   → sa VERSION (c'est ce qui manquait le 08/09 :
+                            on aurait vu « 3 joueurs encore en 1.27 »)
+        · à un crash React → le message, via window.cookiOnError que
+                            l'ErrorBoundary appelle déjà
+        · anti-triche      → le signal qui s'est déclenché
+
+   2. LES RONDES (périodiques, actives)
+      Contrôles recoupant les chiffres du SERVEUR — les seuls qu'un
+      client ne peut pas maquiller : rendements impossibles, cohérence
+      du marché, concentration du classement, versions en circulation,
+      crashs, signaux de triche. Verdicts écrits dans
+      `sentinelle_rapports` : ok / voir / alerte.
+
+   ─── CE QU'ELLE NE FAIT PAS ─────────────────────────
+   Elle ne corrige rien, jamais. Elle constate et elle range. Décider
+   d'une sanction ou d'un correctif reste un geste humain — c'est
+   exactement la leçon de la 1.29, où une correction automatique aurait
+   été réécrasée par le client du joueur dans les cinq secondes.
+
+   Elle ne remplace pas non plus une preuve : un client malveillant peut
+   mentir sur SON rapport (`app_health`). Les rondes, elles, lisent les
+   tables de jeu — c'est ce qui fait foi.
+
+   ⚠️ Nécessite MIGRATION_SENTINELLE.sql. Sans les tables, tout
+   no-ope en silence : l'app ne doit jamais casser parce que la vigie
+   est absente.
+═══════════════════════════════════════════════════════ */
+
+/* Intervalle entre deux rondes. 60 min : assez pour ne pas marteler la
+   base avec 20 clients ouverts, assez court pour qu'une anomalie ne
+   passe pas la nuit. */
+const INTERVALLE_RONDE_MS = 60 * 60 * 1000;
+
+/* Seuils repris de scripts/audit.mjs — même barème pour que la vigie et
+   la ligne de commande ne se contredisent jamais.
+   Repère du rendement : Café Express, le meilleur de l'app, plafonne à
+   ~300 cookies pour 60-180 s. Au-delà de 400/min, c'est impossible. */
+const RENDEMENT_IMPOSSIBLE = 400;
+const RENDEMENT_ELEVE      = 150;
+const PART_HEBDO_MAX       = 0.40;   // un joueur au-delà de 40 % du total de la semaine
+const JOURS_ACTIF          = 14;
+const TEMPS_JEU_MIN_S      = 600;    // sous 10 min jouées, le ratio ne veut rien dire
+
+const num = (v) => Number(v) || 0;
+const jours = (iso) => iso ? (Date.now() - new Date(iso).getTime()) / 86_400_000 : 999;
+
+/* ── Détection de plateforme ──────────────────────────
+   Sert à distinguer « PWA installée » (qui garde son code en cache
+   plus longtemps, donc plus susceptible d'être en retard de version)
+   d'un simple onglet navigateur. */
+function plateforme() {
+  try {
+    const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches
+      || window.navigator?.standalone === true;
+    const ua = navigator.userAgent || '';
+    const os = /Android/i.test(ua) ? 'Android' : /iPhone|iPad|iPod/i.test(ua) ? 'iOS' : 'Bureau';
+    return `${os} · ${standalone ? 'PWA' : 'navigateur'}`;
+  } catch {
+    return 'inconnu';
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   1. LA COLLECTE
+═══════════════════════════════════════════════════════ */
+
+/* Un seul rapport d'ouverture par session : sans ce garde-fou, un
+   rechargement en boucle inonderait la table. */
+let ouvertureEnvoyee = false;
+
+/* L'identité du joueur courant, retenue au premier rapport. Évite de
+   faire traverser userCode et userName à toute la chaîne de props pour
+   qu'un mini-jeu enfoui puisse signaler un incident : le seul appelant
+   qui la connaît la donne une fois, tout le monde en profite. */
+let identite = { userCode: null, userName: null };
+
+async function rapporter(kind, { userCode, userName, detail } = {}) {
+  if (!isSupabaseEnabled()) return;
+  try {
+    await supabase.from('app_health').insert({
+      kind,
+      user_code:   userCode || null,
+      user_name:   userName || null,
+      app_version: APP_INFO.version,
+      plateforme:  plateforme(),
+      detail:      detail ? String(detail).slice(0, 500) : null,
+    });
+  } catch {
+    /* Table absente ou réseau coupé : la vigie se tait, l'app continue. */
+  }
+}
+
+/* À appeler une fois par session, au démarrage. C'est CE rapport qui
+   donne la répartition des versions — le chiffre qui aurait identifié
+   la panne du 08/09 en dix secondes au lieu d'une enquête. */
+export function signalerOuverture(userCode, userName) {
+  identite = { userCode, userName };
+  if (ouvertureEnvoyee) return;
+  ouvertureEnvoyee = true;
+  rapporter('ouverture', { userCode, userName });
+}
+
+export function signalerCrash(message, ou) {
+  rapporter('crash', { ...identite, detail: `${ou ? ou + ' — ' : ''}${message}` });
+}
+
+export function signalerTriche(motif) {
+  rapporter('triche', { ...identite, detail: motif });
+}
+
+/* Branche l'ErrorBoundary sur la sentinelle. Le point d'accroche
+   window.cookiOnError existait déjà, prévu « pour une télémétrie
+   future » — la voici. */
+export function brancherRapportDeCrash() {
+  if (typeof window === 'undefined') return;
+  window.cookiOnError = (error, errorInfo) => {
+    const ligne = String(errorInfo?.componentStack || '').trim().split('\n')[0] || '';
+    signalerCrash(error?.message || String(error), ligne.slice(0, 120));
+  };
+}
+
+/* ════════════════════════════════════════════════════
+   2. LES RONDES
+═══════════════════════════════════════════════════════ */
+
+function faire(verdict, categorie, titre, detail = []) {
+  return { verdict, categorie, titre, detail: detail.filter(Boolean).slice(0, 25) };
+}
+
+/* ── Rendement : cookies gagnés par minute de jeu ───── */
+function controleRendement(users) {
+  const suspects = users
+    .filter(u => !isAdminName(u.user_name)
+              && num(u.total_play_time) >= TEMPS_JEU_MIN_S
+              && jours(u.last_active) <= JOURS_ACTIF)
+    .map(u => ({ u, r: Math.round(num(u.total_earned) / (num(u.total_play_time) / 60)) }))
+    .filter(x => x.r > RENDEMENT_ELEVE)
+    .sort((a, b) => b.r - a.r);
+
+  const graves = suspects.filter(x => x.r > RENDEMENT_IMPOSSIBLE);
+  const detail = suspects.map(x =>
+    `${x.r > RENDEMENT_IMPOSSIBLE ? '!! ' : '   '}${x.u.user_name} — ${x.r} cookies/min · ${Math.round(num(x.u.total_play_time) / 60)} min jouées · niv ${x.u.level}`);
+
+  if (graves.length) return faire('alerte', 'triche', `${graves.length} compte(s) au rendement IMPOSSIBLE (plus de ${RENDEMENT_IMPOSSIBLE} cookies/min)`, detail);
+  if (suspects.length) return faire('voir', 'triche', `${suspects.length} compte(s) au rendement élevé (${RENDEMENT_ELEVE} à ${RENDEMENT_IMPOSSIBLE} cookies/min)`, detail);
+  return faire('ok', 'triche', 'Aucun rendement anormal chez les joueurs actifs');
+}
+
+/* ── Concentration du classement hebdomadaire ───────── */
+function controleConcentration(users) {
+  const semaine = users.map(u => u.weekly_week_id).filter(Boolean).sort().pop();
+  if (!semaine) return faire('ok', 'classement', 'Aucun gain hebdomadaire enregistré');
+
+  const liste = users.filter(u => u.weekly_week_id === semaine && !isAdminName(u.user_name) && num(u.weekly_earned) > 0);
+  const total = liste.reduce((a, u) => a + num(u.weekly_earned), 0);
+  if (!total) return faire('ok', 'classement', 'Semaine en cours encore vide');
+
+  const gros = liste.filter(u => num(u.weekly_earned) / total > PART_HEBDO_MAX);
+  const detail = liste
+    .sort((a, b) => num(b.weekly_earned) - num(a.weekly_earned))
+    .slice(0, 5)
+    .map(u => `${u.user_name} — ${Math.round(num(u.weekly_earned) / total * 100)} % (${num(u.weekly_earned)} 🍪)`);
+
+  if (gros.length) return faire('alerte', 'classement', `${gros.length} joueur(s) pèse(nt) plus de ${Math.round(PART_HEBDO_MAX * 100)} % de la semaine`, detail);
+  return faire('ok', 'classement', `Semaine équilibrée — ${liste.length} joueur(s), ${total} 🍪`, detail);
+}
+
+/* ── Marché : bornes, cohérence, immobilité ──────────
+   Les bornes sont lues dans MARKET_CONFIG, jamais recopiées : le jour
+   où l'échelle des prix rechange, la vigie suit toute seule au lieu de
+   hurler à tort (c'est exactement le piège dans lequel scripts/audit.mjs
+   était tombé, resté sur 10-300 après le passage à 500). */
+function controleMarche(state, portefeuilles) {
+  const rapports = [];
+  if (!state) return [faire('alerte', 'marché', 'Aucun état de marché en base (market_state vide)')];
+
+  const prix = num(state.current_price);
+  const { PRICE_MIN, PRICE_MAX } = MARKET_CONFIG;
+  if (prix < PRICE_MIN || prix > PRICE_MAX) {
+    rapports.push(faire('alerte', 'marché', `Cours hors bornes — ${prix.toFixed(1)} (attendu entre ${PRICE_MIN} et ${PRICE_MAX})`, [
+      'Un client resté sur une ancienne version peut écrire le prix.',
+      'Vérifier que PROTEGER_LE_PRIX.sql est bien passé.',
+    ]));
+  } else {
+    rapports.push(faire('ok', 'marché', `Cours à ${prix.toFixed(0)} 🍪, dans les bornes`));
+  }
+
+  const circulation = num(state.shares_in_circulation);
+  const detenu = portefeuilles.reduce((a, p) => a + num(p.shares), 0);
+  if (Math.abs(circulation - detenu) > 0) {
+    rapports.push(faire('alerte', 'marché', `Incohérence : ${detenu} actions détenues, l'état en annonce ${circulation}`, [
+      'Un écart signifie qu\'une écriture a été perdue ou doublée.',
+    ]));
+  } else {
+    rapports.push(faire('ok', 'marché', `Portefeuilles et état cohérents (${detenu} actions détenues)`));
+  }
+
+  const negatifs = portefeuilles.filter(p => num(p.shares) < 0 || num(p.total_invested) < 0);
+  if (negatifs.length) {
+    rapports.push(faire('alerte', 'marché', `${negatifs.length} portefeuille(s) à solde négatif`, negatifs.map(p => p.user_code)));
+  }
+
+  if (circulation > num(state.total_shares_supply)) {
+    rapports.push(faire('alerte', 'marché', `${circulation} actions en circulation pour un flottant de ${num(state.total_shares_supply)}`));
+  }
+
+  return rapports;
+}
+
+/* ── Versions en circulation ─────────────────────────
+   LE contrôle né de la panne du 08/09. Une version ancienne encore
+   active n'est pas un détail cosmétique : son code continue d'écrire
+   dans les mêmes tables que le nôtre, avec ses anciennes règles. */
+function controleVersions(sante) {
+  const recents = sante.filter(h => h.kind === 'ouverture' && jours(h.created_at) <= 2);
+  if (!recents.length) return faire('voir', 'versions', 'Aucune ouverture rapportée depuis 48 h', [
+    'Normal si la sentinelle vient d\'être installée.',
+  ]);
+
+  const parVersion = {};
+  for (const h of recents) {
+    const v = h.app_version || 'inconnue';
+    parVersion[v] = parVersion[v] || new Set();
+    parVersion[v].add(h.user_code || h.id);
+  }
+  const detail = Object.entries(parVersion)
+    .sort((a, b) => b[1].size - a[1].size)
+    .map(([v, s]) => `${v === APP_INFO.version ? '   ' : '!! '}${v} — ${s.size} joueur(s)`);
+
+  const anciennes = Object.keys(parVersion).filter(v => v !== APP_INFO.version);
+  if (anciennes.length) {
+    return faire('alerte', 'versions', `${anciennes.length} version(s) périmée(s) encore en circulation`, [
+      ...detail,
+      'Un vieux client écrit dans les mêmes tables avec ses anciennes règles.',
+      'Remède : force_version dans system_status (cf. PROTEGER_LE_PRIX.sql).',
+    ]);
+  }
+  return faire('ok', 'versions', `Tout le monde est en ${APP_INFO.version}`, detail);
+}
+
+/* ── Crashs et signaux de triche remontés par les clients ── */
+function controleIncidents(sante) {
+  const rapports = [];
+
+  const crashs = sante.filter(h => h.kind === 'crash' && jours(h.created_at) <= 2);
+  if (crashs.length) {
+    const parMessage = {};
+    for (const c of crashs) parMessage[c.detail || 'sans message'] = (parMessage[c.detail || 'sans message'] || 0) + 1;
+    const detail = Object.entries(parMessage)
+      .sort((a, b) => b[1] - a[1])
+      .map(([m, n]) => `${n}× — ${m}`);
+    rapports.push(faire(crashs.length >= 3 ? 'alerte' : 'voir', 'bugs', `${crashs.length} crash(s) rapporté(s) en 48 h`, detail));
+  } else {
+    rapports.push(faire('ok', 'bugs', 'Aucun crash rapporté depuis 48 h'));
+  }
+
+  const triches = sante.filter(h => h.kind === 'triche' && jours(h.created_at) <= 7);
+  if (triches.length) {
+    const detail = triches.slice(0, 10).map(t => `${t.user_name || t.user_code || '?'} — ${t.detail || 'signal'}`);
+    rapports.push(faire('voir', 'triche', `${triches.length} signal(aux) anti-triche en 7 jours`, detail));
+  }
+
+  return rapports;
+}
+
+/* ════════════════════════════════════════════════════
+   LA RONDE
+═══════════════════════════════════════════════════════ */
+
+/* Exécute tous les contrôles et renvoie la liste des verdicts.
+   `enregistrer` = false permet à l'écran admin de relancer une ronde
+   pour REGARDER sans polluer l'historique. */
+export async function faireUneRonde({ enregistrer = true } = {}) {
+  if (!isSupabaseEnabled()) return [];
+
+  const [users, state, portefeuilles, sante] = await Promise.all([
+    supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level').limit(2000).then(r => r.data || []),
+    supabase.from('market_state').select('*').eq('id', 1).maybeSingle().then(r => r.data),
+    supabase.from('market_portfolio').select('user_code, shares, total_invested').limit(2000).then(r => r.data || []),
+    supabase.from('app_health').select('kind, user_code, user_name, app_version, detail, created_at, id').order('created_at', { ascending: false }).limit(500).then(r => r.data || []),
+  ]);
+
+  const rapports = [
+    controleRendement(users),
+    controleConcentration(users),
+    ...controleMarche(state, portefeuilles),
+    controleVersions(sante),
+    ...controleIncidents(sante),
+  ];
+
+  if (enregistrer) {
+    try {
+      await supabase.from('sentinelle_rapports').insert(
+        rapports.map(r => ({ verdict: r.verdict, categorie: r.categorie, titre: r.titre, detail: r.detail }))
+      );
+    } catch { /* tables absentes : on rend quand même les verdicts à l'écran */ }
+  }
+
+  return rapports;
+}
+
+/* Lance une ronde SI l'intervalle est écoulé. Appelée par n'importe
+   quel client au démarrage : le premier arrivé pose l'heure et fait le
+   travail, les autres repartent aussitôt.
+
+   L'heure est posée AVANT la ronde, jamais après : deux clients qui
+   démarrent dans la même seconde verraient sinon tous les deux une
+   horloge périmée et feraient le travail en double. */
+export async function rondeSiNecessaire() {
+  if (!isSupabaseEnabled()) return null;
+  try {
+    const { data: etat } = await supabase
+      .from('sentinelle_etat').select('derniere_ronde').eq('id', 1).maybeSingle();
+    if (!etat) return null;
+
+    const derniere = etat.derniere_ronde ? new Date(etat.derniere_ronde).getTime() : 0;
+    if (Date.now() - derniere < INTERVALLE_RONDE_MS) return null;
+
+    await supabase.from('sentinelle_etat')
+      .update({ derniere_ronde: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', 1);
+
+    return await faireUneRonde({ enregistrer: true });
+  } catch {
+    return null;
+  }
+}
+
+/* Derniers verdicts enregistrés — ce que l'écran Sentinelle affiche
+   sans rien recalculer. */
+export async function derniersRapports(limite = 40) {
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const { data } = await supabase
+      .from('sentinelle_rapports')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limite);
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
+/* Y a-t-il une alerte active ? Sert à poser une pastille sur l'entrée
+   du menu admin, pour ne pas avoir à ouvrir l'écran pour savoir. */
+export async function alertesEnCours() {
+  const rapports = await derniersRapports(20);
+  if (!rapports.length) return 0;
+  const derniereRonde = rapports[0].created_at;
+  return rapports.filter(r => r.created_at === derniereRonde && r.verdict === 'alerte').length;
+}
