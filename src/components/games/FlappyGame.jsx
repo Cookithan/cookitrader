@@ -81,7 +81,7 @@ const MODES = {
   difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10, coffeeRate:0.15 },
 };
 
-export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
+export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
   /* Thème actif (skin cosmétique) — change le sky gradient et le pipeColor.
      Lu une seule fois au mount, pas live pendant la partie. */
   const flappyTheme = getActiveTheme('flappy', gameThemes || {});
@@ -90,6 +90,14 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
   const [phase, setPhase] = useState('idle');           // idle | countdown | playing | done
+  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
+     inclus : la bascule doit se faire AVANT le premier geste, pas au
+     milieu de l'action. */
+  useEffect(() => { onEnJeu?.(phase === 'playing' || phase === 'countdown'); }, [phase, onEnJeu]);
+  /* Au démontage seulement — pas à chaque changement de phase, sinon
+     l'en-tête clignoterait entre deux états. */
+  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+
   const [mode,  setMode]  = useState('normal');         // facile | normal | difficile
   const [countdownVal, setCountdownVal] = useState(null);
   const [cookieY,    setCookieY]    = useState(ARENA_H / 2);

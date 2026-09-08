@@ -54,7 +54,7 @@ const MODES = {
   frenetique: { label:'Frénétique', emoji:'🌀', desc:'8 s · 1 clic = 1 🍪 · cookie petit + bouge vite (×2 reward)', duration:8, rewardPerClick:1.0, moves:true,  moveIntervalMs:700,  cookieSize:'35%', moveRange:[15,85] },
 };
 
-export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }) {
+export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, onEventChallenge, activeSkin, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }) {
   const { t } = useTranslation();
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
@@ -79,6 +79,14 @@ export function ClickGame({ coins, bestScore, onEarn, onSpend, onUpdateRecord, o
   };
 
   const [phase,         setPhase]         = useState('idle');     // idle | countdown | playing | done
+  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
+     inclus : la bascule doit se faire AVANT le premier geste, pas au
+     milieu de l'action. */
+  useEffect(() => { onEnJeu?.(phase === 'playing' || phase === 'countdown'); }, [phase, onEnJeu]);
+  /* Au démontage seulement — pas à chaque changement de phase, sinon
+     l'en-tête clignoterait entre deux états. */
+  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+
   const [clicks,        setClicks]        = useState(0);
   const [rewardScore,   setRewardScore]   = useState(0);          // float, capé à modeCfg.rewardCap (combo réel)
   const [timeLeft,      setTimeLeft]      = useState(modeCfg.duration);

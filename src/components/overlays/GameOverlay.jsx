@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Cookie } from "lucide-react";
 import { reprendreMusiqueSiCoupee } from "../../lib/audio.js";
 import { GOLD } from "../../data/themes.js";
@@ -46,10 +46,57 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
      seulement au premier. */
   useEffect(() => { reprendreMusiqueSiCoupee(); }, [gameView]);
 
+  /* ── PLEIN ÉCRAN PENDANT LA PARTIE ─────────────────
+     Les sept jeux qui ont une phase de jeu préviennent quand elle
+     commence ; l'en-tête s'efface et le jeu prend tout l'écran. Les cinq
+     autres (Quiz, Roue, Slot, Stop le café, Check-in) ne signalent rien :
+     ce sont des jeux au tour par tour, la barre du haut n'y gêne
+     personne — et un écran qui se réorganise sans raison inquiète.
+
+     C'est le JEU qui prévient, pas l'overlay qui devine : la phase vit
+     dans le jeu, et lui seul sait quand la partie commence vraiment. */
+  const [enJeu, setEnJeu] = useState(false);
+
+  /* Changer de jeu remet l'en-tête : sans ça, quitter une partie en
+     cours pour en ouvrir une autre laissait l'écran amputé. */
+  useEffect(() => { setEnJeu(false); }, [gameView]);
+
+  /* Le plein écran natif, en plus. Il masque la barre d'adresse sur
+     Android ; sur iOS l'API n'existe pas hors vidéo et sur une PWA
+     installée il n'y a déjà plus rien à masquer — dans les deux cas
+     l'appel échoue en silence et l'en-tête escamotée suffit.
+
+     Le `.catch` est indispensable : la plupart des navigateurs exigent
+     un geste utilisateur récent, et une promesse rejetée non attrapée
+     remonterait jusqu'à l'ErrorBoundary. */
+  useEffect(() => {
+    if(!enJeu) return;
+    try { document.documentElement.requestFullscreen?.({ navigationUI:'hide' })?.catch(() => {}); } catch { /* non supporté */ }
+    return () => {
+      try { if(document.fullscreenElement) document.exitFullscreen?.()?.catch(() => {}); } catch { /* idem */ }
+    };
+  }, [enJeu]);
+
   return (
     /* game-overlay-in : l'écran arrive en fondu-zoom (v1.30). Sans ça, le
        jeu apparaissait sec, sans lien avec la carte qu'on venait de taper. */
-    <div className="game-overlay-in" style={{ position:'fixed', top:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430, bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column' }}>
+    <div className="game-overlay-in" style={{
+      position:'fixed', top:0, left:'50%', transform:'translateX(-50%)',
+      width:'100%',
+      /* Le cap de 430 px saute pendant la partie : sur une tablette ou en
+         paysage, le jeu récupère toute la largeur au lieu d'une colonne
+         au milieu de deux bandes vides. */
+      maxWidth: enJeu ? 'none' : 430,
+      bottom:0, background:C.bg, zIndex:50, display:'flex', flexDirection:'column',
+      transition:'max-width .25s ease',
+    }}>
+      {/* L'en-tête disparaît pendant la partie. Le bouton retour part
+          avec — c'est voulu : en Flappy ou en Café Express on tape
+          partout, un bouton en coin serait déclenché sans arrêt. Le
+          bouton retour d'Android ferme toujours l'écran
+          (useBackToClose dans App.jsx), et les parties se terminent
+          d'elles-mêmes en quelques secondes. */}
+      {!enJeu && (
       <div style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 20px', borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0 }}>
         <button onClick={onClose} style={{ width:36, height:36, borderRadius:12, background:C.card2, display:'flex', alignItems:'center', justifyContent:'center', color:C.text }}>
           <ChevronLeft size={20} />
@@ -60,6 +107,7 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
           <span style={{ fontWeight:700, fontSize:14, color:'#fff' }}>{coins}</span>
         </div>
       </div>
+      )}
       {duelMode && duelInfo && (
         <DuelRaceHUD
           myScoreRef={myLiveRef} myAvatar={duelInfo.myAvatar}
@@ -78,15 +126,15 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
         {gameView==='checkin' && <CheckinGame streak={streak} canCheckin={canCheckin} onCheckin={onCheckin} checkinReward={checkinReward} C={C} />}
         {gameView==='quiz'    && <QuizGame    canPlay={canQuiz}  msLeft={quizMsLeft} coins={coins} onEarn={onQuizEarn} onSpend={onSpend} onDone={onQuizDone} onClose={onClose} onEventChallenge={onEventChallenge} C={C} />}
         {gameView==='spin'    && <SpinGame    coins={coins} level={level} onEarn={onSpinEarn} onSpend={onSpend} onJackpot={onJackpot} onEventChallenge={onEventChallenge} activeRoue={activeRoue} spinsLeft={spinsLeft} spinsCap={spinsCap} consumeSpin={consumeSpin} spinRechargeCost={spinRechargeCost} cafes={cafes} onRechargeSpin={onRechargeSpin} C={C} />}
-        {gameView==='click'   && <ClickGame   key={duelInfo?.turn} coins={coins} bestScore={clickRecord} onEarn={onClickEarn} onSpend={onSpend} onUpdateRecord={onUpdateRecord} onEventChallenge={onEventChallenge} activeSkin={activeSkin} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='click'   && <ClickGame onEnJeu={setEnJeu}   key={duelInfo?.turn} coins={coins} bestScore={clickRecord} onEarn={onClickEarn} onSpend={onSpend} onUpdateRecord={onUpdateRecord} onEventChallenge={onEventChallenge} activeSkin={activeSkin} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
         {gameView==='pour'    && <PourGame    onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} C={C} />}
-        {gameView==='memory'  && <MemoryGame  key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
-        {gameView==='guess'   && <GuessGame   key={duelInfo?.turn} coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} legendarySeen={legendarySeen} onLegendarySeen={onLegendarySeen} isAdmin={isAdmin} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
-        {gameView==='reflex'  && <ReflexGame  key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} activeSkin={activeSkin} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
-        {gameView==='pyramid' && <PyramidGame key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} pyramidPlaysLeft={pyramidPlaysLeft} pyramidGamesCap={pyramidGamesCap} consumePyramidGame={consumePyramidGame} pyramidRechargeCost={pyramidRechargeCost} cafes={cafes} onRechargePyramid={onRechargePyramid} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='memory'  && <MemoryGame onEnJeu={setEnJeu}  key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='guess'   && <GuessGame onEnJeu={setEnJeu}   key={duelInfo?.turn} coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} legendarySeen={legendarySeen} onLegendarySeen={onLegendarySeen} isAdmin={isAdmin} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='reflex'  && <ReflexGame onEnJeu={setEnJeu}  key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} activeSkin={activeSkin} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='pyramid' && <PyramidGame onEnJeu={setEnJeu} key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} pyramidPlaysLeft={pyramidPlaysLeft} pyramidGamesCap={pyramidGamesCap} consumePyramidGame={consumePyramidGame} pyramidRechargeCost={pyramidRechargeCost} cafes={cafes} onRechargePyramid={onRechargePyramid} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
         {gameView==='slot'    && <SlotGame    coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} slotPlaysLeft={slotPlaysLeft} slotGamesCap={slotGamesCap} consumeSlotGame={consumeSlotGame} slotRechargeCost={slotRechargeCost} cafes={cafes} onRechargeSlot={onRechargeSlot} C={C} />}
-        {gameView==='flappy'  && <FlappyGame  key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} activeSkin={activeSkin} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
-        {gameView==='catcher' && <CatcherGame key={duelInfo?.turn} coins={coins} cafes={cafes} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} onPayContinue={onPayContinueCatcher} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='flappy'  && <FlappyGame onEnJeu={setEnJeu}  key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} activeSkin={activeSkin} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='catcher' && <CatcherGame onEnJeu={setEnJeu} key={duelInfo?.turn} coins={coins} cafes={cafes} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} onPayContinue={onPayContinueCatcher} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
         </div>
       </div>
     </div>

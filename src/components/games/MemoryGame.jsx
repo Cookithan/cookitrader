@@ -56,12 +56,20 @@ const FULL_CLEAR_BONUS = 10;
    permet de balayer les positions une fois. */
 const PEEK_DURATION_MS = 500;
 
-export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
+export function MemoryGame({ coins, onEarn, onSpend, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
   const { t } = useTranslation();
   /* Thème actif — dos de carte personnalisé selon le skin. */
   const memoryTheme = getActiveTheme('memory', gameThemes || {});
   const mtd         = memoryTheme?.data || {};
   const [phase,    setPhase]    = useState('idle');     // idle | playing | done
+  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
+     inclus : la bascule doit se faire AVANT le premier geste, pas au
+     milieu de l'action. */
+  useEffect(() => { onEnJeu?.(phase === 'playing'); }, [phase, onEnJeu]);
+  /* Au démontage seulement — pas à chaque changement de phase, sinon
+     l'en-tête clignoterait entre deux états. */
+  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+
   const [deck,     setDeck]     = useState(()=>shuffledDeck());
   const [flipped,  setFlipped]  = useState([]);          // ids actuellement face visible (max 2)
   const [matched,  setMatched]  = useState([]);          // ids déjà appariés

@@ -96,9 +96,17 @@ function getMovingCupBottomPosition(stackedCups){
   return STACK_BOTTOM + SAUCER_HEIGHT + h + 60;
 }
 
-export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
+export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
   const { t } = useTranslation();
   const [phase,           setPhase]           = useState('intro');     // intro | playing | gameover
+  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
+     inclus : la bascule doit se faire AVANT le premier geste, pas au
+     milieu de l'action. */
+  useEffect(() => { onEnJeu?.(phase === 'playing'); }, [phase, onEnJeu]);
+  /* Au démontage seulement — pas à chaque changement de phase, sinon
+     l'en-tête clignoterait entre deux états. */
+  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+
   const [mode,            setMode]            = useState('normal');    // sélectionné dans l'intro, lock pendant playing
   const [stackedCups,     setStackedCups]     = useState([]);
   const [movingCup,       setMovingCup]       = useState(null);

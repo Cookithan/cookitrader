@@ -179,7 +179,7 @@ function CupSvg({ dark, frozen, inverted }){
   );
 }
 
-export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
+export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
   const { t } = useTranslation();
 
   /* Thème actif — lu une fois au mount, pas live pendant la partie */
@@ -202,6 +202,14 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
   const VY_DIR     = inverted ? -1 : +1;
 
   const [phase,        setPhase]        = useState('idle');
+  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
+     inclus : la bascule doit se faire AVANT le premier geste, pas au
+     milieu de l'action. */
+  useEffect(() => { onEnJeu?.(phase === 'playing' || phase === 'countdown'); }, [phase, onEnJeu]);
+  /* Au démontage seulement — pas à chaque changement de phase, sinon
+     l'en-tête clignoterait entre deux états. */
+  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+
   const [score,        setScore]        = useState(0);
   /* Durée sélectionnée pour la prochaine partie (60/120/180). Une fois
      la partie lancée, on fige dans runningDurationRef pour pas qu'un

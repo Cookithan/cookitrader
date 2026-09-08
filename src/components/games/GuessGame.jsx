@@ -169,7 +169,7 @@ function pickCustomerIndices(n, max){
   return result;
 }
 
-export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
+export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendarySeen = false, onLegendarySeen, isAdmin = false, level = 1, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
   const { t, lang } = useTranslation();
   /* Thème actif — change l'accent color (barre de progression, coche). */
   const guessTheme  = getActiveTheme('guess', gameThemes || {});
@@ -179,6 +179,14 @@ export function GuessGame({ coins, onEarn, onSpend, onEventChallenge, legendaryS
      palier de récompense (= plus exigeant, pas plus rentable). */
   const NB_QUESTIONS = level >= 10 ? 7 : 5;
   const [phase,    setPhase]    = useState('idle');         // idle | playing | done
+  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
+     inclus : la bascule doit se faire AVANT le premier geste, pas au
+     milieu de l'action. */
+  useEffect(() => { onEnJeu?.(phase === 'playing'); }, [phase, onEnJeu]);
+  /* Au démontage seulement — pas à chaque changement de phase, sinon
+     l'en-tête clignoterait entre deux états. */
+  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+
   const [questions,setQuestions]= useState([]);              // commandes tirées
   const [customerIndices, setCustomerIndices] = useState([]); // indices dans CUSTOMERS
   const [qIndex,   setQIndex]   = useState(0);

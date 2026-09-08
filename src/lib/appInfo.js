@@ -13,14 +13,36 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.30.1',
-  releaseDate: '2026-09-08',
+  version: '1.30.2',
+  releaseDate: '2026-09-09',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
+  {
+    version: '1.30.2',
+    date: '2026-09-09',
+    title: '🎮 Les mini-jeux prennent tout l’écran',
+    title_en: '🎮 Mini-games take the whole screen',
+    changes: [
+      "🎮 Pendant une partie, la barre du haut s’efface et le jeu occupe l’écran entier — Café Express, Flappy, Memory, Réflexes, Cookie Click, Pile de Tasses et Devine la commande",
+      "📚 Quiz refondu : du café et du biscuit à la place des questions sur l’app, la difficulté FACILE est de retour, et Moyen n’est plus parfois plus dur qu’Expert",
+      "🎨 Un thème acheté s’équipe tout de suite — plus besoin d’aller le chercher dans Ma Collection",
+      "🤝 Ajoute n’importe qui en ami directement depuis le classement, sans lui demander son code",
+      "🎵 De la musique dans tous les mini-jeux : elle ne se coupe plus en route",
+      "📈 Les actions offertes par code promo font enfin monter le cours, comme un vrai achat",
+    ],
+    changes_en: [
+      "🎮 During a run, the top bar slides away and the game takes the whole screen — Café Express, Flappy, Memory, Reflexes, Cookie Click, Cup Stack and Guess the order",
+      "📚 Quiz rebuilt: coffee and biscuits instead of questions about the app, the EASY tier is back, and Medium is no longer sometimes harder than Expert",
+      "🎨 A theme you buy is equipped right away — no more digging through My Collection",
+      "🤝 Add anyone as a friend straight from the leaderboard, without asking for their code",
+      "🎵 Music in every mini-game: it no longer cuts out along the way",
+      "📈 Shares granted by promo codes now push the price up, like a real purchase",
+    ],
+  },
   /* La 1.30 continue : on AJOUTE une entrée, on ne réécrit pas la
      précédente — les joueurs l'ont déjà lue.
 
@@ -140,22 +162,6 @@ export const CHANGELOG = [
       "🎯 Opponent search, a random challenge + its rules, then face them on a mini-game",
       "📊 Live race bar: your score against theirs, the leader lights up in gold",
       "🧪 This is an early beta — give it a try and tell us what you think!",
-    ],
-  },
-  {
-    version: '1.25.0',
-    date: '2026-05-26',
-    title: '⚡ Café Express plus fluide, plus long, plus libre',
-    title_en: '⚡ Café Express smoother, longer, more flexible',
-    changes: [
-      "⚡ Café Express tourne fluide sur tous les téléphones — fix d'un bug où le jeu était trop lent sur certains appareils",
-      "⏱ Choisis la durée de ta partie : 60s, 2 min ou 3 min (paliers de récompense scalés en conséquence)",
-      "🎨 Switche de thème directement depuis l'écran de Café Express, plus besoin d'aller dans les Paramètres",
-    ],
-    changes_en: [
-      "⚡ Café Express now runs smoothly on all phones — fixed a bug where the game was too slow on some devices",
-      "⏱ Choose your match duration: 60s, 2 min or 3 min (reward tiers scale accordingly)",
-      "🎨 Switch theme straight from the Café Express screen — no need to open Settings",
     ],
   },
 ];

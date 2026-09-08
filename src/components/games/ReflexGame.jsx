@@ -47,7 +47,7 @@ function rewardFor(score){
   return 0;
 }
 
-export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
+export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
   const { t } = useTranslation();
   /* Skin cookie : si l'user a un skin custom équipé, on remplace le SVG
      hardcodé par <SkinnedCookie> pour rester cohérent avec ClickGame +
@@ -56,6 +56,14 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
     ? COOKIE_SKINS[activeSkin]
     : null;
   const [phase,         setPhase]         = useState('idle');     // idle | countdown | playing | done
+  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
+     inclus : la bascule doit se faire AVANT le premier geste, pas au
+     milieu de l'action. */
+  useEffect(() => { onEnJeu?.(phase === 'playing' || phase === 'countdown'); }, [phase, onEnJeu]);
+  /* Au démontage seulement — pas à chaque changement de phase, sinon
+     l'en-tête clignoterait entre deux états. */
+  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+
   const [score,         setScore]         = useState(0);
   const [timeLeft,      setTimeLeft]      = useState(REFLEX_DURATION);
   const [countdownVal,  setCountdownVal]  = useState(null);
