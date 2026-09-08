@@ -1,6 +1,7 @@
 import { supabase, isSupabaseEnabled } from './supabase';
 import { MARKET_CONFIG } from './market.js';
 import { APP_INFO } from './appInfo.js';
+import { xpRequired } from '../data/constants.js';
 import { isAdminName } from '../utils/admin.js';
 
 /* ════════════════════════════════════════════════════
@@ -223,12 +224,59 @@ function controleConcentration(users) {
   return faire('ok', 'classement', `Semaine équilibrée — ${liste.length} joueur(s), ${total} 🍪`, detail);
 }
 
+/* ── Niveau incohérent avec les gains affichés ────────
+   LE contrôle qui a démasqué l'exploit de septembre, et il manquait
+   ici. Le cap anti-écart d'addCoins fige le total_earned du leader
+   pendant que son niveau continue de monter : un tricheur en tête du
+   classement passe donc inaperçu si on ne regarde que le total. Un
+   compte dont le niveau réclame bien plus de gains qu'il n'en affiche
+   a été soit plafonné (légitime), soit gonflé (pas légitime).
+
+   La courbe d'XP est IMPORTÉE de data/constants.js, jamais recopiée :
+   une copie finit toujours par diverger de la vraie règle du jeu. */
+function gainsPourNiveau(L) {
+  let total = 0;
+  /* Le malus d'XP de −20 % à partir du niveau 10 (cf. addCoins) veut
+     dire qu'il faut gagner PLUS de cookies pour la même XP. */
+  for (let l = 1; l < L; l++) total += l >= 10 ? xpRequired(l) / 0.8 : xpRequired(l);
+  return Math.round(total);
+}
+
+function controleCoherenceNiveau(users) {
+  const ecarts = users
+    .filter(u => !isAdminName(u.user_name) && num(u.level) >= 10 && !num(u.prestige_level))
+    .map(u => ({ u, requis: gainsPourNiveau(num(u.level)), affiche: num(u.total_earned) }))
+    .filter(x => x.requis > 0 && x.affiche < x.requis * 0.75)
+    .sort((a, b) => (a.affiche / a.requis) - (b.affiche / b.requis));
+
+  if (!ecarts.length) return faire('ok', 'triche', 'Niveaux cohérents avec les gains affichés');
+  return faire('voir', 'triche', `${ecarts.length} compte(s) dont le niveau n'est pas justifié par le total`,
+    ecarts.map(x => `${x.u.user_name} — niveau ${x.u.level} réclame ~${x.requis} 🍪, en affiche ${x.affiche}`)
+      .concat(['Deux explications possibles : le cap anti-écart du leader, ou un total gonflé puis corrigé.']));
+}
+
+/* ── Soldes impossibles ───────────────────────────────
+   Un joueur ne peut pas détenir plus de cookies qu'il n'en a jamais
+   gagné : le solde est un sous-ensemble du cumul. Quand ce n'est plus
+   vrai, des cookies sont apparus sans passer par le jeu. Contrôle
+   volontairement bête et sans faux positif possible. */
+function controleSoldes(users) {
+  const impossibles = users
+    .filter(u => !isAdminName(u.user_name))
+    .filter(u => num(u.cookies) > num(u.total_earned) + 100 || num(u.cookies) < 0 || num(u.cafes) < 0)
+    .sort((a, b) => num(b.cookies) - num(a.cookies));
+
+  if (!impossibles.length) return faire('ok', 'triche', 'Aucun solde impossible');
+  return faire('alerte', 'triche', `${impossibles.length} compte(s) au solde impossible`,
+    impossibles.map(u => `${u.user_name} — ${num(u.cookies)} 🍪 en poche pour ${num(u.total_earned)} 🍪 gagnés au total`));
+}
+
 /* ── Marché : bornes, cohérence, immobilité ──────────
    Les bornes sont lues dans MARKET_CONFIG, jamais recopiées : le jour
    où l'échelle des prix rechange, la vigie suit toute seule au lieu de
    hurler à tort (c'est exactement le piège dans lequel scripts/audit.mjs
    était tombé, resté sur 10-300 après le passage à 500). */
-function controleMarche(state, portefeuilles) {
+function controleMarche(state, portefeuilles, users) {
   const rapports = [];
   if (!state) return [faire('alerte', 'marché', 'Aucun état de marché en base (market_state vide)')];
 
@@ -251,6 +299,17 @@ function controleMarche(state, portefeuilles) {
     ]));
   } else {
     rapports.push(faire('ok', 'marché', `Portefeuilles et état cohérents (${detenu} actions détenues)`));
+  }
+
+  /* Portefeuille sans joueur : il reste dans la circulation et fausse
+     les comptes, alors que plus personne ne peut vendre ces actions.
+     Cas vu le 08/09 — un compte supprimé a laissé une action derrière. */
+  const codes = new Set(users.map(u => u.user_code));
+  const orphelins = portefeuilles.filter(p => num(p.shares) > 0 && !codes.has(p.user_code));
+  if (orphelins.length) {
+    rapports.push(faire('voir', 'marché', `${orphelins.length} portefeuille(s) sans joueur`,
+      orphelins.map(p => `${p.user_code} — ${num(p.shares)} action(s) que plus personne ne peut vendre`)
+        .concat(["Retirer la ligne ET décrémenter shares_in_circulation du même nombre, sinon l'écart apparaîtra au contrôle suivant."])));
   }
 
   const negatifs = portefeuilles.filter(p => num(p.shares) < 0 || num(p.total_invested) < 0);
@@ -332,7 +391,7 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
   if (!isSupabaseEnabled()) return [];
 
   const [users, state, portefeuilles, sante] = await Promise.all([
-    supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level').limit(2000).then(r => r.data || []),
+    supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level, cookies, cafes').limit(2000).then(r => r.data || []),
     supabase.from('market_state').select('*').eq('id', 1).maybeSingle().then(r => r.data),
     supabase.from('market_portfolio').select('user_code, shares, total_invested').limit(2000).then(r => r.data || []),
     supabase.from('app_health').select('kind, user_code, user_name, app_version, detail, created_at, id').order('created_at', { ascending: false }).limit(500).then(r => r.data || []),
@@ -340,8 +399,10 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
 
   const rapports = [
     controleRendement(users),
+    controleCoherenceNiveau(users),
+    controleSoldes(users),
     controleConcentration(users),
-    ...controleMarche(state, portefeuilles),
+    ...controleMarche(state, portefeuilles, users),
     controleVersions(sante),
     ...controleIncidents(sante),
   ];
@@ -400,11 +461,47 @@ export async function derniersRapports(limite = 40) {
   }
 }
 
-/* Y a-t-il une alerte active ? Sert à poser une pastille sur l'entrée
-   du menu admin, pour ne pas avoir à ouvrir l'écran pour savoir. */
+/* Combien d'alertes à la dernière ronde ? Sert à poser une pastille
+   sur l'icône des réglages : une vigie qu'il faut penser à consulter
+   ne sert qu'aux jours où on y pense. */
 export async function alertesEnCours() {
   const rapports = await derniersRapports(20);
   if (!rapports.length) return 0;
   const derniereRonde = rapports[0].created_at;
   return rapports.filter(r => r.created_at === derniereRonde && r.verdict === 'alerte').length;
+}
+
+/* Regroupe l'historique par ronde, de la plus récente à la plus
+   ancienne. Une ronde = tous les verdicts partageant le même instant. */
+export function grouperParRonde(rapports) {
+  const rondes = [];
+  for (const r of rapports) {
+    const derniere = rondes[rondes.length - 1];
+    if (derniere && derniere.instant === r.created_at) derniere.verdicts.push(r);
+    else rondes.push({ instant: r.created_at, verdicts: [r] });
+  }
+  return rondes;
+}
+
+/* Depuis combien de rondes ce verdict dure-t-il ?
+
+   C'est l'information qui manque le plus à la lecture : une alerte
+   APPARUE à l'instant et une alerte présente depuis trois jours ne
+   demandent pas la même chose. La première dit qu'il vient de se
+   passer quelque chose ; la seconde, qu'on a décidé de vivre avec (ou
+   qu'on l'ignore, ce qui est pire).
+
+   On compare par catégorie ET par verdict, pas par titre : les titres
+   contiennent des compteurs qui bougent d'une ronde à l'autre. */
+export function anciennete(rondes, verdict) {
+  if (!rondes.length) return { rondes: 1, depuis: null };
+  let compte = 0;
+  let depuis = rondes[0].instant;
+  for (const ronde of rondes) {
+    const meme = ronde.verdicts.find(v => v.categorie === verdict.categorie && v.verdict === verdict.verdict);
+    if (!meme) break;
+    compte++;
+    depuis = ronde.instant;
+  }
+  return { rondes: Math.max(compte, 1), depuis };
 }

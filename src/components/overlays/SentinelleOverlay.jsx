@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, RefreshCw } from "lucide-react";
-import { faireUneRonde, derniersRapports } from "../../lib/sentinelle.js";
+import { faireUneRonde, derniersRapports, grouperParRonde, anciennete } from "../../lib/sentinelle.js";
 import { APP_INFO } from "../../lib/appInfo.js";
 
 /* ════════════════════════════════════════════════════
@@ -46,7 +46,7 @@ function quand(iso) {
   return `il y a ${Math.round(h / 24)} j`;
 }
 
-function Verdict({ r, C }) {
+function Verdict({ r, age, C }) {
   const ton = TONS[r.verdict] || TONS.ok;
   const [ouvert, setOuvert] = useState(r.verdict === 'alerte');
   const detail = Array.isArray(r.detail) ? r.detail : [];
@@ -73,7 +73,17 @@ function Verdict({ r, C }) {
             {r.titre}
           </span>
           <span style={{ display: 'block', fontSize: 10, color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 3 }}>
-            {r.categorie}{detail.length ? ` · ${detail.length} détail${detail.length > 1 ? 's' : ''}` : ''}
+            {r.categorie}
+            {/* Depuis quand : une alerte qui vient d'apparaître et une
+                qui dure depuis trois jours ne demandent pas la même
+                chose. Sans ça, on relit chaque soir la même ligne sans
+                savoir si elle est neuve. */}
+            {age && r.verdict !== 'ok' && (
+              <span style={{ opacity: .85 }}>
+                {' · '}{age.rondes <= 1 ? 'NOUVEAU' : `depuis ${age.rondes} rondes`}
+              </span>
+            )}
+            {detail.length ? ` · ${detail.length} détail${detail.length > 1 ? 's' : ''}` : ''}
           </span>
         </span>
         {detail.length > 0 && (
@@ -101,16 +111,20 @@ export function SentinelleOverlay({ onClose, C }) {
   const [enCours, setEnCours]     = useState(false);
   const [horodatage, setHorodatage] = useState(null);
   const [immediat, setImmediat]   = useState(false);
+  const [historique, setHistorique] = useState([]);
 
   /* Historique : on ne garde que la ronde la plus récente. Empiler
      trois rondes de suite donnerait trois fois les mêmes verdicts. */
   const charger = useCallback(async () => {
     setChargement(true);
-    const tous = await derniersRapports(60);
-    if (tous.length) {
-      const derniere = tous[0].created_at;
-      setRapports(tous.filter(r => r.created_at === derniere));
-      setHorodatage(derniere);
+    /* On rapatrie plusieurs rondes, pas seulement la dernière : c'est
+       ce qui permet de dire depuis quand chaque verdict dure. */
+    const tous = await derniersRapports(200);
+    const rondes = grouperParRonde(tous);
+    setHistorique(rondes);
+    if (rondes.length) {
+      setRapports(rondes[0].verdicts);
+      setHorodatage(rondes[0].instant);
     } else {
       setRapports([]);
       setHorodatage(null);
@@ -219,7 +233,14 @@ export function SentinelleOverlay({ onClose, C }) {
             </div>
           </div>
         ) : (
-          tries.map((r, i) => <Verdict key={r.id ?? i} r={r} C={C} />)
+          tries.map((r, i) => (
+            <Verdict
+              key={r.id ?? i}
+              r={r}
+              age={immediat ? null : anciennete(historique, r)}
+              C={C}
+            />
+          ))
         )}
 
         <div style={{ marginTop: 16, fontSize: 10.5, color: C.muted, lineHeight: 1.65 }}>
