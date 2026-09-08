@@ -2,6 +2,7 @@ import { supabase, isSupabaseEnabled } from './supabase';
 import { MARKET_CONFIG } from './market.js';
 import { APP_INFO } from './appInfo.js';
 import { isAdminName } from '../utils/admin.js';
+import { versionsParJoueur } from './sentinelle.js';
 
 /* ════════════════════════════════════════════════════
    sentinelleQuestions.js — poser une question à la vigie
@@ -57,12 +58,19 @@ const q = async (table, select, extra = '') => {
 export async function tousLesJoueurs() {
   if (!isSupabaseEnabled()) return [];
   try {
-    const { data } = await supabase
-      .from('users')
-      .select('user_name, user_code, level, total_earned, cookies, cafes, total_play_time, last_active, prestige_level')
-      .order('total_earned', { ascending: false })
-      .limit(500);
-    return data || [];
+    /* La version tournant chez chaque joueur voyage avec sa fiche : quand
+       on cherche quelqu'un pour agir sur son compte, savoir qu'il est
+       resté sur une vieille version change l'interprétation de tout le
+       reste — c'est ce qui expliquait le cours à 300 le 08/09. */
+    const [reponse, versions] = await Promise.all([
+      supabase
+        .from('users')
+        .select('user_name, user_code, level, total_earned, cookies, cafes, total_play_time, last_active, prestige_level')
+        .order('total_earned', { ascending: false })
+        .limit(500),
+      versionsParJoueur(),
+    ]);
+    return (reponse.data || []).map(u => ({ ...u, ...(versions.get(u.user_code) || {}) }));
   } catch {
     return [];
   }
@@ -93,6 +101,9 @@ function ficheJoueur(j) {
       `${fmt(j.cookies)} 🍪 en poche · ${num(j.cafes)} ☕`,
       `${Math.round(minutes)} min de jeu${rendement ? ` · ${rendement} 🍪/min` : ''}`,
       j.last_active ? `Vu pour la dernière fois le ${new Date(j.last_active).toLocaleString('fr-FR')}` : null,
+      j.version
+        ? `Application en version ${j.version}${j.version !== APP_INFO.version ? ' ⚠️ périmée' : ''}`
+        : "Version inconnue — ce compte n'a pas ouvert l'app depuis que la vigie écoute",
     ].filter(Boolean),
   };
 }
