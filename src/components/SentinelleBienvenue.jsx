@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SENTINELLE_THEME, SENTINELLE_BANNIERE } from "../data/themes.js";
 import { useTranslation } from "../i18n/index.js";
 
@@ -41,18 +41,32 @@ export function SentinelleBienvenue({ nom, admin = false, onFini }) {
   const { t } = useTranslation();
   const [sort, setSort] = useState(false);
 
+  /* ── Pourquoi ce ref ──────────────────────────────
+     `onFini` est écrit en clair dans le parent — donc reconstruit à
+     CHAQUE rendu. Le mettre en dépendance de l'effet remettait les deux
+     minuteries à zéro à chaque fois que le parent se redessinait, et la
+     console en enchaîne plusieurs pendant qu'elle charge ses rapports :
+     l'accueil ne partait jamais tout seul.
+
+     On garde donc la fonction dans un ref, et l'effet ne tourne qu'une
+     fois. Corriger côté parent (un useCallback) marcherait aussi, mais
+     ce composant ne doit pas dépendre de la discipline de ses appelants
+     pour savoir disparaître. */
+  const finiRef = useRef(onFini);
+  useEffect(() => { finiRef.current = onFini; }, [onFini]);
+
   useEffect(() => {
     const a = setTimeout(() => setSort(true), AVANT_SORTIE);
-    const b = setTimeout(() => onFini?.(), TOTAL);
+    const b = setTimeout(() => finiRef.current?.(), TOTAL);
     return () => { clearTimeout(a); clearTimeout(b); };
-  }, [onFini]);
+  }, []);
 
   /* Passer outre : un doigt posé n'importe où et on est dans l'écran.
      On garde la dissolution — couper net donnerait un clignotement. */
   const passer = () => {
     if (sort) return;
     setSort(true);
-    setTimeout(() => onFini?.(), 340);
+    setTimeout(() => finiRef.current?.(), 340);
   };
 
   const titre = nom ? t('report.hello', { nom }) : t('report.hello_anon');
