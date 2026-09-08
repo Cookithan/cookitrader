@@ -6,9 +6,12 @@
    payé l'addition : podium hebdomadaire faussé, classement cumulé
    faussé, 96 % du marché $CKM détenu avec des cookies fabriqués.
 
-   Deux familles de messages, une modale unique :
-     · SANCTIONS    — ce qui a été retiré, et pourquoi
+   Trois familles de messages, une modale unique :
+     · SANCTIONS     — ce qui a été retiré, et pourquoi
      · COMPENSATIONS — ce qui a été rendu, et pourquoi
+     · REGROUPEMENT  — le passage de l'action à 500 (08/09/2026), qui
+                       divise le nombre d'actions par 5 sans toucher à
+                       leur valeur. Sans message, ça ressemble à un vol.
 
    ⚠️ CES MESSAGES N'APPLIQUENT AUCUN EFFET. Ils ne débitent ni ne
    créditent rien : les corrections sont faites en SQL, une fois pour
@@ -126,12 +129,67 @@ export const REWARD_NOTICES = Object.fromEntries(
   }])
 );
 
-/* Retourne le message qui concerne ce compte, ou null.
-   `kind` vaut 'sanction' ou 'reward' — la modale change de ton. */
-export function getAccountNotice(userCode){
-  if(!userCode) return null;
+/* ── Regroupement d'actions du 08/09/2026 ─────────────
+   L'action passe de 100 à 500 🍪. Pour que la valeur des portefeuilles
+   ne bouge pas, 5 anciennes actions deviennent 1 nouvelle (cf.
+   SPLIT_MARCHE_500.sql). Un porteur qui rouvre l'app sans explication
+   voit ses 327 actions devenues 66 : il croit à une confiscation.
+
+   Les quantités sont dérivées d'ACTIONS_RENDUES — c'est la même table
+   que celle rendue en 1.29, et le marché est resté fermé depuis, donc
+   personne n'a pu bouger d'une action entre les deux. Si le marché
+   rouvre avant que ce message ne soit distribué, cette dérivation
+   devient fausse : figer les chiffres en dur à ce moment-là.
+
+   CEIL, comme dans le SQL : l'arrondi va toujours dans le sens du
+   joueur, pour que la ligne « valeur » ne soit jamais une perte. */
+const SPLIT_RATIO = 5;
+const NEW_PRICE   = 500;
+
+export const SPLIT_NOTICES = Object.fromEntries(
+  Object.entries(ACTIONS_RENDUES).map(([code, [name, shares]]) => {
+    const after = Math.ceil(shares / SPLIT_RATIO);
+    return [code, {
+      name,
+      title: 'Tes actions ont changé d\'échelle',
+      reason: "Le marché $CKM rouvre avec une action à 500 🍪 au lieu de 100. Pour que ça ne crée pas de cookies à partir de rien, 5 anciennes actions valent désormais 1 nouvelle action. Tu en as donc moins — mais elles valent cinq fois plus.",
+      gained: [
+        `${shares} action${shares > 1 ? 's' : ''} → ${after} action${after > 1 ? 's' : ''}`,
+        `Ton portefeuille pèse ${(after * NEW_PRICE).toLocaleString('fr-FR')} 🍪 (contre ${(shares * 100).toLocaleString('fr-FR')} 🍪 avant — l'arrondi t'a été laissé)`,
+      ],
+      footer: "Le cours ne bougera plus tout seul : il ne monte que si des joueurs achètent, il ne descend que si des joueurs vendent. À toi de jouer ☕",
+    }];
+  })
+);
+
+/* Retourne LES messages qui concernent ce compte, du plus ancien au
+   plus récent, sous forme de liste. C'est l'appelant (App.jsx) qui
+   affiche le premier dont le patch n'a pas encore été consommé.
+
+   ⚠️ Pourquoi une liste et plus un seul message : les 16 porteurs
+   d'actions ont déjà reçu leur message de compensation en 1.29. Avec
+   un `return` au premier match, ils n'auraient JAMAIS vu celui du
+   regroupement — la fonction aurait rendu la compensation, déjà
+   consommée, et l'affichage se serait arrêté là.
+
+   `kind` vaut 'sanction' ou 'reward' — la modale change de ton.
+   `forceServerAdoption` : réservé aux messages dont la correction
+   touche la table users (cookies, cafés, niveau). Le regroupement
+   d'actions, lui, ne touche que market_portfolio : forcer l'adoption
+   des valeurs serveur ferait courir au joueur le risque de perdre la
+   progression gagnée depuis son dernier envoi, pour rien. */
+export function getAccountNotices(userCode){
+  if(!userCode) return [];
   const code = userCode.toUpperCase();
-  if(SANCTION_NOTICES[code]) return { kind: 'sanction', patch: NOTICE_PATCH_PREFIX + 'sanction', ...SANCTION_NOTICES[code] };
-  if(REWARD_NOTICES[code])   return { kind: 'reward',   patch: NOTICE_PATCH_PREFIX + 'reward',   ...REWARD_NOTICES[code] };
-  return null;
+  const out = [];
+  if(SANCTION_NOTICES[code]) out.push({ kind: 'sanction', patch: NOTICE_PATCH_PREFIX + 'sanction', forceServerAdoption: true,  ...SANCTION_NOTICES[code] });
+  if(REWARD_NOTICES[code])   out.push({ kind: 'reward',   patch: NOTICE_PATCH_PREFIX + 'reward',   forceServerAdoption: true,  ...REWARD_NOTICES[code] });
+  /* requiresMarketPrice : le message décrit un regroupement fait en SQL.
+     Tant que le SQL n'a pas tourné, le joueur a encore ses 327 actions
+     et le message lui mentirait — pire, il aurait consommé son verrou
+     one-shot pour rien. On attend donc de voir le prix à 500 en base.
+     C'est ce qui rend l'ordre « déploiement d'abord, SQL ensuite »
+     inoffensif, au lieu d'être une fenêtre de tir de quelques heures. */
+  if(SPLIT_NOTICES[code])    out.push({ kind: 'reward',   patch: NOTICE_PATCH_PREFIX + 'split500', forceServerAdoption: false, requiresMarketPrice: NEW_PRICE, ...SPLIT_NOTICES[code] });
+  return out;
 }

@@ -741,7 +741,7 @@ export const EN = {
     step2_title:     'How does it work?',
     step2_text:      "Buy when you think the price will go up. Sell when you think it will go down. The more the market moves, the more profitable!",
     step3_title:     'Limited stock',
-    step3_text:      "There are only 10,000 shares total. The more people buy, the rarer it gets and the higher the price climbs. Good trading!",
+    step3_text:      "There are only 2,000 shares total, and nothing but players moves the price: it only climbs when people buy, it only drops when they sell. Good trading!",
     lets_go:         "Let's go! 🚀",
   },
 

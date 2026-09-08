@@ -35,11 +35,11 @@ import { PrestigeConfirmModal } from "./components/modals/PrestigeConfirmModal.j
 import { MarketRefundModal } from "./components/modals/MarketRefundModal.jsx";
 import { SanctionAppliedModal } from "./components/modals/SanctionAppliedModal.jsx";
 import { AccountNoticeModal } from "./components/modals/AccountNoticeModal.jsx";
-import { getAccountNotice } from "./data/accountNotices.js";
+import { getAccountNotices } from "./data/accountNotices.js";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
-import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, applyHoldDecayIfDue } from "./lib/market.js";
+import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, applyHoldDecayIfDue, getMarketState } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
@@ -2188,13 +2188,21 @@ export default function CookiMiner() {
      partagé (cf. le commentaire « double-refund » plus haut).
 
      Ne se déclenche qu'à partir de cette mise à jour, puisque le
-     fichier accountNotices.js n'existe pas avant. */
+     fichier accountNotices.js n'existe pas avant.
+
+     PLUSIEURS MESSAGES POSSIBLES (08/09/2026) : on parcourt la liste et
+     on affiche le PREMIER dont le verrou n'a pas encore été consommé.
+     Auparavant la fonction n'en rendait qu'un seul, le plus ancien —
+     donc les 16 porteurs d'actions, qui ont tous reçu leur message de
+     compensation en 1.29, n'auraient jamais vu celui du regroupement.
+     Un seul message par ouverture d'app : deux modales d'affilée, c'est
+     un mur de texte que personne ne lit. */
   useEffect(() => {
     if(!userCode || !pullDone || !isSupabaseEnabled()) return;
-    const notice = getAccountNotice(userCode);
-    if(!notice) return;
+    const notices = getAccountNotices(userCode);
+    if(!notices.length) return;
     let cancelled = false;
-    applyPatchOnce({
+    const showNotice = (notice) => applyPatchOnce({
       userCode,
       lsKey:    'cookiminer:' + notice.patch,
       patchKey: notice.patch,
@@ -2215,19 +2223,27 @@ export default function CookiMiner() {
            mettant l'upsert en pause le temps d'écrire les états.
            C'est aussi ce qui explique qu'un changement fait à la main
            en base ne se voie pas dans l'app : ce n'est pas un cache,
-           c'est le client qui gagne. */
-        setPauseUpsertUntil(Date.now() + 8000);
-        const srv = await pullProfile(userCode);
-        if(srv && !cancelled){
-          setCoins(srv.coins);
-          setCafes(srv.cafes);
-          setTotalEarned(srv.totalEarned);
-          setWeeklyEarned(Number(srv.weeklyEarned) || 0);
-          setLevel(srv.level);   lvRef.current = srv.level;
-          setXp(srv.xp);         xpRef.current = srv.xp;
-          setUnlocked(srv.unlocked || []);
-          setActiveTheme(srv.activeTheme || '');
-          setActiveTitle(srv.activeTitle || '');
+           c'est le client qui gagne.
+
+           ⚠️ Réservé aux messages dont la correction touche la table
+           users (forceServerAdoption). Le regroupement d'actions, lui,
+           ne vit que dans market_portfolio : lui faire adopter les
+           valeurs serveur ferait perdre au joueur la progression
+           gagnée depuis son dernier envoi, sans rien corriger. */
+        if(notice.forceServerAdoption){
+          setPauseUpsertUntil(Date.now() + 8000);
+          const srv = await pullProfile(userCode);
+          if(srv && !cancelled){
+            setCoins(srv.coins);
+            setCafes(srv.cafes);
+            setTotalEarned(srv.totalEarned);
+            setWeeklyEarned(Number(srv.weeklyEarned) || 0);
+            setLevel(srv.level);   lvRef.current = srv.level;
+            setXp(srv.xp);         xpRef.current = srv.xp;
+            setUnlocked(srv.unlocked || []);
+            setActiveTheme(srv.activeTheme || '');
+            setActiveTitle(srv.activeTitle || '');
+          }
         }
         /* Le classement garde son cache de session : sans purge, le
            joueur verrait encore ses anciens chiffres jusqu'à la
@@ -2240,6 +2256,23 @@ export default function CookiMiner() {
         if(!cancelled) setAccountNotice(notice);
       },
     });
+
+    (async () => {
+      for(const notice of notices){
+        if(cancelled) return;
+        /* Message qui raconte une correction SQL pas encore passée :
+           on ne l'affiche pas et surtout on ne consomme pas son verrou.
+           Il ressortira à la prochaine ouverture, une fois le SQL joué. */
+        if(notice.requiresMarketPrice){
+          const st = await getMarketState();
+          if(cancelled) return;
+          if(!st || st.current_price < notice.requiresMarketPrice * 0.8) continue;
+        }
+        const shown = await showNotice(notice);
+        if(shown) return;   /* un seul message par ouverture */
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
@@ -3720,7 +3753,11 @@ export default function CookiMiner() {
       if(isCafe) setCafes(c => Math.max(0, c - r.cost));
       else spendCoins(r.cost);
       (async () => {
-        const res = await creditFreeShares(userCode, n);
+        /* investedTotal : le joueur a payé, donc ces actions ont un vrai
+           prix de revient. Sans ça, revendre un pack compterait comme
+           une plus-value intégrale (et donnerait droit au bonus de hold
+           dessus) — le pack se transformerait en imprimante à cookies. */
+        const res = await creditFreeShares(userCode, n, isCafe ? {} : { investedTotal: r.cost });
         if(!res?.success){
           /* Rollback du débit si Supabase a refusé */
           if(isCafe) setCafes(c => c + r.cost);
@@ -3819,7 +3856,11 @@ export default function CookiMiner() {
       ['level_6',        level >= 6],
       ['level_10',       level >= 10],
       ['level_15',       level >= 15],
-      ['trader',         totalInvested >= 500],
+      /* Seuil ×5 le 08/09/2026, comme le prix de l'action : à 500 🍪
+         l'action, « investir 500 cookies » voulait dire en acheter UNE.
+         Ceux qui l'ont déjà décroché le gardent (les succès obtenus ne
+         se reprennent pas). */
+      ['trader',         totalInvested >= 2500],
       ['end_game',       endGameReady],
     ];
     for(const [id,ok] of checks){
@@ -4555,7 +4596,7 @@ export default function CookiMiner() {
                 onConsumeBulkPass={() => setBulkTradePasses(n => Math.max(0, (n || 0) - 1))}
                 onTradeComplete={(result)=>{
                   if(result.type === 'buy'){
-                    /* L'achievement 'trader' attend totalInvested >= 500 cookies */
+                    /* L'achievement 'trader' attend totalInvested >= 2 500 cookies */
                     setTotalInvested(t => t + result.cost);
                   } else if(result.type === 'sell'){
                     /* Le badge secret 'investisseur' attend marketRealized >= 1000 */

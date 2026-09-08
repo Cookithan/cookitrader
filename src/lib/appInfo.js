@@ -39,6 +39,7 @@ export const CHANGELOG = [
       "🏆 Tes succès ont leur propre écran, ils n'occupent plus la moitié de l'accueil",
       "ℹ️ Tape le logo CookiMiner en haut de l'écran pour retrouver les nouveautés à tout moment",
       "🏦 La boutique en actions $CKM ferme — ce que tu y avais obtenu reste à toi et s'équipe dans Ma Collection",
+      "📈 Le marché $CKM change d'échelle : l'action vaut 500 🍪, et le cours ne bouge plus QUE par les achats et les ventes des joueurs — plus aucun retour automatique",
     ],
     changes_en: [
       "🎨 New My Collection tab: themes, avatars, skins, titles and music all in one place. Buy in the shop, equip here",
@@ -47,6 +48,7 @@ export const CHANGELOG = [
       "🏆 Your achievements now have their own screen instead of filling half the home tab",
       "ℹ️ Tap the CookiMiner logo at the top to check what's new at any time",
       "🏦 The $CKM shares shop is closing — whatever you unlocked there stays yours and is equipped in My Collection",
+      "📈 The $CKM market changes scale: a share is worth 500 🍪, and the price now moves ONLY when players buy and sell — no automatic drift back",
     ],
   },
   {

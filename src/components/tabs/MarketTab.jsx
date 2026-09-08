@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   getMarketState, getMarketHistory, getMarketActivity, getMarketPulse,
-  getUserPortfolio, maintenanceTick, getMarketStatus,
+  getUserPortfolio, maintenanceTick, getMarketStatus, MARKET_CONFIG,
 } from '../../lib/market';
 import { isSupabaseEnabled } from '../../lib/supabase';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
@@ -16,8 +16,9 @@ import { useTranslation } from '../../i18n/index.js';
 /* ════════════════════════════════════════════════════
    MarketTab — onglet marché $CKM en ligne (Supabase)
    - Fetch initial + refresh auto toutes les 15s
-   - Maintenance (inflation + snapshot historique) toutes les 5 min
-     (idempotente côté lib si <1h depuis le dernier tick)
+   - Maintenance (circuit breaker + battement de coeur de la courbe) —
+     depuis le 08/09/2026 elle ne touche plus au prix : seuls les achats
+     et les ventes le font bouger
    - Au PREMIER accès : MarketWelcomeModal (3 étapes), flag persisté
    - onTradeSuccess(result) : applique l'effet sur les cookies (addCoins),
      incrémente le compteur de plus-value réalisée (badge Investisseur),
@@ -83,9 +84,11 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
   useEffect(() => {
     refresh();
     maintenanceTick();
-    /* Maintenance + refresh à 5s pour matcher SNAPSHOT_SECONDS — courbe
-       très fluide en vue 1m (12 points/min). Le throttle global empêche
-       les doublons même avec plusieurs clients connectés. */
+    /* Refresh à 5 s : c'est le délai pour VOIR l'ordre d'un autre joueur
+       apparaître sur la courbe. Le tick, lui, est throttlé côté lib à
+       SNAPSHOT_SECONDS (60 s) — on l'appelle souvent, il ne fait rien la
+       plupart du temps. Le throttle est global : pas de doublon même avec
+       plusieurs clients connectés. */
     const tickInt = setInterval(maintenanceTick, 5 * 1000);
     const refreshInt = setInterval(refresh, 5 * 1000);
     return () => {
@@ -209,7 +212,7 @@ export function MarketTab({ userCode, coins, addCoins, onTradeComplete, tradingD
           Ceux-ci passent en pied de page, fusionnés en un seul. */}
       <MarketStateCard state={state} dayChange={dayChange} marketStatus={marketStatus} />
       <MarketChart history={history} range={chartRange} onRangeChange={setChartRange} C={C} />
-      <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? 100} C={C} />
+      <PortfolioCard portfolio={portfolio} currentPrice={state?.current_price ?? MARKET_CONFIG.PRICE_INITIAL} C={C} />
 
       {/* Marché officiellement fermé : on retire le panneau d'échange au
           lieu de l'afficher grisé — le bandeau du haut a déjà tout dit,

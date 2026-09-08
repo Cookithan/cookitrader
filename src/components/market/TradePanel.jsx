@@ -37,7 +37,7 @@ export function TradePanel({ state, portfolio, userCode, coins, onTradeSuccess, 
      la quantité (anti gaspillage de charge si changement d'avis). */
   const [bulkArmed, setBulkArmed] = useState(false);
 
-  const price = state?.current_price ?? 100;
+  const price = state?.current_price ?? MARKET_CONFIG.PRICE_INITIAL;
   const IPS = MARKET_CONFIG.IMPACT_PER_SHARE;
 
   /* Slippage symétrique : on facture / verse au prix POST-impact.

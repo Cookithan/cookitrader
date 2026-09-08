@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/index.js';
+import { MARKET_CONFIG } from '../../lib/market';
 
 /* ════════════════════════════════════════════════════
    MarketStateCard — bandeau prix + stock
@@ -39,7 +40,7 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
   }, [state?.current_price]);
 
   const available = state?.available_shares ?? 0;
-  const total = state?.total_shares_supply ?? 1000;
+  const total = state?.total_shares_supply ?? MARKET_CONFIG.TOTAL_SHARES;
   const availablePct = (available / total) * 100;
 
   let trendText, trendColor, arrow;

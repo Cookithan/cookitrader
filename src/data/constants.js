@@ -320,8 +320,14 @@ export const REWARDS = [
   // ONE-SHOT (fix mai 2026 anti-exploit) : ajoutés à `unlocked` après
   // achat, disparaissent de la boutique. Avant le fix, c'était consommable
   // et un joueur pouvait grinder cookies + acheter en boucle jusqu'au cap.
-  { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:450, type:'Pack', emoji:'📈', levelRequired:7 },
-  { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:850, type:'Pack', emoji:'📊', levelRequired:12 },
+  //
+  // ⚠️ PRIX INDEXÉ SUR LE COURS (08/09/2026) : quand l'action est passée
+  // de 100 à 500, ces packs sont devenus des imprimantes à cookies —
+  // 450 🍪 pour 5 actions qui en valaient 2 500. On garde la remise
+  // historique (−10 % pour le pack 5, −15 % pour le pack 10) mais sur la
+  // nouvelle échelle. À REVOIR À CHAQUE CHANGEMENT DE PRIX DE BASE.
+  { id:'pack_shares_5',  applyAs:'pack_shares', sharesAmount:5,  name:'Pack 5 actions $CKM',  desc:'+5 actions sur ton portefeuille',  cost:2250, type:'Pack', emoji:'📈', levelRequired:7 },
+  { id:'pack_shares_10', applyAs:'pack_shares', sharesAmount:10, name:'Pack 10 actions $CKM', desc:'+10 actions sur ton portefeuille', cost:4250, type:'Pack', emoji:'📊', levelRequired:12 },
 
   /* Coffres / Boîtes — items one-shot avec animation cinéma à l'ouverture.
      Préfixe `box_` ou `chest_` selon le tier (boîte basique → coffre rare).
@@ -418,7 +424,7 @@ export const ACHIEVEMENTS = [
   { id:'level_6',        name:'Légende !',          desc:'Tu as atteint le niveau 6 — Légende',      emoji:'👑', bonus:100, cafesBonus:1 },
   { id:'level_10',       name:'Éternel !',          desc:'Tu as atteint le niveau 10 — Éternel',     emoji:'♾️', bonus:200, cafesBonus:2 },
   { id:'level_15',       name:'Cookie Originel !',  desc:'Tu as atteint le niveau 15 — Cookie Originel', emoji:'🌌', bonus:500, cafesBonus:3 },
-  { id:'trader',         name:'Trader !',           desc:'Tu as investi 500 cookies en $CKM',        emoji:'💹', bonus:40  },
+  { id:'trader',         name:'Trader !',           desc:'Tu as investi 2 500 cookies en $CKM',        emoji:'💹', bonus:40  },
   /* Apex final : niveau 25 (endgame) atteint + tous les autres succès visibles débloqués. */
   { id:'end_game',       name:'Légende Vivante !',  desc:'Niveau max + tous les autres succès',      emoji:'🏆', bonus:1000, cafesBonus:12 },
 ];
