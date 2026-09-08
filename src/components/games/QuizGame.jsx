@@ -125,11 +125,18 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
   );
 
   if(chosenDifficulty === null) {
-    /* Facile retiré (demande Régis) — le quiz commence à Moyen.
-       Les questions 'Facile' restent dans QUESTIONS pour préserver
-       l'alignement d'index avec QUESTIONS_EN, mais ne sont plus
-       sélectionnables. */
+    /* Facile REMIS le 08/09/2026 (demande Régis). Il avait été retiré
+       parce qu'il ne servait à rien : la moitié des questions « Facile »
+       portaient sur l'app elle-même — combien de niveaux, quel mini-jeu
+       à quel palier — donc faciles pour qui joue, impossibles pour qui
+       arrive. Elles ont été remplacées par du café et du biscuit, et le
+       palier retrouve son sens : une vraie marche d'entrée.
+
+       Le rééquilibrage a aussi corrigé l'inversion signalée — « Quel
+       pays a inventé le tiramisu ? » était en Moyen, « le ristretto est
+       un espresso… » en Expert. */
     const LEVELS = [
+      { id:'Facile', label: t('game_quiz.difficulty_easy'),   emoji:'🍪', reward:20, bg:'#A0784E', desc: t('game_quiz.diff_easy_desc') },
       { id:'Moyen',  label: t('game_quiz.difficulty_medium'), emoji:'☕', reward:35, bg:'#C17F3C', desc: t('game_quiz.diff_medium_desc') },
       { id:'Expert', label: t('game_quiz.difficulty_expert'), emoji:'🔥', reward:60, bg:'#4A2C17', desc: t('game_quiz.diff_expert_desc') },
     ];
