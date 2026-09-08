@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import {
   faireUneRonde, derniersRapports, grouperParRonde, anciennete, agir, journal, verifierPhrase,
-  signatureConstat, listerIgnores, infosJoueur, prixMarche,
+  signatureConstat, listerIgnores, infosJoueur, prixMarche, enregistrerSiDifferent,
 } from "../../lib/sentinelle.js";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
@@ -575,7 +575,7 @@ function PanneauDemander({ onUtiliserCode, C }) {
 }
 
 /* ── L'ONGLET AGIR ───────────────────────────────────── */
-function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte, setOuverte, C }) {
+function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte, setOuverte, onActionReussie, C }) {
   const [verif, setVerif]   = useState(false);
   const [erreur, setErreur] = useState(null);
   /* La famille est TOUJOURS visible en haut : c'est ce qui évite de se
@@ -748,7 +748,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
                 <Formulaire
                   act={{ ...a, prefill: prefill && a.champs.some(c => c.nom === 'user_code') ? { user_code: prefill } : {} }}
                   phrase={phrase}
-                  onFait={chargerJournal}
+                  onFait={() => { chargerJournal(); onActionReussie?.(); }}
                   C={C}
                 />
               </div>
@@ -824,10 +824,23 @@ export function SentinelleOverlay({ onClose, C }) {
 
   useEffect(() => { charger(); }, [charger]);
 
+  /* Revenir sur l'onglet État après avoir agi ailleurs doit montrer
+     l'état d'APRÈS. On recharge si ce qui est affiché a plus d'une
+     minute — assez pour ne pas marteler la base en passant d'un onglet
+     à l'autre, assez peu pour ne jamais mentir. */
+  useEffect(() => {
+    if (onglet !== 'etat' || !horodatage) return;
+    if (Date.now() - new Date(horodatage).getTime() > 60_000) charger();
+  }, [onglet]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   /* Une ronde à la demande doit DIRE ce qu'elle a trouvé de neuf.
      Régis : « quand je relance le sentinel, il n'y a pas de vrai
      changement » — parce que rien ne le disait. Un contrôle qui rend le
      même écran sans un mot laisse croire qu'il n'a pas tourné. */
+  /* Une ronde à la demande CONSTATE et ENREGISTRE si la situation a
+     changé. C'est ce qui manquait : sans écriture, l'écran montrait la
+     réalité pendant qu'on le regardait, puis ressortait les vieux
+     problèmes déjà réglés dès qu'on le rouvrait. */
   const controler = async () => {
     setEnCours(true);
     setMessage(null);
@@ -836,9 +849,17 @@ export function SentinelleOverlay({ onClose, C }) {
     const nouveaux = frais.filter(r => r.verdict !== 'ok' && !avant.has(signatureConstat(r)));
     const partis   = [...avant].filter(sig => !frais.some(r => signatureConstat(r) === sig));
 
-    setRapports(frais);
-    setHorodatage(new Date().toISOString());
-    setImmediat(true);
+    const ecrit = await enregistrerSiDifferent(frais);
+    if (ecrit) {
+      /* Rechargé depuis la base plutôt que posé de mémoire : les dates
+         d'apparition et les constats classés sans suite doivent venir
+         de la même source, sinon l'ancienneté affichée serait fausse. */
+      await charger();
+    } else {
+      setRapports(frais);
+      setHorodatage(new Date().toISOString());
+      setImmediat(true);
+    }
     setEnCours(false);
 
     const bouts = [];
@@ -1030,6 +1051,7 @@ export function SentinelleOverlay({ onClose, C }) {
               ouvrir={actionOuverte} prefill={prefill} onOuvrir={setActionOuverte}
               phrase={phrase} setPhrase={setPhrase}
               ouverte={deverrouille} setOuverte={setDeverr}
+              onActionReussie={controler}
               C={C}
             />
           </div>
