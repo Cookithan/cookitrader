@@ -131,6 +131,19 @@ begin
     return jsonb_build_object('ok', false, 'message', 'Phrase de passe incorrecte.');
   end if;
 
+  /* ── Vérifier la phrase, sans rien faire ───────────────────
+     L'écran s'en sert pour déverrouiller : on tape, on appuie sur
+     « Vérifier », et la base répond. Sans cette action, l'écran ne
+     pouvait que faire SEMBLANT de se déverrouiller — une serrure qui
+     s'ouvre à la première lettre n'est pas une serrure.
+
+     Volontairement PAS journalisée : entrer chez soi n'est pas une
+     action. Les échecs, eux, le sont déjà par le contrôle au-dessus —
+     c'est ce qui alimente le frein anti-force brute. */
+  if action = 'verifier' then
+    return jsonb_build_object('ok', true, 'message', 'Phrase reconnue.');
+  end if;
+
   /* ── Les actions ───────────────────────────────────────────
      Chacune finit par écrire au journal. force_adopt_version est
      incrémenté partout où l'on touche à l'économie d'un compte : sans

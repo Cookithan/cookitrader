@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import {
-  faireUneRonde, derniersRapports, grouperParRonde, anciennete, agir, journal,
+  faireUneRonde, derniersRapports, grouperParRonde, anciennete, agir, journal, verifierPhrase,
 } from "../../lib/sentinelle.js";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
@@ -251,6 +251,22 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
   const [phrase, setPhrase]     = useState('');
   const [groupe, setGroupe]     = useState(null);
   const [registre, setRegistre] = useState([]);
+  /* La serrure est VÉRIFIÉE, pas devinée : tant que la base n'a pas
+     confirmé la phrase, rien ne s'ouvre. La version précédente
+     déverrouillait dès le premier caractère tapé — un rideau, pas une
+     serrure. */
+  const [ouverte, setOuverte]     = useState(false);
+  const [verifEnCours, setVerif]  = useState(false);
+  const [erreur, setErreur]       = useState(null);
+
+  const verifier = async () => {
+    if (!phrase || verifEnCours) return;
+    setVerif(true); setErreur(null);
+    const r = await verifierPhrase(phrase);
+    setVerif(false);
+    if (r.ok) setOuverte(true);
+    else { setOuverte(false); setErreur(r.message); }
+  };
 
   const chargerJournal = useCallback(async () => setRegistre(await journal(12)), []);
   useEffect(() => { chargerJournal(); }, [chargerJournal]);
@@ -263,16 +279,16 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
     if (act) setGroupe(act.groupe);
   }, [ouvrir]);
 
-  const deverrouille = phrase.length > 0;
+  const deverrouille = ouverte;
 
   return (
     <>
-      {/* La serrure. Tant qu'elle est fermée, les formulaires ne
-          s'affichent même pas : montrer des boutons qu'on ne peut pas
-          utiliser, c'est promettre puis refuser. */}
+      {/* La serrure. Tant que la BASE n'a pas confirmé la phrase, les
+          formulaires ne s'affichent pas : montrer des boutons qu'on ne
+          peut pas utiliser, c'est promettre puis refuser. */}
       <div style={{
         background: deverrouille ? 'rgba(212,160,23,.10)' : C.card,
-        border: `1.5px solid ${deverrouille ? 'rgba(212,160,23,.45)' : C.border}`,
+        border: `1.5px solid ${deverrouille ? 'rgba(212,160,23,.45)' : erreur ? 'rgba(93,58,30,.5)' : C.border}`,
         borderRadius: 14, padding: '12px 14px', marginBottom: 14,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
@@ -281,19 +297,57 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
             {deverrouille ? 'Déverrouillé' : 'Phrase de passe'}
           </span>
         </div>
-        <input
-          type="password"
-          value={phrase}
-          onChange={e => setPhrase(e.target.value)}
-          placeholder="celle que toi seul connais"
-          autoComplete="off"
-          style={{
-            width: '100%', boxSizing: 'border-box',
-            background: C.card2, border: `1px solid ${C.border}`, borderRadius: 10,
-            padding: '10px 12px', fontSize: 13, color: C.text,
-          }}
-        />
-        <div style={{ fontSize: 10, color: C.muted, marginTop: 7, lineHeight: 1.5 }}>
+
+        {deverrouille ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ flex: 1, fontSize: 12, color: C.text, fontWeight: 700 }}>
+              Phrase reconnue — la console est ouverte.
+            </span>
+            <button
+              onPointerDown={() => { setOuverte(false); setPhrase(''); setGroupe(null); onOuvrir(null); }}
+              style={{
+                flexShrink: 0, padding: '7px 11px', borderRadius: 10,
+                background: C.card2, border: `1px solid ${C.border}`,
+                color: C.muted, fontSize: 11, fontWeight: 800,
+              }}
+            >Verrouiller</button>
+          </div>
+        ) : (
+          <>
+            <input
+              type="password"
+              value={phrase}
+              onChange={e => { setPhrase(e.target.value); setErreur(null); }}
+              onKeyDown={e => { if (e.key === 'Enter') verifier(); }}
+              placeholder="celle que toi seul connais"
+              autoComplete="off"
+              style={{
+                width: '100%', boxSizing: 'border-box',
+                background: C.card2, border: `1px solid ${erreur ? 'rgba(93,58,30,.5)' : C.border}`,
+                borderRadius: 10, padding: '10px 12px', fontSize: 13, color: C.text,
+              }}
+            />
+            <button
+              onPointerDown={verifier}
+              disabled={!phrase || verifEnCours}
+              style={{
+                width: '100%', marginTop: 8, padding: '10px 0', borderRadius: 10,
+                background: 'rgba(212,160,23,.16)', border: '1.5px solid rgba(212,160,23,.5)',
+                color: '#8A6A12', fontSize: 12.5, fontWeight: 800,
+                opacity: (!phrase || verifEnCours) ? .5 : 1, touchAction: 'manipulation',
+              }}
+            >
+              {verifEnCours ? 'Vérification…' : 'Vérifier'}
+            </button>
+            {erreur && (
+              <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: ESPRESSO }}>
+                ⛔ {erreur}
+              </div>
+            )}
+          </>
+        )}
+
+        <div style={{ fontSize: 10, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
           Elle part vérifier en base et n'est gardée nulle part — ni ici, ni
           dans le téléphone. Dix essais ratés ferment la porte 15 minutes.
         </div>
@@ -301,7 +355,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
 
       {!deverrouille ? (
         <div style={{ fontSize: 11.5, color: C.muted, textAlign: 'center', padding: '18px 10px', lineHeight: 1.6 }}>
-          Tape la phrase pour voir ce que tu peux faire.
+          Tape ta phrase et appuie sur <strong>Vérifier</strong> pour ouvrir la console.
         </div>
       ) : GROUPES.map(g => {
         const actions = ACTIONS_SENTINELLE.filter(a => a.groupe === g.id);
