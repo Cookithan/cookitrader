@@ -84,7 +84,16 @@ export const MARKET_CONFIG = {
      à la demande, le gain doit venir du cours et de rien d'autre.
      `weighted_buy_at` reste écrit et sert toujours : il affiche la durée
      de détention et alimente les frais de garde. */
-  MAX_SHARES_PER_USER_PCT: 0.05,  // 5 % du flottant = 100 actions max par user, soit 50 000 🍪 : personne ne peut à lui seul faire la pluie et le beau temps
+  /* PLAFOND PAR JOUEUR RETIRÉ le 08/09/2026 (décision Régis, après que
+     Vexed s'est heurté aux 100 actions dès le premier jour). La valeur
+     reste égale au flottant entier : le cap ne mord plus jamais, mais
+     l'export MAX_SHARES_PER_USER continue d'exister pour TradePanel et
+     creditFreeShares, qui s'en servent dans leurs calculs.
+     Conséquence assumée : un gros portefeuille peut désormais rafler
+     tout le flottant — et donc emmener le cours très haut tout seul.
+     C'est le prix d'un marché où rien ne bride les joueurs. La seule
+     limite qui reste est le nombre d'actions disponibles. */
+  MAX_SHARES_PER_USER_PCT: 1,
   MAX_SHARES_PER_TX:       30,    // Max 30 actions par tx (bypass possible via item premium "tout-acheter/vendre"). 30 actions = 3 % d'impact prix, et 15 000 🍪 à l'achat.
   MAX_DAILY_VOLUME:        200,   // Volume cumulé (achats + ventes) sur 24 h et par joueur — 200 actions = 100 000 🍪, ramené à l'échelle du nouveau prix
   /* Cooldowns distincts par sens — anti-exploit pump-and-dump conservé,
