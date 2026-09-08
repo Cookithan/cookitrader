@@ -6,7 +6,7 @@ import {
 } from "../../lib/sentinelle.js";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
-import { tousLesJoueurs, demander, EXEMPLES } from "../../lib/sentinelleQuestions.js";
+import { tousLesJoueurs, demander, EXEMPLES, correspondQuestion } from "../../lib/sentinelleQuestions.js";
 
 /* ════════════════════════════════════════════════════
    SentinelleOverlay — la santé de l'app, et de quoi agir
@@ -463,7 +463,7 @@ function PanneauDemander({ onUtiliserCode, C }) {
 
   const questions = !t ? []
     : veutLaListe ? EXEMPLES
-    : EXEMPLES.filter(e => e.texte.toLowerCase().includes(t));
+    : EXEMPLES.filter(e => correspondQuestion(e, t));
 
   const trouves = (!t || veutLaListe) ? []
     : joueurs.filter(j => `${j.user_name} ${j.user_code}`.toLowerCase().includes(t)).slice(0, 8);

@@ -260,5 +260,20 @@ export async function demander(texte, joueurs) {
   };
 }
 
-/* Les exemples, pour les proposer en pastilles sous le champ. */
-export const EXEMPLES = QUESTIONS.map(x => ({ id: x.id, texte: x.exemple }));
+/* Les exemples, pour les proposer sous le champ.
+
+   `mots` voyage avec : sans lui, l'écran ne pouvait filtrer que sur le
+   LIBELLÉ, et taper « triche » ne proposait rien — parce que la question
+   s'appelle « qui a un rendement suspect ». On cherche avec les mots
+   qu'on a en tête, pas avec la formulation exacte de la réponse. */
+export const EXEMPLES = QUESTIONS.map(x => ({ id: x.id, texte: x.exemple, mots: x.mots }));
+
+/* Est-ce que ce texte évoque cette question ? Tolérant dans les deux
+   sens : « triche » trouve la question, et « je cherche des tricheurs »
+   aussi. */
+export function correspondQuestion(exemple, texte) {
+  const t = nettoyer(texte);
+  if (!t) return false;
+  if (nettoyer(exemple.texte).includes(t)) return true;
+  return (exemple.mots || []).some(m => m.includes(t) || t.includes(m));
+}
