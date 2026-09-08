@@ -5003,7 +5003,7 @@ export default function CookiMiner() {
           phrase de passe, vérifiée en base, sans laquelle rien ne se lit
           ni ne s'exécute. Cacher un écran n'a jamais protégé personne. */}
       {vueSentinelle === 'console' && peutVoirSentinelle(userName, userCode) && (
-        <SentinelleOverlay onClose={()=>setVueSentinelle(null)} />
+        <SentinelleOverlay onClose={()=>setVueSentinelle(null)} userName={userName} />
       )}
 
       {vueSentinelle === 'signalement' && (

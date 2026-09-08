@@ -310,6 +310,19 @@ export const GLOBAL_CSS = `
      bleue, pas brune. Une lueur ambree sur du bleu pale vire au sale ;
      on garde donc les memes keyframes et on ne change que la couleur. */
   .card-cool{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 95% at 18% -10%, rgba(255,255,255,.95), transparent 62%);animation:levelWarm 7s ease-in-out infinite;will-change:opacity}
+  /* ── L accueil de la Sentinelle ─────────────────────────────
+     Elle se reveille quand on pousse la porte : le bouclier arrive en
+     rebond, un halo se propage, la phrase monte derriere. Chaque piece
+     reste sous 700 ms (regle du projet) ; c est le decalage entre elles
+     qui donne l impression d une presence, pas leur duree. */
+  @keyframes sentinelleWake{0%{opacity:0;transform:scale(.42) rotate(-14deg)}58%{opacity:1;transform:scale(1.14) rotate(5deg)}100%{opacity:1;transform:scale(1) rotate(0)}}
+  @keyframes sentinelleHalo{0%{opacity:.5;transform:scale(.55)}100%{opacity:0;transform:scale(2.1)}}
+  @keyframes sentinelleLine{0%{opacity:0;transform:translateY(12px)}100%{opacity:1;transform:translateY(0)}}
+  @keyframes sentinelleOut{0%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.05)}}
+  .s-wake{animation:sentinelleWake .62s cubic-bezier(.34,1.56,.64,1) both;will-change:transform,opacity}
+  .s-halo{animation:sentinelleHalo .7s ease-out both;will-change:transform,opacity}
+  .s-line{animation:sentinelleLine .45s ease-out both;will-change:transform,opacity}
+  .s-out{animation:sentinelleOut .34s ease-in both;will-change:transform,opacity}
   .card-sheen-cool{position:absolute;top:-30%;left:0;width:52%;height:170%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),rgba(255,255,255,.62),rgba(255,255,255,.34),transparent);animation:levelSheen 5s ease-in-out infinite;will-change:transform}
   @keyframes levelGlint{0%{transform:translateX(-160%)}38%{transform:translateX(260%)}100%{transform:translateX(260%)}}
   .level-glint{position:absolute;top:0;left:0;width:45%;height:100%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:levelGlint 4.5s ease-in-out infinite;will-change:transform}

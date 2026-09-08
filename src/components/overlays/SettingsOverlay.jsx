@@ -118,49 +118,6 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
     );
   };
 
-  /* Une des deux portes de la Sentinelle, en carte compacte : deux
-     tiennent côte à côte sur 430 px. Même dégradé et même reflet que la
-     bannière de l'écran qu'elles ouvrent — ce sont deux vues du même
-     outil, pas deux fonctionnalités différentes. */
-  const carteSentinelle = ({ emoji, titre, sous, badge = 0, onClick }) => (
-    <button
-      onClick={() => { playSound('modal'); onClick(); }}
-      style={{
-        position:'relative', overflow:'hidden',
-        borderRadius:18, minHeight:104,
-        background:'linear-gradient(140deg, #E6F3FC, #B3D9F2)',
-        border:'1px solid rgba(255,255,255,.7)',
-        boxShadow:'0 6px 18px rgba(30,80,125,.20)',
-        padding:'13px 13px 12px',
-        display:'flex', flexDirection:'column', justifyContent:'flex-start',
-        cursor:'pointer', textAlign:'left', gap:6,
-      }}
-    >
-      <div className="card-cool" aria-hidden />
-      <div className="card-sheen-cool" aria-hidden />
-      <div aria-hidden style={{
-        position:'absolute', right:-10, bottom:-20, fontSize:70, lineHeight:1,
-        opacity:.15, pointerEvents:'none',
-      }}>{emoji}</div>
-
-      <div style={{ position:'relative', display:'flex', alignItems:'center', gap:8 }}>
-        <span style={{ fontSize:19, flexShrink:0 }}>{emoji}</span>
-        <span style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>{titre}</span>
-      </div>
-      <div style={{ position:'relative', fontSize:10.5, color:'rgba(14,51,85,.68)', lineHeight:1.35 }}>
-        {sous}
-      </div>
-      {badge > 0 && (
-        <span style={{
-          position:'relative', alignSelf:'flex-start', marginTop:'auto',
-          padding:'4px 9px', borderRadius:20,
-          background:'#0B2E4D', color:'#EAF4FB',
-          fontSize:10.5, fontWeight:900, whiteSpace:'nowrap',
-        }}>{t('report.badge', { n: badge })}</span>
-      )}
-    </button>
-  );
-
   const sectionLabel = (txt, icon) => (
     <div style={{ fontSize:10, fontWeight:700, color:C.muted, textTransform:'uppercase', letterSpacing:2, marginBottom:10, display:'flex', alignItems:'center', gap:6 }}>
       {icon}{txt}
@@ -287,19 +244,19 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
             neuf semaines et n'a été découvert que parce qu'un joueur
             avait fini par le raconter.
 
-            DEUX PORTES POUR UN ADMIN, UNE POUR LES AUTRES
-            Un joueur ordinaire ne voit qu'une bannière : signaler. Un
-            admin en voit deux, côte à côte — la console, et l'entonnoir
-            tel que les joueurs le vivent. Sans cette seconde porte, le
-            seul moyen d'essayer le formulaire serait de se déconnecter
-            pour se recréer un compte : autant dire qu'on ne l'essaie
-            jamais, et qu'on découvre ses défauts par un signalement mal
-            rempli.
+            UNE PORTE, DEUX ÉCRANS DERRIÈRE
+            Un admin ouvre la console ; tous les autres ouvrent
+            l'entonnoir de signalement, qui ne sait qu'envoyer. C'est
+            App.jsx qui tranche, jamais ce composant.
 
-            Ce qui protège les signalements des autres, ce n'est PAS le
-            fait de cacher un bouton : c'est la phrase de passe vérifiée
-            en base, sans laquelle rien ne se lit. Montrer les deux
-            portes à un admin ne coûte donc aucune sécurité.
+            Une carte « Signaler » a existé un moment à côté de la
+            console, pour qu'un admin essaie l'entonnoir sans changer de
+            compte. Elle a servi, elle est partie : une porte qui ne sert
+            qu'à se tester soi-même encombre l'écran de tous les jours.
+
+            Ce qui protège les signalements des autres n'est de toute
+            façon PAS le fait de cacher un bouton : c'est la phrase de
+            passe vérifiée en base, sans laquelle rien ne se lit.
 
             Ni or ni moka : bleu, comme les écrans qu'elles ouvrent. Ce
             n'est ni une récompense ni une nouveauté, c'est un outil — et
@@ -308,65 +265,59 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
           <section>
             {sectionLabel(sentinelleAdmin ? 'Surveillance' : t('report.section'))}
 
-            {sentinelleAdmin ? (
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-                {carteSentinelle({
-                  emoji:  '🛡️',
-                  titre:  'Console',
-                  sous:   'Constats, questions, actions',
-                  badge:  sentinelleBadge,
-                  onClick:() => onOpenSentinelle('console'),
-                })}
-                {carteSentinelle({
-                  emoji:  '📮',
-                  titre:  'Signaler',
-                  sous:   'Ce que voient les joueurs',
-                  onClick:() => onOpenSentinelle('signalement'),
-                })}
-              </div>
-            ) : (
-              <button
-                onClick={() => onOpenSentinelle('signalement')}
-                style={{
-                  position:'relative', overflow:'hidden',
-                  width:'100%', borderRadius:18,
-                  background:'linear-gradient(140deg, #E6F3FC, #B3D9F2)',
-                  border:'1px solid rgba(255,255,255,.7)',
-                  boxShadow:'0 6px 18px rgba(30,80,125,.20)',
-                  padding:'15px 16px',
-                  display:'flex', alignItems:'center', justifyContent:'space-between',
-                  cursor:'pointer', textAlign:'left', gap:10,
-                }}
-              >
-                <div className="card-cool" aria-hidden />
-                <div className="card-sheen-cool" aria-hidden />
-                {/* Le même bouclier en filigrane que la bannière de
-                    l'écran : on reconnaît la porte avant de la pousser. */}
-                <div aria-hidden style={{
-                  position:'absolute', right:-8, bottom:-22, fontSize:86, lineHeight:1,
-                  opacity:.16, pointerEvents:'none',
-                }}>🛡️</div>
+            <button
+              onClick={() => onOpenSentinelle()}
+              style={{
+                position:'relative', overflow:'hidden',
+                width:'100%', borderRadius:18,
+                background:'linear-gradient(140deg, #E6F3FC, #B3D9F2)',
+                border:'1px solid rgba(255,255,255,.7)',
+                boxShadow:'0 6px 18px rgba(30,80,125,.20)',
+                padding:'15px 16px',
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                cursor:'pointer', textAlign:'left', gap:10,
+              }}
+            >
+              <div className="card-cool" aria-hidden />
+              <div className="card-sheen-cool" aria-hidden />
+              {/* Le même bouclier en filigrane que l'écran qu'elle ouvre :
+                  on reconnaît la porte avant de la pousser. */}
+              <div aria-hidden style={{
+                position:'absolute', right:-8, bottom:-22, fontSize:86, lineHeight:1,
+                opacity:.16, pointerEvents:'none',
+              }}>🛡️</div>
 
-                <div style={{ position:'relative', display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
-                  <div style={{
-                    width:38, height:38, borderRadius:11,
-                    background:'rgba(255,255,255,.6)',
-                    border:'1px solid rgba(14,51,85,.18)',
-                    display:'flex', alignItems:'center', justifyContent:'center',
-                    flexShrink:0, fontSize:18,
-                  }}>
-                    🛡️
-                  </div>
-                  <div style={{ minWidth:0 }}>
-                    <div style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>{t('report.title')}</div>
-                    <div style={{ fontSize:11, color:'rgba(14,51,85,.68)', marginTop:2, lineHeight:1.4 }}>
-                      {t('report.settings_sub')}
-                    </div>
+              <div style={{ position:'relative', display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+                <div style={{
+                  width:38, height:38, borderRadius:11,
+                  background:'rgba(255,255,255,.6)',
+                  border:'1px solid rgba(14,51,85,.18)',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  flexShrink:0, fontSize:18,
+                }}>
+                  🛡️
+                </div>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>{t('report.title')}</div>
+                  <div style={{ fontSize:11, color:'rgba(14,51,85,.68)', marginTop:2, lineHeight:1.4 }}>
+                    {sentinelleAdmin
+                      ? 'Elle surveille, elle répond, elle agit — sans ouvrir Supabase'
+                      : t('report.settings_sub')}
                   </div>
                 </div>
-                <span style={{ position:'relative', flexShrink:0, fontSize:15, fontWeight:800, color:'rgba(14,51,85,.5)' }}>›</span>
-              </button>
-            )}
+              </div>
+              {/* La pastille ne s'allume que côté console : un joueur n'a
+                  pas à savoir combien de signalements attendent. */}
+              {sentinelleAdmin && sentinelleBadge > 0 && (
+                <span style={{
+                  position:'relative', flexShrink:0,
+                  padding:'5px 10px', borderRadius:20,
+                  background:'#0B2E4D', color:'#EAF4FB',
+                  fontSize:11, fontWeight:900, whiteSpace:'nowrap',
+                }}>{t('report.badge', { n: sentinelleBadge })}</span>
+              )}
+              <span style={{ position:'relative', flexShrink:0, fontSize:15, fontWeight:800, color:'rgba(14,51,85,.5)' }}>›</span>
+            </button>
           </section>
         )}
 

@@ -1186,6 +1186,15 @@ export const FR = {
        la phrase : sans ça, un joueur en anglais recevait « Attends une
        minute entre deux signalements », et un refus qu'on ne comprend
        pas, c'est quelqu'un qui croit l'app cassée et n'essaie plus. */
+    /* ── L'accueil ────────────────────────────────
+       On pousse cette porte quand quelque chose ne va pas : c'est le
+       moment de l'app où l'on est le moins bien disposé. Une seconde de
+       présence avant la liste des catégories, et ce n'est plus un
+       formulaire, c'est quelqu'un qui répond. */
+    hello:           'Bonjour {nom}',
+    hello_anon:      'Bonjour',
+    hello_guest:     'Je suis la Sentinelle. Dis-moi ce qui ne va pas.',
+
     err_trop_court:  'Écris au moins une phrase : sans description, personne ne pourra reproduire le problème.',
     err_trop_long:   'Message trop long : 1200 caractères maximum.',
     err_incomplet:   'Signalement incomplet — reprends depuis le début.',

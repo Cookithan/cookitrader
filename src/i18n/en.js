@@ -1155,6 +1155,10 @@ export const EN = {
     attached:      'Your name, account code, level and app version are sent automatically — nothing to copy out.',
     send:          'Send',
     sending:       'Sending…',
+    hello:           'Hello {nom}',
+    hello_anon:      'Hello',
+    hello_guest:     "I'm the Sentinel. Tell me what's wrong.",
+
     err_trop_court:  'Write at least one sentence: without a description, nobody can reproduce the problem.',
     err_trop_long:   'Message too long: 1200 characters maximum.',
     err_incomplet:   'Incomplete report \u2014 start again from the beginning.',

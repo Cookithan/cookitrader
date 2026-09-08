@@ -6,6 +6,7 @@ import {
   listerSignalements, traiterSignalement,
 } from "../../lib/sentinelle.js";
 import { STATUTS } from "../../data/signalements.js";
+import { SentinelleBienvenue } from "../SentinelleBienvenue.jsx";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
 import { tousLesJoueurs, demander, EXEMPLES, correspondQuestion } from "../../lib/sentinelleQuestions.js";
@@ -1117,7 +1118,7 @@ function boutonPetit(C, plein) {
    (cf. THEME_SENTINELLE), donc App.jsx n'a rien à lui passer. Le nom
    reste `C` en interne pour que les sous-composants, eux, gardent la
    signature de tous les autres. */
-export function SentinelleOverlay({ onClose }) {
+export function SentinelleOverlay({ onClose, userName }) {
   const C = THEME_SENTINELLE;
   const [rapports, setRapports]     = useState([]);
   const [historique, setHistorique] = useState([]);
@@ -1126,6 +1127,9 @@ export function SentinelleOverlay({ onClose }) {
   const [horodatage, setHorodatage] = useState(null);
   const [immediat, setImmediat]     = useState(false);
   const [onglet, setOnglet]         = useState('etat');
+  /* Le même réveil que côté joueur : c'est la même Sentinelle, elle
+     n'a pas de raison d'être plus sèche avec son propriétaire. */
+  const [accueil, setAccueil]       = useState(true);
   const [actionOuverte, setActionOuverte] = useState(null);
   const [prefill, setPrefill]       = useState(null);
   const [toutVoir, setToutVoir]     = useState(false);
@@ -1295,6 +1299,10 @@ export function SentinelleOverlay({ onClose }) {
       width:'100%', maxWidth:430, bottom:0,
       background:C.bg, zIndex:62, display:'flex', flexDirection:'column',
     }}>
+      {accueil && (
+        <SentinelleBienvenue nom={userName} admin onFini={() => setAccueil(false)} />
+      )}
+
       {/* En-tête */}
       <div style={{
         display:'flex', alignItems:'center', gap:12, padding:'14px 18px',

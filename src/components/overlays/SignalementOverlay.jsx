@@ -4,6 +4,7 @@ import { ARBRE } from "../../data/signalements.js";
 import { envoyerSignalement } from "../../lib/sentinelle.js";
 import { SENTINELLE_THEME, SENTINELLE_BANNIERE, SENTINELLE_MARINE, SENTINELLE_ACIER } from "../../data/themes.js";
 import { useTranslation, localizedField } from "../../i18n/index.js";
+import { SentinelleBienvenue } from "../SentinelleBienvenue.jsx";
 
 /* ════════════════════════════════════════════════════
    SignalementOverlay — la Sentinelle en mode invité
@@ -53,6 +54,9 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
   const [message, setMessage] = useState('');
   const [envoi, setEnvoi]     = useState(false);
   const [retour, setRetour]   = useState(null); /* { ok, message } */
+  /* Elle se réveille avant de montrer quoi que ce soit. Une seconde,
+     escamotable d'un doigt — cf. SentinelleBienvenue. */
+  const [accueil, setAccueil] = useState(true);
 
   const courant  = chemin[chemin.length - 1] || null;
   const options  = courant ? (courant.enfants || []) : ARBRE;
@@ -143,6 +147,10 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
       width:'100%', maxWidth:430, bottom:0,
       background:C.bg, zIndex:62, display:'flex', flexDirection:'column',
     }}>
+      {accueil && (
+        <SentinelleBienvenue nom={userName} onFini={() => setAccueil(false)} />
+      )}
+
       {/* En-tête */}
       <div style={{
         display:'flex', alignItems:'center', gap:12, padding:'14px 18px',
