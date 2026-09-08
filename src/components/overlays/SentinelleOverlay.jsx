@@ -9,35 +9,44 @@ import { APP_INFO } from "../../lib/appInfo.js";
 /* ════════════════════════════════════════════════════
    SentinelleOverlay — la santé de l'app, et de quoi agir
    ────────────────────────────────────────────────────
-   Écran RÉSERVÉ AUX ADMINS (la porte n'apparaît que pour eux dans les
-   Paramètres).
+   Réservé aux admins et aux codes de CODES_SENTINELLE (utils/admin.js).
 
-   ─── LE PRINCIPE DE L'ÉCRAN ─────────────────────────
-   DU CONSTAT AU GESTE, SANS CHERCHER. Quand une ronde signale un
-   portefeuille orphelin, le bouton qui le nettoie est proposé JUSTE
-   SOUS le constat, déjà rempli avec le bon code. Sans ça il faudrait
-   lire l'alerte, retenir un code, changer d'onglet, retrouver la bonne
-   action dans une liste de neuf — quatre occasions d'abandonner.
+   ─── CE QUI A CHANGÉ, ET POURQUOI ───────────────────
+   Première version : tout en 10-11 px, des cartes plates les unes sur
+   les autres, trois niveaux de repli imbriqués. Retour de Régis, juste :
+   « je me perds » et « des écritures illisibles ». Deux défauts
+   distincts, deux corrections distinctes.
 
-   ─── LA HIÉRARCHIE ──────────────────────────────────
-   1. Une phrase en haut : est-ce que ça va, oui ou non.
-   2. Ce qui ne va pas, trié par gravité, le reste replié.
-   3. Agir, rangé en trois familles au lieu de neuf lignes à plat.
+   SE PERDRE → on ne descend plus jamais à plus de DEUX niveaux. Les
+   trois familles d'actions sont des pastilles TOUJOURS VISIBLES en
+   haut : on sait en permanence où on est, au lieu de déplier des
+   accordéons dans des accordéons.
 
-   Les verdicts « tout va bien » sont regroupés en UNE ligne : les lire
-   un par un chaque soir, c'est apprendre à ne plus rien lire.
+   ILLISIBLE → les tailles remontent (titres 15-16, corps 12,5-13,
+   libellés 11), l'interligne s'ouvre, et le détail technique cesse
+   d'être un pavé monospace de 11 px.
+
+   ─── LE RELIEF ──────────────────────────────────────
+   Même langage que le reste de la 1.30 : bandeau espresso qui accroche
+   la lumière (card-warm + card-sheen, les animations de la carte de
+   niveau), emoji géant en filigrane sur les cartes, ruban coloré à
+   gauche des constats. C'est un écran d'outil, pas une facture.
 
    Palette café-only : une alerte est ESPRESSO, jamais rouge.
 ═══════════════════════════════════════════════════════ */
 
+const ESPRESSO = '#5D3A1E';
+const OR       = '#8A6A12';
+
+/* Chaque gravité a sa teinte, son ruban et son mot. Le mot compte
+   autant que la couleur : « à corriger » dit quoi faire, « alerte » ne
+   dit que l'intensité. */
 const TONS = {
-  alerte: { fond: 'rgba(74,44,23,.16)',   bord: 'rgba(93,58,30,.55)',   puce: '⛔' },
-  voir:   { fond: 'rgba(193,127,60,.13)', bord: 'rgba(193,127,60,.45)', puce: '⚠️' },
-  ok:     { fond: 'rgba(212,160,23,.10)', bord: 'rgba(212,160,23,.32)', puce: '✅' },
+  alerte: { fond:'rgba(74,44,23,.15)',   bord:'rgba(93,58,30,.5)',   ruban:'#5D3A1E', puce:'⛔', mot:'à corriger' },
+  voir:   { fond:'rgba(193,127,60,.12)', bord:'rgba(193,127,60,.4)', ruban:'#C17F3C', puce:'⚠️', mot:'à regarder' },
+  ok:     { fond:'rgba(212,160,23,.09)', bord:'rgba(212,160,23,.3)', ruban:'#D4A017', puce:'✅', mot:'rien à signaler' },
 };
 const RANG = { alerte: 0, voir: 1, ok: 2 };
-
-const ESPRESSO = '#5D3A1E';
 
 function quand(iso) {
   if (!iso) return '';
@@ -50,7 +59,7 @@ function quand(iso) {
 }
 
 /* Cherche un code joueur dans le détail d'un constat, pour pré-remplir
-   l'action qu'on propose dessous. Format des codes : XXX-XXX. */
+   l'action proposée dessous. Format des codes : XXX-XXX. */
 function codeDansDetail(detail = []) {
   for (const ligne of detail) {
     const m = String(ligne).match(/\b([A-Z0-9]{3}-[A-Z0-9]{3})\b/);
@@ -59,86 +68,119 @@ function codeDansDetail(detail = []) {
   return null;
 }
 
-/* ── Un constat ──────────────────────────────────────
-   Replié par défaut sauf s'il s'agit d'une alerte : ce qui va bien n'a
-   pas à occuper de la place. */
+/* Petit titre de section, comme partout ailleurs dans l'app. */
+function Section({ children, C }) {
+  return (
+    <div style={{
+      fontSize: 11, fontWeight: 800, color: C.muted,
+      textTransform: 'uppercase', letterSpacing: 2,
+      margin: '20px 0 10px',
+    }}>{children}</div>
+  );
+}
+
+/* ── UN CONSTAT ──────────────────────────────────────── */
 function Constat({ r, age, onAgir, C }) {
   const ton = TONS[r.verdict] || TONS.ok;
-  const [ouvert, setOuvert] = useState(r.verdict === 'alerte');
+  const [ouvert, setOuvert] = useState(false);
   const detail = Array.isArray(r.detail) ? r.detail : [];
   const remedes = (ACTIONS_PAR_CONSTAT[r.categorie] || [])
     .map(id => ACTIONS_SENTINELLE.find(a => a.id === id))
     .filter(Boolean);
   const code = codeDansDetail(detail);
+  const neuf = age && age.rondes <= 1 && r.verdict !== 'ok';
 
   return (
     <div style={{
-      background: ton.fond, border: `1.5px solid ${ton.bord}`,
-      borderRadius: 14, padding: '11px 13px', marginBottom: 9,
+      position: 'relative', overflow: 'hidden',
+      background: ton.fond,
+      border: `1.5px solid ${ton.bord}`,
+      borderRadius: 16,
+      marginBottom: 10,
     }}>
+      {/* Ruban de gravité — la même signature que les bannières de
+          niveau : on lit la couleur avant même le texte. */}
+      <div aria-hidden style={{ position:'absolute', left:0, top:0, bottom:0, width:5, background: ton.ruban }} />
+
       <button
         onPointerDown={() => setOuvert(o => !o)}
         style={{
-          width: '100%', textAlign: 'left', background: 'none', border: 'none', padding: 0,
-          display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer',
+          width:'100%', textAlign:'left', background:'none', border:'none',
+          padding:'14px 15px 14px 19px', cursor:'pointer',
+          display:'flex', alignItems:'flex-start', gap:12,
         }}
       >
-        <span style={{ fontSize: 15, lineHeight: 1.2, flexShrink: 0 }}>{ton.puce}</span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 800, color: C.text, lineHeight: 1.35 }}>
-            {r.titre}
-          </span>
-          <span style={{ display: 'block', fontSize: 10, color: C.muted, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, marginTop: 3 }}>
-            {r.categorie}
-            {/* Depuis quand : une alerte qui vient d'apparaître et une
-                qui dure depuis trois jours ne demandent pas la même
-                chose. */}
-            {age && r.verdict !== 'ok' && (
-              <span style={{ opacity: .85 }}>{' · '}{age.rondes <= 1 ? 'NOUVEAU' : `depuis ${age.rondes} rondes`}</span>
+        <span style={{ fontSize:20, lineHeight:1.1, flexShrink:0 }}>{ton.puce}</span>
+        <span style={{ flex:1, minWidth:0 }}>
+          <span style={{ display:'flex', alignItems:'center', gap:7, marginBottom:4 }}>
+            <span style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.4 }}>
+              {r.categorie}
+            </span>
+            {neuf && (
+              <span style={{
+                fontSize:8.5, fontWeight:900, letterSpacing:.6, padding:'2px 6px',
+                borderRadius:7, background:ton.ruban, color:'#fff',
+              }}>NOUVEAU</span>
+            )}
+            {age && !neuf && r.verdict !== 'ok' && (
+              <span style={{ fontSize:9.5, fontWeight:700, color:C.muted }}>
+                depuis {age.rondes} rondes
+              </span>
             )}
           </span>
+          <span style={{ display:'block', fontSize:14, fontWeight:800, color:C.text, lineHeight:1.4 }}>
+            {r.titre}
+          </span>
+          {detail.length > 0 && !ouvert && (
+            <span style={{ display:'block', fontSize:11.5, color:C.muted, marginTop:5 }}>
+              {detail.length} détail{detail.length > 1 ? 's' : ''} — appuie pour voir
+            </span>
+          )}
         </span>
-        <span style={{ fontSize: 11, color: C.muted, transform: ouvert ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}>›</span>
+        <span style={{ fontSize:14, color:C.muted, flexShrink:0, transform: ouvert ? 'rotate(90deg)' : 'none', transition:'transform .2s' }}>›</span>
       </button>
 
       {ouvert && (
-        <>
+        <div style={{ padding:'0 15px 14px 19px' }}>
           {detail.length > 0 && (
             <div style={{
-              marginTop: 9, paddingTop: 9, borderTop: `1px solid ${ton.bord}`,
-              fontSize: 11, color: C.text, lineHeight: 1.6,
-              fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-              whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              background:'rgba(0,0,0,.05)', borderRadius:12, padding:'11px 13px',
+              fontSize:12, color:C.text, lineHeight:1.75,
             }}>
-              {detail.map((d, i) => <div key={i}>{d}</div>)}
-            </div>
-          )}
-
-          {/* Le geste qui répond au constat, proposé ici même. */}
-          {r.verdict !== 'ok' && remedes.length > 0 && (
-            <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-              {remedes.map(a => (
-                <button
-                  key={a.id}
-                  onPointerDown={() => onAgir(a.id, code)}
-                  style={{
-                    padding: '7px 11px', borderRadius: 10,
-                    background: 'rgba(212,160,23,.14)', border: '1px solid rgba(212,160,23,.42)',
-                    color: '#8A6A12', fontSize: 11, fontWeight: 800, touchAction: 'manipulation',
-                  }}
-                >
-                  {a.titre} ›
-                </button>
+              {detail.map((d, i) => (
+                <div key={i} style={{ marginBottom: i === detail.length - 1 ? 0 : 4 }}>{d}</div>
               ))}
             </div>
           )}
-        </>
+
+          {/* Le geste qui répond au constat, ici même, déjà rempli. */}
+          {r.verdict !== 'ok' && remedes.length > 0 && (
+            <div style={{ marginTop:12 }}>
+              <div style={{ fontSize:10.5, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:7 }}>
+                Ce que tu peux faire
+              </div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                {remedes.map(a => (
+                  <button
+                    key={a.id}
+                    onPointerDown={() => onAgir(a.id, code)}
+                    style={{
+                      padding:'10px 14px', borderRadius:12,
+                      background:'rgba(212,160,23,.16)', border:'1.5px solid rgba(212,160,23,.45)',
+                      color:OR, fontSize:12.5, fontWeight:800, touchAction:'manipulation',
+                    }}
+                  >{a.titre} ›</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
 }
 
-/* ── Un formulaire d'action ──────────────────────────── */
+/* ── UN FORMULAIRE D'ACTION ──────────────────────────── */
 function Formulaire({ act, phrase, onFait, C }) {
   const [valeurs, setValeurs]   = useState(act.prefill || {});
   const [confirme, setConfirme] = useState(false);
@@ -160,28 +202,37 @@ function Formulaire({ act, phrase, onFait, C }) {
     if (r?.ok) { setValeurs({}); onFait?.(); }
   };
 
+  const champStyle = {
+    width:'100%', boxSizing:'border-box',
+    background:C.card2, border:`1.5px solid ${C.border}`, borderRadius:12,
+    padding:'12px 13px', fontSize:14, color:C.text,
+  };
+
   return (
-    <div style={{ padding: '2px 0 4px' }}>
+    <div style={{ paddingTop:4 }}>
       {act.aide && (
-        <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.55, marginBottom: 11 }}>{act.aide}</div>
+        <div style={{
+          fontSize:12, color:C.muted, lineHeight:1.65, marginBottom:14,
+          background:'rgba(0,0,0,.04)', borderRadius:12, padding:'11px 13px',
+        }}>{act.aide}</div>
       )}
 
       {act.champs.map(c => (
-        <div key={c.nom} style={{ marginBottom: 9 }}>
-          <div style={{ fontSize: 10, color: C.muted, fontWeight: 700, marginBottom: 4 }}>
-            {c.label}{c.requis ? ' *' : ''}
+        <div key={c.nom} style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11, color:C.text, fontWeight:700, marginBottom:6 }}>
+            {c.label}{c.requis && <span style={{ color:C.muted }}> — obligatoire</span>}
           </div>
           {c.type === 'oui_non' ? (
-            <div style={{ display: 'flex', gap: 7 }}>
+            <div style={{ display:'flex', gap:8 }}>
               {['oui', 'non'].map(v => (
                 <button
                   key={v}
                   onPointerDown={() => setValeurs(x => ({ ...x, [c.nom]: v }))}
                   style={{
-                    flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 12, fontWeight: 800,
-                    background: valeurs[c.nom] === v ? 'rgba(212,160,23,.18)' : C.card2,
-                    border: `1px solid ${valeurs[c.nom] === v ? 'rgba(212,160,23,.5)' : C.border}`,
-                    color: valeurs[c.nom] === v ? '#8A6A12' : C.muted,
+                    flex:1, padding:'12px 0', borderRadius:12, fontSize:13.5, fontWeight:800,
+                    background: valeurs[c.nom] === v ? 'rgba(212,160,23,.2)' : C.card2,
+                    border:`1.5px solid ${valeurs[c.nom] === v ? 'rgba(212,160,23,.55)' : C.border}`,
+                    color: valeurs[c.nom] === v ? OR : C.muted,
                   }}
                 >{v}</button>
               ))}
@@ -192,11 +243,7 @@ function Formulaire({ act, phrase, onFait, C }) {
               onChange={e => setValeurs(x => ({ ...x, [c.nom]: e.target.value }))}
               inputMode={c.type === 'nombre' ? 'numeric' : 'text'}
               placeholder={c.exemple ? `ex. ${c.exemple}` : ''}
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                background: C.card2, border: `1px solid ${C.border}`, borderRadius: 10,
-                padding: '9px 11px', fontSize: 13, color: C.text,
-              }}
+              style={champStyle}
             />
           )}
         </div>
@@ -206,38 +253,48 @@ function Formulaire({ act, phrase, onFait, C }) {
           un window.confirm (convention du projet). */}
       {act.danger && !confirme ? (
         <button
-          onPointerDown={() => setConfirme(true)}
+          onPointerDown={() => !manquant && setConfirme(true)}
           disabled={manquant}
           style={{
-            width: '100%', padding: '11px 0', borderRadius: 11, marginTop: 2,
-            background: 'transparent', border: `1.5px solid ${C.border}`,
-            color: C.muted, fontSize: 12.5, fontWeight: 800, opacity: manquant ? .5 : 1,
+            width:'100%', padding:'14px 0', borderRadius:13, marginTop:4,
+            background:'transparent', border:`1.5px solid ${C.border}`,
+            color:C.muted, fontSize:13.5, fontWeight:800, opacity: manquant ? .5 : 1,
           }}
         >
-          {manquant ? 'Champs obligatoires manquants' : 'Continuer'}
+          {manquant ? 'Remplis les champs obligatoires' : 'Continuer'}
         </button>
       ) : (
-        <button
-          onPointerDown={() => !enCours && !manquant && executer()}
-          disabled={enCours || manquant}
-          style={{
-            width: '100%', padding: '11px 0', borderRadius: 11, marginTop: 2,
-            background: act.danger ? 'rgba(74,44,23,.18)' : 'rgba(212,160,23,.16)',
-            border: `1.5px solid ${act.danger ? 'rgba(93,58,30,.6)' : 'rgba(212,160,23,.5)'}`,
-            color: act.danger ? ESPRESSO : '#8A6A12',
-            fontSize: 12.5, fontWeight: 800, opacity: (enCours || manquant) ? .5 : 1,
-          }}
-        >
-          {enCours ? 'En cours…' : act.danger ? 'Confirmer' : 'Exécuter'}
-        </button>
+        <>
+          {act.danger && (
+            <div style={{ fontSize:12, color:ESPRESSO, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>
+              Dernière étape — ça s'applique tout de suite, sur de vrais comptes.
+            </div>
+          )}
+          <button
+            onPointerDown={() => !enCours && !manquant && executer()}
+            disabled={enCours || manquant}
+            style={{
+              width:'100%', padding:'14px 0', borderRadius:13, marginTop:2,
+              background: act.danger
+                ? 'linear-gradient(140deg, rgba(74,44,23,.22), rgba(93,58,30,.16))'
+                : 'linear-gradient(140deg, rgba(212,160,23,.22), rgba(193,127,60,.14))',
+              border:`1.5px solid ${act.danger ? 'rgba(93,58,30,.6)' : 'rgba(212,160,23,.5)'}`,
+              color: act.danger ? ESPRESSO : OR,
+              fontSize:13.5, fontWeight:900, letterSpacing:.3,
+              opacity: (enCours || manquant) ? .5 : 1,
+            }}
+          >
+            {enCours ? 'En cours…' : act.danger ? 'Confirmer' : 'Exécuter'}
+          </button>
+        </>
       )}
 
       {retour && (
         <div style={{
-          marginTop: 10, padding: '10px 12px', borderRadius: 11, fontSize: 12, fontWeight: 700,
-          background: retour.ok ? 'rgba(212,160,23,.12)' : 'rgba(74,44,23,.14)',
-          border: `1.5px solid ${retour.ok ? 'rgba(212,160,23,.4)' : 'rgba(93,58,30,.5)'}`,
-          color: retour.ok ? '#8A6A12' : ESPRESSO,
+          marginTop:12, padding:'13px 14px', borderRadius:13, fontSize:13, fontWeight:700, lineHeight:1.5,
+          background: retour.ok ? 'rgba(212,160,23,.13)' : 'rgba(74,44,23,.14)',
+          border:`1.5px solid ${retour.ok ? 'rgba(212,160,23,.42)' : 'rgba(93,58,30,.5)'}`,
+          color: retour.ok ? OR : ESPRESSO,
         }}>
           {retour.ok ? '✅ ' : '⛔ '}{retour.message}
         </div>
@@ -246,21 +303,30 @@ function Formulaire({ act, phrase, onFait, C }) {
   );
 }
 
-/* ── L'onglet AGIR ───────────────────────────────────── */
+/* ── L'ONGLET AGIR ───────────────────────────────────── */
 function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
-  const [phrase, setPhrase]     = useState('');
-  const [groupe, setGroupe]     = useState(null);
+  const [phrase, setPhrase]   = useState('');
+  const [ouverte, setOuverte] = useState(false);
+  const [verif, setVerif]     = useState(false);
+  const [erreur, setErreur]   = useState(null);
+  /* La famille est TOUJOURS visible en haut : c'est ce qui évite de se
+     perdre. On ne déplie plus une famille dans une liste, on choisit un
+     rayon et on y reste. */
+  const [famille, setFamille] = useState('joueur');
   const [registre, setRegistre] = useState([]);
-  /* La serrure est VÉRIFIÉE, pas devinée : tant que la base n'a pas
-     confirmé la phrase, rien ne s'ouvre. La version précédente
-     déverrouillait dès le premier caractère tapé — un rideau, pas une
-     serrure. */
-  const [ouverte, setOuverte]     = useState(false);
-  const [verifEnCours, setVerif]  = useState(false);
-  const [erreur, setErreur]       = useState(null);
 
-  const verifier = async () => {
-    if (!phrase || verifEnCours) return;
+  const chargerJournal = useCallback(async () => setRegistre(await journal(10)), []);
+  useEffect(() => { if (ouverte) chargerJournal(); }, [ouverte, chargerJournal]);
+
+  /* Arrivée depuis un constat : on se place sur le bon rayon. */
+  useEffect(() => {
+    if (!ouvrir) return;
+    const act = ACTIONS_SENTINELLE.find(a => a.id === ouvrir);
+    if (act) setFamille(act.groupe);
+  }, [ouvrir]);
+
+  const verifierMaintenant = async () => {
+    if (!phrase || verif) return;
     setVerif(true); setErreur(null);
     const r = await verifierPhrase(phrase);
     setVerif(false);
@@ -268,158 +334,154 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
     else { setOuverte(false); setErreur(r.message); }
   };
 
-  const chargerJournal = useCallback(async () => setRegistre(await journal(12)), []);
-  useEffect(() => { chargerJournal(); }, [chargerJournal]);
+  /* ── La serrure ─────────────────────────────────── */
+  if (!ouverte) {
+    return (
+      <div style={{
+        position:'relative', overflow:'hidden',
+        background:'linear-gradient(140deg, #4A2C17, #7D4E1F)',
+        borderRadius:20, padding:'26px 20px 22px', color:'#fff',
+        boxShadow:'0 8px 24px rgba(74,44,23,.35)',
+        textAlign:'center',
+      }}>
+        <div className="card-warm" aria-hidden />
+        <div aria-hidden style={{
+          position:'absolute', right:-14, bottom:-22, fontSize:110, lineHeight:1,
+          opacity:.09, pointerEvents:'none',
+        }}>🔒</div>
 
-  /* Arrivée depuis un constat : on déplie directement la bonne famille
-     et la bonne action. */
-  useEffect(() => {
-    if (!ouvrir) return;
-    const act = ACTIONS_SENTINELLE.find(a => a.id === ouvrir);
-    if (act) setGroupe(act.groupe);
-  }, [ouvrir]);
+        <div style={{ position:'relative' }}>
+          <div style={{ fontSize:38, lineHeight:1, marginBottom:12 }}>🔒</div>
+          <div style={{ fontSize:17, fontWeight:900, marginBottom:6 }}>Console verrouillée</div>
+          <div style={{ fontSize:12.5, color:'rgba(255,255,255,.72)', lineHeight:1.6, maxWidth:290, margin:'0 auto 18px' }}>
+            Tape ta phrase de passe. Elle est vérifiée en base — elle n'est
+            gardée ni ici, ni dans le téléphone.
+          </div>
 
-  const deverrouille = ouverte;
+          <input
+            type="password"
+            value={phrase}
+            onChange={e => { setPhrase(e.target.value); setErreur(null); }}
+            onKeyDown={e => { if (e.key === 'Enter') verifierMaintenant(); }}
+            placeholder="ta phrase"
+            autoComplete="off"
+            style={{
+              width:'100%', boxSizing:'border-box', textAlign:'center',
+              background:'rgba(0,0,0,.28)',
+              border:`1.5px solid ${erreur ? 'rgba(255,180,140,.6)' : 'rgba(212,160,23,.5)'}`,
+              borderRadius:13, padding:'14px 14px', fontSize:15, color:'#FFE066',
+              letterSpacing:2,
+            }}
+          />
+
+          <button
+            onPointerDown={verifierMaintenant}
+            disabled={!phrase || verif}
+            style={{
+              width:'100%', marginTop:11, padding:'14px 0', borderRadius:13,
+              background:'rgba(212,160,23,.9)', border:'none',
+              color:'#3D2010', fontSize:14, fontWeight:900, letterSpacing:.5,
+              opacity:(!phrase || verif) ? .5 : 1, touchAction:'manipulation',
+            }}
+          >
+            {verif ? 'Vérification…' : 'Vérifier'}
+          </button>
+
+          {erreur && (
+            <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, color:'#FFD4A8', lineHeight:1.5 }}>
+              ⛔ {erreur}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── La console ouverte ─────────────────────────── */
+  const actions = ACTIONS_SENTINELLE.filter(a => a.groupe === famille);
+  const g = GROUPES.find(x => x.id === famille);
 
   return (
     <>
-      {/* La serrure. Tant que la BASE n'a pas confirmé la phrase, les
-          formulaires ne s'affichent pas : montrer des boutons qu'on ne
-          peut pas utiliser, c'est promettre puis refuser. */}
       <div style={{
-        background: deverrouille ? 'rgba(212,160,23,.10)' : C.card,
-        border: `1.5px solid ${deverrouille ? 'rgba(212,160,23,.45)' : erreur ? 'rgba(93,58,30,.5)' : C.border}`,
-        borderRadius: 14, padding: '12px 14px', marginBottom: 14,
+        display:'flex', alignItems:'center', gap:10, marginBottom:16,
+        background:'rgba(212,160,23,.11)', border:'1.5px solid rgba(212,160,23,.4)',
+        borderRadius:14, padding:'11px 14px',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <span style={{ fontSize: 15 }}>{deverrouille ? '🔓' : '🔒'}</span>
-          <span style={{ fontSize: 11, color: C.muted, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.3 }}>
-            {deverrouille ? 'Déverrouillé' : 'Phrase de passe'}
-          </span>
-        </div>
-
-        {deverrouille ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ flex: 1, fontSize: 12, color: C.text, fontWeight: 700 }}>
-              Phrase reconnue — la console est ouverte.
-            </span>
-            <button
-              onPointerDown={() => { setOuverte(false); setPhrase(''); setGroupe(null); onOuvrir(null); }}
-              style={{
-                flexShrink: 0, padding: '7px 11px', borderRadius: 10,
-                background: C.card2, border: `1px solid ${C.border}`,
-                color: C.muted, fontSize: 11, fontWeight: 800,
-              }}
-            >Verrouiller</button>
-          </div>
-        ) : (
-          <>
-            <input
-              type="password"
-              value={phrase}
-              onChange={e => { setPhrase(e.target.value); setErreur(null); }}
-              onKeyDown={e => { if (e.key === 'Enter') verifier(); }}
-              placeholder="celle que toi seul connais"
-              autoComplete="off"
-              style={{
-                width: '100%', boxSizing: 'border-box',
-                background: C.card2, border: `1px solid ${erreur ? 'rgba(93,58,30,.5)' : C.border}`,
-                borderRadius: 10, padding: '10px 12px', fontSize: 13, color: C.text,
-              }}
-            />
-            <button
-              onPointerDown={verifier}
-              disabled={!phrase || verifEnCours}
-              style={{
-                width: '100%', marginTop: 8, padding: '10px 0', borderRadius: 10,
-                background: 'rgba(212,160,23,.16)', border: '1.5px solid rgba(212,160,23,.5)',
-                color: '#8A6A12', fontSize: 12.5, fontWeight: 800,
-                opacity: (!phrase || verifEnCours) ? .5 : 1, touchAction: 'manipulation',
-              }}
-            >
-              {verifEnCours ? 'Vérification…' : 'Vérifier'}
-            </button>
-            {erreur && (
-              <div style={{ marginTop: 8, fontSize: 11.5, fontWeight: 700, color: ESPRESSO }}>
-                ⛔ {erreur}
-              </div>
-            )}
-          </>
-        )}
-
-        <div style={{ fontSize: 10, color: C.muted, marginTop: 8, lineHeight: 1.5 }}>
-          Elle part vérifier en base et n'est gardée nulle part — ni ici, ni
-          dans le téléphone. Dix essais ratés ferment la porte 15 minutes.
-        </div>
+        <span style={{ fontSize:18 }}>🔓</span>
+        <span style={{ flex:1, fontSize:12.5, fontWeight:800, color:C.text }}>Console ouverte</span>
+        <button
+          onPointerDown={() => { setOuverte(false); setPhrase(''); onOuvrir(null); }}
+          style={{
+            padding:'8px 13px', borderRadius:11, background:C.card2,
+            border:`1px solid ${C.border}`, color:C.muted, fontSize:11.5, fontWeight:800,
+          }}
+        >Verrouiller</button>
       </div>
 
-      {!deverrouille ? (
-        <div style={{ fontSize: 11.5, color: C.muted, textAlign: 'center', padding: '18px 10px', lineHeight: 1.6 }}>
-          Tape ta phrase et appuie sur <strong>Vérifier</strong> pour ouvrir la console.
-        </div>
-      ) : GROUPES.map(g => {
-        const actions = ACTIONS_SENTINELLE.filter(a => a.groupe === g.id);
-        const ouvertG = groupe === g.id;
-        return (
-          <div key={g.id} style={{ marginBottom: 9 }}>
+      {/* Les trois rayons, toujours visibles : on sait où on est. */}
+      <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+        {GROUPES.map(x => {
+          const actif = famille === x.id;
+          return (
             <button
-              onPointerDown={() => { setGroupe(ouvertG ? null : g.id); onOuvrir(null); }}
+              key={x.id}
+              onPointerDown={() => { setFamille(x.id); onOuvrir(null); }}
               style={{
-                width: '100%', textAlign: 'left',
-                background: C.card, border: `1.5px solid ${ouvertG ? 'rgba(212,160,23,.45)' : C.border}`,
-                borderRadius: 14, padding: '12px 14px',
-                display: 'flex', alignItems: 'center', gap: 11, cursor: 'pointer',
+                flex:1, padding:'12px 4px', borderRadius:14,
+                background: actif ? 'linear-gradient(140deg, rgba(212,160,23,.22), rgba(193,127,60,.12))' : C.card,
+                border:`1.5px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
+                display:'flex', flexDirection:'column', alignItems:'center', gap:4,
+                touchAction:'manipulation',
               }}
             >
-              <span style={{ fontSize: 19, flexShrink: 0 }}>{g.emoji}</span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 800, color: C.text }}>{g.titre}</span>
-                <span style={{ display: 'block', fontSize: 11, color: C.muted, marginTop: 1 }}>{g.resume}</span>
+              <span style={{ fontSize:20, lineHeight:1 }}>{x.emoji}</span>
+              <span style={{ fontSize:10.5, fontWeight:800, color: actif ? OR : C.muted, textAlign:'center', lineHeight:1.25 }}>
+                {x.titre}
               </span>
-              <span style={{ fontSize: 12, color: C.muted, transform: ouvertG ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}>›</span>
             </button>
+          );
+        })}
+      </div>
 
-            {ouvertG && (
-              <div style={{ paddingLeft: 8, marginTop: 8 }}>
-                {actions.map(a => {
-                  const actif = ouvrir === a.id;
-                  return (
-                    <div key={a.id} style={{
-                      background: C.card,
-                      border: `1px solid ${actif ? 'rgba(212,160,23,.45)' : C.border}`,
-                      borderRadius: 12, marginBottom: 7, overflow: 'hidden',
-                    }}>
-                      <button
-                        onPointerDown={() => onOuvrir(actif ? null : a.id)}
-                        style={{
-                          width: '100%', textAlign: 'left', background: 'none', border: 'none',
-                          padding: '10px 12px', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', gap: 9,
-                        }}
-                      >
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 800, color: a.danger ? ESPRESSO : C.text }}>
-                            {a.titre}
-                          </span>
-                          <span style={{ display: 'block', fontSize: 10.5, color: C.muted, marginTop: 1, lineHeight: 1.4 }}>
-                            {a.resume}
-                          </span>
-                        </span>
-                        <span style={{ fontSize: 11, color: C.muted, transform: actif ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}>›</span>
-                      </button>
-                      {actif && (
-                        <div style={{ padding: '0 12px 10px' }}>
-                          <Formulaire
-                            act={{ ...a, prefill: prefill && a.champs.some(c => c.nom === 'user_code') ? { user_code: prefill } : {} }}
-                            phrase={phrase}
-                            onFait={chargerJournal}
-                            C={C}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+      <Section C={C}>{g?.titre}</Section>
+
+      {actions.map(a => {
+        const actif = ouvrir === a.id;
+        return (
+          <div key={a.id} style={{
+            position:'relative', overflow:'hidden',
+            background:C.card,
+            border:`1.5px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
+            borderRadius:16, marginBottom:10,
+          }}>
+            {a.danger && <div aria-hidden style={{ position:'absolute', left:0, top:0, bottom:0, width:4, background:ESPRESSO, opacity:.6 }} />}
+            <button
+              onPointerDown={() => onOuvrir(actif ? null : a.id)}
+              style={{
+                width:'100%', textAlign:'left', background:'none', border:'none',
+                padding:'14px 15px 14px 18px', cursor:'pointer',
+                display:'flex', alignItems:'center', gap:11,
+              }}
+            >
+              <span style={{ flex:1, minWidth:0 }}>
+                <span style={{ display:'block', fontSize:14, fontWeight:800, color:C.text, lineHeight:1.35 }}>
+                  {a.titre}
+                </span>
+                <span style={{ display:'block', fontSize:12, color:C.muted, marginTop:3, lineHeight:1.45 }}>
+                  {a.resume}
+                </span>
+              </span>
+              <span style={{ fontSize:14, color:C.muted, flexShrink:0, transform: actif ? 'rotate(90deg)' : 'none', transition:'transform .2s' }}>›</span>
+            </button>
+            {actif && (
+              <div style={{ padding:'0 15px 15px 18px' }}>
+                <Formulaire
+                  act={{ ...a, prefill: prefill && a.champs.some(c => c.nom === 'user_code') ? { user_code: prefill } : {} }}
+                  phrase={phrase}
+                  onFait={chargerJournal}
+                  C={C}
+                />
               </div>
             )}
           </div>
@@ -427,24 +489,28 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
       })}
 
       {/* Le registre : c'est ce qui rend la console vérifiable. */}
-      {deverrouille && (
-        <div style={{ marginTop: 18 }}>
-          <div style={{ fontSize: 10, color: C.muted, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 1.4, marginBottom: 8 }}>
-            Ce qui a été fait
-          </div>
-          {registre.length === 0 ? (
-            <div style={{ fontSize: 11.5, color: C.muted }}>Rien pour l'instant.</div>
-          ) : registre.map(l => (
+      <Section C={C}>Ce qui a été fait</Section>
+      {registre.length === 0 ? (
+        <div style={{ fontSize:12.5, color:C.muted, padding:'4px 2px' }}>Rien pour l'instant.</div>
+      ) : (
+        <div style={{ background:C.card, border:`1.5px solid ${C.border}`, borderRadius:16, overflow:'hidden' }}>
+          {registre.map((l, i) => (
             <div key={l.id} style={{
-              display: 'flex', gap: 9, alignItems: 'baseline',
-              fontSize: 11, color: C.muted, padding: '6px 0', borderBottom: `1px solid ${C.border}`,
+              display:'flex', gap:11, alignItems:'flex-start', padding:'12px 14px',
+              borderBottom: i === registre.length - 1 ? 'none' : `1px solid ${C.border}`,
             }}>
-              <span style={{ flexShrink: 0 }}>{l.resultat === 'ok' ? '✅' : l.resultat === 'refus' ? '⛔' : '⚠️'}</span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <strong style={{ color: C.text }}>{l.action}</strong>{l.cible ? ` · ${l.cible}` : ''}
-                <span style={{ display: 'block', opacity: .85 }}>{l.message}</span>
+              <span style={{ fontSize:15, flexShrink:0, lineHeight:1.2 }}>
+                {l.resultat === 'ok' ? '✅' : l.resultat === 'refus' ? '⛔' : '⚠️'}
               </span>
-              <span style={{ flexShrink: 0, fontSize: 10 }}>{quand(l.created_at)}</span>
+              <span style={{ flex:1, minWidth:0 }}>
+                <span style={{ display:'block', fontSize:12.5, fontWeight:800, color:C.text }}>
+                  {l.action}{l.cible ? ` · ${l.cible}` : ''}
+                </span>
+                <span style={{ display:'block', fontSize:11.5, color:C.muted, marginTop:2, lineHeight:1.45 }}>
+                  {l.message}
+                </span>
+              </span>
+              <span style={{ flexShrink:0, fontSize:10.5, color:C.muted }}>{quand(l.created_at)}</span>
             </div>
           ))}
         </div>
@@ -486,121 +552,145 @@ export function SentinelleOverlay({ onClose, C }) {
     setEnCours(false);
   };
 
-  /* Depuis un constat : on bascule sur Agir, la bonne action dépliée et
-     le code du joueur déjà rempli. */
   const allerAgir = (actionId, code) => {
     setPrefill(code || null);
     setActionOuverte(actionId);
     setOnglet('agir');
   };
 
-  const tries    = [...rapports].sort((a, b) => (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9));
+  const tries     = [...rapports].sort((a, b) => (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9));
   const problemes = tries.filter(r => r.verdict !== 'ok');
   const sains     = tries.filter(r => r.verdict === 'ok');
   const alertes   = problemes.filter(r => r.verdict === 'alerte').length;
 
+  const grave = alertes > 0;
   const titre = chargement ? 'Lecture…'
-    : !rapports.length ? 'Aucune ronde enregistrée'
-    : alertes ? `${alertes} alerte${alertes > 1 ? 's' : ''}`
+    : !rapports.length ? 'Pas encore de ronde'
+    : grave ? `${alertes} alerte${alertes > 1 ? 's' : ''}`
     : problemes.length ? `${problemes.length} point${problemes.length > 1 ? 's' : ''} à regarder`
     : 'Tout va bien';
+  const sousTitre = chargement ? ''
+    : !rapports.length ? 'La première partira toute seule dès qu\'un joueur ouvrira l\'app'
+    : `${rapports.length} contrôles · ${immediat ? 'à l\'instant' : quand(horodatage)}`;
 
   return (
     <div style={{
-      position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: 430, bottom: 0,
-      background: C.bg, zIndex: 62, display: 'flex', flexDirection: 'column',
+      position:'fixed', top:0, left:'50%', transform:'translateX(-50%)',
+      width:'100%', maxWidth:430, bottom:0,
+      background:C.bg, zIndex:62, display:'flex', flexDirection:'column',
     }}>
+      {/* En-tête */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px',
-        borderBottom: `1px solid ${C.border}`, background: C.card, flexShrink: 0,
+        display:'flex', alignItems:'center', gap:12, padding:'14px 18px',
+        borderBottom:`1px solid ${C.border}`, background:C.card, flexShrink:0,
       }}>
         <button
           onClick={onClose} aria-label="Retour"
           style={{
-            width: 36, height: 36, borderRadius: 12, background: C.card2,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text,
+            width:36, height:36, borderRadius:12, background:C.card2,
+            display:'flex', alignItems:'center', justifyContent:'center', color:C.text,
           }}
         >
           <ChevronLeft size={20} />
         </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: C.text }}>🛡️ Sentinelle</div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
-            {horodatage ? `${immediat ? 'contrôle immédiat' : 'dernière ronde'} ${quand(horodatage)}` : `version ${APP_INFO.version}`}
-          </div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:17, fontWeight:800, color:C.text }}>Sentinelle</div>
+          <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>version {APP_INFO.version}</div>
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 18px 28px' }}>
+      <div style={{ flex:1, overflowY:'auto', padding:'16px 18px 32px' }}>
 
-        {/* La réponse à « est-ce que ça va », en gros, avant tout le reste. */}
+        {/* LA RÉPONSE, en grand, avant tout le reste. Bandeau espresso
+            qui accroche la lumière — même traitement que la bannière du
+            marché et la carte de niveau. */}
         <div style={{
-          background: alertes ? 'rgba(74,44,23,.14)' : problemes.length ? 'rgba(193,127,60,.12)' : 'rgba(212,160,23,.10)',
-          border: `1.5px solid ${alertes ? 'rgba(93,58,30,.5)' : problemes.length ? 'rgba(193,127,60,.4)' : 'rgba(212,160,23,.35)'}`,
-          borderRadius: 16, padding: '14px 16px', marginBottom: 14,
-          display: 'flex', alignItems: 'center', gap: 13,
+          position:'relative', overflow:'hidden',
+          background: grave
+            ? 'linear-gradient(140deg, #3A1D0C, #5D3A1E)'
+            : 'linear-gradient(140deg, #4A2C17, #7D4E1F)',
+          borderRadius:20, padding:'20px 20px 18px', color:'#fff', marginBottom:16,
+          boxShadow:'0 8px 24px rgba(74,44,23,.35)',
         }}>
-          <span style={{ fontSize: 26, lineHeight: 1 }}>{alertes ? '⛔' : problemes.length ? '⚠️' : '✅'}</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 900, color: alertes ? ESPRESSO : C.text }}>{titre}</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-              {rapports.length ? `${rapports.length} contrôles passés` : 'la première partira toute seule'}
+          <div className="card-warm" aria-hidden />
+          <div className="card-sheen" aria-hidden />
+          {/* Emoji géant en filigrane : la signature des cartes de la
+              1.30, ce qui fait qu'un bloc n'est pas un rectangle vide. */}
+          <div aria-hidden style={{
+            position:'absolute', right:-10, bottom:-26, fontSize:118, lineHeight:1,
+            opacity:.1, pointerEvents:'none',
+          }}>🛡️</div>
+
+          <div style={{ position:'relative', display:'flex', alignItems:'center', gap:14 }}>
+            <div style={{ fontSize:34, lineHeight:1, flexShrink:0 }}>
+              {chargement ? '🛡️' : grave ? '⛔' : problemes.length ? '⚠️' : '✅'}
             </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:22, fontWeight:900, lineHeight:1.15, letterSpacing:-.3 }}>{titre}</div>
+              <div style={{ fontSize:11.5, color:'rgba(255,255,255,.7)', marginTop:4, lineHeight:1.45 }}>
+                {sousTitre}
+              </div>
+            </div>
+            <button
+              onPointerDown={() => !enCours && controler()}
+              disabled={enCours}
+              aria-label="Contrôler maintenant"
+              style={{
+                flexShrink:0, width:44, height:44, borderRadius:14,
+                background:'rgba(212,160,23,.22)', border:'1.5px solid rgba(212,160,23,.5)',
+                color:'#FFE066', display:'flex', alignItems:'center', justifyContent:'center',
+                opacity: enCours ? .5 : 1, touchAction:'manipulation',
+              }}
+            >
+              <RefreshCw size={18} style={enCours ? { animation:'premiumRay 1.1s linear infinite' } : undefined} />
+            </button>
           </div>
-          <button
-            onPointerDown={() => !enCours && controler()}
-            disabled={enCours}
-            aria-label="Contrôler maintenant"
-            style={{
-              flexShrink: 0, width: 38, height: 38, borderRadius: 12,
-              background: 'rgba(212,160,23,.16)', border: '1.5px solid rgba(212,160,23,.45)',
-              color: '#8A6A12', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              opacity: enCours ? .5 : 1, touchAction: 'manipulation',
-            }}
-          >
-            <RefreshCw size={16} style={enCours ? { animation: 'premiumRay 1.1s linear infinite' } : undefined} />
-          </button>
         </div>
 
-        <div style={{ display: 'flex', gap: 7, marginBottom: 14 }}>
-          {[['etat', 'État'], ['agir', 'Agir']].map(([id, label]) => {
+        {/* Deux onglets, gros et lisibles */}
+        <div style={{ display:'flex', gap:8, marginBottom:6 }}>
+          {[['etat', '🔍', 'État'], ['agir', '⚙️', 'Agir']].map(([id, emoji, label]) => {
             const actif = onglet === id;
             return (
               <button
                 key={id}
                 onPointerDown={() => setOnglet(id)}
                 style={{
-                  flex: 1, padding: '9px 0', borderRadius: 11, fontSize: 12.5, fontWeight: 800,
-                  background: actif ? 'rgba(212,160,23,.18)' : C.card2,
-                  border: `1px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
-                  color: actif ? '#8A6A12' : C.muted, touchAction: 'manipulation',
+                  flex:1, padding:'13px 0', borderRadius:14,
+                  background: actif ? 'linear-gradient(140deg, rgba(212,160,23,.22), rgba(193,127,60,.12))' : C.card,
+                  border:`1.5px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
+                  color: actif ? OR : C.muted, fontSize:13.5, fontWeight:800,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:7,
+                  touchAction:'manipulation',
                 }}
-              >{label}</button>
+              >
+                <span style={{ fontSize:15 }}>{emoji}</span>{label}
+              </button>
             );
           })}
         </div>
 
         {onglet === 'agir' ? (
-          <PanneauActions
-            ouvrir={actionOuverte}
-            prefill={prefill}
-            onOuvrir={setActionOuverte}
-            C={C}
-          />
+          <div style={{ marginTop:16 }}>
+            <PanneauActions ouvrir={actionOuverte} prefill={prefill} onOuvrir={setActionOuverte} C={C} />
+          </div>
         ) : chargement ? (
-          <div style={{ textAlign: 'center', color: C.muted, fontSize: 12, padding: '30px 0' }}>Lecture…</div>
+          <div style={{ textAlign:'center', color:C.muted, fontSize:13, padding:'40px 0' }}>Lecture…</div>
         ) : !rapports.length ? (
           <div style={{
-            background: C.card, border: `1.5px solid ${C.border}`, borderRadius: 14,
-            padding: 18, textAlign: 'center', color: C.muted, fontSize: 12, lineHeight: 1.6,
+            marginTop:16, background:C.card, border:`1.5px solid ${C.border}`, borderRadius:18,
+            padding:'26px 20px', textAlign:'center', color:C.muted, fontSize:13, lineHeight:1.7,
           }}>
-            <div style={{ fontSize: 26, marginBottom: 8 }}>🛡️</div>
-            Aucune ronde enregistrée pour l'instant.<br />
-            Elle partira toute seule dès qu'un joueur ouvrira l'app.
+            <div style={{ fontSize:34, marginBottom:10 }}>🛡️</div>
+            <div style={{ fontSize:14, fontWeight:800, color:C.text, marginBottom:6 }}>
+              Aucune ronde enregistrée
+            </div>
+            Elle partira toute seule dès qu'un joueur ouvrira l'app.<br />
+            Tu peux aussi en lancer une avec le bouton ↻ ci-dessus.
           </div>
         ) : (
           <>
+            {problemes.length > 0 && <Section C={C}>À traiter</Section>}
             {problemes.map((r, i) => (
               <Constat key={r.id ?? i} r={r} age={immediat ? null : anciennete(historique, r)} onAgir={allerAgir} C={C} />
             ))}
@@ -609,23 +699,24 @@ export function SentinelleOverlay({ onClose, C }) {
                 soir, c'est apprendre à ne plus rien lire. */}
             {sains.length > 0 && (
               <>
+                <Section C={C}>Le reste</Section>
                 <button
                   onPointerDown={() => setToutVoir(v => !v)}
                   style={{
-                    width: '100%', textAlign: 'left', marginTop: problemes.length ? 6 : 0,
-                    background: 'rgba(212,160,23,.08)', border: `1px solid rgba(212,160,23,.28)`,
-                    borderRadius: 12, padding: '10px 13px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 9,
+                    width:'100%', textAlign:'left',
+                    background:'rgba(212,160,23,.08)', border:'1.5px solid rgba(212,160,23,.28)',
+                    borderRadius:16, padding:'14px 15px', cursor:'pointer',
+                    display:'flex', alignItems:'center', gap:12,
                   }}
                 >
-                  <span style={{ fontSize: 14 }}>✅</span>
-                  <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: C.text }}>
+                  <span style={{ fontSize:20 }}>✅</span>
+                  <span style={{ flex:1, fontSize:13.5, fontWeight:800, color:C.text }}>
                     {sains.length} contrôle{sains.length > 1 ? 's' : ''} sans rien à signaler
                   </span>
-                  <span style={{ fontSize: 11, color: C.muted, transform: toutVoir ? 'rotate(90deg)' : 'none', transition: 'transform .2s' }}>›</span>
+                  <span style={{ fontSize:14, color:C.muted, transform: toutVoir ? 'rotate(90deg)' : 'none', transition:'transform .2s' }}>›</span>
                 </button>
                 {toutVoir && (
-                  <div style={{ marginTop: 9 }}>
+                  <div style={{ marginTop:10 }}>
                     {sains.map((r, i) => (
                       <Constat key={r.id ?? `ok${i}`} r={r} age={null} onAgir={allerAgir} C={C} />
                     ))}
@@ -634,9 +725,9 @@ export function SentinelleOverlay({ onClose, C }) {
               </>
             )}
 
-            <div style={{ marginTop: 16, fontSize: 10.5, color: C.muted, lineHeight: 1.65 }}>
+            <div style={{ marginTop:20, fontSize:11.5, color:C.muted, lineHeight:1.7 }}>
               Les rondes constatent, elles ne corrigent jamais rien d'elles-mêmes.
-              Quand un constat a un remède, le bouton est proposé dessous.
+              Quand un constat a un remède, le bouton apparaît dessous, déjà rempli.
             </div>
           </>
         )}
