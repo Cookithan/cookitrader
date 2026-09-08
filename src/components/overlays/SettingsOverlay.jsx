@@ -247,32 +247,43 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
             <button
               onClick={onOpenSentinelle}
               style={{
-                width:'100%', borderRadius:16,
-                background:C.card,
-                border:`1px solid ${C.border}`,
-                padding:'14px 16px',
+                position:'relative', overflow:'hidden',
+                width:'100%', borderRadius:18,
+                background:'linear-gradient(140deg, #E6F3FC, #B3D9F2)',
+                border:'1px solid rgba(255,255,255,.7)',
+                boxShadow:'0 6px 18px rgba(30,80,125,.20)',
+                padding:'15px 16px',
                 display:'flex', alignItems:'center', justifyContent:'space-between',
                 cursor:'pointer', textAlign:'left', gap:10,
               }}
             >
-              <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
+              <div className="card-cool" aria-hidden />
+              <div className="card-sheen-cool" aria-hidden />
+              {/* Le même bouclier en filigrane que la bannière de
+                  l'écran : on reconnaît la porte avant de la pousser. */}
+              <div aria-hidden style={{
+                position:'absolute', right:-8, bottom:-22, fontSize:86, lineHeight:1,
+                opacity:.16, pointerEvents:'none',
+              }}>🛡️</div>
+
+              <div style={{ position:'relative', display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
                 <div style={{
-                  width:38, height:38, borderRadius:10,
-                  background:'rgba(30,80,125,.13)',
-                  border:'1px solid rgba(30,80,125,.32)',
+                  width:38, height:38, borderRadius:11,
+                  background:'rgba(255,255,255,.6)',
+                  border:'1px solid rgba(14,51,85,.18)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   flexShrink:0, fontSize:18,
                 }}>
                   🛡️
                 </div>
                 <div style={{ minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Sentinelle</div>
-                  <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
+                  <div style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>Sentinelle</div>
+                  <div style={{ fontSize:11, color:'rgba(14,51,85,.68)', marginTop:2, lineHeight:1.4 }}>
                     Elle surveille, elle répond, elle agit — sans ouvrir Supabase
                   </div>
                 </div>
               </div>
-              <span style={{ flexShrink:0, fontSize:14, color:C.muted }}>›</span>
+              <span style={{ position:'relative', flexShrink:0, fontSize:15, fontWeight:800, color:'rgba(14,51,85,.5)' }}>›</span>
             </button>
           </section>
         )}

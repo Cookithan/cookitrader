@@ -44,20 +44,50 @@ import { tousLesJoueurs, demander, EXEMPLES, correspondQuestion } from "../../li
    quelque chose ne va pas, souvent dehors, sur un téléphone : du texte
    foncé sur fond clair y tient mieux que du blanc sur brun.
 
-   L'interdiction du rouge, elle, tient toujours : la gravité se dit par
-   la profondeur du bleu, et les constats restent en ESPRESSO.
+   L'interdiction du rouge tient toujours. La gravité se dit par la
+   PROFONDEUR du bleu, jamais par une couleur d'alarme : marine pour ce
+   qui est à corriger, bleu moyen pour ce qui est à regarder, bleu clair
+   pour ce qui va bien. Trois bleus, trois niveaux, aucun rouge.
 ═══════════════════════════════════════════════════════ */
 
-const ESPRESSO = '#5D3A1E';
-const OR       = '#8A6A12';
+const MARINE = '#0B2E4D';   /* l'encre : titres graves, texte de danger */
+const ACIER  = '#1B5E8C';   /* l'accent : ce sur quoi on peut appuyer   */
+
+/* ── LE THÈME DE LA SENTINELLE ───────────────────────
+   L'écran ne prend PAS le thème du joueur. Il a le sien, et un seul.
+
+   Deux raisons. La première tient à ce que fait cet écran : on y lit des
+   alertes et on y sanctionne des comptes. Le voir changer de peau selon
+   que Régis a équipé Cosmos ou Forge Caféinée ajouterait une variable
+   inutile à un moment où il vaut mieux n'en avoir aucune — et certains
+   thèmes du jeu (dégradés violets, or saturé) rendraient une alerte
+   illisible.
+
+   La seconde est la même que pour la bannière : c'est le signal que
+   l'on a quitté le jeu. Une seule surface bleue dans toute l'app, la
+   même à chaque ouverture.
+
+   Clair, toujours — y compris si le joueur est en thème sombre. On
+   ouvre cet écran quand quelque chose ne va pas, souvent dehors, sur un
+   téléphone : la lisibilité passe avant le confort nocturne. Même forme
+   qu'un thème du jeu (bg/card/card2/text/muted/border), donc les
+   sous-composants n'ont rien à savoir de tout ça. */
+const THEME_SENTINELLE = {
+  bg:     'linear-gradient(170deg,#F3F9FD 0%,#E4F0F9 55%,#DAECF7 100%)',
+  card:   '#FFFFFF',
+  card2:  '#EAF3FA',
+  text:   '#0E3355',
+  muted:  '#5A7E9B',
+  border: '#CCE0EE',
+};
 
 /* Chaque gravité a sa teinte, son ruban et son mot. Le mot compte
    autant que la couleur : « à corriger » dit quoi faire, « alerte » ne
    dit que l'intensité. */
 const TONS = {
-  alerte: { fond:'rgba(74,44,23,.15)',   bord:'rgba(93,58,30,.5)',   ruban:'#5D3A1E', puce:'⛔', mot:'à corriger' },
-  voir:   { fond:'rgba(193,127,60,.12)', bord:'rgba(193,127,60,.4)', ruban:'#C17F3C', puce:'⚠️', mot:'à regarder' },
-  ok:     { fond:'rgba(212,160,23,.09)', bord:'rgba(212,160,23,.3)', ruban:'#D4A017', puce:'✅', mot:'rien à signaler' },
+  alerte: { fond:'rgba(30,80,125,.15)',   bord:'rgba(14,51,85,.5)',   ruban:'#0B2E4D', puce:'⛔', mot:'à corriger' },
+  voir:   { fond:'rgba(104,164,205,.12)', bord:'rgba(104,164,205,.4)', ruban:'#5E9BC4', puce:'⚠️', mot:'à regarder' },
+  ok:     { fond:'rgba(43,124,178,.09)', bord:'rgba(43,124,178,.3)', ruban:'#2B7CB2', puce:'✅', mot:'rien à signaler' },
 };
 const RANG = { alerte: 0, voir: 1, ok: 2 };
 
@@ -181,7 +211,7 @@ function Constat({ r, age, traite, onAgir, onClasser, C }) {
             {traite && (
               <span style={{
                 fontSize:8.5, fontWeight:900, letterSpacing:.6, padding:'2px 6px',
-                borderRadius:7, background:'rgba(212,160,23,.9)', color:'#3D2010',
+                borderRadius:7, background:'rgba(43,124,178,.9)', color:'#EAF4FB',
               }}>TRAITÉ</span>
             )}
           </span>
@@ -243,8 +273,8 @@ function Constat({ r, age, traite, onAgir, onClasser, C }) {
                     onPointerDown={() => onAgir(a.id, code)}
                     style={{
                       padding:'10px 14px', borderRadius:12,
-                      background:'rgba(212,160,23,.16)', border:'1.5px solid rgba(212,160,23,.45)',
-                      color:OR, fontSize:12.5, fontWeight:800, touchAction:'manipulation',
+                      background:'rgba(43,124,178,.16)', border:'1.5px solid rgba(43,124,178,.45)',
+                      color:ACIER, fontSize:12.5, fontWeight:800, touchAction:'manipulation',
                     }}
                   >{a.titre} ›</button>
                 ))}
@@ -371,7 +401,7 @@ function Formulaire({ act, phrase, onFait, C }) {
       )}
       {connu && (
         <div style={{
-          background:'rgba(212,160,23,.10)', border:'1.5px solid rgba(212,160,23,.35)',
+          background:'rgba(43,124,178,.10)', border:'1.5px solid rgba(43,124,178,.35)',
           borderRadius:12, padding:'11px 13px', marginBottom:12,
         }}>
           <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{connu.user_name}</div>
@@ -398,9 +428,9 @@ function Formulaire({ act, phrase, onFait, C }) {
                   onPointerDown={() => setValeurs(x => ({ ...x, [c.nom]: v }))}
                   style={{
                     flex:1, padding:'12px 0', borderRadius:12, fontSize:13.5, fontWeight:800,
-                    background: valeurs[c.nom] === v ? 'rgba(212,160,23,.2)' : C.card2,
-                    border:`1.5px solid ${valeurs[c.nom] === v ? 'rgba(212,160,23,.55)' : C.border}`,
-                    color: valeurs[c.nom] === v ? OR : C.muted,
+                    background: valeurs[c.nom] === v ? 'rgba(43,124,178,.2)' : C.card2,
+                    border:`1.5px solid ${valeurs[c.nom] === v ? 'rgba(43,124,178,.55)' : C.border}`,
+                    color: valeurs[c.nom] === v ? ACIER : C.muted,
                   }}
                 >{v}</button>
               ))}
@@ -434,7 +464,7 @@ function Formulaire({ act, phrase, onFait, C }) {
       ) : (
         <>
           {act.danger && (
-            <div style={{ fontSize:12, color:ESPRESSO, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>
+            <div style={{ fontSize:12, color:MARINE, fontWeight:700, marginBottom:8, lineHeight:1.5 }}>
               Dernière étape — ça s'applique tout de suite, sur de vrais comptes.
             </div>
           )}
@@ -444,10 +474,10 @@ function Formulaire({ act, phrase, onFait, C }) {
             style={{
               width:'100%', padding:'14px 0', borderRadius:13, marginTop:2,
               background: act.danger
-                ? 'linear-gradient(140deg, rgba(74,44,23,.22), rgba(93,58,30,.16))'
-                : 'linear-gradient(140deg, rgba(212,160,23,.22), rgba(193,127,60,.14))',
-              border:`1.5px solid ${act.danger ? 'rgba(93,58,30,.6)' : 'rgba(212,160,23,.5)'}`,
-              color: act.danger ? ESPRESSO : OR,
+                ? 'linear-gradient(140deg, rgba(30,80,125,.22), rgba(14,51,85,.16))'
+                : 'linear-gradient(140deg, rgba(43,124,178,.22), rgba(104,164,205,.14))',
+              border:`1.5px solid ${act.danger ? 'rgba(14,51,85,.6)' : 'rgba(43,124,178,.5)'}`,
+              color: act.danger ? MARINE : ACIER,
               fontSize:13.5, fontWeight:900, letterSpacing:.3,
               opacity: (enCours || manquant) ? .5 : 1,
             }}
@@ -460,9 +490,9 @@ function Formulaire({ act, phrase, onFait, C }) {
       {retour && (
         <div style={{
           marginTop:12, padding:'13px 14px', borderRadius:13, fontSize:13, fontWeight:700, lineHeight:1.5,
-          background: retour.ok ? 'rgba(212,160,23,.13)' : 'rgba(74,44,23,.14)',
-          border:`1.5px solid ${retour.ok ? 'rgba(212,160,23,.42)' : 'rgba(93,58,30,.5)'}`,
-          color: retour.ok ? OR : ESPRESSO,
+          background: retour.ok ? 'rgba(43,124,178,.13)' : 'rgba(30,80,125,.14)',
+          border:`1.5px solid ${retour.ok ? 'rgba(43,124,178,.42)' : 'rgba(14,51,85,.5)'}`,
+          color: retour.ok ? ACIER : MARINE,
         }}>
           {retour.ok ? '✅ ' : '⛔ '}{retour.message}
         </div>
@@ -546,8 +576,8 @@ function PanneauDemander({ onUtiliserCode, C }) {
       {reponse && (
         <div style={{
           marginTop:12,
-          background: reponse.type === 'inconnu' ? C.card : 'rgba(212,160,23,.10)',
-          border:`1.5px solid ${reponse.type === 'inconnu' ? C.border : 'rgba(212,160,23,.4)'}`,
+          background: reponse.type === 'inconnu' ? C.card : 'rgba(43,124,178,.10)',
+          border:`1.5px solid ${reponse.type === 'inconnu' ? C.border : 'rgba(43,124,178,.4)'}`,
           borderRadius:16, padding:'14px 15px',
         }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
@@ -559,8 +589,8 @@ function PanneauDemander({ onUtiliserCode, C }) {
                 onPointerDown={() => copier(reponse.code)}
                 style={{
                   flexShrink:0, padding:'8px 12px', borderRadius:11,
-                  background:'rgba(212,160,23,.18)', border:'1.5px solid rgba(212,160,23,.45)',
-                  color:OR, fontSize:11.5, fontWeight:800,
+                  background:'rgba(43,124,178,.18)', border:'1.5px solid rgba(43,124,178,.45)',
+                  color:ACIER, fontSize:11.5, fontWeight:800,
                 }}
               >{copie === reponse.code ? 'copié ✓' : 'copier'}</button>
             )}
@@ -752,7 +782,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
     <>
       <div style={{
         display:'flex', alignItems:'center', gap:10, marginBottom:16,
-        background:'rgba(212,160,23,.11)', border:'1.5px solid rgba(212,160,23,.4)',
+        background:'rgba(43,124,178,.11)', border:'1.5px solid rgba(43,124,178,.4)',
         borderRadius:14, padding:'11px 14px',
       }}>
         <span style={{ fontSize:18 }}>🔓</span>
@@ -776,14 +806,14 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
               onPointerDown={() => { setFamille(x.id); onOuvrir(null); }}
               style={{
                 flex:1, padding:'12px 4px', borderRadius:14,
-                background: actif ? 'linear-gradient(140deg, rgba(212,160,23,.22), rgba(193,127,60,.12))' : C.card,
-                border:`1.5px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
+                background: actif ? 'linear-gradient(140deg, rgba(43,124,178,.22), rgba(104,164,205,.12))' : C.card,
+                border:`1.5px solid ${actif ? 'rgba(43,124,178,.5)' : C.border}`,
                 display:'flex', flexDirection:'column', alignItems:'center', gap:4,
                 touchAction:'manipulation',
               }}
             >
               <span style={{ fontSize:20, lineHeight:1 }}>{x.emoji}</span>
-              <span style={{ fontSize:10.5, fontWeight:800, color: actif ? OR : C.muted, textAlign:'center', lineHeight:1.25 }}>
+              <span style={{ fontSize:10.5, fontWeight:800, color: actif ? ACIER : C.muted, textAlign:'center', lineHeight:1.25 }}>
                 {x.titre}
               </span>
             </button>
@@ -799,10 +829,10 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
           <div key={a.id} style={{
             position:'relative', overflow:'hidden',
             background:C.card,
-            border:`1.5px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
+            border:`1.5px solid ${actif ? 'rgba(43,124,178,.5)' : C.border}`,
             borderRadius:16, marginBottom:10,
           }}>
-            {a.danger && <div aria-hidden style={{ position:'absolute', left:0, top:0, bottom:0, width:4, background:ESPRESSO, opacity:.6 }} />}
+            {a.danger && <div aria-hidden style={{ position:'absolute', left:0, top:0, bottom:0, width:4, background:MARINE, opacity:.6 }} />}
             <button
               onPointerDown={() => onOuvrir(actif ? null : a.id)}
               style={{
@@ -884,7 +914,12 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
 }
 
 /* ════════════════════════════════════════════════════ */
-export function SentinelleOverlay({ onClose, C }) {
+/* Seul overlay de l'app qui ne reçoit PAS `C` : il a son thème à lui
+   (cf. THEME_SENTINELLE), donc App.jsx n'a rien à lui passer. Le nom
+   reste `C` en interne pour que les sous-composants, eux, gardent la
+   signature de tous les autres. */
+export function SentinelleOverlay({ onClose }) {
+  const C = THEME_SENTINELLE;
   const [rapports, setRapports]     = useState([]);
   const [historique, setHistorique] = useState([]);
   const [chargement, setChargement] = useState(true);
@@ -1133,8 +1168,8 @@ export function SentinelleOverlay({ onClose, C }) {
         {resultatRonde && (
           <div style={{
             marginBottom:14, padding:'11px 14px', borderRadius:13,
-            background:'rgba(212,160,23,.11)', border:'1.5px solid rgba(212,160,23,.35)',
-            fontSize:12.5, fontWeight:700, color:OR,
+            background:'rgba(43,124,178,.11)', border:'1.5px solid rgba(43,124,178,.35)',
+            fontSize:12.5, fontWeight:700, color:ACIER,
           }}>
             ↻ {resultatRonde}
           </div>
@@ -1150,9 +1185,9 @@ export function SentinelleOverlay({ onClose, C }) {
                 onPointerDown={() => setOnglet(id)}
                 style={{
                   flex:1, padding:'12px 0', borderRadius:14,
-                  background: actif ? 'linear-gradient(140deg, rgba(212,160,23,.22), rgba(193,127,60,.12))' : C.card,
-                  border:`1.5px solid ${actif ? 'rgba(212,160,23,.5)' : C.border}`,
-                  color: actif ? OR : C.muted, fontSize:12.5, fontWeight:800,
+                  background: actif ? 'linear-gradient(140deg, rgba(43,124,178,.22), rgba(104,164,205,.12))' : C.card,
+                  border:`1.5px solid ${actif ? 'rgba(43,124,178,.5)' : C.border}`,
+                  color: actif ? ACIER : C.muted, fontSize:12.5, fontWeight:800,
                   display:'flex', alignItems:'center', justifyContent:'center', gap:5,
                   touchAction:'manipulation',
                 }}
@@ -1217,7 +1252,7 @@ export function SentinelleOverlay({ onClose, C }) {
                   onPointerDown={() => setToutVoir(v => !v)}
                   style={{
                     width:'100%', textAlign:'left',
-                    background:'rgba(212,160,23,.08)', border:'1.5px solid rgba(212,160,23,.28)',
+                    background:'rgba(43,124,178,.08)', border:'1.5px solid rgba(43,124,178,.28)',
                     borderRadius:16, padding:'14px 15px', cursor:'pointer',
                     display:'flex', alignItems:'center', gap:12,
                   }}
@@ -1315,7 +1350,7 @@ export function SentinelleOverlay({ onClose, C }) {
             {message && (
               <div style={{
                 marginTop:12, padding:'11px 13px', borderRadius:12, fontSize:12, fontWeight:700,
-                background:'rgba(74,44,23,.14)', border:'1.5px solid rgba(93,58,30,.5)', color:ESPRESSO,
+                background:'rgba(30,80,125,.14)', border:'1.5px solid rgba(14,51,85,.5)', color:MARINE,
               }}>⛔ {message}</div>
             )}
 

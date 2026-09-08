@@ -4977,7 +4977,6 @@ export default function CookiMiner() {
       {showSentinelle && peutVoirSentinelle(userName, userCode) && (
         <SentinelleOverlay
           onClose={()=>setShowSentinelle(false)}
-          C={C}
         />
       )}
 
