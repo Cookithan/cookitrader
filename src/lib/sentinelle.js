@@ -371,7 +371,7 @@ function controleVersions(users, versions) {
     .sort((a, b) => b[1] - a[1])
     .map(([v, n]) => `${v === APP_INFO.version ? '✅' : '⚠️'} ${v} — ${n} joueur(s)`);
 
-  if (jamaisVueActifs) lignes.push(`❔ version inconnue — ${jamaisVueActifs} joueur(s) actif(s) qui n'ont pas encore été vus par la vigie`);
+  if (jamaisVueActifs) lignes.push(`❔ version inconnue — ${jamaisVueActifs} joueur(s) actif(s) dont l'app n'a jamais estampillé sa version : signature d'un client ANTÉRIEUR à la 1.30.1`);
   if (dormants)        lignes.push(`💤 ${dormants} compte(s) dormant(s) depuis plus de 7 jours — ils n'écrivent rien`);
   lignes.push(`Total : ${total} compte(s) en base`);
 
@@ -643,6 +643,24 @@ export async function verifierPhrase(phrase) {
 export async function versionsParJoueur() {
   const carte = new Map();
   if (!isSupabaseEnabled()) return carte;
+
+  /* SOURCE PRINCIPALE : la colonne users.app_version, estampillée à
+     chaque synchronisation. Elle couvre TOUT joueur qui ouvre l'app,
+     pas seulement ceux qui ont rapporté une ouverture à la vigie. */
+  try {
+    const { data } = await supabase
+      .from('users')
+      .select('user_code, app_version, last_active')
+      .limit(2000);
+    for (const u of data || []) {
+      if (!u.user_code || !u.app_version) continue;
+      carte.set(u.user_code, { version: u.app_version, vueLe: u.last_active, source: 'sync' });
+    }
+  } catch { /* colonne pas encore créée : on se rabat sur app_health */ }
+
+  /* SOURCE DE SECOURS : les rapports d'ouverture. Utile tant que la
+     colonne n'existe pas, et pour les joueurs qui ont rapporté une
+     ouverture sans avoir resynchronisé leur profil depuis. */
   try {
     const { data } = await supabase
       .from('app_health')
@@ -652,9 +670,10 @@ export async function versionsParJoueur() {
       .limit(3000);
     for (const r of data || []) {
       if (!r.user_code || carte.has(r.user_code)) continue;   /* le premier vu est le plus récent */
-      carte.set(r.user_code, { version: r.app_version || 'inconnue', vueLe: r.created_at });
+      carte.set(r.user_code, { version: r.app_version || 'inconnue', vueLe: r.created_at, source: 'rapport' });
     }
-  } catch { /* table absente : personne n'a de version connue */ }
+  } catch { /* table absente : tant pis, on fait avec ce qu'on a */ }
+
   return carte;
 }
 
