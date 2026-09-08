@@ -21,6 +21,27 @@ export function isAdminName(name){
   return ADMIN_NAMES.includes((name || '').trim().toLowerCase());
 }
 
+/* ── Qui peut ouvrir la Sentinelle ────────────────────
+   Un PSEUDO ne prouve rien : il se change en trois secondes, et le
+   premier venu qui se renomme admin123 ouvrirait l'écran. On accepte
+   donc aussi des CODES de compte, qui eux sont attribués à la création
+   et ne se choisissent pas.
+
+   Ce que ça donne : voir l'état de santé de l'app. Rien de plus. AGIR
+   demande la phrase de passe, qui n'est ni ici, ni dans le code envoyé
+   aux joueurs, ni dans le téléphone — seulement dans la base et dans la
+   tête de Régis. Cette liste peut donc être publique sans risque : elle
+   dit qui a le droit de REGARDER.
+
+   PJ3-56A  — le compte du créateur (déjà whitelisté pour la maintenance)
+   9WX-W7Q  — « Le vrai Cooki », le compte de jeu de Régis */
+export const CODES_SENTINELLE = ['PJ3-56A', '9WX-W7Q'];
+
+export function peutVoirSentinelle(name, code){
+  if (isAdminName(name)) return true;
+  return CODES_SENTINELLE.includes((code || '').trim().toUpperCase());
+}
+
 /* Pseudos hors-classement (en plus des admins) — joueurs trop avancés
    qui rendent la concurrence impossible pour les nouveaux. Exclus des
    leaderboards Cookies + stats globales (PAS du marché, qui utilise

@@ -33,3 +33,7 @@ nouveau_sons/
 # 58 Mo. Versionner ça alourdit le dépôt pour toujours et GitHub s'en
 # plaint. Le packaging vit sur sa propre branche (feat/android-capacitor).
 android/
+
+# Contient la phrase de passe de la console Sentinelle en clair.
+# Le depot est public : ce fichier ne doit JAMAIS y entrer.
+A_LANCER_PRIVE.sql
