@@ -105,7 +105,7 @@ function rendement(users) {
     .filter(u => !ADMINS.includes(String(u.user_name).toLowerCase())
               && num(u.total_play_time) >= 600 && jours(u.last_active) <= 14)
     .map(u => ({ u, r: Math.round(num(u.total_earned) / (num(u.total_play_time) / 60)) }))
-    .filter(x => x.r > 150)
+    .filter(x => x.r > 200)   /* 200 et non 150 : la roue (+200) et le jackpot (+500) font bondir le ratio d'un joueur simplement chanceux */
     .sort((a, b) => b.r - a.r);
   const graves = susp.filter(x => x.r > 400);
   /* Marque les impossibles : la liste affiche tous les suspects (>150),
@@ -114,7 +114,7 @@ function rendement(users) {
   const detail = susp.map(x =>
     `${x.r > 400 ? "!! " : "   "}${x.u.user_name} (${x.u.user_code}) — ${x.r} cookies/min · ${Math.round(num(x.u.total_play_time) / 60)} min jouées · niv ${x.u.level}`);
   if (graves.length)     alerte(`${graves.length} compte(s) au rendement IMPOSSIBLE (plus de 400 cookies/min)`, detail);
-  else if (susp.length)  voir(`${susp.length} compte(s) au rendement élevé (150 à 400 cookies/min)`, detail);
+  else if (susp.length)  voir(`${susp.length} compte(s) au rendement élevé (200 à 400 cookies/min)`, detail);
   else                   ok('Aucun rendement anormal chez les joueurs actifs');
 }
 
@@ -207,7 +207,7 @@ function evolution(users, snap) {
     } else if (dMinutes >= 1) {
       const taux = Math.round(dGains / dMinutes);
       if (taux > 400) faits.push({ grave: true,  l: `${u.user_name} (${u.user_code}) — ${taux} cookies/min sur la période (+${fmt(dGains)} en ${Math.round(dMinutes)} min)` });
-      else if (taux > 150) faits.push({ grave: false, l: `${u.user_name} (${u.user_code}) — ${taux} cookies/min sur la période` });
+      else if (taux > 200) faits.push({ grave: false, l: `${u.user_name} (${u.user_code}) — ${taux} cookies/min sur la période` });
     }
 
     /* Le total_earned du leader est plafonné : ses gains réels
