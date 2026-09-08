@@ -172,7 +172,19 @@ function controleRendement(users) {
   return faire('ok', 'triche', 'Aucun rendement anormal chez les joueurs actifs');
 }
 
-/* ── Concentration du classement hebdomadaire ───────── */
+/* ── Concentration du classement hebdomadaire ─────────
+   ⚠️ Corrigé le 08/09/2026, dès la PREMIÈRE ronde : le seuil de 40 %
+   venait de scripts/audit.mjs, calibré pour une communauté nombreuse.
+   Avec sept joueurs actifs, celui qui joue le plus prend naturellement
+   la moitié de la semaine — la vigie criait donc à l'alerte sur un
+   comportement parfaitement normal (« aaronxbox — 61 % »).
+
+   Une alerte qui se déclenche tous les jours n'est plus une alerte :
+   on apprend à l'ignorer, et le jour où elle a raison, personne ne la
+   lit. Donc la domination seule ne vaut plus qu'un « à voir ». Elle ne
+   devient une ALERTE que si le joueur dominant affiche EN PLUS un
+   rendement suspect — dominer la semaine en jouant beaucoup est
+   normal, la dominer en gagnant trop vite ne l'est pas. */
 function controleConcentration(users) {
   const semaine = users.map(u => u.weekly_week_id).filter(Boolean).sort().pop();
   if (!semaine) return faire('ok', 'classement', 'Aucun gain hebdomadaire enregistré');
@@ -181,13 +193,33 @@ function controleConcentration(users) {
   const total = liste.reduce((a, u) => a + num(u.weekly_earned), 0);
   if (!total) return faire('ok', 'classement', 'Semaine en cours encore vide');
 
+  const rendement = (u) => num(u.total_play_time) >= TEMPS_JEU_MIN_S
+    ? Math.round(num(u.total_earned) / (num(u.total_play_time) / 60))
+    : 0;
+
   const gros = liste.filter(u => num(u.weekly_earned) / total > PART_HEBDO_MAX);
+  const grosDouteux = gros.filter(u => rendement(u) > RENDEMENT_ELEVE);
+
   const detail = liste
     .sort((a, b) => num(b.weekly_earned) - num(a.weekly_earned))
     .slice(0, 5)
-    .map(u => `${u.user_name} — ${Math.round(num(u.weekly_earned) / total * 100)} % (${num(u.weekly_earned)} 🍪)`);
+    .map(u => {
+      const r = rendement(u);
+      return `${u.user_name} — ${Math.round(num(u.weekly_earned) / total * 100)} % de la semaine${r ? ` · ${r} 🍪/min` : ''}`;
+    });
 
-  if (gros.length) return faire('alerte', 'classement', `${gros.length} joueur(s) pèse(nt) plus de ${Math.round(PART_HEBDO_MAX * 100)} % de la semaine`, detail);
+  if (grosDouteux.length) {
+    return faire('alerte', 'classement', `${grosDouteux.length} joueur(s) domine(nt) la semaine AVEC un rendement suspect`, [
+      ...detail,
+      `Dominer en jouant beaucoup est normal ; au-delà de ${RENDEMENT_ELEVE} 🍪/min, c'est le rendement qui pose question.`,
+    ]);
+  }
+  if (gros.length) {
+    return faire('voir', 'classement', `${gros.length} joueur(s) pèse(nt) plus de ${Math.round(PART_HEBDO_MAX * 100)} % de la semaine`, [
+      ...detail,
+      `Avec ${liste.length} joueur(s) actif(s), c'est attendu : le plus assidu prend une grosse part.`,
+    ]);
+  }
   return faire('ok', 'classement', `Semaine équilibrée — ${liste.length} joueur(s), ${total} 🍪`, detail);
 }
 
