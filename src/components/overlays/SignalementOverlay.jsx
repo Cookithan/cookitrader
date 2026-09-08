@@ -246,25 +246,44 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                   {chemin.length === 0 ? t('report.question') : t('report.precise')}
                 </div>
 
-                {options.map(noeud => (
-                  <button
-                    key={noeud.id}
-                    onPointerDown={() => choisir(noeud)}
-                    style={{
-                      width:'100%', textAlign:'left', marginBottom:8,
-                      padding:'15px 16px', borderRadius:16,
-                      background:C.card, border:`1.5px solid ${C.border}`,
-                      display:'flex', alignItems:'center', gap:12,
-                      touchAction:'manipulation', cursor:'pointer',
-                    }}
-                  >
-                    {noeud.emoji && <span style={{ fontSize:22, flexShrink:0 }}>{noeud.emoji}</span>}
-                    <span style={{ flex:1, minWidth:0, fontSize:13.5, fontWeight:700, color:C.text, lineHeight:1.4 }}>
-                      {libelle(noeud, t)}
-                    </span>
-                    <span style={{ flexShrink:0, fontSize:15, fontWeight:800, color:'rgba(14,51,85,.35)' }}>›</span>
-                  </button>
-                ))}
+                {/* Au-delà de huit choix — la liste des écrans en compte
+                    dix-huit — une pile pleine largeur fait deux écrans de
+                    défilement, et on ne voit plus que le début. Deux
+                    colonnes ramènent tout à portée de pouce. */}
+                <div style={{
+                  display:'grid',
+                  gridTemplateColumns: options.length > 8 ? '1fr 1fr' : '1fr',
+                  gap:8,
+                }}>
+                  {options.map(noeud => {
+                    const serre = options.length > 8;
+                    return (
+                      <button
+                        key={noeud.id}
+                        onPointerDown={() => choisir(noeud)}
+                        style={{
+                          width:'100%', textAlign:'left',
+                          padding: serre ? '13px 13px' : '15px 16px',
+                          borderRadius:16, minHeight: serre ? 60 : 0,
+                          background:C.card, border:`1.5px solid ${C.border}`,
+                          display:'flex', alignItems:'center', gap:12,
+                          touchAction:'manipulation', cursor:'pointer',
+                        }}
+                      >
+                        {noeud.emoji && <span style={{ fontSize:22, flexShrink:0 }}>{noeud.emoji}</span>}
+                        <span style={{
+                          flex:1, minWidth:0, lineHeight:1.35, color:C.text,
+                          fontSize: serre ? 12.5 : 13.5, fontWeight:700,
+                        }}>
+                          {libelle(noeud, t)}
+                        </span>
+                        {!serre && (
+                          <span style={{ flexShrink:0, fontSize:15, fontWeight:800, color:'rgba(14,51,85,.35)' }}>›</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </>
             )}
 
