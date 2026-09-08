@@ -306,6 +306,11 @@ export const GLOBAL_CSS = `
      Opacite seule -> composite, aucun repaint du degrade de fond. */
   @keyframes levelWarm{0%,100%{opacity:0}50%{opacity:.17}}
   .level-warm,.card-warm{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 95% at 18% -10%, rgba(255,224,150,.95), transparent 62%);animation:levelWarm 7s ease-in-out infinite;will-change:opacity}
+  /* Meme lumiere, mais froide et sur fond clair : la Sentinelle est
+     bleue, pas brune. Une lueur ambree sur du bleu pale vire au sale ;
+     on garde donc les memes keyframes et on ne change que la couleur. */
+  .card-cool{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 95% at 18% -10%, rgba(255,255,255,.95), transparent 62%);animation:levelWarm 7s ease-in-out infinite;will-change:opacity}
+  .card-sheen-cool{position:absolute;top:-30%;left:0;width:52%;height:170%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),rgba(255,255,255,.62),rgba(255,255,255,.34),transparent);animation:levelSheen 5s ease-in-out infinite;will-change:transform}
   @keyframes levelGlint{0%{transform:translateX(-160%)}38%{transform:translateX(260%)}100%{transform:translateX(260%)}}
   .level-glint{position:absolute;top:0;left:0;width:45%;height:100%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:levelGlint 4.5s ease-in-out infinite;will-change:transform}
   @keyframes levelBubble{0%,100%{transform:scale(1);opacity:.05}50%{transform:scale(1.18);opacity:.1}}

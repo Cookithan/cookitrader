@@ -29,12 +29,23 @@ import { tousLesJoueurs, demander, EXEMPLES, correspondQuestion } from "../../li
    d'être un pavé monospace de 11 px.
 
    ─── LE RELIEF ──────────────────────────────────────
-   Même langage que le reste de la 1.30 : bandeau espresso qui accroche
-   la lumière (card-warm + card-sheen, les animations de la carte de
-   niveau), emoji géant en filigrane sur les cartes, ruban coloré à
-   gauche des constats. C'est un écran d'outil, pas une facture.
+   Même construction que le reste de la 1.30 : bandeau qui accroche la
+   lumière (card-cool + card-sheen-cool, mêmes keyframes que la carte de
+   niveau), emoji géant en filigrane, ruban coloré à gauche des
+   constats. C'est un écran d'outil, pas une facture.
 
-   Palette café-only : une alerte est ESPRESSO, jamais rouge.
+   ─── POURQUOI DU BLEU ICI, ET NULLE PART AILLEURS ───
+   Toute l'app est café-only. Cet écran est la seule exception, et c'est
+   délibéré : quand ce bleu apparaît, on n'est plus dans le jeu, on est
+   dans l'outil. Aucun risque de confondre une alerte avec une bannière
+   de boutique ou une récompense.
+
+   Fond CLAIR, encre marine — pas l'inverse. On ouvre cet écran quand
+   quelque chose ne va pas, souvent dehors, sur un téléphone : du texte
+   foncé sur fond clair y tient mieux que du blanc sur brun.
+
+   L'interdiction du rouge, elle, tient toujours : la gravité se dit par
+   la profondeur du bleu, et les constats restent en ESPRESSO.
 ═══════════════════════════════════════════════════════ */
 
 const ESPRESSO = '#5D3A1E';
@@ -666,17 +677,21 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
     else { setOuverte(false); setErreur(r.message); }
   };
 
-  /* ── La serrure ─────────────────────────────────── */
+  /* ── La serrure ───────────────────────────────────
+     Même bleu que la bannière : la serrure s'affiche juste en dessous
+     d'elle, et un bloc brun sous un bloc bleu se lirait comme un reste
+     oublié. */
   if (!ouverte) {
     return (
       <div style={{
         position:'relative', overflow:'hidden',
-        background:'linear-gradient(140deg, #4A2C17, #7D4E1F)',
-        borderRadius:20, padding:'26px 20px 22px', color:'#fff',
-        boxShadow:'0 8px 24px rgba(74,44,23,.35)',
+        background:'linear-gradient(140deg, #E6F3FC, #B3D9F2)',
+        borderRadius:20, padding:'26px 20px 22px', color:'#0E3355',
+        border:'1px solid rgba(255,255,255,.7)',
+        boxShadow:'0 8px 24px rgba(30,80,125,.22)',
         textAlign:'center',
       }}>
-        <div className="card-warm" aria-hidden />
+        <div className="card-cool" aria-hidden />
         <div aria-hidden style={{
           position:'absolute', right:-14, bottom:-22, fontSize:110, lineHeight:1,
           opacity:.09, pointerEvents:'none',
@@ -685,7 +700,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
         <div style={{ position:'relative' }}>
           <div style={{ fontSize:38, lineHeight:1, marginBottom:12 }}>🔒</div>
           <div style={{ fontSize:17, fontWeight:900, marginBottom:6 }}>Console verrouillée</div>
-          <div style={{ fontSize:12.5, color:'rgba(255,255,255,.72)', lineHeight:1.6, maxWidth:290, margin:'0 auto 18px' }}>
+          <div style={{ fontSize:12.5, color:'rgba(14,51,85,.7)', lineHeight:1.6, maxWidth:290, margin:'0 auto 18px' }}>
             Tape ta phrase de passe. Elle est vérifiée en base — elle n'est
             gardée ni ici, ni dans le téléphone.
           </div>
@@ -699,9 +714,9 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
             autoComplete="off"
             style={{
               width:'100%', boxSizing:'border-box', textAlign:'center',
-              background:'rgba(0,0,0,.28)',
-              border:`1.5px solid ${erreur ? 'rgba(255,180,140,.6)' : 'rgba(212,160,23,.5)'}`,
-              borderRadius:13, padding:'14px 14px', fontSize:15, color:'#FFE066',
+              background:'rgba(255,255,255,.72)',
+              border:`1.5px solid ${erreur ? 'rgba(14,51,85,.55)' : 'rgba(14,51,85,.22)'}`,
+              borderRadius:13, padding:'14px 14px', fontSize:15, color:'#0E3355',
               letterSpacing:2,
             }}
           />
@@ -711,8 +726,8 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
             disabled={!phrase || verif}
             style={{
               width:'100%', marginTop:11, padding:'14px 0', borderRadius:13,
-              background:'rgba(212,160,23,.9)', border:'none',
-              color:'#3D2010', fontSize:14, fontWeight:900, letterSpacing:.5,
+              background:'#0E3355', border:'none',
+              color:'#E6F3FC', fontSize:14, fontWeight:900, letterSpacing:.5,
               opacity:(!phrase || verif) ? .5 : 1, touchAction:'manipulation',
             }}
           >
@@ -720,7 +735,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
           </button>
 
           {erreur && (
-            <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, color:'#FFD4A8', lineHeight:1.5 }}>
+            <div style={{ marginTop:12, fontSize:12.5, fontWeight:700, color:'#0E3355', lineHeight:1.5 }}>
               ⛔ {erreur}
             </div>
           )}
@@ -1021,6 +1036,25 @@ export function SentinelleOverlay({ onClose, C }) {
     : !rapports.length ? 'La première partira toute seule dès qu\'un joueur ouvrira l\'app'
     : `${rapports.length} contrôles · ${immediat ? 'à l\'instant' : quand(horodatage)}`;
 
+  /* ── Le bleu de la Sentinelle ──────────────────────────────────
+     La seule surface de l'app qui sorte de la palette café, et c'est
+     exactement le but : quand ce bleu apparaît, on n'est plus dans le
+     jeu, on est dans l'outil. Aucune confusion possible avec une
+     récompense ou une bannière de boutique.
+
+     Fond clair, encre marine — et pas l'inverse. Sur un téléphone en
+     plein soleil, du texte foncé sur fond clair se lit mieux que du
+     blanc sur brun, ce qui compte pour un écran qu'on ouvre justement
+     quand quelque chose ne va pas.
+
+     La gravité se dit par la profondeur du bleu, jamais par du rouge :
+     la règle café-only interdit le rouge partout, y compris ici. */
+  const BLEU_FOND  = grave
+    ? 'linear-gradient(140deg, #B7D6EE, #78AFD6)'
+    : 'linear-gradient(140deg, #E6F3FC, #B3D9F2)';
+  const ENCRE      = '#0E3355';
+  const ENCRE_DOUX = 'rgba(14,51,85,.66)';
+
   return (
     <div style={{
       position:'fixed', top:0, left:'50%', transform:'translateX(-50%)',
@@ -1049,24 +1083,25 @@ export function SentinelleOverlay({ onClose, C }) {
 
       <div style={{ flex:1, overflowY:'auto', padding:'16px 18px 32px' }}>
 
-        {/* LA RÉPONSE, en grand, avant tout le reste. Bandeau espresso
-            qui accroche la lumière — même traitement que la bannière du
-            marché et la carte de niveau. */}
+        {/* LA RÉPONSE, en grand, avant tout le reste. Bandeau bleu qui
+            accroche la lumière — même construction que la bannière du
+            marché et la carte de niveau, teinte à part (cf. BLEU_FOND). */}
         <div style={{
           position:'relative', overflow:'hidden',
-          background: grave
-            ? 'linear-gradient(140deg, #3A1D0C, #5D3A1E)'
-            : 'linear-gradient(140deg, #4A2C17, #7D4E1F)',
-          borderRadius:20, padding:'20px 20px 18px', color:'#fff', marginBottom:16,
-          boxShadow:'0 8px 24px rgba(74,44,23,.35)',
+          background: BLEU_FOND,
+          borderRadius:20, padding:'20px 20px 18px', color:ENCRE, marginBottom:16,
+          border:'1px solid rgba(255,255,255,.7)',
+          boxShadow:'0 8px 24px rgba(30,80,125,.22)',
         }}>
-          <div className="card-warm" aria-hidden />
-          <div className="card-sheen" aria-hidden />
+          <div className="card-cool" aria-hidden />
+          <div className="card-sheen-cool" aria-hidden />
           {/* Emoji géant en filigrane : la signature des cartes de la
-              1.30, ce qui fait qu'un bloc n'est pas un rectangle vide. */}
+              1.30, ce qui fait qu'un bloc n'est pas un rectangle vide.
+              Un peu plus opaque qu'ailleurs — sur fond clair, .1 le
+              rendrait invisible. */}
           <div aria-hidden style={{
             position:'absolute', right:-10, bottom:-26, fontSize:118, lineHeight:1,
-            opacity:.1, pointerEvents:'none',
+            opacity:.16, pointerEvents:'none',
           }}>🛡️</div>
 
           <div style={{ position:'relative', display:'flex', alignItems:'center', gap:14 }}>
@@ -1075,7 +1110,7 @@ export function SentinelleOverlay({ onClose, C }) {
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:22, fontWeight:900, lineHeight:1.15, letterSpacing:-.3 }}>{titre}</div>
-              <div style={{ fontSize:11.5, color:'rgba(255,255,255,.7)', marginTop:4, lineHeight:1.45 }}>
+              <div style={{ fontSize:11.5, color:ENCRE_DOUX, marginTop:4, lineHeight:1.45 }}>
                 {sousTitre}
               </div>
             </div>
@@ -1085,8 +1120,8 @@ export function SentinelleOverlay({ onClose, C }) {
               aria-label="Contrôler maintenant"
               style={{
                 flexShrink:0, width:44, height:44, borderRadius:14,
-                background:'rgba(212,160,23,.22)', border:'1.5px solid rgba(212,160,23,.5)',
-                color:'#FFE066', display:'flex', alignItems:'center', justifyContent:'center',
+                background:'rgba(255,255,255,.55)', border:'1.5px solid rgba(14,51,85,.22)',
+                color:ENCRE, display:'flex', alignItems:'center', justifyContent:'center',
                 opacity: enCours ? .5 : 1, touchAction:'manipulation',
               }}
             >

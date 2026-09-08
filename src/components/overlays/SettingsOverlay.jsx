@@ -237,9 +237,10 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
         )}
 
         {/* Sentinelle — n'apparaît QUE pour les admins (App.jsx ne passe
-            onOpenSentinelle que dans ce cas). Registre volontairement
-            sobre, en teinte moka plutôt qu'en or : ce n'est pas une
-            récompense ni une nouveauté, c'est un outil de contrôle. */}
+            onOpenSentinelle que dans ce cas). Ni or ni moka : bleu,
+            comme la bannière de l'écran qu'elle ouvre. Ce n'est pas une
+            récompense ni une nouveauté, c'est un outil — et la seule
+            teinte de l'app qui le dise du premier coup d'œil. */}
         {onOpenSentinelle && (
           <section>
             {sectionLabel('Surveillance')}
@@ -257,8 +258,8 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
               <div style={{ display:'flex', alignItems:'center', gap:12, minWidth:0 }}>
                 <div style={{
                   width:38, height:38, borderRadius:10,
-                  background:'rgba(139,90,43,.14)',
-                  border:'1px solid rgba(139,90,43,.35)',
+                  background:'rgba(30,80,125,.13)',
+                  border:'1px solid rgba(30,80,125,.32)',
                   display:'flex', alignItems:'center', justifyContent:'center',
                   flexShrink:0, fontSize:18,
                 }}>
@@ -267,7 +268,7 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:800, color:C.text }}>Sentinelle</div>
                   <div style={{ fontSize:11, color:C.muted, marginTop:2 }}>
-                    Santé de l'app : versions, marché, triche, crashs
+                    Elle surveille, elle répond, elle agit — sans ouvrir Supabase
                   </div>
                 </div>
               </div>
