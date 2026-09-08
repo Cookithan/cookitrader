@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import { ChevronLeft, Cookie } from "lucide-react";
+import { reprendreMusiqueSiCoupee } from "../../lib/audio.js";
 import { GOLD } from "../../data/themes.js";
 import { CheckinGame } from "../games/CheckinGame.jsx";
 import { QuizGame } from "../games/QuizGame.jsx";
@@ -23,6 +25,13 @@ import { DuelRaceHUD } from "../games/DuelRaceHUD.jsx";
    Imports statiques (revert lazy 13/05/2026, demande user) : tous les
    jeux sont dans le bundle initial → bundle plus gros au démarrage,
    mais ouverture instantanée et zéro Suspense à gérer.
+
+   MUSIQUE — la piste de l'accueil n'est pas coupée en entrant dans un
+   jeu : c'est une lecture unique et continue pour toute l'app. Mais elle
+   pouvait être tombée en route (blur, appel entrant, OS qui reprend la
+   sortie audio) et ne jamais repartir. On la réveille donc à chaque
+   ouverture de mini-jeu, ce qui garantit qu'aucun jeu ne se joue en
+   silence — sans jamais rallumer le son chez qui l'a coupé.
 ═══════════════════════════════════════════════════════ */
 
 export function GameOverlay({ gameView, onClose, coins, level, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onCafeEarn, onUpdateRecord, onJackpot, onEventChallenge, spinsLeft, spinsCap, consumeSpin, spinRechargeCost, onRechargeSpin, slotPlaysLeft, slotGamesCap, consumeSlotGame, slotRechargeCost, onRechargeSlot, pyramidPlaysLeft, pyramidGamesCap, consumePyramidGame, pyramidRechargeCost, cafes, onRechargePyramid, activeSkin, activeRoue, gameThemes, setGameThemes, unlocked, onPayContinueCatcher, legendarySeen, onLegendarySeen, isAdmin, duelMode = false, onDuelScore, onDuelProgress, duelInfo, myLiveRef, onBotDuelScore, onBotDuelProgress, botLiveRef, C }) {
@@ -31,6 +40,12 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
      cliquable + bandeau), puis à toi (turn='me' → interactif). Le changement
      de tour remonte le jeu via key={duelInfo.turn}. */
   const botTurn = duelMode && duelInfo && duelInfo.turn === 'bot';
+
+  /* Un jeu s'ouvre : on s'assure que la musique tourne. `gameView` en
+     dépendance — on repasse ici à chaque changement de jeu, pas
+     seulement au premier. */
+  useEffect(() => { reprendreMusiqueSiCoupee(); }, [gameView]);
+
   return (
     /* game-overlay-in : l'écran arrive en fondu-zoom (v1.30). Sans ça, le
        jeu apparaissait sec, sans lien avec la carte qu'on venait de taper. */

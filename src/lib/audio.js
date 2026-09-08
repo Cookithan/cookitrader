@@ -446,10 +446,51 @@ export function setupVisibilityHandler(){
     }
   };
 
+  /* ── Le pendant du blur ────────────────────────────
+     `blur` met en pause, mais SEUL un retour de visibilité relançait.
+     Or un blur n'implique pas que l'app soit passée en arrière-plan :
+     l'ouverture du clavier, une boîte de dialogue système, un changement
+     de focus suffisent. Dans ces cas-là, `visibilitychange` ne repasse
+     jamais par « visible » — et la musique restait coupée jusqu'au
+     prochain vrai passage en arrière-plan.
+
+     C'est le symptôme rapporté par Régis : de la musique à l'accueil,
+     plus rien dans certains mini-jeux. Le `focus` referme la boucle. */
+  const onFocus = () => {
+    if(!pausedByVisibility || document.hidden) return;
+    const s = getSettings();
+    if(s.musicEnabled && musicAudio){
+      try{ musicAudio.play().catch(() => {}); }catch{}
+    }
+    pausedByVisibility = false;
+  };
+
   document.addEventListener('visibilitychange', onVisibilityChange);
   window.addEventListener('pagehide', onPageHide);
   /* blur en backup (perte de focus, app switcher Android) */
   window.addEventListener('blur', onPageHide);
+  window.addEventListener('focus', onFocus);
+}
+
+/* ── REPRENDRE SI LE SON EST TOMBÉ ───────────────────
+   Filet de sécurité, appelé à l'ouverture d'un mini-jeu.
+
+   Sur mobile, l'élément audio peut être arrêté par le système sans
+   qu'aucun de nos événements ne le sache : appel entrant, autre app qui
+   prend la sortie audio, onglet mis en veille par l'OS. Il ne repart
+   alors jamais tout seul, et le joueur constate simplement que « ce
+   jeu-là n'a pas de musique ».
+
+   On ne force rien : si le joueur a coupé la musique, elle reste
+   coupée ; si elle joue déjà, playMusic est un no-op. */
+export function reprendreMusiqueSiCoupee(){
+  const s = getSettings();
+  if(!s.musicEnabled) return;
+  if(musicAudio && !musicAudio.paused) return;
+  const id = getCurrentMusicId();
+  if(!id || !MUSICS[id]) return;
+  pausedByVisibility = false;
+  playMusic(id);
 }
 
 /* ── WRAPPER SONORE ──────────────────────────────────
