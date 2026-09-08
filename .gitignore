@@ -37,3 +37,11 @@ android/
 # Contient la phrase de passe de la console Sentinelle en clair.
 # Le depot est public : ce fichier ne doit JAMAIS y entrer.
 A_LANCER_PRIVE.sql
+
+# Fichiers de travail temporaires (scripts de patch, verifications)
+_patch.py
+_check.mjs
+_verif.py
+_controles*.js
+_quiz.py
+.verif/
