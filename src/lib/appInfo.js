@@ -32,19 +32,34 @@ export const CHANGELOG = [
   {
     version: '1.30.1',
     date: '2026-09-08',
-    title: '🛡️ Dis-nous ce qui ne va pas',
-    title_en: "🛡️ Tell us what's wrong",
+    /* Première version de ces lignes : une liste de fonctionnalités —
+       « la Sentinelle arrive dans les Paramètres », « deux ou trois
+       questions guidées ». Exact, et sans effet : personne n'ouvre un
+       écran parce qu'il est bien conçu.
+
+       Ce qu'un joueur doit comprendre ici tient en deux choses. Que
+       quelqu'un surveille SON compte pendant qu'il ne joue pas — les
+       tricheurs, les bugs qui lui coûtent des cookies, le marché qui
+       dérape. Et que ce qu'il raconte ne se perd pas dans le vide, ni
+       ne s'étale devant les autres joueurs.
+
+       On parle donc de protection et de confidentialité avant de parler
+       du formulaire. Le formulaire, il le verra bien tout seul. */
+    title: '🛡️ La Sentinelle veille sur toi — et tu peux lui parler',
+    title_en: '🛡️ The Sentinel watches over you — now you can talk to it',
     changes: [
-      "🛡️ La Sentinelle arrive dans les Paramètres : signale un bug, un souci de cookies, un joueur, ou souffle une idée",
-      "🎯 Deux ou trois questions guidées suffisent : tu choisis l'écran, puis ce qui cloche, et tu racontes en une phrase",
-      "📮 Ton pseudo, ton niveau et ta version partent avec — rien à recopier, et de quoi reproduire le problème",
-      "🌍 Tout l'écran existe en français et en anglais",
+      "🛡️ Elle veille sur le jeu jour et nuit : comptes qui trichent, bugs qui coûtent des cookies, cours du marché qui dérape — rien ne lui échappe",
+      "💬 Nouveau : tu peux lui parler. Un bug, un cookie disparu, un joueur douteux, une idée — c'est dans les Paramètres",
+      "🎯 Deux ou trois questions et c'est parti. Pas de formulaire à remplir, pas d'e-mail, rien à recopier",
+      "🔒 Ce que tu lui confies ne va qu'à Cookithan. Aucun autre joueur ne peut le lire",
+      "🍪 Une récompense qui n'arrive pas, un achat qui ne donne rien ? Dis-le. C'est comme ça que ça se répare",
     ],
     changes_en: [
-      "🛡️ The Sentinel lands in Settings: report a bug, a cookie problem, a player, or drop an idea",
-      "🎯 Two or three guided questions is all it takes: pick the screen, then what went wrong, then tell us in one sentence",
-      "📮 Your name, level and app version travel with it — nothing to copy out, and enough to reproduce the problem",
-      "🌍 The whole screen exists in French and in English",
+      "🛡️ It watches the game day and night: cheating accounts, bugs that cost you cookies, market prices going wild — nothing gets past it",
+      "💬 New: you can talk to it. A bug, a missing cookie, a shady player, an idea — it's in Settings",
+      "🎯 Two or three questions and it's sent. No form to fill in, no email, nothing to copy out",
+      "🔒 What you tell it goes to Cookithan and nobody else. No other player can read it",
+      "🍪 A reward that never arrived, a purchase that gave you nothing? Say so. That's how it gets fixed",
     ],
   },
   {
