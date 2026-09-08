@@ -44,20 +44,18 @@ export const MARKET_CONFIG = {
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.
      Repasser à false dès que les déséquilibres sont corrigés. */
   MAINTENANCE_MODE: false,
-  /* ⚠️ FERMETURE OFFICIELLE (v1.29 — 07/09/2026)
-     Distincte de MAINTENANCE_MODE : ici le marché est fermé DÉLIBÉRÉMENT
-     et pour une durée indéterminée, le temps de refondre l'économie en
-     1.30. Raison : l'exploit du Memory (cf. accountNotices.js) avait
-     permis d'acheter 767 des 797 actions en circulation — 96 % du
-     flottant sur deux comptes. Rouvrir avant d'avoir corrigé la source
-     des cookies aurait juste rejoué le même scénario.
+  /* ⚠️ FERMETURE OFFICIELLE — le marché a été fermé du 07/09/2026 au
+     08/09/2026, le temps de corriger l'exploit du Memory (qui avait
+     permis d'acheter 96 % du flottant avec des cookies fabriqués) puis
+     de refondre l'échelle des prix.
 
-     Le prix, l'historique et les portefeuilles sont CONSERVÉS : à la
-     réouverture, chacun retrouve ses actions. Seuls les échanges sont
-     suspendus.
+     ROUVERT le 08/09/2026 avec : l'action à 500, le regroupement 5 pour
+     1 appliqué en base, un prix de revient inscrit sur toutes les
+     actions rendues, et plus aucune force automatique sur le cours.
 
-     Repasser à false pour rouvrir — rien d'autre à toucher. */
-  CLOSED: true,
+     Repasser à true pour refermer — rien d'autre à toucher : le bandeau
+     d'explication et le retrait du panneau d'échange suivent tout seuls. */
+  CLOSED: false,
   /* Profondeur ramenée à l'échelle réelle du jeu (08/09/2026) : à 500 🍪
      l'action, les 275 000 🍪 que possèdent TOUS les comptes réunis ne
      peuvent en acheter que ~550. Un flottant de 10 000 affichait « 9 785

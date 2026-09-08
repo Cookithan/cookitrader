@@ -2429,15 +2429,26 @@ export default function CookiMiner() {
     return () => { cancelled = true; };
   }, [userCode, pullDone]);
 
-  /* ── Rebalance one-shot du marché — retire 10 % des actions ─────
-     Mécanisme pour décongestionner un marché bloqué loin de la
-     moyenne (trop d'actions thésaurisées). Pur retrait — pas de
-     compensation cookies (UX assumée). S'applique 1 seule fois
-     par user via applyPatchOnce (idempotence cross-device).
+  /* ── Rebalance one-shot du marché — NEUTRALISÉ le 08/09/2026 ────
+     Il retirait 10 % des actions d'un joueur, sans compensation, pour
+     « décongestionner un marché bloqué loin de la moyenne ». Cette
+     notion n'existe plus : depuis la refonte, le cours n'a plus de
+     moyenne vers laquelle revenir, et le flottant est large (223
+     actions détenues sur 2 000).
 
-     Bump le suffixe v1 → v2 pour relancer la mécanique.
-  ────────────────────────────────────────────────────────────── */
+     Surtout, il n'avait pas été consommé par tous les comptes :
+     vérification faite en base avant la réouverture, un porteur y aurait
+     perdu 2 de ses 18 actions à sa prochaine ouverture — juste après
+     avoir lu le message qui lui promet que le regroupement n'a rien
+     changé à la valeur de son portefeuille. Un mécanisme dormant qui
+     ampute un joueur des mois plus tard n'a pas sa place ici.
+
+     Neutralisé comme les sanctions de mai 2026 : on garde le code, il
+     ne s'exécute plus.
+  ─────────────────────────────────────────────────────────── */
   useEffect(() => {
+    return;   /* mécanique neutralisée — cf. bandeau ci-dessus */
+    /* eslint-disable no-unreachable */
     if(!userCode || !pullDone || !isSupabaseEnabled()) return;
     let cancelled = false;
     applyPatchOnce({
@@ -2464,6 +2475,7 @@ export default function CookiMiner() {
       },
     });
     return () => { cancelled = true; };
+    /* eslint-enable no-unreachable */
   }, [userCode, pullDone]);
 
   /* ── Frais de garde — RETIRÉS le 08/09/2026 ───────────────
