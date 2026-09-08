@@ -136,9 +136,9 @@ export const ACTIONS_SENTINELLE = [
   {
     id: 'desactiver_code_promo',
     groupe: 'app',
-    titre: 'Désactiver un code promo',
-    resume: "Le code cesse de fonctionner pour les nouveaux",
-    aide: "Ceux qui l'ont déjà utilisé gardent leur récompense — on ne reprend rien. Ne fonctionne que sur les codes créés depuis la console ; les codes historiques vivent dans le code de l'app.",
+    titre: 'Supprimer un code promo',
+    resume: "Le code cesse de marcher et sort de la liste",
+    aide: "Il disparaît de « les codes promo » et ne fonctionne plus. Ceux qui l'ont déjà utilisé gardent leur récompense — on ne reprend rien. La ligne reste en base, marquée supprimée, pour qu'on sache qu'il a existé. Ne marche que sur les codes créés depuis la console : les 24 historiques vivent dans le code de l'app.",
     champs: [
       { nom:'code', label:'Le code à désactiver', type:'text', requis:true, exemple:'RENTREE25' },
     ],
