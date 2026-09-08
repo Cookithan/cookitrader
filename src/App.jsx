@@ -880,7 +880,10 @@ export default function CookiMiner() {
   const [showInbox,        setShowInbox]        = useState(false);
   const [showAbout,        setShowAbout]        = useState(false);
   /* Sentinelle — ecran admin (cf. lib/sentinelle.js). */
-  const [showSentinelle,   setShowSentinelle]   = useState(false);
+  /* null | 'console' | 'signalement'. Un booleen ne suffisait plus :
+     un admin doit pouvoir ouvrir l'entonnoir des joueurs pour l'essayer,
+     sans quoi on ne decouvre ses defauts que par un signalement rate. */
+  const [vueSentinelle, setVueSentinelle] = useState(null);
   const [alertesSentinelle, setAlertesSentinelle] = useState(0);
   /* Signalements envoyes par les joueurs et pas encore traites. Le
      compteur est public en base (un entier, rien de plus), mais on ne
@@ -4873,7 +4876,13 @@ export default function CookiMiner() {
           userCode={userCode}
           restorePin={restorePin}
           onOpenCollection={()=>{ playSound('tab'); setShowSettings(false); goToTab('collection'); }}
-          onOpenSentinelle={()=>{ setShowSettings(false); setShowSentinelle(true); }}
+          onOpenSentinelle={(vue)=>{
+            setShowSettings(false);
+            /* Le garde-fou ne fait JAMAIS confiance a ce que demande
+               l ecran : un non-admin tombe sur l entonnoir, quoi qu il
+               ait cliqué. */
+            setVueSentinelle(peutVoirSentinelle(userName, userCode) ? (vue || 'console') : 'signalement');
+          }}
           sentinelleAdmin={peutVoirSentinelle(userName, userCode)}
           sentinelleBadge={signalementsAttente}
           C={C}
@@ -4993,17 +5002,25 @@ export default function CookiMiner() {
           Ce qui protège vraiment, ce n'est pas ce branchement : c'est la
           phrase de passe, vérifiée en base, sans laquelle rien ne se lit
           ni ne s'exécute. Cacher un écran n'a jamais protégé personne. */}
-      {showSentinelle && (
-        peutVoirSentinelle(userName, userCode) ? (
-          <SentinelleOverlay onClose={()=>setShowSentinelle(false)} />
-        ) : (
-          <SignalementOverlay
-            onClose={()=>setShowSentinelle(false)}
-            userCode={userCode}
-            userName={userName}
-            level={level}
-          />
-        )
+      {vueSentinelle === 'console' && peutVoirSentinelle(userName, userCode) && (
+        <SentinelleOverlay onClose={()=>setVueSentinelle(null)} />
+      )}
+
+      {vueSentinelle === 'signalement' && (
+        <SignalementOverlay
+          onClose={()=>{
+            setVueSentinelle(null);
+            /* Relire le compteur en sortant : un admin qui vient
+               d'essayer l'entonnoir doit voir sa pastille bouger tout de
+               suite, sinon il croit que rien n'est parti. */
+            if(peutVoirSentinelle(userName, userCode)){
+              signalementsOuverts().then(setSignalementsAttente).catch(()=>{});
+            }
+          }}
+          userCode={userCode}
+          userName={userName}
+          level={level}
+        />
       )}
 
       {/* NEW VERSION POPUP — pop si lastSeenVersion ≠ APP_INFO.version
