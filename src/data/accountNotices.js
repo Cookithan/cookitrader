@@ -152,12 +152,12 @@ export const SPLIT_NOTICES = Object.fromEntries(
     return [code, {
       name,
       title: 'Tes actions ont changé d\'échelle',
-      reason: "Le marché $CKM rouvre avec une action à 500 🍪 au lieu de 100. Pour que ça ne crée pas de cookies à partir de rien, 5 anciennes actions valent désormais 1 nouvelle action. Tu en as donc moins — mais elles valent cinq fois plus.",
+      reason: "Le marché $CKM est en refonte, et l'action y vaudra 500 🍪 au lieu de 100. Pour que ce changement d'échelle ne crée pas de cookies à partir de rien, 5 anciennes actions valent désormais 1 nouvelle action. Tu en as donc moins — mais elles valent cinq fois plus.",
       gained: [
         `${shares} action${shares > 1 ? 's' : ''} → ${after} action${after > 1 ? 's' : ''}`,
         `Ton portefeuille pèse ${(after * NEW_PRICE).toLocaleString('fr-FR')} 🍪 (contre ${(shares * 100).toLocaleString('fr-FR')} 🍪 avant — l'arrondi t'a été laissé)`,
       ],
-      footer: "Le cours ne bougera plus tout seul : il ne monte que si des joueurs achètent, il ne descend que si des joueurs vendent. À toi de jouer ☕",
+      footer: "Le marché rouvrira bientôt, et le cours n'y bougera plus tout seul : il ne montera que si des joueurs achètent, il ne descendra que si des joueurs vendent. Tes actions t'attendent ☕",
     }];
   })
 );

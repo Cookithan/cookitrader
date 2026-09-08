@@ -14,45 +14,38 @@
 
 export const APP_INFO = {
   version: '1.30.0',
-  releaseDate: '2026-09-07',
+  releaseDate: '2026-09-08',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
   author: 'Cookithan',
 };
 
 export const CHANGELOG = [
-  /* ⚠️ BROUILLON — NE PAS DÉPLOYER EN L'ÉTAT ⚠️
-     La 1.30 est loin d'être finie (≈ 10 % du périmètre voulu au 07/09/2026) :
-     ce qui suit ne couvre que le premier chantier, la simplification de
-     l'interface. Le titre, la date et TOUS les points sont à réécrire
-     quand la version sera vraiment terminée — sinon les joueurs
-     recevront un changelog qui décrit un dixième de la mise à jour. */
+  /* ⚠️ LA 1.30 N'EST PAS TERMINÉE — celle-ci en est la première moitié,
+     mise en ligne le 08/09/2026 pour être éprouvée par les joueurs. Le
+     reste arrivera par-dessus. Le changelog ci-dessous décrit ce qui est
+     RÉELLEMENT parti : quand la suite sortira, on AJOUTE une entrée, on
+     ne réécrit pas celle-ci (les joueurs l'auront déjà lue). */
   {
     version: '1.30.0',
-    date: '2026-09-07',
+    date: '2026-09-08',
     title: '✨ Une app plus claire, une Collection à toi',
     title_en: '✨ A clearer app, a Collection of your own',
     changes: [
       "🎨 Nouvel onglet Ma Collection : thèmes, avatars, skins, titres et musiques réunis au même endroit. On achète en boutique, on équipe ici",
-      "🗂️ Tout y est rangé par famille et par provenance — boutique, premium, éditions limitées, codes promo",
-      "🧹 Accueil, Boutique, Classement, Marché et Paramètres allégés : moins d'encarts, l'essentiel en premier",
-      "🏆 Tes succès ont leur propre écran, ils n'occupent plus la moitié de l'accueil",
-      "ℹ️ Tape le logo CookiMiner en haut de l'écran pour retrouver les nouveautés à tout moment",
-      "🏦 La boutique en actions $CKM ferme — ce que tu y avais obtenu reste à toi et s'équipe dans Ma Collection",
-      "📈 Le marché $CKM change d'échelle : l'action vaut 500 🍪, et le cours ne bouge plus QUE par les achats et les ventes des joueurs — plus aucun retour automatique",
-      "📊 Nouvelle courbe : fenêtres 1 h / 24 h / 7 j / 1 mois, variation affichée, et chaque point posé à sa vraie date",
-      "⏳ Le bonus de hold disparaît : une vente rapporte le cours, et rien d'autre",
+      "🧹 Accueil, Boutique, Jeux, Classement et Paramètres allégés : moins d'encarts, l'essentiel en premier, et tes succès ont leur propre écran",
+      "🏅 Les niveaux changent de visage : médaille en cookie, bannières colorées par tranche de 5 paliers",
+      "📈 Le marché $CKM se refond : l'action vaudra 500 🍪, et son cours ne bougera plus QUE par vos achats et vos ventes — plus aucun retour automatique. Vos actions sont conservées, la réouverture arrive",
+      "📊 Nouvelle courbe : fenêtres 1 h / 24 h / 7 j / 1 mois, variation affichée, chaque point à sa vraie date",
+      "🧊 Café Express : correction du cookie qui se téléportait en haut de l'écran avant de se changer en glaçon",
     ],
     changes_en: [
       "🎨 New My Collection tab: themes, avatars, skins, titles and music all in one place. Buy in the shop, equip here",
-      "🗂️ Everything is sorted by family and by origin — shop, premium, limited editions, promo codes",
-      "🧹 Home, Shop, Leaderboard, Market and Settings decluttered: fewer boxes, the essentials first",
-      "🏆 Your achievements now have their own screen instead of filling half the home tab",
-      "ℹ️ Tap the CookiMiner logo at the top to check what's new at any time",
-      "🏦 The $CKM shares shop is closing — whatever you unlocked there stays yours and is equipped in My Collection",
-      "📈 The $CKM market changes scale: a share is worth 500 🍪, and the price now moves ONLY when players buy and sell — no automatic drift back",
-      "📊 New chart: 1h / 24h / 7d / 1 month windows, change shown, and every point placed at its real date",
-      "⏳ The hold bonus is gone: a sale pays the market price, and nothing else",
+      "🧹 Home, Shop, Games, Leaderboard and Settings decluttered: fewer boxes, the essentials first, and your achievements now have their own screen",
+      "🏅 Levels get a new look: cookie medal, banners tinted by group of 5 tiers",
+      "📈 The $CKM market is being rebuilt: a share will be worth 500 🍪, and its price will move ONLY when you buy and sell — no automatic drift back. Your shares are kept, reopening soon",
+      "📊 New chart: 1h / 24h / 7d / 1 month windows, change shown, every point at its real date",
+      "🧊 Café Express: fixed the cookie teleporting to the top of the screen before turning into an ice cube",
     ],
   },
   {
