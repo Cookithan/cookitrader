@@ -360,7 +360,11 @@ function controleVersions(users, versions) {
     const info = versions.get(u.user_code);
     if (info) {
       parVersion[info.version] = (parVersion[info.version] || 0) + 1;
-    } else if (jours(u.last_active) <= 7) {
+    } else if (jours(u.last_active) <= 30) {
+      /* 30 jours et non 7 : un joueur revenu après trois semaines
+         rouvre son app avec le code qu'il avait laissé, et se remet à
+         écrire dans les mêmes tables. La fenêtre doit couvrir ceux qui
+         PEUVENT revenir, pas seulement ceux qui étaient là hier. */
       jamaisVueActifs++;
     } else {
       dormants++;
@@ -372,7 +376,7 @@ function controleVersions(users, versions) {
     .map(([v, n]) => `${v === APP_INFO.version ? '✅' : '⚠️'} ${v} — ${n} joueur(s)`);
 
   if (jamaisVueActifs) lignes.push(`❔ version inconnue — ${jamaisVueActifs} joueur(s) actif(s) dont l'app n'a jamais estampillé sa version : signature d'un client ANTÉRIEUR à la 1.30.1`);
-  if (dormants)        lignes.push(`💤 ${dormants} compte(s) dormant(s) depuis plus de 7 jours — ils n'écrivent rien`);
+  if (dormants)        lignes.push(`💤 ${dormants} compte(s) sans activité depuis plus d'un mois`);
   lignes.push(`Total : ${total} compte(s) en base`);
 
   const anciennes = Object.entries(parVersion).filter(([v]) => v !== APP_INFO.version);

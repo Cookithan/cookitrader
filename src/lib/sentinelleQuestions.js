@@ -188,24 +188,43 @@ const QUESTIONS = [
     id: 'versions',
     mots: ['version', 'maj', 'mise a jour', 'update'],
     exemple: 'quelles versions tournent',
-    async repondre() {
-      const rows = await q('app_health', 'app_version, user_code, kind, created_at');
-      const recents = rows.filter(r => r.kind === 'ouverture'
-        && (Date.now() - new Date(r.created_at).getTime()) < 3 * 86_400_000);
-      if (!recents.length) return { titre: 'Aucune ouverture rapportée', lignes: ['Rien depuis 3 jours — normal si la sentinelle vient d\'être installée.'] };
+    /* Le décompte part de TOUS les comptes, jamais des rapports reçus :
+       ne compter que ceux qui se manifestent donnerait un « tout le
+       monde est à jour » faux, alors que les clients dangereux sont
+       précisément ceux qui n'ouvrent pas souvent l'app. */
+    async repondre(joueurs) {
+      const versions = await versionsParJoueur();
+      const jours = (iso) => iso ? (Date.now() - new Date(iso).getTime()) / 86_400_000 : 9999;
+
       const par = {};
-      for (const r of recents) {
-        const v = r.app_version || 'inconnue';
-        par[v] = par[v] || new Set();
-        par[v].add(r.user_code || Math.random());
+      const sansVersion = { j30: 0, j60: 0, plus: 0 };
+      for (const j of joueurs) {
+        const info = versions.get(j.user_code);
+        if (info) { par[info.version] = (par[info.version] || 0) + 1; continue; }
+        const d = jours(j.last_active);
+        if (d <= 30) sansVersion.j30++;
+        else if (d <= 60) sansVersion.j60++;
+        else sansVersion.plus++;
       }
+
       const lignes = Object.entries(par)
-        .sort((a, b) => b[1].size - a[1].size)
-        .map(([v, s]) => `${v === APP_INFO.version ? '✅' : '⚠️'} ${v} — ${s.size} joueur(s)`);
-      const vieilles = Object.keys(par).filter(v => v !== APP_INFO.version);
+        .sort((a, b) => b[1] - a[1])
+        .map(([v, n]) => `${v === APP_INFO.version ? '✅' : '⚠️'} ${v} — ${n} joueur(s)`);
+
+      if (sansVersion.j30)  lignes.push(`❔ pas encore estampillée — ${sansVersion.j30} joueur(s) actif(s) ce mois-ci`);
+      if (sansVersion.j60)  lignes.push(`❔ pas encore estampillée — ${sansVersion.j60} joueur(s) vu(s) il y a 1 à 2 mois`);
+      if (sansVersion.plus) lignes.push(`💤 ${sansVersion.plus} compte(s) inactif(s) depuis plus de 2 mois`);
+      lignes.push(`Total : ${joueurs.length} compte(s)`);
+
+      const connues = Object.values(par).reduce((a, n) => a + n, 0);
+      if (!connues) {
+        lignes.push("La version s'inscrit à la première ouverture de l'app : ce tableau se remplira tout seul.");
+        lignes.push("Un compte qui ne revient jamais gardera une version inconnue — et c'est sans risque : il n'écrit rien.");
+      }
+
       return {
-        titre: vieilles.length ? `${vieilles.length} version(s) périmée(s) en circulation` : `Tout le monde est en ${APP_INFO.version}`,
-        lignes: lignes.concat(vieilles.length ? ['Un vieux client écrit dans les mêmes tables avec ses anciennes règles.'] : []),
+        titre: connues ? `${connues} joueur(s) sur ${joueurs.length} ont une version connue` : 'Aucune version estampillée pour le moment',
+        lignes,
       };
     },
   },
