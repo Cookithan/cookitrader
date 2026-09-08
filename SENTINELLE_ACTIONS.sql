@@ -112,6 +112,19 @@ begin
 
   select s.phrase into attendu from public.sentinelle_secret s where s.id = 1;
 
+  /* ── Refus si la phrase par défaut n'a pas été changée ─────
+     Ce fichier est versionné, donc sa phrase d'exemple est publique.
+     Oublier de la remplacer donnerait la console au premier lecteur du
+     dépôt. Plutôt que de compter sur la vigilance, on rend l'oubli
+     inoffensif : tant que la phrase est celle d'origine, RIEN ne
+     s'exécute. */
+  if attendu like 'CHANGE-MOI%' then
+    insert into public.sentinelle_journal (action, cible, resultat, message)
+    values (action, cible, 'refus', 'phrase par défaut encore en place');
+    return jsonb_build_object('ok', false, 'message',
+      'La phrase par défaut est encore en place — la console reste fermée. Change-la : update sentinelle_secret set phrase = ''ta phrase'' where id = 1;');
+  end if;
+
   if attendu is null or phrase is null or phrase <> attendu then
     insert into public.sentinelle_journal (action, cible, resultat, message)
     values (action, cible, 'refus', 'phrase incorrecte');

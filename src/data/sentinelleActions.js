@@ -18,9 +18,33 @@
    convention du projet pour tout ce qui fait mal (jamais de rouge).
 ═══════════════════════════════════════════════════════ */
 
+/* Les trois familles. Neuf actions à plat, c'est une liste qu'on relit
+   à chaque fois ; rangées par ce sur quoi elles agissent, on va droit
+   au bon endroit. L'ordre compte : un joueur d'abord (le cas le plus
+   fréquent), l'app en dernier (le plus rare et le plus lourd). */
+export const GROUPES = [
+  { id: 'joueur', titre: 'Un joueur',       emoji: '👤', resume: 'sanctionner, lever, compenser' },
+  { id: 'marche', titre: 'Le marché $CKM',  emoji: '📈', resume: 'cours, ouverture, portefeuilles' },
+  { id: 'app',    titre: "L'application",   emoji: '📱', resume: 'mise à jour, maintenance' },
+];
+
+/* Quel geste répond à quel constat. C'est ce qui relie les deux onglets :
+   quand une ronde signale un portefeuille orphelin, le bouton qui le
+   nettoie est PROPOSÉ SOUS LE CONSTAT, déjà prêt. Sans ça, il faut lire
+   l'alerte, retenir le code du joueur, changer d'onglet, retrouver la
+   bonne action — quatre occasions d'abandonner. */
+export const ACTIONS_PAR_CONSTAT = {
+  'versions':   ['forcer_maj'],
+  'marché':     ['corriger_cours', 'nettoyer_portefeuille'],
+  'triche':     ['sanctionner'],
+  'classement': ['sanctionner'],
+  'bugs':       ['maintenance'],
+};
+
 export const ACTIONS_SENTINELLE = [
   {
     id: 'sanctionner',
+    groupe: 'joueur',
     titre: 'Sanctionner un compte',
     resume: "Remet un compte aux valeurs indiquées et le place sous surveillance",
     aide: "Le compteur d'adoption est incrémenté : tous les appareils du joueur prendront ces valeurs, y compris celui qui a servi à les remonter. Le mur empêchera ensuite son téléphone de refaire le geste.",
@@ -36,6 +60,7 @@ export const ACTIONS_SENTINELLE = [
   },
   {
     id: 'lever_sanction',
+    groupe: 'joueur',
     titre: 'Lever une surveillance',
     resume: "Rend un compte à la vie normale",
     aide: "Retire le compte du mur. Ses chiffres actuels sont conservés : lever la surveillance ne lui rend pas ce qui a été retiré.",
@@ -45,6 +70,7 @@ export const ACTIONS_SENTINELLE = [
   },
   {
     id: 'compenser',
+    groupe: 'joueur',
     titre: 'Compenser un joueur',
     resume: "Ajoute des cookies ou des cafés à un compte",
     aide: "Uniquement à la hausse. Pour retirer, passe par « Sanctionner » — qui laisse une trace explicite dans le journal.",
@@ -57,6 +83,7 @@ export const ACTIONS_SENTINELLE = [
   },
   {
     id: 'corriger_cours',
+    groupe: 'marche',
     titre: 'Corriger le cours',
     resume: "Force le prix de l'action $CKM",
     aide: "La garde du prix est désarmée le temps de l'écriture, puis réarmée. Le nouveau prix est borné entre 100 et 2500, et un point est posé sur la courbe.",
@@ -67,6 +94,7 @@ export const ACTIONS_SENTINELLE = [
   },
   {
     id: 'fermer_marche',
+    groupe: 'marche',
     titre: 'Fermer le marché',
     resume: "Suspend les échanges pendant quelques heures",
     aide: "Passe par le circuit breaker, seul levier de fermeture qui vive en base. Le vrai drapeau CLOSED est dans le code : le rouvrir pour de bon demande un déploiement.",
@@ -77,12 +105,14 @@ export const ACTIONS_SENTINELLE = [
   },
   {
     id: 'ouvrir_marche',
+    groupe: 'marche',
     titre: 'Rouvrir le marché',
     resume: "Lève la fermeture posée ci-dessus",
     champs: [],
   },
   {
     id: 'forcer_maj',
+    groupe: 'app',
     titre: 'Forcer la mise à jour',
     resume: "Affiche « Mise à jour disponible » à qui n'est pas sur cette version",
     aide: "C'est le remède quand la sentinelle signale des versions périmées en circulation : un vieux client écrit dans les mêmes tables avec ses anciennes règles. Laisser vide pour annuler.",
@@ -92,6 +122,7 @@ export const ACTIONS_SENTINELLE = [
   },
   {
     id: 'maintenance',
+    groupe: 'app',
     titre: 'Maintenance',
     resume: "Coupe l'app pour tout le monde, ou la rallume",
     aide: "L'écran de maintenance remplace toute l'application. À n'utiliser que le temps d'une correction, sinon les joueurs partent.",
@@ -104,6 +135,7 @@ export const ACTIONS_SENTINELLE = [
   },
   {
     id: 'nettoyer_portefeuille',
+    groupe: 'marche',
     titre: 'Nettoyer un portefeuille orphelin',
     resume: "Retire les actions d'un compte qui n'existe plus",
     aide: "Retire la ligne ET décrémente la circulation du même nombre : faire l'un sans l'autre créerait un écart que le contrôle suivant signalerait.",
