@@ -505,3 +505,53 @@ export function anciennete(rondes, verdict) {
   }
   return { rondes: Math.max(compte, 1), depuis };
 }
+
+/* ════════════════════════════════════════════════════
+   3. AGIR
+   ────────────────────────────────────────────────────
+   Tout passe par une seule fonction Postgres, `action_sentinelle`,
+   qui vérifie la phrase de passe avant d'exécuter quoi que ce soit
+   (cf. SENTINELLE_ACTIONS.sql).
+
+   La phrase ne transite QUE dans cet appel. Elle n'est jamais gardée
+   en localStorage, jamais dans un state persistant, jamais écrite dans
+   un journal côté client : la retenir quelque part reviendrait à la
+   remettre dans le téléphone, c'est-à-dire à l'endroit exact qu'on
+   voulait éviter.
+═══════════════════════════════════════════════════════ */
+
+export async function agir(phrase, action, params = {}) {
+  if (!isSupabaseEnabled()) return { ok: false, message: 'Hors ligne' };
+  if (!phrase) return { ok: false, message: 'Phrase de passe requise' };
+  try {
+    const { data, error } = await supabase.rpc('action_sentinelle', { phrase, action, params });
+    if (error) {
+      /* Fonction absente = SENTINELLE_ACTIONS.sql pas encore passé. On
+         le dit clairement plutôt que de laisser un échec muet. */
+      const manquante = /function|does not exist|schema cache/i.test(error.message || '');
+      return { ok: false, message: manquante
+        ? "La console n'est pas installée en base (SENTINELLE_ACTIONS.sql)."
+        : `Erreur : ${error.message}` };
+    }
+    return data || { ok: false, message: 'Réponse vide' };
+  } catch (e) {
+    return { ok: false, message: `Erreur réseau : ${e?.message || e}` };
+  }
+}
+
+/* Le registre de ce qui a été fait — refus compris. C'est ce qui rend
+   la console vérifiable : on peut toujours savoir qui a fait quoi,
+   quand, et si ça a marché. */
+export async function journal(limite = 30) {
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const { data } = await supabase
+      .from('sentinelle_journal')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(limite);
+    return data || [];
+  } catch {
+    return [];
+  }
+}
