@@ -28,3 +28,8 @@ dist-ssr
 nouveau_sons/
 *.png
 .audit-snapshot.json
+
+# Packaging Android (Capacitor) — 237 Mo de build local, dont un APK de
+# 58 Mo. Versionner ça alourdit le dépôt pour toujours et GitHub s'en
+# plaint. Le packaging vit sur sa propre branche (feat/android-capacitor).
+android/

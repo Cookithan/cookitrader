@@ -1,9 +1,0 @@
-{
-	"appId": "com.cookithan.cookiminer",
-	"appName": "CookiTrader",
-	"webDir": "dist",
-	"backgroundColor": "#3D2010",
-	"android": {
-		"backgroundColor": "#3D2010"
-	}
-}
