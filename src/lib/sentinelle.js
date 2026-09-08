@@ -428,6 +428,39 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
   return rapports;
 }
 
+/* Enregistre une ronde SEULEMENT si elle raconte autre chose que la
+   précédente.
+
+   Sans ça, deux mauvais choix s'offraient : tout enregistrer et noyer
+   l'historique sous des copies identiques, ou ne rien enregistrer — ce
+   qu'on faisait — et laisser l'écran ressortir les vieux problèmes déjà
+   réglés dès qu'on le rouvrait. Comparer avant d'écrire règle les deux :
+   l'historique ne garde que les CHANGEMENTS, et l'état enregistré colle
+   toujours à la réalité.
+
+   Retourne true si quelque chose a été écrit. */
+export async function enregistrerSiDifferent(rapports) {
+  if (!isSupabaseEnabled() || !rapports?.length) return false;
+  try {
+    const empreinte = (liste) => liste
+      .filter(r => r.verdict !== 'ok')
+      .map(r => `${r.categorie}|${r.verdict}|${r.titre}`)
+      .sort()
+      .join('||');
+
+    const precedents = await derniersRapports(60);
+    const rondes = grouperParRonde(precedents);
+    if (rondes.length && empreinte(rondes[0].verdicts) === empreinte(rapports)) return false;
+
+    await supabase.from('sentinelle_rapports').insert(
+      rapports.map(r => ({ verdict: r.verdict, categorie: r.categorie, titre: r.titre, detail: r.detail }))
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /* Lance une ronde SI l'intervalle est écoulé. Appelée par n'importe
    quel client au démarrage : le premier arrivé pose l'heure et fait le
    travail, les autres repartent aussitôt.
