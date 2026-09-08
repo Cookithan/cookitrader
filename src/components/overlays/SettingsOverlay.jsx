@@ -301,7 +301,7 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
                   <div style={{ fontSize:13.5, fontWeight:900, color:'#0E3355' }}>{t('report.title')}</div>
                   <div style={{ fontSize:11, color:'rgba(14,51,85,.68)', marginTop:2, lineHeight:1.4 }}>
                     {sentinelleAdmin
-                      ? 'Elle surveille, elle répond, elle agit — sans ouvrir Supabase'
+                      ? 'Elle surveille, elle répond, elle agit'
                       : t('report.settings_sub')}
                   </div>
                 </div>
