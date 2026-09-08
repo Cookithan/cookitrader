@@ -6,7 +6,8 @@ import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    ForceUpdateModal — popup "Nouvelle version disponible" déclenché
-   par system_status.force_version > APP_INFO.version
+   par system_status.force_version > APP_INFO.version (comparaison
+   numerique reelle depuis le 09/09/2026 — cf. App.jsx)
    ────────────────────────────────────────────────────
    Contrairement à NewVersionModal (qui pop au mount d'un client qui
    *ouvre* l'app après un deploy), celui-ci s'affiche aux clients

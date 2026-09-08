@@ -29,7 +29,7 @@ import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
 import { SentinelleOverlay } from "./components/overlays/SentinelleOverlay.jsx";
 import { SignalementOverlay } from "./components/overlays/SignalementOverlay.jsx";
-import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire, alertesEnCours, signalementsOuverts } from "./lib/sentinelle.js";
+import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire, alertesEnCours, signalementsOuverts, versionPlusRecente } from "./lib/sentinelle.js";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
 import { LeaderGapWarningModal } from "./components/modals/LeaderGapWarningModal.jsx";
@@ -1263,12 +1263,23 @@ export default function CookiMiner() {
     }
   }, [systemStatus.maintenance_mode, userCode]);
 
-  /* force_version : popup "Mise à jour disponible" + reload. Reste
-     affichée tant que la version locale est inférieure (ou que
-     forceUpdateDismissed n'est pas vrai pour le moment). */
+  /* force_version : popup "Mise à jour disponible" + reload.
+
+     ⚠️ CORRIGÉ le 09/09/2026. La condition était `fv !== APP_INFO.version`
+     — une inégalité, alors que le commentaire d'origine et celui de
+     ForceUpdateModal annonçaient tous deux « force_version > version ».
+
+     Conséquence : un drapeau laissé sur une version ANCIENNE proposait
+     aux joueurs déjà à jour de redescendre, en boucle et sans moyen de
+     s'en débarrasser. Le drapeau valait « 1.30.1 » en base ce jour-là ;
+     il n'a pas mordu uniquement parce que l'app déployée portait le même
+     numéro. Au premier changement de version, tout le monde y passait.
+
+     La comparaison est désormais numérique segment par segment : en
+     texte, '1.30.2' serait jugé supérieur à '1.30.10'. */
   useEffect(() => {
     const fv = systemStatus.force_version;
-    if(fv && fv !== APP_INFO.version && !forceUpdateDismissed){
+    if(fv && versionPlusRecente(fv, APP_INFO.version) && !forceUpdateDismissed){
       setShowForceUpdate(true);
     }else{
       setShowForceUpdate(false);

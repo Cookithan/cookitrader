@@ -1,7 +1,10 @@
 import { supabase, isSupabaseEnabled } from './supabase';
 import { MARKET_CONFIG } from './market.js';
 import { APP_INFO } from './appInfo.js';
-import { xpRequired } from '../data/constants.js';
+import { xpRequired, ACHIEVEMENTS, REWARDS } from '../data/constants.js';
+import { SECRET_BADGES } from '../data/secretBadges.js';
+import { GAME_THEMES } from '../data/gameThemes.js';
+import { MUSICS } from './audio.js';
 import { isAdminName } from '../utils/admin.js';
 import { CODES_CONCERNES_129 } from '../data/accountNotices.js';
 
@@ -570,11 +573,211 @@ function controleSignalements(enAttente) {
   ]);
 }
 
+/* ── Cinq contrôles de plus (09/09/2026) ──────────────
+   Toujours la même règle : chaque problème qu'une ronde n'aurait pas pu
+   voir devient un contrôle. Ceux-ci viennent d'un audit demandé par
+   Régis — trois d'entre eux ont trouvé quelque chose d'armé en base au
+   moment de leur écriture. */
+
+/* Le café est la monnaie que le projet protège le plus (« ne JAMAIS
+   ajouter une nouvelle source de CF sans confirmation »). Impossible
+   d'en calculer le total exact — check-ins, mini-jeux, événements,
+   codes promo, cadeaux entre joueurs et achats Stripe s'additionnent
+   sans laisser de compteur. On calcule donc un plafond LARGE : ce qui
+   est certain (succès, paliers) plus une réserve qui grandit avec
+   l'ancienneté du compte. Le but n'est pas de pincer un joueur chanceux,
+   c'est de voir l'absurde — une fuite qui en fabrique des centaines. */
+const CAFES_MARGE_BASE      = 30;    // codes promo, cadeaux, événements
+const CAFES_MARGE_PAR_JOUR  = 1;     // check-ins J7/J14, mini-jeux, tournois
+const PALIERS_CAFE          = [6, 10, 15, 20, 25];
+
+/* Au-delà, le prix aurait dû bouger : un ordre est le SEUL événement qui
+   déplace la courbe depuis que le tick n'y touche plus. */
+const MARCHE_RETARD_MAX_MIN = 10;
+
+function versionEnNombres(v) {
+  return String(v || '').split('-')[0].split('.').map(n => parseInt(n, 10) || 0);
+}
+
+/* a est-elle STRICTEMENT plus récente que b ? Comparaison numérique
+   segment par segment : '1.30.2' > '1.30.10' serait faux en texte. */
+export function versionPlusRecente(a, b) {
+  const x = versionEnNombres(a), y = versionEnNombres(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    const d = (x[i] || 0) - (y[i] || 0);
+    if (d) return d > 0;
+  }
+  return false;
+}
+
+/* ── 1. Le drapeau de mise à jour forcée ──────────────
+   Trouvé armé le 09/09 : force_version valait « 1.30.1 » alors que
+   l'app EST en 1.30.1. Inoffensif tant que les deux coïncident — mais
+   au premier changement de version, tout joueur DÉJÀ à jour se serait
+   vu proposer de redescendre. Un drapeau qu'on oublie de baisser ne se
+   remarque que le jour où il fait mal. */
+function controleForceVersion(status) {
+  const fv = status?.force_version;
+  if (!fv) return faire('ok', 'versions', 'Aucune mise à jour forcée en cours');
+
+  if (versionPlusRecente(fv, APP_INFO.version)) {
+    return faire('ok', 'versions', `Mise à jour forcée vers ${fv} (en avance sur cette app)`);
+  }
+  return faire('alerte', 'versions', `Drapeau de mise à jour périmé : ${fv}`, [
+    `L'app déployée est en ${APP_INFO.version} — le drapeau ne sert plus à rien.`,
+    "Au prochain changement de version, il proposera aux joueurs à jour de REDESCENDRE vers cette version-là.",
+    "Le vider : Agir → L'application → Forcer la mise à jour, en laissant le champ vide.",
+  ]);
+}
+
+/* ── 2. Le stock de café ──────────────────────────────
+   Aucun contrôle ne le regardait : controleSoldes ne refuse qu'un solde
+   négatif. Or c'est la seule monnaie qu'on ne peut pas regagner en
+   jouant, et celle dont les sources sont volontairement comptées. */
+function controleCafes(users) {
+  const suspects = [];
+
+  for (const u of users) {
+    if (isAdminName(u.user_name)) continue;
+    const cafes = num(u.cafes);
+    if (cafes <= 0) continue;
+
+    const succes = String(u.earned_achievements || '').split(',').map(s => s.trim()).filter(Boolean);
+    const parSucces = ACHIEVEMENTS
+      .filter(a => succes.includes(a.id))
+      .reduce((t, a) => t + num(a.cafesBonus), 0);
+    const parPaliers = PALIERS_CAFE.filter(p => num(u.level) >= p).length;
+
+    const jours = u.join_date ? Math.max(0, (Date.now() - new Date(u.join_date).getTime()) / 86_400_000) : 0;
+    const plafond = parSucces + parPaliers + CAFES_MARGE_BASE + Math.round(jours * CAFES_MARGE_PAR_JOUR);
+
+    if (cafes > plafond) {
+      suspects.push(`${u.user_name} — ${cafes} ☕ pour un plafond large de ${plafond} (succès ${parSucces}, paliers ${parPaliers}, ${Math.round(jours)} j d'ancienneté)`);
+    }
+  }
+
+  const total = users.reduce((t, u) => t + num(u.cafes), 0);
+  if (!suspects.length) return faire('ok', 'triche', `${total} ☕ en circulation, aucun stock anormal`);
+
+  /* « voir » et non « alerte » : un achat Stripe légitime peut faire
+     franchir le plafond. C'est une invitation à regarder, pas une
+     accusation. */
+  return faire('voir', 'triche', `${suspects.length} compte(s) au stock de café inexpliqué`, [
+    ...suspects,
+    'Le plafond est déjà très large : succès + paliers + 30 ☕ + 1 ☕ par jour d\'ancienneté.',
+    'Un achat Stripe suffit à le dépasser légitimement — vérifier avant de conclure.',
+  ]);
+}
+
+/* ── 3. Le marché qui n'enregistre plus ───────────────
+   Depuis que le tick ne touche plus au prix, un ordre est le seul
+   événement qui déplace la courbe. Si le chemin d'écriture casse — client
+   périmé, RLS modifiée, trigger — les transactions continuent d'arriver
+   pendant que le cours reste immobile. Et une courbe plate est devenue
+   indiscernable d'un marché calme : plus personne ne le verrait. */
+function controleMarcheVivant(state, derniereTransaction) {
+  if (!state || !derniereTransaction) return null;
+
+  const majPrix = state.last_updated ? new Date(state.last_updated).getTime() : 0;
+  const dernier = new Date(derniereTransaction).getTime();
+  const retardMin = (dernier - majPrix) / 60_000;
+
+  if (retardMin > MARCHE_RETARD_MAX_MIN) {
+    return faire('alerte', 'marché', `Le cours n'a pas suivi le dernier ordre (${Math.round(retardMin)} min de retard)`, [
+      `Dernier ordre : ${new Date(dernier).toLocaleString('fr-FR')}`,
+      `Dernière écriture du prix : ${majPrix ? new Date(majPrix).toLocaleString('fr-FR') : 'jamais'}`,
+      "Un ordre est le SEUL événement qui bouge la courbe : s'il n'écrit plus, le marché est figé sans que ça se voie.",
+      'Vérifier les droits en écriture sur market_state et que PROTEGER_LE_PRIX.sql ne bloque pas tout.',
+    ]);
+  }
+  return faire('ok', 'marché', 'Le cours suit les ordres');
+}
+
+/* ── 5. Les textes de maintenance oubliés ─────────────
+   Trouvé en base le 09/09 : maintenance_subtitle valait « Test Pour
+   Fedi ». Sans effet tant que la maintenance est éteinte — mais c'est
+   ce que tout le monde aurait lu le jour où on l'allume en urgence, et
+   ce jour-là on n'a pas le temps de relire les textes. */
+function controleMaintenance(status) {
+  if (!status) return null;
+
+  if (status.maintenance_mode) {
+    return faire('alerte', 'app', 'La maintenance est ACTIVE — les joueurs ne peuvent pas jouer', [
+      status.maintenance_title    ? `Titre : ${status.maintenance_title}` : 'Aucun titre affiché',
+      status.maintenance_subtitle ? `Sous-titre : ${status.maintenance_subtitle}` : null,
+      status.updated_at ? `Activée le ${new Date(status.updated_at).toLocaleString('fr-FR')}` : null,
+    ]);
+  }
+
+  const restes = [status.maintenance_title, status.maintenance_subtitle].filter(Boolean);
+  if (restes.length) {
+    return faire('voir', 'app', "Des textes de maintenance dorment en base", [
+      ...restes.map(r => `« ${r} »`),
+      "C'est ce que les joueurs liront à la prochaine activation — et ce jour-là, on ne relit rien.",
+      "Les remplacer : Agir → L'application → Maintenance.",
+    ]);
+  }
+  return faire('ok', 'app', 'Maintenance éteinte, aucun texte en attente');
+}
+
+/* ── 6. Des identifiants que le code ne connaît plus ──
+   `unlocked` et `earned_achievements` sont des chaînes séparées par des
+   virgules — pas du JSON, aucune validation. Un id renommé côté code
+   laisse des lignes qui ne correspondent plus à rien : l'objet
+   n'apparaît nulle part, le succès ne compte pas, et son bonus en café
+   a pourtant été versé. Rien ne le disait. */
+function controleIdentifiants(users) {
+  /* Les sources d'identifiants sont éparpillées : la boutique, les
+     badges secrets, les succès, ET les thèmes de mini-jeu — qui vivent
+     dans leur propre fichier. Une première version n'en connaissait que
+     trois et signalait 21 identifiants parfaitement valides. Un contrôle
+     qui se trompe vingt fois n'est plus lu. */
+  const connusRecompenses = new Set([
+    ...REWARDS.map(r => r.id),
+    ...GAME_THEMES.map(t => t.id),
+    /* `music_boss` ne s'achète pas : il se gagne en finissant premier au
+       boss communautaire, et vit donc dans le catalogue audio, pas dans
+       la boutique. */
+    ...Object.keys(MUSICS).map(id => `music_${id}`),
+    ...Object.keys(MUSICS),
+  ]);
+  const connusSecrets     = new Set(Object.values(SECRET_BADGES).map(b => b.id));
+  const connusSucces      = new Set(ACHIEVEMENTS.map(a => a.id));
+
+  /* Les badges de champion hebdomadaire sont fabriqués à la volée
+     (`champ_W<numéro de semaine>`, cf. App.jsx) : aucune liste ne les
+     contient, et il n'y en aura jamais. */
+  const badgeDeChampion = /^champ_W\d+$/;
+
+  const inconnus = new Map();   /* id → nombre de comptes concernés */
+  const noter = (id) => inconnus.set(id, (inconnus.get(id) || 0) + 1);
+
+  for (const u of users) {
+    for (const id of String(u.unlocked || '').split(',').map(s => s.trim()).filter(Boolean)) {
+      if (!connusRecompenses.has(id) && !connusSecrets.has(id) && !badgeDeChampion.test(id)) noter(id);
+    }
+    for (const id of String(u.earned_achievements || '').split(',').map(s => s.trim()).filter(Boolean)) {
+      if (!connusSucces.has(id)) noter(`succès ${id}`);
+    }
+  }
+
+  if (!inconnus.size) return faire('ok', 'app', 'Tous les objets et succès détenus existent encore');
+
+  return faire('voir', 'app', `${inconnus.size} identifiant(s) inconnu(s) du code`, [
+    ...[...inconnus.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([id, n]) => `${id} — détenu par ${n} compte(s)`),
+    "Soit un objet renommé sans migration, soit une écriture qui n'aurait pas dû passer.",
+    'Un succès inconnu est le plus gênant : son bonus en café a été versé, mais il ne compte plus nulle part.',
+  ]);
+}
+
 export async function faireUneRonde({ enregistrer = true } = {}) {
   if (!isSupabaseEnabled()) return [];
 
-  const [users, state, portefeuilles, sante, versions, transactions, surveilles, codes, signalements] = await Promise.all([
-    supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level, cookies, cafes').limit(2000).then(r => r.data || []),
+  const [users, state, portefeuilles, sante, versions, transactions, surveilles, codes, signalements, status, dernierOrdre] = await Promise.all([
+    supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level, cookies, cafes, join_date, unlocked, earned_achievements').limit(2000).then(r => r.data || []),
     supabase.from('market_state').select('*').eq('id', 1).maybeSingle().then(r => r.data),
     supabase.from('market_portfolio').select('user_code, shares, total_invested').limit(2000).then(r => r.data || []),
     supabase.from('app_health').select('kind, user_code, user_name, app_version, detail, created_at, id').order('created_at', { ascending: false }).limit(500).then(r => r.data || []),
@@ -586,6 +789,13 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
     supabase.from('comptes_sous_surveillance').select('*').limit(200).then(r => r.data || [], () => []),
     supabase.from('promo_codes').select('code, coins, cafes, shares, actif').limit(500).then(r => r.data || [], () => []),
     signalementsOuverts(),
+    supabase.from('system_status').select('*').eq('id', 1).maybeSingle().then(r => r.data, () => null),
+    /* La date du dernier ordre, pour la comparer à celle de la dernière
+       écriture du prix : si le prix est en retard, le marché n'enregistre
+       plus. */
+    supabase.from('market_transactions').select('created_at')
+      .order('created_at', { ascending: false }).limit(1)
+      .then(r => r.data?.[0]?.created_at || null, () => null),
   ]);
 
   const rapports = [
@@ -606,6 +816,14 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
     controleSurveillance(users, surveilles),
     controleCodesPromo(codes),
     controleSignalements(signalements),
+    /* Ajoutés le 09/09/2026 après un audit de ce que la ronde ne savait
+       pas voir. Trois d'entre eux ont trouvé quelque chose d'armé en
+       base le jour même. */
+    controleForceVersion(status),
+    controleCafes(users),
+    controleMarcheVivant(state, dernierOrdre),
+    controleMaintenance(status),
+    controleIdentifiants(users),
   ].filter(Boolean);
 
   if (enregistrer) {
