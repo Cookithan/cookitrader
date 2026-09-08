@@ -565,6 +565,38 @@ export async function verifierPhrase(phrase) {
   return { ok: false, message: r?.message || 'Phrase incorrecte' };
 }
 
+/* ── Ce que la base sait déjà ─────────────────────────
+   Remplir « niveau, cumul, cookies, cafés » à la main quand la base
+   connaît ces valeurs par coeur, c'est du travail qu'on impose à
+   l'humain pour rien — et une occasion de se tromper d'un chiffre sur
+   un compte réel. Ces deux lectures servent à pré-remplir les
+   formulaires avec la situation ACTUELLE : on ne tape plus que ce
+   qu'on veut CHANGER. */
+export async function infosJoueur(userCode) {
+  if (!isSupabaseEnabled() || !userCode) return null;
+  try {
+    const { data } = await supabase
+      .from('users')
+      .select('user_name, user_code, level, total_earned, cookies, cafes, total_play_time, last_active')
+      .eq('user_code', userCode.trim().toUpperCase())
+      .maybeSingle();
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function prixMarche() {
+  if (!isSupabaseEnabled()) return null;
+  try {
+    const { data } = await supabase
+      .from('market_state').select('current_price').eq('id', 1).maybeSingle();
+    return data ? Math.round(Number(data.current_price)) : null;
+  } catch {
+    return null;
+  }
+}
+
 /* ── Constats classés sans suite ──────────────────────
    La signature contient le titre : dès qu'un chiffre bouge dedans, le
    constat réapparaît. On classe une SITUATION, pas une catégorie — sans
