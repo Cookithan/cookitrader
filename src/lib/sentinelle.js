@@ -539,6 +539,22 @@ export async function agir(phrase, action, params = {}) {
   }
 }
 
+/* Vérifie la phrase SANS rien exécuter. C'est ce qui permet une vraie
+   serrure à l'écran : on tape, on appuie, la base répond — au lieu de
+   faire semblant de s'ouvrir dès la première lettre.
+
+   Le repli sur « action inconnue » couvre le cas où la fonction en base
+   date d'avant l'ajout de `verifier` : elle contrôle la phrase AVANT de
+   regarder le nom de l'action, donc ce message-là prouve justement que
+   la phrase est bonne. Ça évite d'imposer un nouveau collage de SQL
+   pour pouvoir se connecter. */
+export async function verifierPhrase(phrase) {
+  const r = await agir(phrase, 'verifier', {});
+  if (r?.ok) return { ok: true };
+  if (/action inconnue/i.test(r?.message || '')) return { ok: true };
+  return { ok: false, message: r?.message || 'Phrase incorrecte' };
+}
+
 /* Le registre de ce qui a été fait — refus compris. C'est ce qui rend
    la console vérifiable : on peut toujours savoir qui a fait quoi,
    quand, et si ça a marché. */
