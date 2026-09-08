@@ -175,6 +175,7 @@ export const FR = {
 
   /* ── À propos ──────────────────────────────────── */
   about: {
+    live:            'EN DIRECT',
     title:        'À propos',
     version:      'Version',
     realized_by:  'Réalisé par',
@@ -262,6 +263,10 @@ export const FR = {
 
   /* ── Profil ────────────────────────────────────── */
   profile: {
+    add_friend:      'Ajouter en ami',
+    friend_sending:  'Envoi…',
+    friend_sent:     '📬 Demande envoyée',
+    friend_already:  '🤝 Déjà ton ami',
     title:           'Mon profil',
     sync_online_title:'Profil synchronisé en ligne',
     sync_offline_title:'Pas de sync en ligne',

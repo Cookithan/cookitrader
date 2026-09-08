@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getPublicProfile, sendReaction } from "../../lib/supabaseSync.js";
+import { getPublicProfile, sendReaction, sendFriendRequest } from "../../lib/supabaseSync.js";
 import { AvatarFigure } from "../AvatarFigure.jsx";
 import { LEVEL_NAMES, REWARDS } from "../../data/constants.js";
 import { SECRET_BADGES } from "../../data/secretBadges.js";
@@ -18,8 +18,11 @@ import { useTranslation } from "../../i18n/index.js";
      · isCrown=true  → bandeau '👑 Roi du classement' + pas de date
      · isCrown=false → date d'inscription en pied
 
-   Pas de bouton "ajouter en ami" dans la modale (UX simple — on copie
-   le code et on l'ajoute via la liste d'amis si on veut).
+   Bouton « Ajouter en ami » depuis le 08/09/2026. Avant, il fallait
+   copier le code puis aller le coller dans la liste d'amis : trois
+   écrans pour un geste, et le classement — l'endroit même où l'on
+   croise des gens à ajouter — n'y menait pas. Le bouton n'apparaît que
+   pour quelqu'un d'autre qui n'est pas déjà un ami.
 
    Pas de rouge ni de vert. Réutilise les keyframes inboxSlideUp/Down
    (déjà dans globalStyles).
@@ -159,6 +162,8 @@ export function UserProfileModal({ userCode, isCrown = false, currentUserCode, f
               isCrown={isCrown}
               canReact={canReact}
               currentUserCode={currentUserCode}
+              isOther={isOther}
+              isFriend={isFriend}
               copied={copied}
               onCopy={handleCopy}
               C={C}
@@ -170,7 +175,7 @@ export function UserProfileModal({ userCode, isCrown = false, currentUserCode, f
   );
 }
 
-function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, onCopy, C }){
+function ProfileContent({ profile, isCrown, canReact, currentUserCode, isOther, isFriend, copied, onCopy, C }){
   const { t, localizedLevelName } = useTranslation();
   const joinDate = formatJoinDate(profile.join_date);
   const levelTitle = (localizedLevelName(profile.level) || LEVEL_NAMES[profile.level]) || t('modal.level_n', { n: profile.level ?? 1 });
@@ -389,6 +394,16 @@ function ProfileContent({ profile, isCrown, canReact, currentUserCode, copied, o
         }}>
           {profile.user_code}
         </div>
+        {/* Le geste principal : l'ajouter. Le code reste juste dessous,
+            pour qui veut le transmettre ailleurs. */}
+        {isOther && (
+          <BoutonAmi
+            monCode={currentUserCode}
+            sonCode={profile.user_code}
+            dejaAmi={isFriend}
+          />
+        )}
+
         <button
           onClick={onCopy}
           style={{
@@ -514,5 +529,69 @@ function ReactionBar({ senderCode, recipientCode, recipientName, C }){
         </div>
       )}
     </div>
+  );
+}
+
+/* ── AJOUTER EN AMI ───────────────────────────────────
+   Toute la validation vit déjà dans sendFriendRequest : son propre code,
+   relation existante, cooldown de 30 s, code inconnu. On ne la refait
+   pas ici — on affiche ce qu'elle répond.
+
+   Une fois la demande partie, le bouton ne redevient pas cliquable :
+   renvoyer ne ferait que buter sur le cooldown, et un bouton qui
+   redevient actif invite à réessayer pour rien. */
+function BoutonAmi({ monCode, sonCode, dejaAmi }){
+  const { t } = useTranslation();
+  const [envoi, setEnvoi] = useState(false);
+  const [etat,  setEtat]  = useState(null);   /* { ok } | { ok:false, msg } */
+
+  const encadre = (fond, bord, couleur, texte) => (
+    <div style={{
+      marginTop:10, padding:'9px 14px', borderRadius:11,
+      background:fond, border:`1.5px solid ${bord}`,
+      fontSize:12.5, fontWeight:800, color:couleur,
+    }}>{texte}</div>
+  );
+
+  if(dejaAmi)  return encadre('rgba(212,160,23,.12)', 'rgba(212,160,23,.35)', '#C8960C', t('profile.friend_already'));
+  if(etat?.ok) return encadre('rgba(212,160,23,.15)', 'rgba(212,160,23,.45)', '#C8960C', t('profile.friend_sent'));
+
+  const envoyer = async () => {
+    if(envoi) return;
+    setEnvoi(true);
+    const res = await sendFriendRequest(monCode, sonCode);
+    setEnvoi(false);
+    setEtat(res?.error ? { ok:false, msg:res.error } : { ok:true });
+  };
+
+  return (
+    <>
+      <button
+        onClick={envoyer}
+        disabled={envoi}
+        style={{
+          marginTop:10, width:'100%', padding:'11px 14px',
+          background:'linear-gradient(135deg,#D4A017,#C17F3C)',
+          border:'none', borderRadius:12,
+          fontSize:13, fontWeight:900, color:'#fff',
+          opacity: envoi ? .6 : 1,
+          cursor: envoi ? 'not-allowed' : 'pointer',
+          boxShadow:'0 4px 12px rgba(212,160,23,.32)',
+        }}
+      >
+        🤝 {envoi ? t('profile.friend_sending') : t('profile.add_friend')}
+      </button>
+
+      {/* Échec : ton moka, jamais de rouge (cf. CLAUDE.md). */}
+      {etat && !etat.ok && (
+        <div style={{
+          marginTop:8, padding:'7px 10px', borderRadius:10,
+          background:'rgba(125,78,31,.15)', color:'#7D4E1F',
+          fontSize:12, fontWeight:700,
+        }}>
+          {etat.msg}
+        </div>
+      )}
+    </>
   );
 }

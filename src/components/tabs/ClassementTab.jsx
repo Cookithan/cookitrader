@@ -38,7 +38,8 @@ import { useLocalStorage } from "../../hooks/useLocalStorage.js";
    - userName    : utilisé en fallback si profil pas encore sync serveur
    - userAvatar  : idem
    - onOpenProfile      : tap sur ma carte sticky → ouvre MON ProfileOverlay
-   - onOpenUserProfile  : tap sur la ligne du top 1 → ouvre la modale
+   - onOpenUserProfile  : tap sur N'IMPORTE QUELLE ligne → ouvre la modale
+                          du joueur (d'où l'on peut l'ajouter en ami)
                           UserProfileModal de cet autre joueur
 ═══════════════════════════════════════════════════════ */
 
@@ -644,12 +645,21 @@ function CookiesRow({ rank, p, isMe, mode = 'weekly', onOpenUserProfile, C }){
   const { t } = useTranslation();
   const isFirst = rank === 1;
   const banner  = getRankBannerStyle(rank);   // null si rank > 3
-  const clickable = isFirst && !isMe && !!onOpenUserProfile;
+  /* ── Qui peut être ouvert ────────────────────────
+     Avant, seule la ligne n°1 réagissait — le reste du classement était
+     décoratif, et pour ajouter quelqu'un il fallait lui demander son
+     code hors du jeu. Or c'est justement là qu'on croise des gens à
+     ajouter.
+
+     Trois exclusions, pas une de plus : soi-même (rien à y faire), une
+     ligne sans code (les faux joueurs du mode hors ligne, qui n'existent
+     dans aucune base), et l'absence du gestionnaire. */
+  const clickable = !isMe && !!onOpenUserProfile && !!p.user_code;
   const badgeLabel = rank === 1 ? '🏆 Champion' : rank === 2 ? '🥈 Vice-champion' : rank === 3 ? '🥉 Podium' : null;
 
   return (
     <div
-      onClick={clickable ? () => onOpenUserProfile(p.user_code) : undefined}
+      onClick={clickable ? () => onOpenUserProfile(p.user_code, isFirst) : undefined}
       style={{
         display:'flex', alignItems:'center', gap:12,
         padding:'12px 14px', borderRadius:14,
@@ -777,13 +787,22 @@ function CookiesRow({ rank, p, isMe, mode = 'weekly', onOpenUserProfile, C }){
 function MarketRow({ rank, p, price, isMe, onOpenUserProfile, C }){
   const isFirst = rank === 1;
   const banner  = getRankBannerStyle(rank);
-  const clickable = isFirst && !isMe && !!onOpenUserProfile;
+  /* ── Qui peut être ouvert ────────────────────────
+     Avant, seule la ligne n°1 réagissait — le reste du classement était
+     décoratif, et pour ajouter quelqu'un il fallait lui demander son
+     code hors du jeu. Or c'est justement là qu'on croise des gens à
+     ajouter.
+
+     Trois exclusions, pas une de plus : soi-même (rien à y faire), une
+     ligne sans code (les faux joueurs du mode hors ligne, qui n'existent
+     dans aucune base), et l'absence du gestionnaire. */
+  const clickable = !isMe && !!onOpenUserProfile && !!p.user_code;
   const value = Math.floor(p.shares * price);
   const badgeLabel = rank === 1 ? '📈 Top trader' : rank === 2 ? '📊 2e trader' : rank === 3 ? '📉 3e trader' : null;
 
   return (
     <div
-      onClick={clickable ? () => onOpenUserProfile(p.user_code) : undefined}
+      onClick={clickable ? () => onOpenUserProfile(p.user_code, isFirst) : undefined}
       style={{
         display:'flex', alignItems:'center', gap:12,
         padding:'12px 14px', borderRadius:14,

@@ -4665,7 +4665,11 @@ export default function CookiMiner() {
               earnedAchievements={earnedAchievements}
               activeTitle={activeTitle}
               onOpenProfile={()=>{ playSound('modal'); setShowProfile(true); }}
-              onOpenUserProfile={(code)=>{ playSound('modal'); openUserProfile(code, true); }}
+              /* `isCrown` était codé en dur à true : seule la ligne n°1
+                 pouvait s'ouvrir. Maintenant que tout le classement est
+                 cliquable, le rang doit voyager avec le code — sinon on
+                 couronne le 27e comme le premier. */
+              onOpenUserProfile={(code, estPremier)=>{ playSound('modal'); openUserProfile(code, !!estPremier); }}
               C={C}
             />
           )}

@@ -48,10 +48,35 @@ export function AboutModal({ onClose, C }){
   const [codeFeedback,  setCodeFeedback]  = useState(null); // 'wrong' | 'ok' | null
   const codeInputRef = useRef(null);
 
+  /* ── Des chiffres vivants, pas un instantané ─────────
+     Ils étaient lus une fois à l'ouverture puis figés. « 3 joueurs en
+     ligne » devenait faux au bout d'une minute, sans que rien ne le
+     dise — et c'est justement le chiffre qu'on regarde.
+
+     On relit donc toutes les 20 s tant que la modale est ouverte. Deux
+     garde-fous : rien ne part quand l'app est en arrière-plan (inutile
+     de solliciter la base pour un écran que personne ne voit), et une
+     lecture qui échoue ne remplace PAS les chiffres à l'écran — une
+     coupure réseau d'une seconde ne doit pas tout vider. */
   useEffect(() => {
     let alive = true;
-    getGlobalCommunityStats().then(s => { if(alive) setStats(s); });
-    return () => { alive = false; };
+
+    const relire = () => {
+      if(document.visibilityState !== 'visible') return;
+      getGlobalCommunityStats().then(s => { if(alive && s) setStats(s); }).catch(() => {});
+    };
+
+    relire();
+    const id = setInterval(relire, 20_000);
+    /* Revenir sur l'app rafraîchit tout de suite : sinon on retombe sur
+       les chiffres d'avant, jusqu'à 20 s. */
+    document.addEventListener('visibilitychange', relire);
+
+    return () => {
+      alive = false;
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', relire);
+    };
   }, []);
 
   /* Auto-focus quand on ouvre l'input + auto-validation à 4 chiffres */
@@ -164,6 +189,23 @@ export function AboutModal({ onClose, C }){
             }}>
               {t('about.community_title')}
             </div>
+
+            {/* Dire que ça vit. Sans ce repère, un chiffre qui bouge tout
+                seul passe pour un bug d'affichage. */}
+            {stats != null && (
+              <div style={{
+                display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                marginTop:-6, marginBottom:12,
+              }}>
+                <span style={{
+                  width:6, height:6, borderRadius:'50%', background:'#D4A017',
+                  animation:'pulse-dot 1.6s ease-in-out infinite',
+                }} />
+                <span style={{ fontSize:9.5, fontWeight:700, color:'rgba(255,255,255,.5)', letterSpacing:1 }}>
+                  {t('about.live')}
+                </span>
+              </div>
+            )}
 
             {stats == null ? (
               <div style={{ textAlign:'center', color:'rgba(255,255,255,.55)', fontSize:12, fontStyle:'italic', padding:'10px 0' }}>

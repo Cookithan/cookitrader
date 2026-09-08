@@ -166,6 +166,7 @@ export const EN = {
   },
 
   about: {
+    live:            'LIVE',
     title:        'About',
     version:      'Version',
     realized_by:  'Made by',
@@ -250,6 +251,10 @@ export const EN = {
   },
 
   profile: {
+    add_friend:      'Add as friend',
+    friend_sending:  'Sending…',
+    friend_sent:     '📬 Request sent',
+    friend_already:  '🤝 Already your friend',
     title:           'My profile',
     sync_online_title:'Profile synced online',
     sync_offline_title:'No online sync',
