@@ -620,9 +620,21 @@ function controleForceVersion(status) {
   const fv = status?.force_version;
   if (!fv) return faire('ok', 'versions', 'Aucune mise à jour forcée en cours');
 
+  /* Le drapeau ÉGAL à la version courante est l'usage NORMAL : c'est
+     ainsi qu'on invite les clients restés en arrière à se mettre à
+     jour. La première version de ce contrôle criait dessus — Régis a
+     poussé ses comptes vers la 1.30.2 et l'alerte est restée. Un
+     contrôle qui punit le geste correct est pire qu'un contrôle
+     absent : il apprend à ignorer les alertes. */
+  if (fv === APP_INFO.version) {
+    return faire('ok', 'versions', `Mise à jour forcée vers ${fv} — les clients en retard sont invités à se mettre à jour`);
+  }
   if (versionPlusRecente(fv, APP_INFO.version)) {
     return faire('ok', 'versions', `Mise à jour forcée vers ${fv} (en avance sur cette app)`);
   }
+  /* Seul cas réellement fautif : le drapeau pointe vers une version PLUS
+     ANCIENNE que celle déployée. Il ne sert plus à rien, et au prochain
+     changement de version il inviterait les joueurs à redescendre. */
   return faire('alerte', 'versions', `Drapeau de mise à jour périmé : ${fv}`, [
     `L'app déployée est en ${APP_INFO.version} — le drapeau ne sert plus à rien.`,
     "Au prochain changement de version, il proposera aux joueurs à jour de REDESCENDRE vers cette version-là.",
