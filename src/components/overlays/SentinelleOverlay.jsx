@@ -83,6 +83,36 @@ function codeDansDetail(detail = []) {
   return null;
 }
 
+/* ── Ce constat a-t-il déjà été traité ? ──────────────
+   Retour de Régis : « j'ai forcé la mise à jour puis validé, et le
+   message à traiter reste ».
+
+   Ce n'était pas un bug d'affichage. Forcer la mise à jour ne met
+   personne à jour : ça pose un drapeau que le joueur ne verra qu'en
+   rouvrant son app, parfois des jours plus tard. Le constat reste donc
+   VRAI. Ce qui manquait, c'est que l'écran sache que l'humain, lui, a
+   fait sa part.
+
+   On le déduit du registre — aucune table de plus : si une action
+   capable de répondre à ce constat a réussi APRÈS son apparition,
+   c'est traité. Le constat quitte « à traiter » pour « en attente
+   d'effet », et disparaît tout seul le jour où la situation change.
+
+   Le lien se lit dans ACTIONS_PAR_CONSTAT, le même qui propose les
+   remèdes sous le constat : une seule table de correspondance pour les
+   deux usages, donc pas de dérive possible entre ce qu'on propose et
+   ce qu'on considère comme traité. */
+function dejaTraite(constat, age, registre) {
+  const remedes = ACTIONS_PAR_CONSTAT[constat.categorie] || [];
+  if (!remedes.length || !registre?.length) return null;
+  const depuis = age?.depuis ? new Date(age.depuis).getTime() : 0;
+  return registre.find(l =>
+    l.resultat === 'ok' &&
+    remedes.includes(l.action) &&
+    new Date(l.created_at).getTime() >= depuis
+  ) || null;
+}
+
 /* Petit titre de section, comme partout ailleurs dans l'app. */
 function Section({ children, C }) {
   return (
@@ -95,7 +125,7 @@ function Section({ children, C }) {
 }
 
 /* ── UN CONSTAT ──────────────────────────────────────── */
-function Constat({ r, age, onAgir, onClasser, C }) {
+function Constat({ r, age, traite, onAgir, onClasser, C }) {
   const ton = TONS[r.verdict] || TONS.ok;
   const [ouvert, setOuvert] = useState(false);
   const detail = Array.isArray(r.detail) ? r.detail : [];
@@ -131,11 +161,17 @@ function Constat({ r, age, onAgir, onClasser, C }) {
             <span style={{ fontSize:10, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.4 }}>
               {r.categorie}
             </span>
-            {neuf && (
+            {neuf && !traite && (
               <span style={{
                 fontSize:8.5, fontWeight:900, letterSpacing:.6, padding:'2px 6px',
                 borderRadius:7, background:ton.ruban, color:'#fff',
               }}>NOUVEAU</span>
+            )}
+            {traite && (
+              <span style={{
+                fontSize:8.5, fontWeight:900, letterSpacing:.6, padding:'2px 6px',
+                borderRadius:7, background:'rgba(212,160,23,.9)', color:'#3D2010',
+              }}>TRAITÉ</span>
             )}
           </span>
           <span style={{ display:'block', fontSize:14, fontWeight:800, color:C.text, lineHeight:1.4 }}>
@@ -145,7 +181,15 @@ function Constat({ r, age, onAgir, onClasser, C }) {
           {/* QUAND, systématiquement. Sans date, un point apparu il y a
               dix minutes se retrouve enterré sous une alerte qui traîne
               depuis trois jours — et on traite dans le mauvais ordre. */}
-          {age?.depuis && r.verdict !== 'ok' && (
+          {traite && (
+            <span style={{ display:'block', fontSize:11.5, color:C.text, marginTop:5, lineHeight:1.5 }}>
+              Tu as lancé <strong>{traite.action}</strong> {quand(traite.created_at)}.
+              <span style={{ color:C.muted }}> L'effet n'est pas immédiat : ce constat
+              disparaîtra de lui-même quand la situation aura vraiment changé.</span>
+            </span>
+          )}
+
+          {!traite && age?.depuis && r.verdict !== 'ok' && (
             <span style={{ display:'block', fontSize:11.5, color:C.muted, marginTop:5, lineHeight:1.45 }}>
               <strong style={{ color:C.text, fontWeight:700 }}>Apparu {quand(age.depuis)}</strong>
               {` · ${dateCourte(age.depuis)}`}
@@ -846,10 +890,12 @@ export function SentinelleOverlay({ onClose, C }) {
   const [message, setMessage]       = useState(null);
   const [resultatRonde, setResultatRonde] = useState(null);
   const [voirRanges, setVoirRanges]  = useState(false);
+  const [registre, setRegistre]      = useState([]);
 
   const charger = useCallback(async () => {
     setChargement(true);
-    const [rap, ign] = await Promise.all([derniersRapports(200), listerIgnores()]);
+    const [rap, ign, reg] = await Promise.all([derniersRapports(200), listerIgnores(), journal(40)]);
+    setRegistre(reg);
     const rondes = grouperParRonde(rap);
     setIgnores(ign);
     setHistorique(rondes);
@@ -936,7 +982,14 @@ export function SentinelleOverlay({ onClose, C }) {
   const signaturesIgnorees = new Set(ignores.map(i => i.signature));
   const estIgnore = (r) => signaturesIgnorees.has(signatureConstat(r));
 
-  const problemes = tries.filter(r => r.verdict !== 'ok' && !estIgnore(r));
+  const ouverts   = tries.filter(r => r.verdict !== 'ok' && !estIgnore(r));
+  const traiteDe  = (r) => dejaTraite(r, anciennete(historique, r), registre);
+
+  /* Ce sur quoi on a déjà agi sort de « à traiter » : sinon on relit
+     chaque soir une ligne qu'on a réglée le matin, et on finit par ne
+     plus distinguer ce qui attend de ce qui est fait. */
+  const problemes = ouverts.filter(r => !traiteDe(r));
+  const enAttente = ouverts.filter(r => traiteDe(r));
   const ranges    = tries.filter(r => r.verdict !== 'ok' && estIgnore(r));
   const sains     = tries.filter(r => r.verdict === 'ok');
   const alertes   = problemes.filter(r => r.verdict === 'alerte').length;
@@ -1113,6 +1166,7 @@ export function SentinelleOverlay({ onClose, C }) {
               <Constat
                 key={r.id ?? i} r={r}
                 age={immediat ? null : anciennete(historique, r)}
+                traite={null}
                 onAgir={allerAgir}
                 onClasser={deverrouille ? classer : null}
                 C={C}
@@ -1152,6 +1206,23 @@ export function SentinelleOverlay({ onClose, C }) {
             {/* Ce qui a été classé sans suite. Rangé, pas supprimé : on
                 peut toujours le reprendre, et il revient tout seul si
                 les chiffres bougent. */}
+            {enAttente.length > 0 && (
+              <>
+                <Section C={C}>Traité — en attente d'effet</Section>
+                {enAttente.map((r, i) => (
+                  <Constat
+                    key={r.id ?? `att${i}`}
+                    r={r}
+                    age={immediat ? null : anciennete(historique, r)}
+                    traite={traiteDe(r)}
+                    onAgir={allerAgir}
+                    onClasser={deverrouille ? classer : null}
+                    C={C}
+                  />
+                ))}
+              </>
+            )}
+
             {ranges.length > 0 && (
               <>
                 {/* Replié par défaut : ce qu'on a déjà jugé normal n'a
