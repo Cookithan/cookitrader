@@ -47,7 +47,7 @@ function rewardFor(score){
   return 0;
 }
 
-export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
+export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSkin = '', duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t } = useTranslation();
   /* Skin cookie : si l'user a un skin custom équipé, on remplace le SVG
      hardcodé par <SkinnedCookie> pour rester cohérent avec ClickGame +
@@ -56,13 +56,6 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
     ? COOKIE_SKINS[activeSkin]
     : null;
   const [phase,         setPhase]         = useState('idle');     // idle | countdown | playing | done
-  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
-     inclus : la bascule doit se faire AVANT le premier geste, pas au
-     milieu de l'action. */
-  useEffect(() => { onEnJeu?.(phase === 'playing' || phase === 'countdown'); }, [phase, onEnJeu]);
-  /* Au démontage seulement — pas à chaque changement de phase, sinon
-     l'en-tête clignoterait entre deux états. */
-  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
 
   const [score,         setScore]         = useState(0);
   const [timeLeft,      setTimeLeft]      = useState(REFLEX_DURATION);
@@ -323,7 +316,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:14, paddingTop:6, position:'relative' }}>
 
       {/* 2 cartes stats */}
-      <div style={{ display:'flex', gap:8, width:'100%', maxWidth:360 }}>
+      <div style={{ display:'flex', gap:8, width:'100%', maxWidth:'100%' }}>
         <div style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${phase==='playing'?'#D4A017':C.border}`, textAlign:'center' }}>
           <div style={{ fontSize:11 }}>🍪</div>
           <div style={{ fontSize:22, fontWeight:900, color: phase==='playing'?'#D4A017':C.text, lineHeight:1.1 }}>{score}</div>
@@ -337,7 +330,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
       </div>
 
       {/* Barre de temps */}
-      <div style={{ width:'100%', maxWidth:360, height:6, borderRadius:3, background:C.card2, overflow:'hidden', border:`1px solid ${C.border}` }}>
+      <div style={{ width:'100%', maxWidth:'100%', height:6, borderRadius:3, background:C.card2, overflow:'hidden', border:`1px solid ${C.border}` }}>
         <div style={{
           height:'100%', borderRadius:3,
           width: `${(timeLeft / REFLEX_DURATION) * 100}%`,
@@ -352,7 +345,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
       <div
         className="reflex-arena"
         style={{
-          maxWidth:360,
+          maxWidth:'100%',
           touchAction:'manipulation', userSelect:'none', WebkitUserSelect:'none',
           animation: shaking ? 'shake .25s ease-in-out' : undefined,
         }}
@@ -533,7 +526,7 @@ export function ReflexGame({ coins, onEarn, onSpend, onEventChallenge, activeSki
       </button>
 
       {/* Tip card */}
-      <div style={{ width:'100%', maxWidth:360, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
+      <div style={{ width:'100%', maxWidth:'100%', padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
         💡 <strong style={{ color:'#D4A017' }}>20+ tapés = +50 🍪</strong> · 10-19 = +25 · 5-9 = +10 · ça s'accélère !
       </div>
     </div>

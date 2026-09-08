@@ -743,6 +743,8 @@ export const FR = {
   },
 
   market_card: {
+    ticker:          'Action $CKM',
+    teaser_sub:      '{n} actions détenues sur {total} — voir le marché',
     ckm_label:        '$CKM · Action CookiMiner',
     higher_than_yesterday:"Plus haut qu'hier",
     lower_than_yesterday: "Plus bas qu'hier",

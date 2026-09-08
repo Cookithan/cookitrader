@@ -96,16 +96,9 @@ function getMovingCupBottomPosition(stackedCups){
   return STACK_BOTTOM + SAUCER_HEIGHT + h + 60;
 }
 
-export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
+export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidPlaysLeft = 0, pyramidGamesCap = 100, consumePyramidGame, pyramidRechargeCost = 1, cafes = 0, onRechargePyramid, duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t } = useTranslation();
   const [phase,           setPhase]           = useState('intro');     // intro | playing | gameover
-  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
-     inclus : la bascule doit se faire AVANT le premier geste, pas au
-     milieu de l'action. */
-  useEffect(() => { onEnJeu?.(phase === 'playing'); }, [phase, onEnJeu]);
-  /* Au démontage seulement — pas à chaque changement de phase, sinon
-     l'en-tête clignoterait entre deux états. */
-  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
 
   const [mode,            setMode]            = useState('normal');    // sélectionné dans l'intro, lock pendant playing
   const [stackedCups,     setStackedCups]     = useState([]);
@@ -414,7 +407,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
         gap:14, paddingTop:6, minHeight:'70vh', justifyContent:'center',
       }}>
         <div style={{
-          width:'100%', maxWidth:340,
+          width:'100%', maxWidth:'100%',
           background:'linear-gradient(180deg, #3D2010 0%, #4A2C17 100%)',
           borderRadius:20, border:'1.5px solid rgba(212, 160, 23, 0.15)',
           padding:24,
@@ -577,7 +570,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
         gap:14, paddingTop:6, minHeight:'70vh', justifyContent:'center',
       }}>
         <div className="bi" style={{
-          width:'100%', maxWidth:340,
+          width:'100%', maxWidth:'100%',
           background:'linear-gradient(180deg, #3D2010 0%, #4A2C17 100%)',
           borderRadius:20, border:'1.5px solid rgba(212, 160, 23, 0.15)',
           padding:24,
@@ -693,7 +686,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
   return (
     <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12, paddingTop:6 }}>
       {/* 2 cartes stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:340 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, width:'100%', maxWidth:'100%' }}>
         <StatCard value={score}  label={t('game_pyramid.cups_placed')} />
         <StatCard value={reward} label={t('game_pyramid.earned')} highlight={reward >= (MODES[mode]?.rewardCap || 80)} />
       </div>
@@ -917,7 +910,7 @@ export function PyramidGame({ coins, onEarn, onSpend, onEventChallenge, pyramidP
 
       {/* Tip */}
       <div style={{
-        width:'100%', maxWidth:340,
+        width:'100%', maxWidth:'100%',
         padding:'10px 14px', borderRadius:12,
         background:C.card, border:`1px solid ${C.border}`,
         fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center',

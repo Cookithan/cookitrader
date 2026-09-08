@@ -725,6 +725,8 @@ export const EN = {
   },
 
   market_card: {
+    ticker:          '$CKM share',
+    teaser_sub:      '{n} shares held out of {total} — see the market',
     ckm_label:        '$CKM · CookiMiner Share',
     higher_than_yesterday:'Higher than yesterday',
     lower_than_yesterday: 'Lower than yesterday',

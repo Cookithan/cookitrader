@@ -109,12 +109,19 @@ export const GAME_THEMES = [
 
   /* ── FLAPPY COOKIE ────────────────────────────────────────────── */
   {
+    /* Le ciel était BLEU (#a8d5ff) au-dessus de tuyaux bruns : la seule
+       surface de l'app à sortir de la palette café, et le contraste
+       faisait ressortir les tuyaux comme des corps étrangers.
+
+       Il devient un dégradé mousse de lait → café au lait, dans lequel
+       les tuyaux se lisent comme du café torréfié plutôt que comme des
+       poteaux posés sur un ciel d'été. (09/09/2026) */
     id:'flappy_default', gameId:'flappy', type:'skin', free:true,
-    name:'Ciel matinal',                  name_en:'Morning sky',
-    description:'Bleu ciel et nuages',    description_en:'Sky blue and clouds',
-    preview:'☁️',
+    name:'Café au lait',                  name_en:'Café au lait',
+    description:'Mousse de lait et caramel', description_en:'Milk foam and caramel',
+    preview:'☕',
     data:{
-      skyTop:'#a8d5ff', skyBottom:'#fff5dc',
+      skyTop:'#FBEEDA', skyBottom:'#C9925C',
       pipeColor:'#7A4320',
       cookieTint:null,
     },

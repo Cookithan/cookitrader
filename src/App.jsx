@@ -29,6 +29,7 @@ import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
 import { SentinelleOverlay } from "./components/overlays/SentinelleOverlay.jsx";
 import { SignalementOverlay } from "./components/overlays/SignalementOverlay.jsx";
+import { MarketTeaser } from "./components/market/MarketTeaser.jsx";
 import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire, alertesEnCours, signalementsOuverts, versionPlusRecente } from "./lib/sentinelle.js";
 import { LevelUpModal } from "./components/modals/LevelUpModal.jsx";
 import { AchievementModal } from "./components/modals/AchievementModal.jsx";
@@ -4493,6 +4494,15 @@ export default function CookiMiner() {
             {/* v1.30 : réduit à une ligne discrète. C'était une carte
                 gradient de 42px de haut sur l'écran le plus vu de l'app,
                 alors que l'entrée existe aussi dans Paramètres. */}
+            {/* Le cours du $CKM, en pied d'accueil. Le marché est
+                l'écran le plus vivant de l'app et le moins visité : il
+                fallait l'ouvrir pour savoir s'il s'y passait quelque
+                chose, donc personne n'y allait, donc il ne s'y passait
+                rien. La carte casse la boucle — le cours vient au
+                joueur. Elle s'efface d'elle-même sous le niveau 3, où
+                le marché n'existe pas encore. */}
+            <MarketTeaser level={level} onOpen={() => { playSound('modal'); setTab('marche'); }} C={C} />
+
             <a
               href="https://discord.gg/EMDQXDBV39"
               target="_blank"

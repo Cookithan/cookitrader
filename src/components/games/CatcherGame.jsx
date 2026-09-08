@@ -125,7 +125,19 @@ const CF_THRESHOLD_60S = 280;
 function rewardFor(score, duration){
   const m = (duration || 60) / 60;
   for(let i = PALIERS_60S.length - 1; i >= 0; i--){
-    if(score >= PALIERS_60S[i] * m) return REWARDS_PALIER[i];
+    /* ⚠️ La récompense scale AUSSI (corrigé le 09/09/2026). Les seuils
+       étaient multipliés par la durée mais pas les gains : en 3 minutes
+       il fallait tripler son score pour toucher les mêmes 5 🍪 qu'en une
+       minute. Autrement dit, le mode long payait le tiers du taux du
+       mode court — jouer plus longtemps était une punition.
+
+       Avec le facteur, le rendement redevient identique quelle que soit
+       la durée : c'est le score PAR SECONDE qui décide, comme les seuils
+       le supposaient déjà.
+
+       Le bonus en café, lui, ne scale pas et reste à 1 maximum : on
+       n'ajoute pas de source de café sans décision explicite. */
+    if(score >= PALIERS_60S[i] * m) return Math.round(REWARDS_PALIER[i] * m);
   }
   return 0;
 }
@@ -179,7 +191,7 @@ function CupSvg({ dark, frozen, inverted }){
   );
 }
 
-export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
+export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayContinue, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   const { t } = useTranslation();
 
   /* Thème actif — lu une fois au mount, pas live pendant la partie */
@@ -202,13 +214,6 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
   const VY_DIR     = inverted ? -1 : +1;
 
   const [phase,        setPhase]        = useState('idle');
-  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
-     inclus : la bascule doit se faire AVANT le premier geste, pas au
-     milieu de l'action. */
-  useEffect(() => { onEnJeu?.(phase === 'playing' || phase === 'countdown'); }, [phase, onEnJeu]);
-  /* Au démontage seulement — pas à chaque changement de phase, sinon
-     l'en-tête clignoterait entre deux états. */
-  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
 
   const [score,        setScore]        = useState(0);
   /* Durée sélectionnée pour la prochaine partie (60/120/180). Une fois
@@ -685,8 +690,11 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
   /* Fond de l'arène — dynamique selon temperature si le thème le veut. */
   const arenaBg = tempReactive ? gradientForTemp(temperature) : staticBg;
 
+  /* Plus de plafond à 360 px sur la colonne : sur un téléphone de
+     430 px, il laissait 35 px de vide de chaque côté et rapetissait
+     l'aire de jeu d'autant. Le contenu se centre tout seul. */
   return (
-    <div style={{ textAlign:'center', maxWidth:ARENA_W, margin:'0 auto' }}>
+    <div style={{ textAlign:'center', width:'100%', margin:'0 auto' }}>
       {/* HUD revisité : carte espresso avec score gros au centre, timer
           en barre dégradée fine au-dessus de l'arena. */}
       <div style={{
@@ -760,7 +768,12 @@ export function CatcherGame({ coins, cafes, onEarn, onSpend, onCafeEarn, onPayCo
         onPointerMove={e => { if(e.pointerType !== 'touch') movePointer(e.clientX); }}
         className={shake ? 'shake-anim' : ''}
         style={{
-          position:'relative', width:'100%', maxWidth:ARENA_W, aspectRatio:`${ARENA_W} / ${ARENA_H}`,
+          /* L'aire prend toute la largeur disponible et garde son
+             rapport ; `maxHeight` l'empêche de déborder en hauteur sur
+             un écran étroit. Le wrapper interne reste en coordonnées
+             360×460 et se met à l'échelle tout seul (ResizeObserver),
+             donc la physique du jeu ne change pas d'un pouce. */
+          position:'relative', width:'100%', maxHeight:'100%', aspectRatio:`${ARENA_W} / ${ARENA_H}`,
           margin:'0 auto', borderRadius:20,
           background: arenaBg,
           border:`2px solid rgba(212,160,23,.45)`, overflow:'hidden',

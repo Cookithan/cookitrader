@@ -81,7 +81,7 @@ const MODES = {
   difficile: { label:'Difficile', emoji:'🔥', gap:120, gravity:1100, flapSpeed:-390, baseSpeed:180, reward:5, rewardLight:10, coffeeRate:0.15 },
 };
 
-export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C, onEnJeu }){
+export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gameThemes, setGameThemes, unlocked = [], duelMode = false, onDuelScore, onDuelProgress, autoPlay = false, C }){
   /* Thème actif (skin cosmétique) — change le sky gradient et le pipeColor.
      Lu une seule fois au mount, pas live pendant la partie. */
   const flappyTheme = getActiveTheme('flappy', gameThemes || {});
@@ -90,13 +90,25 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
   const [phase, setPhase] = useState('idle');           // idle | countdown | playing | done
-  /* Plein écran pendant la partie (cf. GameOverlay). Le décompte est
-     inclus : la bascule doit se faire AVANT le premier geste, pas au
-     milieu de l'action. */
-  useEffect(() => { onEnJeu?.(phase === 'playing' || phase === 'countdown'); }, [phase, onEnJeu]);
-  /* Au démontage seulement — pas à chaque changement de phase, sinon
-     l'en-tête clignoterait entre deux états. */
-  useEffect(() => () => onEnJeu?.(false), [onEnJeu]);
+  /* Échelle appliquée à l'aire de jeu. Elle reste en 320 × 420 dans son
+     propre repère — la physique, les collisions et les vitesses ne
+     changent pas d'un pixel — et c'est le CSS qui l'agrandit jusqu'à
+     remplir la largeur disponible. */
+  const [echelleArene, setEchelleArene] = useState(1);
+  const areneBoxRef = useRef(null);
+
+  useEffect(() => {
+    if(!areneBoxRef.current) return;
+    const mesurer = () => {
+      const w = areneBoxRef.current?.offsetWidth;
+      if(w && w > 0) setEchelleArene(w / ARENA_W);
+    };
+    mesurer();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(mesurer) : null;
+    if(ro) ro.observe(areneBoxRef.current);
+    window.addEventListener('resize', mesurer);
+    return () => { if(ro) ro.disconnect(); window.removeEventListener('resize', mesurer); };
+  }, []);
 
   const [mode,  setMode]  = useState('normal');         // facile | normal | difficile
   const [countdownVal, setCountdownVal] = useState(null);
@@ -429,7 +441,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
 
       {/* Sélecteur de mode (idle uniquement) */}
       {phase === 'idle' && (
-        <div style={{ width:'100%', maxWidth:340, display:'flex', flexDirection:'column', gap:6 }}>
+        <div style={{ width:'100%', maxWidth:'100%', display:'flex', flexDirection:'column', gap:6 }}>
           <div style={{
             fontSize:10, fontWeight:700, color:C.muted,
             textTransform:'uppercase', letterSpacing:1.5,
@@ -484,7 +496,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
       )}
 
       {/* Stats */}
-      <div style={{ display:'flex', gap:10, width:'100%', maxWidth:340 }}>
+      <div style={{ display:'flex', gap:10, width:'100%', maxWidth:'100%' }}>
         <div style={{ flex:1, padding:'10px 8px', borderRadius:14, background:C.card, border:`1.5px solid ${phase==='playing'?'#D4A017':C.border}`, textAlign:'center' }}>
           <div style={{ fontSize:11 }}>☕</div>
           <div style={{ fontSize:22, fontWeight:900, color: phase==='playing'?'#D4A017':C.text, lineHeight:1.1 }}>{score}</div>
@@ -497,7 +509,17 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
         </div>
       </div>
 
-      {/* Arena */}
+      {/* Arena — deux enveloppes, cf. l'en-tête du correctif :
+          le mesureur donne la largeur réelle, le metteur à l'échelle
+          agrandit, et l'aire d'origine reste en 320 × 420. */}
+      <div ref={areneBoxRef} style={{
+        position:'relative', width:'100%', maxWidth:'100%',
+        aspectRatio:`${ARENA_W} / ${ARENA_H}`,
+      }}>
+      <div style={{
+        position:'absolute', top:0, left:0,
+        transform:`scale(${echelleArene})`, transformOrigin:'top left',
+      }}>
       <div
         onPointerDown={(e) => { e.preventDefault(); handleTap(); }}
         style={{
@@ -726,6 +748,8 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
           </div>
         )}
       </div>
+      </div>
+      </div>
 
       {/* Bouton principal */}
       <button
@@ -746,7 +770,7 @@ export function FlappyGame({ coins, onEarn, onSpend, onCafeEarn, activeSkin, gam
       </button>
 
       {/* Tip */}
-      <div style={{ width:'100%', maxWidth:340, padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
+      <div style={{ width:'100%', maxWidth:'100%', padding:'10px 14px', borderRadius:12, background:C.card, border:`1px solid ${C.border}`, fontSize:11, color:C.muted, lineHeight:1.5, textAlign:'center' }}>
         💡 Tap pour faire bondir · Évite les tuyaux · <strong style={{ color:'#D4A017' }}>+{modeCfg.reward} 🍪 / tuyau (+{modeCfg.rewardLight} sur clair) · cap {REWARD_CAP} 🍪</strong>
       </div>
     </div>
