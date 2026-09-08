@@ -67,7 +67,7 @@ end $$;
    327 actions donneraient 65,4 → on en donne 66, soit 33 000 🍪 pour
    32 700 🍪 auparavant. Personne ne peut ouvrir l'app et constater
    qu'il y a perdu quelque chose, ce qui vaut largement les ~2 %
-   d'actions supplémentaires que ça coûte (222 au lieu de 215).
+   d'actions supplémentaires que ça coûte (223 au lieu de 215).
    CEIL règle aussi le cas des porteurs de 1 et 2 actions, qui
    tomberaient à zéro avec un arrondi mathématique.                  */
 update market_portfolio

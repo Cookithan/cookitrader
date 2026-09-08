@@ -25,12 +25,24 @@
    script — l'aller-retour ne coûte que le slippage, quelques pour cent.
 ══════════════════════════════════════════════════════════════════ */
 
-/* ── 0. Garde-fou : la photo doit exister ────────────────────── */
+/* ── 0. Garde-fou : la photo doit exister ET ne pas être vide ── */
+/* Le second contrôle n'est pas une politesse. Plus bas, tout
+   portefeuille ABSENT de la photo est remis à zéro — c'est ce qui
+   efface les comptes de test. Si la photo était vide, cette règle
+   viderait les portefeuilles de TOUS LES JOUEURS d'un coup. Mieux vaut
+   un script qui refuse de tourner qu'un script qui ruine seize
+   personnes en silence. */
 do $$
+declare n int;
 begin
   if to_regclass('public.market_apres_split') is null then
     raise exception
       'Photo introuvable — market_apres_split n''existe pas. Lance SPLIT_MARCHE_500.sql d''abord : sans elle, impossible de savoir à quoi ressemblait le marché avant les essais.';
+  end if;
+  select count(*) into n from market_apres_split;
+  if n = 0 then
+    raise exception
+      'Photo VIDE — market_apres_split ne contient aucune ligne. Ne pas continuer : le script remettrait à zéro tous les portefeuilles. Refaire la photo à la main : create table market_apres_split as select user_code, shares, total_invested, weighted_buy_at, now() as snapshot_at from market_portfolio where shares > 0;';
   end if;
 end $$;
 
