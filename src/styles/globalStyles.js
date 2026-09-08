@@ -300,12 +300,12 @@ export const GLOBAL_CSS = `
      au lieu de battre la mesure.
      AUCUN BACKTICK dans ce fichier, même en commentaire. */
   @keyframes levelSheen{0%{transform:translateX(-140%) skewX(-18deg)}42%{transform:translateX(320%) skewX(-18deg)}100%{transform:translateX(320%) skewX(-18deg)}}
-  .level-sheen{position:absolute;top:-30%;left:0;width:52%;height:170%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,236,190,.26),rgba(255,255,255,.30),rgba(255,236,190,.26),transparent);animation:levelSheen 5s ease-in-out infinite;will-change:transform}
+  .level-sheen,.card-sheen{position:absolute;top:-30%;left:0;width:52%;height:170%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,236,190,.26),rgba(255,255,255,.30),rgba(255,236,190,.26),transparent);animation:levelSheen 5s ease-in-out infinite;will-change:transform}
   /* Lueur chaude qui enfle et retombe dans le coin haut-gauche : la
      surface brune ne bouge pas, mais la lumiere qui tombe dessus si.
      Opacite seule -> composite, aucun repaint du degrade de fond. */
   @keyframes levelWarm{0%,100%{opacity:0}50%{opacity:.17}}
-  .level-warm{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 95% at 18% -10%, rgba(255,224,150,.95), transparent 62%);animation:levelWarm 7s ease-in-out infinite;will-change:opacity}
+  .level-warm,.card-warm{position:absolute;inset:0;pointer-events:none;background:radial-gradient(130% 95% at 18% -10%, rgba(255,224,150,.95), transparent 62%);animation:levelWarm 7s ease-in-out infinite;will-change:opacity}
   @keyframes levelGlint{0%{transform:translateX(-160%)}38%{transform:translateX(260%)}100%{transform:translateX(260%)}}
   .level-glint{position:absolute;top:0;left:0;width:45%;height:100%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:levelGlint 4.5s ease-in-out infinite;will-change:transform}
   @keyframes levelBubble{0%,100%{transform:scale(1);opacity:.05}50%{transform:scale(1.18);opacity:.1}}

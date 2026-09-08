@@ -71,7 +71,20 @@ export function MarketStateCard({ state, dayChange, marketStatus }) {
       color: '#fff',
       marginBottom: 12,
       boxShadow: '0 8px 24px rgba(74,44,23,.35)',
+      /* relative + overflow:hidden : sans les deux, le reflet balaierait
+         par-dessus les cartes voisines au lieu de rester dans les coins
+         arrondis de la bannière. */
+      position: 'relative',
+      overflow: 'hidden',
     }}>
+      {/* Lueur chaude qui enfle et retombe (7 s), puis reflet qui balaie
+          la bannière (5 s). Mêmes animations que la carte de niveau de
+          l'Accueil — c'est le même objet : une plaque brune qui doit
+          accrocher la lumière au lieu de rester un aplat. Transform et
+          opacity seulement : composité GPU, aucun reflow. */}
+      <div className="card-warm" aria-hidden />
+      <div className="card-sheen" aria-hidden />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 2 }}>
