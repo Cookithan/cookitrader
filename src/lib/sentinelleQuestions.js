@@ -240,17 +240,45 @@ const QUESTIONS = [
   },
   {
     id: 'promo',
-    mots: ['promo', 'code promo', 'codes'],
+    mots: ['promo', 'code promo', 'codes', 'code'],
     exemple: 'les codes promo',
+    /* La liste se relit à chaque question : créer un code le fait
+       apparaître, le supprimer le fait disparaître, sans rien à
+       rafraîchir. C'est la base qui fait foi, pas une copie en
+       mémoire. */
     async repondre() {
       const rows = await q('promo_codes', '*');
-      if (!rows.length) return {
-        titre: 'Aucun code créé depuis la console',
-        lignes: ['Les codes écrits en dur dans l\'app restent actifs, ils ne sont simplement pas listés ici.'],
+      const actifs   = rows.filter(c => c.actif !== false);
+      const retires  = rows.filter(c => c.actif === false);
+
+      const decrire = (c) => {
+        const gains = [
+          num(c.coins)  ? `${fmt(c.coins)} 🍪`  : null,
+          num(c.cafes)  ? `${num(c.cafes)} ☕`  : null,
+          num(c.shares) ? `${num(c.shares)} action(s)` : null,
+        ].filter(Boolean).join(' + ') || 'rien';
+        const quand = c.cree_le ? new Date(c.cree_le).toLocaleDateString('fr-FR') : '';
+        return `${c.code} → ${gains}${c.label ? ` · « ${c.label} »` : ''}${quand ? ` · créé le ${quand}` : ''}`;
       };
+
+      if (!actifs.length && !retires.length) {
+        return {
+          titre: 'Aucun code créé depuis la console',
+          lignes: [
+            "Tu peux en créer un dans l'onglet Agir → L'application.",
+            "Les 24 codes historiques vivent dans le code de l'app : ils continuent de marcher, ils ne sont simplement pas listés ici.",
+          ],
+        };
+      }
+
       return {
-        titre: `${rows.length} code(s) créé(s) depuis la console`,
-        lignes: rows.map(c => `${c.code} — ${c.label || 'sans libellé'}${c.actif === false ? ' (désactivé)' : ''}`),
+        titre: `${actifs.length} code(s) promo actif(s)`,
+        lignes: [
+          ...actifs.map(decrire),
+          ...(retires.length ? ['', `${retires.length} code(s) supprimé(s) : ${retires.map(c => c.code).join(', ')} — ils ne fonctionnent plus, ceux qui les ont utilisés gardent leur récompense.`] : []),
+          '',
+          "Les 24 codes historiques vivent dans le code de l'app et ne sont pas listés ici.",
+        ],
       };
     },
   },
