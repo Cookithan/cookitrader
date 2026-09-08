@@ -695,6 +695,7 @@ export const EN = {
   },
 
   feed: {
+    received:        'received',
     bought:           'bought',
     sold:             'sold',
     at:               'at',
@@ -1131,6 +1132,7 @@ export const EN = {
   },
 
   toast: {
+    market_locked_promo: 'This code grants $CKM shares — the market opens at level {n}. Keep it, it will still work.',
     saved:           'Saved ✓',
     copied:          'Copied to clipboard',
     error_generic:   'Something went wrong',

@@ -39,6 +39,12 @@ export const MARKET_CONFIG = {
   PRICE_MIN: 100,                 // Plancher — 1/5 du prix de base. En dessous, l'action ne vaudrait plus rien et le marché n'aurait plus d'enjeu.
   PRICE_MAX: 2500,                // Plafond — 5× le prix de base. Inatteignable en pratique (il faudrait ~1 600 actions achetées, soit 800 000 🍪, quand le jeu entier en contient 275 000), mais garde un garde-fou dur.
   PRICE_INITIAL: 500,
+  /* Niveau à partir duquel le marché existe pour le joueur. Était écrit
+     en dur (`level >= 3`) dans App.jsx uniquement, si bien qu'un code
+     promo pouvait créditer des actions à un joueur de niveau 1 : il
+     arrivait au niveau 3 avec un portefeuille déjà garni, sans avoir
+     jamais vu le marché. */
+  UNLOCK_LEVEL: 3,
   /* ⚠️ MAINTENANCE — quand true, le marché est fermé en permanence
      (au-delà des horaires habituels). Affiche "Marché en maintenance"
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.
@@ -786,38 +792,91 @@ export async function creditFreeShares(userCode, sharesToAdd, options = {}) {
       return { success: false, error: `Cap max ${cap} actions` };
     }
 
-    /* Incrémente shares_in_circulation pour cohérence */
+    /* ── Un cadeau se comporte comme un ACHAT (08/09/2026) ──────
+       Avant, ces actions arrivaient sans toucher au cours ni laisser de
+       trace : le joueur recevait 30 actions, la courbe ne bougeait pas,
+       et rien n'apparaissait dans l'historique. Vu de l'extérieur, les
+       actions semblaient créées « en plus des 2000 » — c'est exactement
+       ce qu'a rapporté Régis.
+
+       Le flottant est fini : 2000 actions, pas une de plus. Une action
+       donnée est donc une action de moins dans le pot, et le cours doit
+       monter comme pour n'importe quel achat. Sans quoi distribuer des
+       codes revenait à imprimer de la valeur sans que personne ne le
+       voie — l'inverse exact de la raréfaction voulue.
+
+       On reprend le calcul de buyShares à l'identique (même impact, même
+       plafond, même écriture d'historique) plutôt que de le réécrire :
+       deux formules pour un seul marché finiraient par diverger. */
     const { data: state } = await supabase
       .from('market_state')
-      .select('shares_in_circulation, current_price')
+      .select('shares_in_circulation, current_price, total_shares_supply')
       .eq('id', 1)
       .maybeSingle();
-    if (state) {
-      await supabase
-        .from('market_state')
-        .update({ shares_in_circulation: (Number(state.shares_in_circulation) || 0) + sharesToAdd })
-        .eq('id', 1);
+
+    if (!state) return { success: false, error: 'Marché indisponible' };
+
+    const circulation = Number(state.shares_in_circulation) || 0;
+    const flottant    = Number(state.total_shares_supply) || MARKET_CONFIG.TOTAL_SHARES;
+
+    /* Le pot est fini : on refuse plutôt que de déborder en silence. */
+    if (circulation + sharesToAdd > flottant) {
+      return {
+        success: false,
+        error: `Il ne reste que ${Math.max(0, flottant - circulation)} action(s) disponible(s) sur le marché.`,
+      };
     }
+
+    const prixAvant    = Number(state.current_price) || MARKET_CONFIG.PRICE_INITIAL;
+    const impactBrut   = MARKET_CONFIG.IMPACT_PER_SHARE * sharesToAdd;
+    const impact       = Math.min(impactBrut, MARKET_CONFIG.MAX_PRICE_IMPACT_PCT);
+    const prixApres    = Math.min(MARKET_CONFIG.PRICE_MAX, prixAvant * (1 + impact));
+    const circulationApres = circulation + sharesToAdd;
+
+    await supabase
+      .from('market_state')
+      .update({
+        current_price: prixApres,
+        shares_in_circulation: circulationApres,
+        last_updated: new Date().toISOString(),
+      })
+      .eq('id', 1);
+
+    /* Le point de courbe : c'est lui qui manquait. Depuis que le tick ne
+       touche plus au prix, un ordre est le seul événement qui bouge la
+       courbe — un cadeau en est un. */
+    await supabase.from('market_history').insert({
+      price: prixApres,
+      shares_circulating: circulationApres,
+    });
+
+    /* Et la trace nominative, pour que le cadeau se lise dans le feed
+       comme un cadeau — pas comme un achat que le joueur n'a pas fait. */
+    await supabase.from('market_transactions').insert({
+      user_code: userCode,
+      type: 'gift',
+      shares: sharesToAdd,
+      price_per_share: prixApres,
+      total_amount: Math.round(prixApres * sharesToAdd),
+    });
 
     /* ⚠️ PRIX DE REVIENT (corrigé le 08/09/2026) — avant, ces actions
        arrivaient avec un total_invested inchangé, donc un prix de revient
        de 0. Conséquence : les revendre comptait pour 100 % de plus-value,
-       et le bonus de hold (qui DOUBLE la plus-value au bout d'une semaine)
-       transformait un cadeau de 5 actions en deux fois sa valeur. C'est
-       ce qui a mis 214 400 🍪 de gains fantômes sous la réouverture du
-       marché, pour 107 200 🍪 d'actions rendues.
+       et le bonus de hold (qui DOUBLAIT la plus-value au bout d'une
+       semaine) transformait un cadeau de 5 actions en deux fois sa
+       valeur. C'est ce qui a mis 214 400 🍪 de gains fantômes sous la
+       réouverture du marché, pour 107 200 🍪 d'actions rendues.
 
-       Désormais on inscrit toujours une base : le coût réel quand le
-       joueur a payé (options.investedTotal, cas des packs boutique), la
-       valeur de marché du jour sinon (cadeau, restitution, code promo).
-       Le joueur garde exactement la valeur qu'on lui donne — elle cesse
-       simplement d'être comptée comme un bénéfice qu'il aurait réalisé. */
-    const priceNow = Number(state?.current_price) || MARKET_CONFIG.PRICE_INITIAL;
+       On inscrit donc toujours une base : le coût réel quand le joueur a
+       payé (options.investedTotal, cas des packs boutique), le prix
+       APRÈS impact sinon — le même que celui facturé à un acheteur, pour
+       qu'un aller-retour immédiat ne rapporte rien. */
     const addedBasis = options.investedTotal != null
       ? Math.max(0, Math.round(options.investedTotal))
-      : Math.round(priceNow * sharesToAdd);
+      : Math.round(prixApres * sharesToAdd);
 
-    /* weighted_buy_at = now : ces actions démarrent leur horloge de hold
+    /* weighted_buy_at = now : ces actions démarrent leur horloge
        aujourd'hui. */
     await supabase.from('market_portfolio').upsert({
       user_code: userCode,
@@ -827,7 +886,7 @@ export async function creditFreeShares(userCode, sharesToAdd, options = {}) {
       weighted_buy_at: new Date().toISOString(),
     }, { onConflict: 'user_code' });
 
-    return { success: true, sharesAdded: sharesToAdd, sharesNow: newShares };
+    return { success: true, sharesAdded: sharesToAdd, sharesNow: newShares, prix: prixApres };
   } catch (e) {
     console.warn('[market] creditFreeShares error:', e);
     return { success: false, error: 'Erreur réseau' };

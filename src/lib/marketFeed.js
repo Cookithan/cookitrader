@@ -10,14 +10,17 @@
 export function activityToFeedItem(tx) {
   return {
     id: `activity_${tx.user_code}_${tx.created_at}`,
-    icon: tx.type === 'buy' ? '🛒' : '💰',
+    /* 'gift' = actions offertes par un code promo. Elles poussent le
+       cours comme un achat, donc même sentiment — mais une icône à
+       elles, pour qu'on ne croie pas que le joueur a dépensé. */
+    icon: tx.type === 'buy' ? '🛒' : tx.type === 'gift' ? '🎁' : '💰',
     user_code: tx.user_code,
     user_name: tx.user_name,
     user_avatar: tx.user_avatar,
     type: tx.type,
     shares: tx.shares,
     price_per_share: tx.price_per_share,
-    sentiment: tx.type === 'buy' ? 'up' : 'down',
+    sentiment: tx.type === 'sell' ? 'down' : 'up',
     timestampMs: tx.timestampMs,
   };
 }

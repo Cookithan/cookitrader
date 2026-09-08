@@ -713,6 +713,7 @@ export const FR = {
   },
 
   feed: {
+    received:        'a reçu',
     bought:           'a acheté',
     sold:             'a vendu',
     at:               'à',
@@ -1152,6 +1153,7 @@ export const FR = {
 
   /* ── Toasts génériques ─────────────────────────── */
   toast: {
+    market_locked_promo: 'Ce code donne des actions $CKM — le marché s\u2019ouvre au niveau {n}. Garde-le, il marchera encore.',
     saved:           'Enregistré ✓',
     copied:          'Copié dans le presse-papier',
     error_generic:   'Une erreur est survenue',

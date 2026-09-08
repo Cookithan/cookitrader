@@ -43,7 +43,7 @@ import { getAccountNotices } from "./data/accountNotices.js";
 import { PaymentSuccessModal } from "./components/modals/PaymentSuccessModal.jsx";
 import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal.jsx";
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
-import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, getMarketState } from "./lib/market.js";
+import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, getMarketState, MARKET_CONFIG } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES, peutVoirSentinelle } from "./utils/admin.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
@@ -3171,6 +3171,17 @@ export default function CookiMiner() {
         return;
       }
     }
+    /* ── Pas d'actions avant que le marché existe ───────────
+       Un code à actions marchait dès le niveau 1 : le joueur arrivait au
+       niveau 3 avec un portefeuille déjà garni, sans avoir jamais vu le
+       marché — et sans comprendre d'où ça venait. On refuse, et le code
+       n'est PAS consommé : il pourra le retaper une fois le marché
+       ouvert. */
+    if(promo.shares && lvRef.current < MARKET_CONFIG.UNLOCK_LEVEL){
+      showToast(`📈 ${t('toast.market_locked_promo', { n: MARKET_CONFIG.UNLOCK_LEVEL })}`);
+      return;
+    }
+
     /* Crédit shares en premier (peut échouer si Supabase off) */
     if(promo.shares){
       const res = await creditFreeShares(userCode, promo.shares);

@@ -36,7 +36,9 @@ function FeedLine({ item, C, now, t }) {
       <span style={{ flex: 1, minWidth: 0, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         <span style={{ color: fg, fontWeight: 700 }}>{item.user_name}</span>
         {' '}
-        {item.type === 'buy' ? t('feed.bought') : t('feed.sold')}
+        {item.type === 'buy' ? t('feed.bought')
+          : item.type === 'gift' ? t('feed.received')
+          : t('feed.sold')}
         {' '}
         <span style={{ fontWeight: 700 }}>{item.shares}</span>
         {' '}{t('feed.at')} {item.price_per_share.toFixed(0)} 🍪
