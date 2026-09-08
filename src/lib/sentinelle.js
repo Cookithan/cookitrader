@@ -337,47 +337,64 @@ function controleMarche(state, portefeuilles, users) {
 /* ── Versions en circulation ─────────────────────────
    LE contrôle né de la panne du 08/09. Une version ancienne encore
    active n'est pas un détail cosmétique : son code continue d'écrire
-   dans les mêmes tables que le nôtre, avec ses anciennes règles. */
-function controleVersions(sante) {
-  const recents = sante.filter(h => h.kind === 'ouverture' && jours(h.created_at) <= 2);
-  if (!recents.length) return faire('voir', 'versions', 'Aucune ouverture rapportée depuis 48 h', [
-    'Normal si la sentinelle vient d\'être installée.',
-  ]);
+   dans les mêmes tables que le nôtre, avec ses anciennes règles.
 
+   ⚠️ LE DÉCOMPTE COUVRE TOUS LES COMPTES, pas seulement ceux qui se
+   sont manifestés. Un joueur qu'on n'a jamais vu depuis l'installation
+   de la vigie apparaît en « jamais vue » — et c'est la ligne la plus
+   importante du lot, parce que c'est là que se cachent les clients
+   périmés. Ne compter que ceux qui se signalent donnerait un joli
+   « tout le monde est à jour » parfaitement faux. */
+function controleVersions(users, versions) {
+  const total = users.length;
+  if (!total) return faire('voir', 'versions', 'Aucun compte en base');
+
+  /* Un joueur inactif depuis longtemps n'est pas inquiétant : il
+     n'ouvre pas l'app, donc il n'écrit rien. On distingue donc les
+     inconnus RÉCEMMENT ACTIFS (eux, ils écrivent) des dormants. */
   const parVersion = {};
-  for (const h of recents) {
-    const v = h.app_version || 'inconnue';
-    parVersion[v] = parVersion[v] || new Set();
-    parVersion[v].add(h.user_code || h.id);
+  let jamaisVueActifs = 0;
+  let dormants = 0;
+
+  for (const u of users) {
+    const info = versions.get(u.user_code);
+    if (info) {
+      parVersion[info.version] = (parVersion[info.version] || 0) + 1;
+    } else if (jours(u.last_active) <= 7) {
+      jamaisVueActifs++;
+    } else {
+      dormants++;
+    }
   }
-  const detail = Object.entries(parVersion)
-    .sort((a, b) => b[1].size - a[1].size)
-    .map(([v, s]) => `${v === APP_INFO.version ? '   ' : '!! '}${v} — ${s.size} joueur(s)`);
 
-  const vus = new Set(recents.map(h => h.user_code).filter(Boolean)).size;
-  const anciennes = Object.keys(parVersion).filter(v => v !== APP_INFO.version);
+  const lignes = Object.entries(parVersion)
+    .sort((a, b) => b[1] - a[1])
+    .map(([v, n]) => `${v === APP_INFO.version ? '✅' : '⚠️'} ${v} — ${n} joueur(s)`);
 
-  /* ⚠️ NE JAMAIS DIRE « TOUT LE MONDE ». La vigie ne voit que ceux qui
-     ont OUVERT l'app depuis qu'elle écoute. Ceux qui n'ont pas ouvert
-     depuis des jours sont invisibles ici — et ce sont justement les
-     plus dangereux : le 08/09/2026, c'est un client resté sur la
-     version de juillet qui a fait tomber le cours à 300.
+  if (jamaisVueActifs) lignes.push(`❔ version inconnue — ${jamaisVueActifs} joueur(s) actif(s) qui n'ont pas encore été vus par la vigie`);
+  if (dormants)        lignes.push(`💤 ${dormants} compte(s) dormant(s) depuis plus de 7 jours — ils n'écrivent rien`);
+  lignes.push(`Total : ${total} compte(s) en base`);
 
-     Annoncer « tout le monde est à jour » sur trois joueurs vus,
-     c'est offrir exactement le réconfort qu'il ne faut pas. */
-  const cadre = `${vus} joueur(s) vu(s) ces 2 derniers jours`;
+  const anciennes = Object.entries(parVersion).filter(([v]) => v !== APP_INFO.version);
+  const aJour = parVersion[APP_INFO.version] || 0;
 
   if (anciennes.length) {
-    return faire('alerte', 'versions', `${anciennes.length} version(s) périmée(s) en circulation`, [
-      ...detail,
+    const combien = anciennes.reduce((a, [, n]) => a + n, 0);
+    return faire('alerte', 'versions', `${combien} joueur(s) sur une version périmée`, [
+      ...lignes,
       'Un vieux client écrit dans les mêmes tables avec ses anciennes règles.',
-      'Remède : forcer la mise à jour (onglet Agir → L\'application).',
+      "Remède : forcer la mise à jour (onglet Agir → L'application).",
     ]);
   }
-  return faire('ok', 'versions', `${cadre}, tous en ${APP_INFO.version}`, [
-    ...detail,
-    'Ceux qui n\'ont pas ouvert l\'app depuis 2 jours ne sont pas comptés : la vigie ne voit que ceux qui se manifestent.',
-  ]);
+
+  if (jamaisVueActifs) {
+    return faire('voir', 'versions', `${aJour} joueur(s) à jour, ${jamaisVueActifs} encore inconnu(s)`, [
+      ...lignes,
+      "Un joueur actif jamais vu par la vigie peut tourner sur n'importe quelle version.",
+    ]);
+  }
+
+  return faire('ok', 'versions', `Les ${aJour} joueur(s) actifs sont en ${APP_INFO.version}`, lignes);
 }
 
 /* ── Crashs et signaux de triche remontés par les clients ── */
@@ -415,11 +432,12 @@ function controleIncidents(sante) {
 export async function faireUneRonde({ enregistrer = true } = {}) {
   if (!isSupabaseEnabled()) return [];
 
-  const [users, state, portefeuilles, sante] = await Promise.all([
+  const [users, state, portefeuilles, sante, versions] = await Promise.all([
     supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level, cookies, cafes').limit(2000).then(r => r.data || []),
     supabase.from('market_state').select('*').eq('id', 1).maybeSingle().then(r => r.data),
     supabase.from('market_portfolio').select('user_code, shares, total_invested').limit(2000).then(r => r.data || []),
     supabase.from('app_health').select('kind, user_code, user_name, app_version, detail, created_at, id').order('created_at', { ascending: false }).limit(500).then(r => r.data || []),
+    versionsParJoueur(),
   ]);
 
   const rapports = [
@@ -428,7 +446,7 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
     controleSoldes(users),
     controleConcentration(users),
     ...controleMarche(state, portefeuilles, users),
-    controleVersions(sante),
+    controleVersions(users, versions),
     ...controleIncidents(sante),
   ];
 
@@ -611,6 +629,33 @@ export async function verifierPhrase(phrase) {
   if (r?.ok) return { ok: true };
   if (/action inconnue/i.test(r?.message || '')) return { ok: true };
   return { ok: false, message: r?.message || 'Phrase incorrecte' };
+}
+
+/* ── Qui tourne sur quelle version ────────────────────
+   Rend une Map user_code → { version, vueLe } en ne gardant que le
+   DERNIER rapport d'ouverture de chaque joueur. Un joueur qui a mis à
+   jour hier ne doit pas rester compté sur son ancienne version à cause
+   d'un rapport plus vieux.
+
+   Utilisée à deux endroits : le contrôle des versions (pour couvrir
+   TOUS les comptes, y compris ceux qu'on n'a jamais vus) et la fiche
+   d'un joueur dans la recherche. */
+export async function versionsParJoueur() {
+  const carte = new Map();
+  if (!isSupabaseEnabled()) return carte;
+  try {
+    const { data } = await supabase
+      .from('app_health')
+      .select('user_code, app_version, created_at')
+      .eq('kind', 'ouverture')
+      .order('created_at', { ascending: false })
+      .limit(3000);
+    for (const r of data || []) {
+      if (!r.user_code || carte.has(r.user_code)) continue;   /* le premier vu est le plus récent */
+      carte.set(r.user_code, { version: r.app_version || 'inconnue', vueLe: r.created_at });
+    }
+  } catch { /* table absente : personne n'a de version connue */ }
+  return carte;
 }
 
 /* ── Ce que la base sait déjà ─────────────────────────
