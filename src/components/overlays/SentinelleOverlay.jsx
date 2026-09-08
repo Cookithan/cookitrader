@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import {
   faireUneRonde, derniersRapports, grouperParRonde, anciennete, agir, journal, verifierPhrase,
+  signatureConstat, listerIgnores,
 } from "../../lib/sentinelle.js";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
@@ -93,7 +94,7 @@ function Section({ children, C }) {
 }
 
 /* ── UN CONSTAT ──────────────────────────────────────── */
-function Constat({ r, age, onAgir, C }) {
+function Constat({ r, age, onAgir, onClasser, C }) {
   const ton = TONS[r.verdict] || TONS.ok;
   const [ouvert, setOuvert] = useState(false);
   const detail = Array.isArray(r.detail) ? r.detail : [];
@@ -174,7 +175,7 @@ function Constat({ r, age, onAgir, C }) {
           )}
 
           {/* Le geste qui répond au constat, ici même, déjà rempli. */}
-          {r.verdict !== 'ok' && remedes.length > 0 && (
+          {r.verdict !== 'ok' && (remedes.length > 0 || onClasser) && (
             <div style={{ marginTop:12 }}>
               <div style={{ fontSize:10.5, fontWeight:800, color:C.muted, textTransform:'uppercase', letterSpacing:1.2, marginBottom:7 }}>
                 Ce que tu peux faire
@@ -191,7 +192,27 @@ function Constat({ r, age, onAgir, C }) {
                     }}
                   >{a.titre} ›</button>
                 ))}
+
+                {/* Classer sans suite : dire « c'est normal » une fois,
+                    au lieu de relire la même ligne chaque soir. Le
+                    constat revient si la situation change. */}
+                {onClasser && (
+                  <button
+                    onPointerDown={() => onClasser(r)}
+                    style={{
+                      padding:'10px 14px', borderRadius:12,
+                      background:'transparent', border:`1.5px solid ${C.border}`,
+                      color:C.muted, fontSize:12.5, fontWeight:800, touchAction:'manipulation',
+                    }}
+                  >C'est normal</button>
+                )}
               </div>
+              {onClasser && (
+                <div style={{ fontSize:10.5, color:C.muted, marginTop:8, lineHeight:1.5 }}>
+                  « C'est normal » range ce constat sans le supprimer. Il
+                  reviendra de lui-même si les chiffres changent.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -324,11 +345,9 @@ function Formulaire({ act, phrase, onFait, C }) {
 }
 
 /* ── L'ONGLET AGIR ───────────────────────────────────── */
-function PanneauActions({ ouvrir, prefill, onOuvrir, C }) {
-  const [phrase, setPhrase]   = useState('');
-  const [ouverte, setOuverte] = useState(false);
-  const [verif, setVerif]     = useState(false);
-  const [erreur, setErreur]   = useState(null);
+function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte, setOuverte, C }) {
+  const [verif, setVerif]   = useState(false);
+  const [erreur, setErreur] = useState(null);
   /* La famille est TOUJOURS visible en haut : c'est ce qui évite de se
      perdre. On ne déplie plus une famille dans une liste, on choisit un
      rayon et on y reste. */
@@ -553,10 +572,20 @@ export function SentinelleOverlay({ onClose, C }) {
   const [toutVoir, setToutVoir]     = useState(false);
   /* 'gravite' (defaut) ou 'nouveaute' — cf. le tri plus bas. */
   const [tri, setTri]               = useState('gravite');
+  /* La phrase vit ici, pas dans l'onglet Agir : déverrouiller une fois
+     doit suffire pour classer un constat sans suite depuis l'onglet
+     État, sans avoir à retaper. Elle n'est toujours gardée nulle part
+     ailleurs qu'en mémoire, le temps de l'écran. */
+  const [phrase, setPhrase]         = useState('');
+  const [deverrouille, setDeverr]   = useState(false);
+  const [ignores, setIgnores]       = useState([]);
+  const [message, setMessage]       = useState(null);
 
   const charger = useCallback(async () => {
     setChargement(true);
-    const rondes = grouperParRonde(await derniersRapports(200));
+    const [rap, ign] = await Promise.all([derniersRapports(200), listerIgnores()]);
+    const rondes = grouperParRonde(rap);
+    setIgnores(ign);
     setHistorique(rondes);
     setRapports(rondes.length ? rondes[0].verdicts : []);
     setHorodatage(rondes.length ? rondes[0].instant : null);
@@ -604,9 +633,33 @@ export function SentinelleOverlay({ onClose, C }) {
     return dateApparition(b) - dateApparition(a);
   });
 
-  const problemes = tries.filter(r => r.verdict !== 'ok');
+  /* Les constats classés sans suite sortent de la liste principale.
+     Ils ne sont pas supprimés : ils attendent dans leur propre section,
+     et reviennent d'eux-mêmes dès que leur titre change. */
+  const signaturesIgnorees = new Set(ignores.map(i => i.signature));
+  const estIgnore = (r) => signaturesIgnorees.has(signatureConstat(r));
+
+  const problemes = tries.filter(r => r.verdict !== 'ok' && !estIgnore(r));
+  const ranges    = tries.filter(r => r.verdict !== 'ok' && estIgnore(r));
   const sains     = tries.filter(r => r.verdict === 'ok');
   const alertes   = problemes.filter(r => r.verdict === 'alerte').length;
+
+  /* Classer / reprendre passent par la même porte que tout le reste :
+     sans la phrase, un joueur signalé pourrait faire taire l'alerte qui
+     le concerne. */
+  const classer = async (r) => {
+    const res = await agir(phrase, 'classer_sans_suite', {
+      signature: signatureConstat(r), categorie: r.categorie, titre: r.titre,
+    });
+    if (res?.ok) setIgnores(await listerIgnores());
+    else setMessage(res?.message || 'Échec');
+  };
+
+  const reprendre = async (signature) => {
+    const res = await agir(phrase, 'reprendre_constat', { signature });
+    if (res?.ok) setIgnores(await listerIgnores());
+    else setMessage(res?.message || 'Échec');
+  };
 
   const grave = alertes > 0;
   const titre = chargement ? 'Lecture…'
@@ -717,7 +770,12 @@ export function SentinelleOverlay({ onClose, C }) {
 
         {onglet === 'agir' ? (
           <div style={{ marginTop:16 }}>
-            <PanneauActions ouvrir={actionOuverte} prefill={prefill} onOuvrir={setActionOuverte} C={C} />
+            <PanneauActions
+              ouvrir={actionOuverte} prefill={prefill} onOuvrir={setActionOuverte}
+              phrase={phrase} setPhrase={setPhrase}
+              ouverte={deverrouille} setOuverte={setDeverr}
+              C={C}
+            />
           </div>
         ) : chargement ? (
           <div style={{ textAlign:'center', color:C.muted, fontSize:13, padding:'40px 0' }}>Lecture…</div>
@@ -759,7 +817,13 @@ export function SentinelleOverlay({ onClose, C }) {
             )}
             {problemes.length === 1 && <Section C={C}>À traiter</Section>}
             {problemes.map((r, i) => (
-              <Constat key={r.id ?? i} r={r} age={immediat ? null : anciennete(historique, r)} onAgir={allerAgir} C={C} />
+              <Constat
+                key={r.id ?? i} r={r}
+                age={immediat ? null : anciennete(historique, r)}
+                onAgir={allerAgir}
+                onClasser={deverrouille ? classer : null}
+                C={C}
+              />
             ))}
 
             {/* Ce qui va bien tient en une ligne. Le détailler chaque
@@ -792,9 +856,57 @@ export function SentinelleOverlay({ onClose, C }) {
               </>
             )}
 
+            {/* Ce qui a été classé sans suite. Rangé, pas supprimé : on
+                peut toujours le reprendre, et il revient tout seul si
+                les chiffres bougent. */}
+            {ranges.length > 0 && (
+              <>
+                <Section C={C}>Classés sans suite</Section>
+                {ranges.map((r, i) => {
+                  const sig = signatureConstat(r);
+                  const info = ignores.find(x => x.signature === sig);
+                  return (
+                    <div key={r.id ?? `ig${i}`} style={{
+                      background:C.card, border:`1.5px solid ${C.border}`, borderRadius:14,
+                      padding:'12px 14px', marginBottom:8, opacity:.85,
+                      display:'flex', alignItems:'center', gap:11,
+                    }}>
+                      <span style={{ fontSize:16, flexShrink:0, opacity:.6 }}>🗄️</span>
+                      <span style={{ flex:1, minWidth:0 }}>
+                        <span style={{ display:'block', fontSize:12.5, fontWeight:700, color:C.text, lineHeight:1.4 }}>
+                          {r.titre}
+                        </span>
+                        <span style={{ display:'block', fontSize:10.5, color:C.muted, marginTop:2 }}>
+                          {r.categorie}{info?.cree_le ? ` · classé ${quand(info.cree_le)}` : ''}
+                        </span>
+                      </span>
+                      {deverrouille && (
+                        <button
+                          onPointerDown={() => reprendre(sig)}
+                          style={{
+                            flexShrink:0, padding:'8px 12px', borderRadius:11,
+                            background:C.card2, border:`1px solid ${C.border}`,
+                            color:C.muted, fontSize:11.5, fontWeight:800,
+                          }}
+                        >Reprendre</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+
+            {message && (
+              <div style={{
+                marginTop:12, padding:'11px 13px', borderRadius:12, fontSize:12, fontWeight:700,
+                background:'rgba(74,44,23,.14)', border:'1.5px solid rgba(93,58,30,.5)', color:ESPRESSO,
+              }}>⛔ {message}</div>
+            )}
+
             <div style={{ marginTop:20, fontSize:11.5, color:C.muted, lineHeight:1.7 }}>
               Les rondes constatent, elles ne corrigent jamais rien d'elles-mêmes.
               Quand un constat a un remède, le bouton apparaît dessous, déjà rempli.
+              {!deverrouille && ' Déverrouille la console dans l\'onglet Agir pour pouvoir classer un constat sans suite.'}
             </div>
           </>
         )}

@@ -60,10 +60,20 @@ const INTERVALLE_RONDE_MS = 60 * 60 * 1000;
 
 /* Seuils repris de scripts/audit.mjs — même barème pour que la vigie et
    la ligne de commande ne se contredisent jamais.
-   Repère du rendement : Café Express, le meilleur de l'app, plafonne à
-   ~300 cookies pour 60-180 s. Au-delà de 400/min, c'est impossible. */
+
+   RENDEMENT_ELEVE relevé de 150 à 200 le 08/09/2026 (demande Régis) :
+   le seuil ne tenait compte que du grind régulier, alors que la ROUE
+   (jusqu'à +200 d'un coup) et le JACKPOT de la machine à sous (jusqu'à
+   +500) font légitimement bondir le ratio d'un joueur chanceux. À 150,
+   la vigie signalait des joueurs honnêtes qui avaient simplement eu de
+   la chance — et une alerte qui se trompe est une alerte qu'on cesse de
+   lire.
+
+   Le plafond de l'IMPOSSIBLE ne bouge pas : Café Express, le meilleur
+   rendement régulier de l'app, plafonne à ~300 cookies pour 60-180 s.
+   Au-delà de 400/min tenus dans la durée, aucune chance ne l'explique. */
 const RENDEMENT_IMPOSSIBLE = 400;
-const RENDEMENT_ELEVE      = 150;
+const RENDEMENT_ELEVE      = 200;
 const PART_HEBDO_MAX       = 0.40;   // un joueur au-delà de 40 % du total de la semaine
 const JOURS_ACTIF          = 14;
 const TEMPS_JEU_MIN_S      = 600;    // sous 10 min jouées, le ratio ne veut rien dire
@@ -553,6 +563,28 @@ export async function verifierPhrase(phrase) {
   if (r?.ok) return { ok: true };
   if (/action inconnue/i.test(r?.message || '')) return { ok: true };
   return { ok: false, message: r?.message || 'Phrase incorrecte' };
+}
+
+/* ── Constats classés sans suite ──────────────────────
+   La signature contient le titre : dès qu'un chiffre bouge dedans, le
+   constat réapparaît. On classe une SITUATION, pas une catégorie — sans
+   ça on finirait par se rendre aveugle à toute une famille de
+   problèmes, ce qui est pire que de ne pas surveiller du tout. */
+export function signatureConstat(r) {
+  return `${r.categorie}|${r.verdict}|${r.titre}`;
+}
+
+export async function listerIgnores() {
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const { data } = await supabase
+      .from('sentinelle_ignores')
+      .select('*')
+      .order('cree_le', { ascending: false });
+    return data || [];
+  } catch {
+    return [];
+  }
 }
 
 /* Le registre de ce qui a été fait — refus compris. C'est ce qui rend

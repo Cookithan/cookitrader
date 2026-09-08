@@ -78,6 +78,38 @@ begin
   end if;
 end $$;
 
+/* ── 2 bis. Les constats classés sans suite ───────────────────
+   Tous les signalements ne demandent pas une correction. « Deux comptes
+   au rendement élevé » peut être parfaitement normal quand on connaît
+   les joueurs concernés. Sans moyen de dire « c'est normal », ces
+   lignes reviennent à chaque ronde, on s'habitue à les ignorer, et le
+   jour où une VRAIE alerte apparaît au milieu, personne ne la voit.
+
+   La signature contient le TITRE : dès que le titre change — un compte
+   de plus, un chiffre qui bouge — le constat réapparaît. On classe une
+   situation, pas une catégorie entière. C'est ce qui empêche de se
+   rendre aveugle pour de bon.
+
+   Lecture publique (l'écran doit filtrer), écriture réservée à la
+   fonction : sans ça, le joueur signalé ferait taire l'alerte qui le
+   concerne. */
+create table if not exists public.sentinelle_ignores (
+  signature  text primary key,
+  categorie  text,
+  titre      text,
+  motif      text,
+  cree_le    timestamptz not null default now()
+);
+
+alter table public.sentinelle_ignores enable row level security;
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where tablename = 'sentinelle_ignores' and policyname = 'ignores_lecture') then
+    create policy ignores_lecture on public.sentinelle_ignores for select using (true);
+  end if;
+end $$;
+
 /* ── 3. La porte unique ───────────────────────────────────────── */
 create or replace function public.action_sentinelle(
   phrase  text,
@@ -245,6 +277,20 @@ begin
     msg := case when coalesce((params->>'actif')::boolean, false)
                 then 'Maintenance ACTIVÉE pour tout le monde.'
                 else 'Maintenance levée.' end;
+
+  elsif action = 'classer_sans_suite' then
+    insert into public.sentinelle_ignores (signature, categorie, titre, motif)
+    values (params->>'signature', params->>'categorie', params->>'titre',
+            coalesce(params->>'motif', 'classé sans suite'))
+    on conflict (signature) do update set
+      motif = excluded.motif, cree_le = now();
+    cible := params->>'categorie';
+    msg := 'Constat classé sans suite. Il réapparaîtra si la situation change.';
+
+  elsif action = 'reprendre_constat' then
+    delete from public.sentinelle_ignores where signature = params->>'signature';
+    cible := params->>'categorie';
+    msg := 'Constat repris en compte.';
 
   elsif action = 'nettoyer_portefeuille' then
     /* Retirer la ligne SANS décrémenter la circulation créerait un
