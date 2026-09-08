@@ -25,6 +25,31 @@
    script — l'aller-retour ne coûte que le slippage, quelques pour cent.
 ══════════════════════════════════════════════════════════════════ */
 
+/* ── 0. VERROU — LE MARCHÉ EST OUVERT AUX JOUEURS ─────────── */
+/* ⚠️⚠️ Depuis le 08/09/2026 le marché est ROUVERT. Ce script annule
+   TOUS les échanges postérieurs au regroupement — il ne fait pas la
+   différence entre nos ordres d'essai et les vrais ordres des joueurs.
+   Le lancer maintenant effacerait leurs achats et leurs ventes, et leur
+   reprendrait des actions qu'ils ont payées.
+
+   Il n'a plus qu'un usage : revenir en catastrophe à l'état d'après
+   split si la réouverture tourne mal, en assumant de perdre les échanges
+   faits entre-temps.
+
+   Pour déverrouiller, créer la table témoin — un geste qu'on ne fait
+   pas par distraction :
+
+       create table market_reset_autorise();
+
+   À supprimer juste après : drop table market_reset_autorise;          */
+do $$
+begin
+  if to_regclass('public.market_reset_autorise') is null then
+    raise exception
+      'VERROU — le marché est ouvert, ce script effacerait les échanges des joueurs. Lire l''en-tête. Pour confirmer : create table market_reset_autorise();';
+  end if;
+end $$;
+
 /* ── 0. Garde-fou : la photo doit exister ET ne pas être vide ── */
 /* Le second contrôle n'est pas une politesse. Plus bas, tout
    portefeuille ABSENT de la photo est remis à zéro — c'est ce qui
