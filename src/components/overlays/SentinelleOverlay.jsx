@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import {
   faireUneRonde, derniersRapports, grouperParRonde, anciennete, agir, journal, verifierPhrase,
-  signatureConstat, listerIgnores,
+  signatureConstat, listerIgnores, infosJoueur, prixMarche,
 } from "../../lib/sentinelle.js";
 import { ACTIONS_SENTINELLE, GROUPES, ACTIONS_PAR_CONSTAT } from "../../data/sentinelleActions.js";
 import { APP_INFO } from "../../lib/appInfo.js";
@@ -227,8 +227,57 @@ function Formulaire({ act, phrase, onFait, C }) {
   const [confirme, setConfirme] = useState(false);
   const [enCours, setEnCours]   = useState(false);
   const [retour, setRetour]     = useState(null);
+  /* Ce que la base sait déjà du joueur visé — affiché en clair, et
+     recopié dans les champs. */
+  const [connu, setConnu]       = useState(null);
+  const [charge, setCharge]     = useState(false);
 
   const manquant = act.champs.some(c => c.requis && !valeurs[c.nom]);
+  const champ = (nom) => act.champs.some(c => c.nom === nom);
+
+  /* ── PRÉ-REMPLISSAGE ────────────────────────────────
+     Retour de Régis : « quand on veut le corriger, il faut tout remplir
+     à la main ». La base connaît le niveau, le cumul, les cookies et
+     les cafés du joueur — les redemander, c'est imposer une recopie et
+     offrir une occasion de se tromper d'un chiffre sur un vrai compte.
+
+     On ne remplit QUE les champs laissés vides : ce que l'humain a
+     tapé n'est jamais écrasé. */
+  useEffect(() => {
+    const code = (valeurs.user_code || '').trim().toUpperCase();
+    if (!champ('user_code') || !/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code)) return;
+    let annule = false;
+    setCharge(true);
+    infosJoueur(code).then(info => {
+      if (annule) return;
+      setCharge(false);
+      setConnu(info);
+      if (!info) return;
+      setValeurs(v => ({
+        ...v,
+        level:        v.level        ?? info.level,
+        total_earned: v.total_earned ?? info.total_earned,
+        cookies:      v.cookies      ?? info.cookies,
+        cafes:        v.cafes        ?? info.cafes,
+      }));
+    });
+    return () => { annule = true; };
+  }, [valeurs.user_code]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Le cours actuel, pour la correction de prix. Même principe : on
+     part de la valeur réelle, on ne la retape pas. */
+  useEffect(() => {
+    if (!champ('prix')) return;
+    prixMarche().then(p => {
+      if (p != null) setValeurs(v => ({ ...v, prix: v.prix ?? String(p) }));
+    });
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* La version en cours, pour forcer la mise à jour. */
+  useEffect(() => {
+    if (!champ('version')) return;
+    setValeurs(v => ({ ...v, version: v.version ?? APP_INFO.version }));
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const executer = async () => {
     setEnCours(true); setRetour(null);
@@ -256,6 +305,28 @@ function Formulaire({ act, phrase, onFait, C }) {
           fontSize:12, color:C.muted, lineHeight:1.65, marginBottom:14,
           background:'rgba(0,0,0,.04)', borderRadius:12, padding:'11px 13px',
         }}>{act.aide}</div>
+      )}
+
+      {/* Qui on est en train de toucher, en clair. Sur un écran qui
+          réécrit de vrais comptes, voir le pseudo évite de sanctionner
+          le mauvais code à une lettre près. */}
+      {charge && (
+        <div style={{ fontSize:12, color:C.muted, marginBottom:11 }}>Lecture du compte…</div>
+      )}
+      {connu && (
+        <div style={{
+          background:'rgba(212,160,23,.10)', border:'1.5px solid rgba(212,160,23,.35)',
+          borderRadius:12, padding:'11px 13px', marginBottom:12,
+        }}>
+          <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{connu.user_name}</div>
+          <div style={{ fontSize:11.5, color:C.muted, marginTop:3, lineHeight:1.5 }}>
+            Niveau {connu.level} · {Number(connu.total_earned).toLocaleString('fr-FR')} 🍪 au cumul ·
+            {' '}{Number(connu.cookies).toLocaleString('fr-FR')} 🍪 en poche · {connu.cafes} ☕
+          </div>
+          <div style={{ fontSize:10.5, color:C.muted, marginTop:5 }}>
+            Valeurs actuelles, déjà recopiées ci-dessous — ne change que ce que tu veux corriger.
+          </div>
+        </div>
       )}
 
       {act.champs.map(c => (
@@ -570,8 +641,6 @@ export function SentinelleOverlay({ onClose, C }) {
   const [actionOuverte, setActionOuverte] = useState(null);
   const [prefill, setPrefill]       = useState(null);
   const [toutVoir, setToutVoir]     = useState(false);
-  /* 'gravite' (defaut) ou 'nouveaute' — cf. le tri plus bas. */
-  const [tri, setTri]               = useState('gravite');
   /* La phrase vit ici, pas dans l'onglet Agir : déverrouiller une fois
      doit suffire pour classer un constat sans suite depuis l'onglet
      État, sans avoir à retaper. Elle n'est toujours gardée nulle part
@@ -580,6 +649,7 @@ export function SentinelleOverlay({ onClose, C }) {
   const [deverrouille, setDeverr]   = useState(false);
   const [ignores, setIgnores]       = useState([]);
   const [message, setMessage]       = useState(null);
+  const [resultatRonde, setResultatRonde] = useState(null);
 
   const charger = useCallback(async () => {
     setChargement(true);
@@ -595,12 +665,27 @@ export function SentinelleOverlay({ onClose, C }) {
 
   useEffect(() => { charger(); }, [charger]);
 
+  /* Une ronde à la demande doit DIRE ce qu'elle a trouvé de neuf.
+     Régis : « quand je relance le sentinel, il n'y a pas de vrai
+     changement » — parce que rien ne le disait. Un contrôle qui rend le
+     même écran sans un mot laisse croire qu'il n'a pas tourné. */
   const controler = async () => {
     setEnCours(true);
-    setRapports(await faireUneRonde({ enregistrer: false }));
+    setMessage(null);
+    const avant = new Set(rapports.filter(r => r.verdict !== 'ok').map(signatureConstat));
+    const frais = await faireUneRonde({ enregistrer: false });
+    const nouveaux = frais.filter(r => r.verdict !== 'ok' && !avant.has(signatureConstat(r)));
+    const partis   = [...avant].filter(sig => !frais.some(r => signatureConstat(r) === sig));
+
+    setRapports(frais);
     setHorodatage(new Date().toISOString());
     setImmediat(true);
     setEnCours(false);
+
+    const bouts = [];
+    if (nouveaux.length) bouts.push(`${nouveaux.length} nouveau${nouveaux.length > 1 ? 'x' : ''} constat${nouveaux.length > 1 ? 's' : ''}`);
+    if (partis.length)   bouts.push(`${partis.length} résolu${partis.length > 1 ? 's' : ''}`);
+    setResultatRonde(bouts.length ? bouts.join(' · ') : 'Rien de neuf depuis la dernière ronde');
   };
 
   const allerAgir = (actionId, code) => {
@@ -609,28 +694,23 @@ export function SentinelleOverlay({ onClose, C }) {
     setOnglet('agir');
   };
 
-  /* Deux façons de lire, et elles ne disent pas la même chose :
-     · par GRAVITÉ — ce qui fait le plus mal en premier ;
-     · par NOUVEAUTÉ — ce qui vient d'arriver en premier.
+  /* UN SEUL ORDRE : du plus récent au plus ancien (demande Régis, qui
+     n'utilisait pas le tri par gravité). Deux boutons de tri pour cinq
+     lignes, c'était un choix de plus à faire pour rien.
 
-     Le tri par gravité seul peut enterrer un incident survenu il y a
-     dix minutes sous une alerte qu'on traîne depuis trois jours. Or
-     c'est souvent le récent qui a une cause qu'on peut encore trouver.
-     À gravité égale, on reprend l'autre critère comme départage. */
+     Le récent d'abord se défend : sa cause est encore fraîche et
+     trouvable, alors qu'un constat qui traîne depuis trois jours, on a
+     déjà décidé de vivre avec. À date égale, le plus grave passe
+     devant. */
   const dateApparition = (r) => {
     const a = anciennete(historique, r);
     return a?.depuis ? new Date(a.depuis).getTime() : 0;
   };
 
   const tries = [...rapports].sort((a, b) => {
-    if (tri === 'nouveaute') {
-      const d = dateApparition(b) - dateApparition(a);
-      if (d !== 0) return d;
-      return (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9);
-    }
-    const g = (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9);
-    if (g !== 0) return g;
-    return dateApparition(b) - dateApparition(a);
+    const d = dateApparition(b) - dateApparition(a);
+    if (d !== 0) return d;
+    return (RANG[a.verdict] ?? 9) - (RANG[b.verdict] ?? 9);
   });
 
   /* Les constats classés sans suite sortent de la liste principale.
@@ -745,6 +825,16 @@ export function SentinelleOverlay({ onClose, C }) {
           </div>
         </div>
 
+        {resultatRonde && (
+          <div style={{
+            marginBottom:14, padding:'11px 14px', borderRadius:13,
+            background:'rgba(212,160,23,.11)', border:'1.5px solid rgba(212,160,23,.35)',
+            fontSize:12.5, fontWeight:700, color:OR,
+          }}>
+            ↻ {resultatRonde}
+          </div>
+        )}
+
         {/* Deux onglets, gros et lisibles */}
         <div style={{ display:'flex', gap:8, marginBottom:6 }}>
           {[['etat', '🔍', 'État'], ['agir', '⚙️', 'Agir']].map(([id, emoji, label]) => {
@@ -793,29 +883,7 @@ export function SentinelleOverlay({ onClose, C }) {
           </div>
         ) : (
           <>
-            {problemes.length > 1 && (
-              <>
-                <Section C={C}>À traiter</Section>
-                <div style={{ display:'flex', gap:7, marginBottom:12 }}>
-                  {[['gravite', 'Le plus grave'], ['nouveaute', 'Le plus récent']].map(([id, label]) => {
-                    const actif = tri === id;
-                    return (
-                      <button
-                        key={id}
-                        onPointerDown={() => setTri(id)}
-                        style={{
-                          flex:1, padding:'9px 0', borderRadius:11, fontSize:12, fontWeight:800,
-                          background: actif ? 'rgba(212,160,23,.16)' : C.card,
-                          border:`1px solid ${actif ? 'rgba(212,160,23,.45)' : C.border}`,
-                          color: actif ? OR : C.muted, touchAction:'manipulation',
-                        }}
-                      >{label}</button>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-            {problemes.length === 1 && <Section C={C}>À traiter</Section>}
+            {problemes.length > 0 && <Section C={C}>À traiter — du plus récent</Section>}
             {problemes.map((r, i) => (
               <Constat
                 key={r.id ?? i} r={r}
