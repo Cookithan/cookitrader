@@ -37,6 +37,22 @@ import { tousLesJoueurs, demander, EXEMPLES, correspondQuestion } from "../../li
    niveau), emoji géant en filigrane, ruban coloré à gauche des
    constats. C'est un écran d'outil, pas une facture.
 
+   ─── POURQUOI onClick ET PAS onPointerDown ──────────
+   La convention du projet est `onPointerDown` sur les zones tactiles :
+   il déclenche au contact du doigt, sans attendre. C'est le bon choix
+   pour un bouton de mini-jeu, où cinquante millisecondes comptent.
+
+   Ici, c'est un piège. Cet écran DÉFILE. Réagir au contact, c'est
+   réagir avant que le navigateur ait pu distinguer un appui d'un
+   glissement : Régis a signalé qu'en cherchant à faire défiler la liste
+   des résultats, il ouvrait un résultat au lieu de descendre.
+
+   `onClick` fait exactement ce qu'on veut — appui court, sans
+   déplacement — et le fait mieux qu'une réimplémentation maison. Avec
+   `touchAction: manipulation`, déjà posé partout ici, il n'y a aucun
+   délai de 300 ms à craindre. C'est d'ailleurs ce que font tous les
+   autres écrans à liste de l'app (Réglages, Collection, Boutique).
+
    ─── POURQUOI DU BLEU ICI, ET NULLE PART AILLEURS ───
    Toute l'app est café-only. Cet écran est la seule exception, et c'est
    délibéré : quand ce bleu apparaît, on n'est plus dans le jeu, on est
@@ -192,7 +208,7 @@ function Constat({ r, age, traite, onAgir, onClasser, C }) {
       <div aria-hidden style={{ position:'absolute', left:0, top:0, bottom:0, width:5, background: ton.ruban }} />
 
       <button
-        onPointerDown={() => setOuvert(o => !o)}
+        onClick={() => setOuvert(o => !o)}
         style={{
           width:'100%', textAlign:'left', background:'none', border:'none',
           padding:'14px 15px 14px 19px', cursor:'pointer',
@@ -273,7 +289,7 @@ function Constat({ r, age, traite, onAgir, onClasser, C }) {
                 {remedes.map(a => (
                   <button
                     key={a.id}
-                    onPointerDown={() => onAgir(a.id, code)}
+                    onClick={() => onAgir(a.id, code)}
                     style={{
                       padding:'10px 14px', borderRadius:12,
                       background:'rgba(43,124,178,.16)', border:'1.5px solid rgba(43,124,178,.45)',
@@ -287,7 +303,7 @@ function Constat({ r, age, traite, onAgir, onClasser, C }) {
                     constat revient si la situation change. */}
                 {onClasser && (
                   <button
-                    onPointerDown={() => onClasser(r)}
+                    onClick={() => onClasser(r)}
                     style={{
                       padding:'10px 14px', borderRadius:12,
                       background:'transparent', border:`1.5px solid ${C.border}`,
@@ -428,7 +444,7 @@ function Formulaire({ act, phrase, onFait, C }) {
               {['oui', 'non'].map(v => (
                 <button
                   key={v}
-                  onPointerDown={() => setValeurs(x => ({ ...x, [c.nom]: v }))}
+                  onClick={() => setValeurs(x => ({ ...x, [c.nom]: v }))}
                   style={{
                     flex:1, padding:'12px 0', borderRadius:12, fontSize:13.5, fontWeight:800,
                     background: valeurs[c.nom] === v ? 'rgba(43,124,178,.2)' : C.card2,
@@ -454,7 +470,7 @@ function Formulaire({ act, phrase, onFait, C }) {
           un window.confirm (convention du projet). */}
       {act.danger && !confirme ? (
         <button
-          onPointerDown={() => !manquant && setConfirme(true)}
+          onClick={() => !manquant && setConfirme(true)}
           disabled={manquant}
           style={{
             width:'100%', padding:'14px 0', borderRadius:13, marginTop:4,
@@ -472,7 +488,7 @@ function Formulaire({ act, phrase, onFait, C }) {
             </div>
           )}
           <button
-            onPointerDown={() => !enCours && !manquant && executer()}
+            onClick={() => !enCours && !manquant && executer()}
             disabled={enCours || manquant}
             style={{
               width:'100%', padding:'14px 0', borderRadius:13, marginTop:2,
@@ -589,7 +605,7 @@ function PanneauDemander({ onUtiliserCode, C }) {
             </div>
             {reponse.code && (
               <button
-                onPointerDown={() => copier(reponse.code)}
+                onClick={() => copier(reponse.code)}
                 style={{
                   flexShrink:0, padding:'8px 12px', borderRadius:11,
                   background:'rgba(43,124,178,.18)', border:'1.5px solid rgba(43,124,178,.45)',
@@ -603,7 +619,7 @@ function PanneauDemander({ onUtiliserCode, C }) {
           </div>
           {reponse.code && onUtiliserCode && (
             <button
-              onPointerDown={() => onUtiliserCode(reponse.code)}
+              onClick={() => onUtiliserCode(reponse.code)}
               style={{
                 width:'100%', marginTop:11, padding:'11px 0', borderRadius:12,
                 background:'transparent', border:`1.5px solid ${C.border}`,
@@ -620,7 +636,7 @@ function PanneauDemander({ onUtiliserCode, C }) {
           {questions.map(q => (
             <button
               key={q.id}
-              onPointerDown={() => repondre(q.texte)}
+              onClick={() => repondre(q.texte)}
               style={{
                 width:'100%', textAlign:'left', marginBottom:7,
                 background:C.card, border:`1px solid ${C.border}`, borderRadius:12,
@@ -637,7 +653,7 @@ function PanneauDemander({ onUtiliserCode, C }) {
           {trouves.map(j => (
             <button
               key={j.user_code}
-              onPointerDown={() => repondre(j.user_name)}
+              onClick={() => repondre(j.user_name)}
               style={{
                 width:'100%', textAlign:'left', marginBottom:7,
                 background:C.card, border:`1px solid ${C.border}`, borderRadius:12,
@@ -755,7 +771,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
           />
 
           <button
-            onPointerDown={verifierMaintenant}
+            onClick={verifierMaintenant}
             disabled={!phrase || verif}
             style={{
               width:'100%', marginTop:11, padding:'14px 0', borderRadius:13,
@@ -791,7 +807,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
         <span style={{ fontSize:18 }}>🔓</span>
         <span style={{ flex:1, fontSize:12.5, fontWeight:800, color:C.text }}>Console ouverte</span>
         <button
-          onPointerDown={() => { setOuverte(false); setPhrase(''); onOuvrir(null); }}
+          onClick={() => { setOuverte(false); setPhrase(''); onOuvrir(null); }}
           style={{
             padding:'8px 13px', borderRadius:11, background:C.card2,
             border:`1px solid ${C.border}`, color:C.muted, fontSize:11.5, fontWeight:800,
@@ -806,7 +822,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
           return (
             <button
               key={x.id}
-              onPointerDown={() => { setFamille(x.id); onOuvrir(null); }}
+              onClick={() => { setFamille(x.id); onOuvrir(null); }}
               style={{
                 flex:1, padding:'12px 4px', borderRadius:14,
                 background: actif ? 'linear-gradient(140deg, rgba(43,124,178,.22), rgba(104,164,205,.12))' : C.card,
@@ -837,7 +853,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
           }}>
             {a.danger && <div aria-hidden style={{ position:'absolute', left:0, top:0, bottom:0, width:4, background:MARINE, opacity:.6 }} />}
             <button
-              onPointerDown={() => onOuvrir(actif ? null : a.id)}
+              onClick={() => onOuvrir(actif ? null : a.id)}
               style={{
                 width:'100%', textAlign:'left', background:'none', border:'none',
                 padding:'14px 15px 14px 18px', cursor:'pointer',
@@ -872,7 +888,7 @@ function PanneauActions({ ouvrir, prefill, onOuvrir, phrase, setPhrase, ouverte,
           par défaut — on vient ici pour AGIR, pas pour relire ce qu'on a
           déjà fait. Il reste à un appui quand on en a besoin. */}
       <button
-        onPointerDown={() => setVoirRegistre(v => !v)}
+        onClick={() => setVoirRegistre(v => !v)}
         style={{
           width:'100%', textAlign:'left', marginTop:20,
           background:'none', border:'none', padding:'6px 2px', cursor:'pointer',
@@ -967,7 +983,7 @@ function PanneauSignalements({ phrase, deverrouille, onAllerAgir, onUtiliserCode
           Il ne se lit qu&apos;avec la phrase de passe.
         </div>
         <button
-          onPointerDown={onAllerAgir}
+          onClick={onAllerAgir}
           style={{
             padding:'12px 22px', borderRadius:13, background:MARINE,
             border:'none', color:'#EAF4FB', fontSize:13, fontWeight:900,
@@ -992,7 +1008,7 @@ function PanneauSignalements({ phrase, deverrouille, onAllerAgir, onUtiliserCode
           return (
             <button
               key={label}
-              onPointerDown={() => setFiltre(id)}
+              onClick={() => setFiltre(id)}
               style={{
                 flex:1, minWidth:0, padding:'10px 0', borderRadius:12,
                 background: actif ? 'rgba(43,124,178,.18)' : C.card,
@@ -1080,17 +1096,17 @@ function PanneauSignalements({ phrase, deverrouille, onAllerAgir, onUtiliserCode
 
             <div style={{ display:'flex', gap:6, marginTop:11, flexWrap:'wrap' }}>
               {!['vu', 'traite', 'sans_suite'].includes(sg.statut) && (
-                <button onPointerDown={() => classer(sg.id, 'vu')} style={boutonPetit(C, false)}>👁️ Lu</button>
+                <button onClick={() => classer(sg.id, 'vu')} style={boutonPetit(C, false)}>👁️ Lu</button>
               )}
               {sg.statut !== 'traite' && (
-                <button onPointerDown={() => classer(sg.id, 'traite')} style={boutonPetit(C, true)}>✅ Traité</button>
+                <button onClick={() => classer(sg.id, 'traite')} style={boutonPetit(C, true)}>✅ Traité</button>
               )}
               {sg.statut !== 'sans_suite' && (
-                <button onPointerDown={() => classer(sg.id, 'sans_suite')} style={boutonPetit(C, false)}>🗄️ Sans suite</button>
+                <button onClick={() => classer(sg.id, 'sans_suite')} style={boutonPetit(C, false)}>🗄️ Sans suite</button>
               )}
               {(extras.joueur || sg.user_code) && (
                 <button
-                  onPointerDown={() => onUtiliserCode(String(extras.joueur || sg.user_code).trim().toUpperCase())}
+                  onClick={() => onUtiliserCode(String(extras.joueur || sg.user_code).trim().toUpperCase())}
                   style={boutonPetit(C, false)}
                 >⚙️ Agir sur ce compte</button>
               )}
@@ -1357,7 +1373,7 @@ export function SentinelleOverlay({ onClose, userName }) {
               </div>
             </div>
             <button
-              onPointerDown={() => !enCours && controler()}
+              onClick={() => !enCours && controler()}
               disabled={enCours}
               aria-label="Contrôler maintenant"
               style={{
@@ -1389,7 +1405,7 @@ export function SentinelleOverlay({ onClose, userName }) {
             return (
               <button
                 key={id}
-                onPointerDown={() => setOnglet(id)}
+                onClick={() => setOnglet(id)}
                 style={{
                   flex:1, minWidth:0, padding:'12px 0', borderRadius:14,
                   background: actif ? 'linear-gradient(140deg, rgba(43,124,178,.22), rgba(104,164,205,.12))' : C.card,
@@ -1466,7 +1482,7 @@ export function SentinelleOverlay({ onClose, userName }) {
               <>
                 <Section C={C}>Le reste</Section>
                 <button
-                  onPointerDown={() => setToutVoir(v => !v)}
+                  onClick={() => setToutVoir(v => !v)}
                   style={{
                     width:'100%', textAlign:'left',
                     background:'rgba(43,124,178,.08)', border:'1.5px solid rgba(43,124,178,.28)',
@@ -1516,7 +1532,7 @@ export function SentinelleOverlay({ onClose, userName }) {
                     pas à occuper la place de ce qui reste à traiter.
                     C'est justement pour ça qu'on l'a classé. */}
                 <button
-                  onPointerDown={() => setVoirRanges(v => !v)}
+                  onClick={() => setVoirRanges(v => !v)}
                   style={{
                     width:'100%', textAlign:'left', marginTop:18,
                     background:'none', border:'none', padding:'6px 2px', cursor:'pointer',
@@ -1550,7 +1566,7 @@ export function SentinelleOverlay({ onClose, userName }) {
                       </span>
                       {deverrouille && (
                         <button
-                          onPointerDown={() => reprendre(sig)}
+                          onClick={() => reprendre(sig)}
                           style={{
                             flexShrink:0, padding:'8px 12px', borderRadius:11,
                             background:C.card2, border:`1px solid ${C.border}`,

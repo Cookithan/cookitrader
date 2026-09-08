@@ -25,6 +25,22 @@ import { SentinelleBienvenue } from "../SentinelleBienvenue.jsx";
    automatiquement. C'est la moitié du travail d'enquête, et c'est
    exactement ce qu'un joueur ne pense jamais à donner.
 
+   ─── POURQUOI onClick ET PAS onPointerDown ──────────
+   La convention du projet est `onPointerDown` sur les zones tactiles :
+   il déclenche au contact du doigt, sans attendre. C'est le bon choix
+   pour un bouton de mini-jeu, où cinquante millisecondes comptent.
+
+   Ici, c'est un piège. Cet écran DÉFILE. Réagir au contact, c'est
+   réagir avant que le navigateur ait pu distinguer un appui d'un
+   glissement : Régis a signalé qu'en cherchant à faire défiler la liste
+   des résultats, il ouvrait un résultat au lieu de descendre.
+
+   `onClick` fait exactement ce qu'on veut — appui court, sans
+   déplacement — et le fait mieux qu'une réimplémentation maison. Avec
+   `touchAction: manipulation`, déjà posé partout ici, il n'y a aucun
+   délai de 300 ms à craindre. C'est d'ailleurs ce que font tous les
+   autres écrans à liste de l'app (Réglages, Collection, Boutique).
+
    L'ARBRE EST DANS data/signalements.js
    ─────────────────────────────────────
    Cet écran ne connaît aucune catégorie : il descend une structure.
@@ -157,7 +173,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
         borderBottom:`1px solid ${C.border}`, flexShrink:0,
       }}>
         <button
-          onPointerDown={onClose}
+          onClick={onClose}
           aria-label={t('common.close')}
           style={{
             width:38, height:38, borderRadius:12, flexShrink:0,
@@ -220,7 +236,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
               </div>
             </div>
             <button
-              onPointerDown={reprendre}
+              onClick={reprendre}
               style={{
                 width:'100%', padding:'14px 0', borderRadius:14,
                 background:C.card, border:`1.5px solid ${C.border}`,
@@ -238,7 +254,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
             {chemin.length > 0 && (
               <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:14 }}>
                 <button
-                  onPointerDown={() => revenir(0)}
+                  onClick={() => revenir(0)}
                   style={{
                     padding:'7px 12px', borderRadius:20, background:C.card,
                     border:`1px solid ${C.border}`, color:C.muted,
@@ -248,7 +264,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                 {chemin.map((n, i) => (
                   <button
                     key={i}
-                    onPointerDown={() => revenir(i + 1)}
+                    onClick={() => revenir(i + 1)}
                     style={{
                       padding:'7px 12px', borderRadius:20,
                       background:'rgba(43,124,178,.12)',
@@ -286,7 +302,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                     return (
                       <button
                         key={noeud.id}
-                        onPointerDown={() => choisir(noeud)}
+                        onClick={() => choisir(noeud)}
                         style={{
                           width:'100%', textAlign:'left',
                           padding: serre ? '13px 13px' : '15px 16px',
@@ -374,7 +390,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                 )}
 
                 <button
-                  onPointerDown={envoyer}
+                  onClick={envoyer}
                   disabled={envoi}
                   style={{
                     width:'100%', marginTop:14, padding:'15px 0', borderRadius:14,
