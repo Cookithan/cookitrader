@@ -31,9 +31,9 @@
    vit dans le téléphone (localStorage), il n'est jamais synchronisé.
    Aucune écriture en base ne peut le changer.
    Mais les jeux se déverrouillent AUSSI par le niveau, et le niveau est
-   en base : passer un joueur au niveau 13 lui ouvre tous les mini-jeux
-   livrés (le plus haut palier livré est Flappy, 12). C'est le
-   chemin réel, et c'est celui que la Sentinelle doit proposer.
+   en base : le palier le plus haut livré est Flappy (12), donc passer un
+   joueur au NIVEAU 12 lui ouvre tous les mini-jeux. C'est le chemin
+   réel, et c'est celui que la Sentinelle doit proposer.
 ══════════════════════════════════════════════════════════════════ */
 
 create or replace function public.sentinelle_modifier_joueur(cible text, params jsonb)
