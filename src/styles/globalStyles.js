@@ -534,4 +534,26 @@ export const GLOBAL_CSS = `
   .s-story { animation: sentinelleStory .32s cubic-bezier(.2,.8,.2,1) both; }
   @keyframes sentinelleCurseur { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
   .s-curseur { display: inline-block; width: 2px; height: .95em; background: currentColor; margin-left: 2px; vertical-align: -2px; animation: sentinelleCurseur .7s steps(1) infinite; }
+
+  /* Sentinelle — la lumière de fond. Un halo qui respire très lentement
+     derrière les cartes : c'est ce qui empêche l'écran d'être une feuille
+     blanche. 9 s, imperceptible, mais l'oeil sait que ça vit. */
+  @keyframes sentinelleSouffle {
+    0%, 100% { opacity: .55; transform: translate3d(0, 0, 0) scale(1); }
+    50%      { opacity: .85; transform: translate3d(0, -12px, 0) scale(1.08); }
+  }
+  .s-souffle { animation: sentinelleSouffle 9s ease-in-out infinite; will-change: transform, opacity; }
+
+  /* Le bouton principal : un éclat qui traverse, une fois de temps en
+     temps. Il dit « c'est ici qu'on appuie » sans clignoter. */
+  @keyframes sentinelleEclat { 0% { transform: translateX(-120%); } 100% { transform: translateX(320%); } }
+  .s-eclat::after {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.42), transparent);
+    animation: sentinelleEclat 2.6s ease-in-out infinite; pointer-events: none;
+  }
+
+  /* La page qui arrive : le contenu monte d'un cran, décalé. */
+  @keyframes sentinelleMonte { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  .s-monte { animation: sentinelleMonte .4s cubic-bezier(.2,.8,.2,1) both; }
 `;
