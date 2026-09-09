@@ -269,7 +269,7 @@ function evolution(users, snap) {
 }
 
 /* 5. Marché $CKM — état, cohérence des actions, activité. */
-function marche(state, txs, portefeuilles) {
+function marche(state, txs, portefeuilles, historique) {
   const s = state[0];
   if (!s) return alerte('Marché : aucun état en base (table market_state vide)');
 
@@ -283,13 +283,34 @@ function marche(state, txs, portefeuilles) {
   if (prix < BORNE_BASSE || prix > BORNE_HAUTE) alerte(`Marché : prix hors bornes — ${prix.toFixed(1)} (attendu entre ${BORNE_BASSE} et ${BORNE_HAUTE})`);
   else ok(`Marché : prix à ${prix.toFixed(1)}, dans les bornes`);
 
-  const heures = jours(s.last_updated) * 24;
-  if (heures > 24) alerte(`Marché FIGÉ — dernier tick il y a ${Math.round(heures)} h`, [
-    "Le tick de maintenance ne tourne que lorsqu'un joueur a l'onglet Marché ouvert.",
-    "Plus de 24 h sans tick : soit plus personne n'y va, soit maintenanceTick est cassé.",
+  /* ── Ce contrôle regardait `market_state.last_updated`, que SEUL le
+     tick client met à jour — donc uniquement quand un joueur a l'onglet
+     Marché ouvert. Depuis SENTINELLE_HORLOGE.sql, le marché a un
+     battement serveur (pg_cron, toutes les 2 min) qui écrit dans
+     market_history sans toucher à last_updated : l'audit annonçait donc
+     « marché figé » sur un marché parfaitement vivant, dès qu'on le
+     lançait en dehors d'une session de jeu.
+
+     Une alerte qui se trompe est pire qu'une alerte absente : on
+     apprend à la sauter, et le jour où elle a raison on la saute aussi.
+     C'est exactement comme ça que le mur inopérant a tenu neuf jours.
+
+     On mesure donc le BATTEMENT (le dernier relevé d'historique, qu'il
+     vienne du serveur ou d'un joueur), et le tick client n'est plus
+     qu'une information, pas un verdict. */
+  const battement = historique?.[0]?.recorded_at;
+  const hCli = jours(s.last_updated) * 24;
+  const hBat = battement ? jours(battement) * 24 : Infinity;
+  const dit  = (h) => h < 1 ? `${Math.round(h * 60)} min` : `${Math.round(h)} h`;
+
+  if (!battement) alerte('Marché : aucun relevé dans market_history', [
+    "Sans historique, ni la courbe ni le coupe-circuit ne peuvent fonctionner.",
   ]);
-  else if (heures > 2) voir(`Marché : dernier tick il y a ${Math.round(heures)} h`);
-  else ok(`Marché : tick à jour (il y a ${Math.round(heures * 60)} min)`);
+  else if (hBat > 1) alerte(`Marché FIGÉ — dernier relevé il y a ${dit(hBat)}`, [
+    "Le battement serveur (pg_cron, toutes les 2 min) devrait relever bien plus souvent.",
+    "Vérifier que SENTINELLE_HORLOGE.sql a tourné et que pg_cron est actif.",
+  ]);
+  else ok(`Marché : battement à jour (relevé il y a ${dit(hBat)}) · dernier passage joueur il y a ${dit(hCli)}`);
 
   if (s.circuit_breaker_until && new Date(s.circuit_breaker_until) > new Date())
     voir('Marché : circuit breaker ACTIF jusqu\'à ' + s.circuit_breaker_until);
@@ -328,14 +349,15 @@ function marche(state, txs, portefeuilles) {
   console.log('\x1b[1m\nBILAN DE SANTÉ COOKIMINER\x1b[0m  ' + new Date().toLocaleString('fr-FR'));
   console.log('lecture seule · ' + BASE.replace('https://', ''));
 
-  let users, winners, state, txs, portefeuilles;
+  let users, winners, state, txs, portefeuilles, historique;
   try {
-    [users, winners, state, txs, portefeuilles] = await Promise.all([
+    [users, winners, state, txs, portefeuilles, historique] = await Promise.all([
       q('users?select=user_name,user_code,level,xp,total_earned,weekly_earned,weekly_week_id,cookies,cafes,total_play_time,prestige_level,last_active,join_date&limit=2000'),
       q('weekly_winners?select=week_id,top1_name,top1_code,top1_earned&order=week_id.desc&limit=12'),
       q('market_state?select=*&limit=1'),
       q('market_transactions?select=user_code,type,shares,total_amount,created_at&order=created_at.desc&limit=500'),
       q('market_portfolio?select=user_code,shares&limit=2000'),
+      q('market_history?select=recorded_at,price&order=recorded_at.desc&limit=1'),
     ]);
   } catch (e) {
     console.error('\nÉchec de lecture : ' + e.message);
@@ -349,7 +371,7 @@ function marche(state, txs, portefeuilles) {
   coherenceNiveau(users);
   concentrationHebdo(users);
   podiums(winners);
-  marche(state, txs, portefeuilles);
+  marche(state, txs, portefeuilles, historique);
   evolution(users, lireSnapshot());
   ecrireSnapshot(users, state);
 
