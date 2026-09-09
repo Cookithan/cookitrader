@@ -556,4 +556,35 @@ export const GLOBAL_CSS = `
   /* La page qui arrive : le contenu monte d'un cran, décalé. */
   @keyframes sentinelleMonte { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
   .s-monte { animation: sentinelleMonte .4s cubic-bezier(.2,.8,.2,1) both; }
+
+  /* Sentinelle — ELLE REGARDE (09/09).
+     Son point prend une dizaine de secondes : elle lit la base, relit les
+     signalements, prépare ses dossiers. Pendant ce temps il n'y avait
+     qu'une ligne de texte qui pulsait, ce qui ressemble à une page qui a
+     planté. Le bouclier respire et envoie des ondes, comme un radar : on
+     comprend qu'elle BALAYE, pas qu'elle attend.
+
+     Les ondes sont décalées (--onde) pour qu'il en parte une toutes les
+     0,73 s au lieu de trois d'un coup. Boucle longue assumée : la règle
+     des 700 ms vaut pour les transitions, pas pour une animation
+     d'ambiance — comme .s-souffle (9 s) et .s-eclat (2,6 s). */
+  @keyframes sentinelleOnde { 0% { opacity: .5; transform: scale(.55); } 100% { opacity: 0; transform: scale(2.3); } }
+  .s-onde { animation: sentinelleOnde 2.2s ease-out infinite; animation-delay: var(--onde, 0s); will-change: transform, opacity; }
+  @keyframes sentinelleScrute { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+  .s-scrute { animation: sentinelleScrute 2.2s ease-in-out infinite; will-change: transform; }
+
+  /* Sentinelle — elle écrit. Les trois points d'une conversation, mais en
+     boucliers : c'est elle qui réfléchit, pas un serveur qui rame. Décalés
+     de .16 s pour que la vague se lise. */
+  @keyframes sentinelleRebond {
+    0%, 62%, 100% { transform: translateY(0); opacity: .4; }
+    31%           { transform: translateY(-6px); opacity: 1; }
+  }
+  .s-point { display: inline-block; animation: sentinelleRebond .95s ease-in-out infinite; animation-delay: var(--pt, 0s); }
+
+  /* La feuille de conversation qui monte par-dessus les pages. */
+  @keyframes sentinelleFeuille { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+  .s-feuille { animation: sentinelleFeuille .26s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes sentinelleBulle { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+  .s-bulle { animation: sentinelleBulle .24s cubic-bezier(.2,.8,.2,1) both; }
 `;

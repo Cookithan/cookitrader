@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { SENTINELLE_THEME, SENTINELLE_BANNIERE } from "../data/themes.js";
+import { THEME_SENTINELLE, BANNIERE, FOND } from "../data/sentinelleTheme.js";
 import { useTranslation } from "../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
    SentinelleBienvenue — elle se réveille quand on entre
    ────────────────────────────────────────────────────
    Le même accueil pour les deux écrans de la Sentinelle : la console de
-   Régis et l'entonnoir des joueurs. Seule la phrase change.
+   Cookithan et l'entonnoir des joueurs. Seule la phrase change.
 
    POURQUOI UN ACCUEIL
    ───────────────────
@@ -30,7 +30,7 @@ import { useTranslation } from "../i18n/index.js";
    l'impression d'un réveil, pas leur durée.
 ═══════════════════════════════════════════════════════ */
 
-const C = SENTINELLE_THEME;
+const C = THEME_SENTINELLE;
 
 /* Le bouclier arrive (620), la phrase suit (450 après 300 de retard),
    on laisse respirer, puis tout se dissout (340). */
@@ -83,7 +83,7 @@ export function SentinelleBienvenue({ nom, admin = false, onFini }) {
       className={sort ? 's-out' : undefined}
       style={{
         position:'absolute', inset:0, zIndex:5,
-        background:C.bg,
+        background:FOND,
         display:'flex', flexDirection:'column',
         alignItems:'center', justifyContent:'center', gap:2,
         padding:'0 32px', textAlign:'center',
@@ -105,7 +105,7 @@ export function SentinelleBienvenue({ nom, admin = false, onFini }) {
           className="s-wake"
           style={{
             width:88, height:88, borderRadius:26,
-            background: SENTINELLE_BANNIERE,
+            background: BANNIERE,
             border:'1px solid rgba(255,255,255,.75)',
             boxShadow:'0 10px 28px rgba(30,80,125,.28)',
             display:'flex', alignItems:'center', justifyContent:'center',

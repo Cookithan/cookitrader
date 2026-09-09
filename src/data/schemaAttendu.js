@@ -17,7 +17,7 @@
    décrit exactement comment le mur anti-triche décide, et l'expédier
    dans le bundle de chaque joueur reviendrait à publier le mode d'emploi
    pour le contourner. La console nomme le fichier ; le fichier vit dans
-   le dépôt, entre les mains de Régis.
+   le dépôt, entre les mains de Cookithan.
 
    `gravite` : 'bloquant' = quelque chose ne marche plus, ou pire, une
    protection ne protège plus. 'utile' = une fonctionnalité dort, sans
@@ -49,6 +49,14 @@ export const SCHEMA_ATTENDU = [
     quoi: 'Le moteur des actions de la console',
     casse: 'Aucun bouton de l\'onglet Agir ne fonctionne.',
     fichier: 'SENTINELLE_ACTIONS.sql',
+  },
+  {
+    id: 'modifier',
+    fonction: 'sentinelle_modifier_joueur',
+    gravite: 'utile',
+    quoi: 'La main directe sur un compte',
+    casse: "La Sentinelle ne peut plus rien changer sur un compte quand Cookithan le lui demande de vive voix.",
+    fichier: 'SENTINELLE_MODIFIER.sql',
   },
   {
     id: 'phrase',

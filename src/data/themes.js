@@ -125,17 +125,18 @@ export const ESPRESSO = 'linear-gradient(140deg,#4A2C17,#7D4E1F)';
    que les sous-composants n'aient rien à savoir de tout ça.
    L'interdiction du rouge tient : la gravité se dit par la PROFONDEUR
    du bleu — SENTINELLE_MARINE pour le grave, ACIER pour l'actionnable. */
-export const SENTINELLE_THEME = {
-  bg:     'linear-gradient(170deg,#F3F9FD 0%,#E4F0F9 55%,#DAECF7 100%)',
-  card:   '#FFFFFF',
-  card2:  '#EAF3FA',
-  text:   '#0E3355',
-  muted:  '#5A7E9B',
-  border: '#CCE0EE',
-};
-export const SENTINELLE_BANNIERE = 'linear-gradient(140deg, #E6F3FC, #B3D9F2)';
-export const SENTINELLE_MARINE   = '#0B2E4D';
-export const SENTINELLE_ACIER    = '#1B5E8C';
+/* ⚠️ Ces quatre-là ne sont plus définis ici : ce fichier en avait sa
+   copie, sentinelleTheme.js avait la sienne, et rien n'obligeait les
+   deux à rester d'accord — la console et l'entonnoir ont dérivé sur le
+   gris des textes secondaires. L'échelle vit maintenant dans
+   data/sentinelleTheme.js ; on la réexporte pour ne casser aucun import
+   existant. Pour changer un bleu, c'est là-bas. */
+export {
+  THEME_SENTINELLE as SENTINELLE_THEME,
+  BANNIERE         as SENTINELLE_BANNIERE,
+  MARINE           as SENTINELLE_MARINE,
+  ACIER            as SENTINELLE_ACIER,
+} from './sentinelleTheme.js';
 
 /* ─── Teintes de palier (v1.30) ─────────────────────────────────────
    Une teinte par tranche de 5 niveaux, pour que les bannières de niveau

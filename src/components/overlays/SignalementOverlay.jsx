@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, Send } from "lucide-react";
 import { ARBRE } from "../../data/signalements.js";
 import { envoyerSignalement } from "../../lib/sentinelle.js";
-import { SENTINELLE_THEME, SENTINELLE_BANNIERE, SENTINELLE_MARINE, SENTINELLE_ACIER } from "../../data/themes.js";
+import { THEME_SENTINELLE, BANNIERE, MARINE, ACIER, BLEU, FOND, DEGRADE, CHAMP } from "../../data/sentinelleTheme.js";
 import { useTranslation, localizedField } from "../../i18n/index.js";
 import { SentinelleBienvenue } from "../SentinelleBienvenue.jsx";
 
@@ -32,7 +32,7 @@ import { SentinelleBienvenue } from "../SentinelleBienvenue.jsx";
 
    Ici, c'est un piège. Cet écran DÉFILE. Réagir au contact, c'est
    réagir avant que le navigateur ait pu distinguer un appui d'un
-   glissement : Régis a signalé qu'en cherchant à faire défiler la liste
+   glissement : Cookithan a signalé qu'en cherchant à faire défiler la liste
    des résultats, il ouvrait un résultat au lieu de descendre.
 
    `onClick` fait exactement ce qu'on veut — appui court, sans
@@ -50,7 +50,10 @@ import { SentinelleBienvenue } from "../SentinelleBienvenue.jsx";
    message qui le dit — jamais un échec muet.
 ═══════════════════════════════════════════════════════ */
 
-const C = SENTINELLE_THEME;
+const C = THEME_SENTINELLE;
+/* Assez d'ombre pour décoller du fond, pas assez pour peser sur une
+   liste de dix-huit boutons. */
+const OMBRE_DOUCE = '0 2px 8px rgba(14,51,85,.07)';
 
 /* Le libellé d'un nœud : soit une clé i18n déjà existante (les
    mini-jeux, dont les noms vivent dans games_list.*), soit un couple
@@ -161,23 +164,29 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
     <div style={{
       position:'fixed', top:0, left:'50%', transform:'translateX(-50%)',
       width:'100%', maxWidth:430, bottom:0,
-      background:C.bg, zIndex:62, display:'flex', flexDirection:'column',
+      background:FOND, zIndex:62, display:'flex', flexDirection:'column',
     }}>
+      <div aria-hidden style={{ position:'absolute', inset:0, pointerEvents:'none', overflow:'hidden' }}>
+        <div className="s-souffle" style={{ position:'absolute', top:'-14%', left:'-24%', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle, rgba(46,134,191,.18), transparent 70%)' }} />
+        <div className="s-souffle" style={{ position:'absolute', bottom:'-16%', right:'-22%', width:340, height:340, borderRadius:'50%', background:'radial-gradient(circle, rgba(110,88,190,.12), transparent 70%)', animationDelay:'3s' }} />
+      </div>
+
       {accueil && (
         <SentinelleBienvenue nom={userName} onFini={() => setAccueil(false)} />
       )}
 
       {/* En-tête */}
       <div style={{
-        display:'flex', alignItems:'center', gap:12, padding:'14px 18px',
-        borderBottom:`1px solid ${C.border}`, flexShrink:0,
+        position:'relative', display:'flex', alignItems:'center', gap:12,
+        padding:'14px 16px', background:DEGRADE, flexShrink:0,
+        boxShadow:'0 4px 18px rgba(20,73,109,.28)',
       }}>
         <button
           onClick={onClose}
           aria-label={t('common.close')}
           style={{
             width:38, height:38, borderRadius:12, flexShrink:0,
-            background:C.card, border:`1px solid ${C.border}`, color:C.text,
+            background:'rgba(255,255,255,.18)', border:'1.5px solid rgba(255,255,255,.28)', color:'#fff',
             display:'flex', alignItems:'center', justifyContent:'center',
             touchAction:'manipulation',
           }}
@@ -185,18 +194,18 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
           <ChevronLeft size={20} />
         </button>
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:17, fontWeight:800, color:C.text }}>{t('report.title')}</div>
-          <div style={{ fontSize:11, color:C.muted, marginTop:1 }}>{t('report.guest')}</div>
+          <div style={{ fontSize:17, fontWeight:900, color:'#fff', letterSpacing:-.2 }}>{t('report.title')}</div>
+          <div style={{ fontSize:11, color:'rgba(255,255,255,.75)', marginTop:1 }}>{t('report.guest')}</div>
         </div>
       </div>
 
-      <div style={{ flex:1, overflowY:'auto', padding:'16px 18px 32px' }}>
+      <div style={{ position:'relative', flex:1, overflowY:'auto', overscrollBehavior:'contain', WebkitOverflowScrolling:'touch', padding:'16px 18px 32px' }}>
 
         {/* La bannière, la même que celle de la console : c'est le même
             outil, vu depuis l'autre côté. */}
         <div style={{
           position:'relative', overflow:'hidden',
-          background: SENTINELLE_BANNIERE,
+          background: BANNIERE,
           borderRadius:20, padding:'20px 20px 18px', color:C.text, marginBottom:18,
           border:'1px solid rgba(255,255,255,.7)',
           boxShadow:'0 8px 24px rgba(30,80,125,.22)',
@@ -240,7 +249,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
               style={{
                 width:'100%', padding:'14px 0', borderRadius:14,
                 background:C.card, border:`1.5px solid ${C.border}`,
-                color:SENTINELLE_ACIER, fontSize:13, fontWeight:800,
+                color:ACIER, fontSize:13, fontWeight:800,
                 touchAction:'manipulation',
               }}
             >
@@ -269,7 +278,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                       padding:'7px 12px', borderRadius:20,
                       background:'rgba(43,124,178,.12)',
                       border:'1.5px solid rgba(43,124,178,.35)',
-                      color:SENTINELLE_ACIER, fontSize:11.5, fontWeight:800,
+                      color:ACIER, fontSize:11.5, fontWeight:800,
                       maxWidth:'100%', overflow:'hidden', textOverflow:'ellipsis',
                       whiteSpace:'nowrap', touchAction:'manipulation',
                     }}
@@ -307,7 +316,8 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                           width:'100%', textAlign:'left',
                           padding: serre ? '13px 13px' : '15px 16px',
                           borderRadius:16, minHeight: serre ? 60 : 0,
-                          background:C.card, border:`1.5px solid ${C.border}`,
+                          background:C.card, border:`1.5px solid ${BLEU[200]}`,
+                          borderLeft:`3px solid ${BLEU[400]}`, boxShadow:OMBRE_DOUCE,
                           display:'flex', alignItems:'center', gap:12,
                           touchAction:'manipulation', cursor:'pointer',
                         }}
@@ -343,7 +353,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                       style={{
                         width:'100%', boxSizing:'border-box',
                         background:C.card, border:`1.5px solid ${C.border}`,
-                        borderRadius:13, padding:'13px 14px', fontSize:14, color:C.text,
+                        borderRadius:13, padding:'13px 14px', fontSize:CHAMP, color:C.text,
                       }}
                     />
                   </div>
@@ -360,7 +370,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                   style={{
                     width:'100%', boxSizing:'border-box', resize:'vertical',
                     background:C.card, border:`1.5px solid ${C.border}`,
-                    borderRadius:14, padding:'13px 14px', fontSize:14, color:C.text,
+                    borderRadius:14, padding:'13px 14px', fontSize:CHAMP, color:C.text,
                     lineHeight:1.5, fontFamily:'inherit',
                   }}
                 />
@@ -383,7 +393,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                   <div style={{
                     marginTop:12, padding:'12px 14px', borderRadius:13,
                     background:'rgba(30,80,125,.12)', border:'1.5px solid rgba(14,51,85,.4)',
-                    fontSize:12.5, fontWeight:700, color:SENTINELLE_MARINE, lineHeight:1.5,
+                    fontSize:12.5, fontWeight:700, color:MARINE, lineHeight:1.5,
                   }}>
                     ⛔ {texteRefus(retour)}
                   </div>
@@ -394,7 +404,7 @@ export function SignalementOverlay({ onClose, userCode, userName, level }) {
                   disabled={envoi}
                   style={{
                     width:'100%', marginTop:14, padding:'15px 0', borderRadius:14,
-                    background:SENTINELLE_MARINE, border:'none', color:'#EAF4FB',
+                    background:MARINE, border:'none', color:'#EAF4FB',
                     fontSize:14, fontWeight:900, letterSpacing:.3,
                     display:'flex', alignItems:'center', justifyContent:'center', gap:8,
                     opacity: envoi ? .5 : 1, touchAction:'manipulation',

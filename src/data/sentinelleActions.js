@@ -9,7 +9,7 @@
    ⚠️ CE FICHIER PART CHEZ TOUS LES JOUEURS. Il ne contient donc que
    des NOMS d'actions et des libellés — jamais le droit de les
    exécuter. Ce droit tient à la phrase de passe, qui n'existe que dans
-   la base et dans la tête de Régis. Lire ce fichier apprend ce que la
+   la base et dans la tête de Cookithan. Lire ce fichier apprend ce que la
    console sait faire ; ça ne permet pas de s'en servir.
 
    `danger` marque les actions qui touchent à l'économie d'un joueur ou
@@ -64,6 +64,33 @@ export const ACTIONS_SENTINELLE = [
       { nom:'cookies',      label:'Solde de cookies', type:'nombre', exemple:'10800' },
       { nom:'cafes',        label:'Cafés',            type:'nombre', exemple:'14' },
       { nom:'motif',        label:'Motif (pour le journal)', type:'text', exemple:'exploit Memory' },
+    ],
+  },
+  {
+    /* Le seul geste dont l'adresse n'est pas `action_sentinelle` : il a
+       sa propre fonction en base. `rpc` le dit à l'écran, qui route en
+       conséquence — sans ça il faudrait un cas particulier écrit en dur
+       dans chaque appelant. */
+    id: 'modifier_joueur',
+    rpc: 'sentinelle_modifier_joueur',
+    groupe: 'joueur',
+    titre: 'Modifier un compte',
+    resume: "Change un ou plusieurs champs, d'un coup",
+    aide: "Ce qui n'est pas rempli ne bouge pas : remplir le seul niveau ne touche à rien d'autre. Le compteur d'adoption est incrémenté, donc le téléphone du joueur PREND la valeur au lieu de la réécrire dans les cinq secondes.\n\nPour ouvrir tous les mini-jeux à quelqu'un, le chemin est le NIVEAU 12 : le déverrouillage par code promo vit dans le téléphone (localStorage) et ne remonte jamais en base — aucune écriture serveur ne peut le changer.",
+    danger: true,
+    champs: [
+      { nom:'user_code',      label:'Code du joueur',   type:'text',   requis:true, exemple:'9WX-W7Q' },
+      { nom:'level',          label:'Niveau',           type:'nombre', exemple:'12' },
+      { nom:'xp',             label:'XP',               type:'nombre', exemple:'0' },
+      { nom:'cookies',        label:'Solde de cookies', type:'nombre', exemple:'10000' },
+      { nom:'cafes',          label:'Cafés',            type:'nombre', exemple:'5' },
+      { nom:'total_earned',   label:'Cumul (classement)', type:'nombre', exemple:'50000' },
+      { nom:'weekly_earned',  label:'Gains de la semaine', type:'nombre', exemple:'0' },
+      { nom:'prestige_level', label:'Prestige',         type:'nombre', exemple:'0' },
+      { nom:'streak',         label:'Série',            type:'nombre', exemple:'3' },
+      { nom:'active_theme',   label:'Thème équipé',     type:'text',   exemple:'theme_cosmos' },
+      { nom:'active_title',   label:'Titre équipé',     type:'text',   exemple:'title_legende' },
+      { nom:'user_bio',       label:'Bio',              type:'text',   exemple:'…' },
     ],
   },
   {

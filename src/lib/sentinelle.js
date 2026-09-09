@@ -66,7 +66,7 @@ const INTERVALLE_RONDE_MS = 60 * 60 * 1000;
 /* Seuils repris de scripts/audit.mjs — même barème pour que la vigie et
    la ligne de commande ne se contredisent jamais.
 
-   RENDEMENT_ELEVE relevé de 150 à 200 le 08/09/2026 (demande Régis) :
+   RENDEMENT_ELEVE relevé de 150 à 200 le 08/09/2026 (demande Cookithan) :
    le seuil ne tenait compte que du grind régulier, alors que la ROUE
    (jusqu'à +200 d'un coup) et le JACKPOT de la machine à sous (jusqu'à
    +500) font légitimement bondir le ratio d'un joueur chanceux. À 150,
@@ -460,7 +460,7 @@ function controleIncidents(sante) {
    `enregistrer` = false permet à l'écran admin de relancer une ronde
    pour REGARDER sans polluer l'historique. */
 /* ── Ce que la Sentinelle ne savait pas voir ──────────
-   Règle posée par Régis le 08/09/2026 : chaque bug découvert qu'une
+   Règle posée par Cookithan le 08/09/2026 : chaque bug découvert qu'une
    ronde n'aurait pas pu détecter devient un contrôle. Corriger traite le
    cas ; ajouter le contrôle traite la famille.
 
@@ -630,7 +630,7 @@ function controleSignalements(enAttente) {
 /* ── Cinq contrôles de plus (09/09/2026) ──────────────
    Toujours la même règle : chaque problème qu'une ronde n'aurait pas pu
    voir devient un contrôle. Ceux-ci viennent d'un audit demandé par
-   Régis — trois d'entre eux ont trouvé quelque chose d'armé en base au
+   Cookithan — trois d'entre eux ont trouvé quelque chose d'armé en base au
    moment de leur écriture. */
 
 /* Le café est la monnaie que le projet protège le plus (« ne JAMAIS
@@ -676,7 +676,7 @@ function controleForceVersion(status) {
 
   /* Le drapeau ÉGAL à la version courante est l'usage NORMAL : c'est
      ainsi qu'on invite les clients restés en arrière à se mettre à
-     jour. La première version de ce contrôle criait dessus — Régis a
+     jour. La première version de ce contrôle criait dessus — Cookithan a
      poussé ses comptes vers la 1.30.2 et l'alerte est restée. Un
      contrôle qui punit le geste correct est pire qu'un contrôle
      absent : il apprend à ignorer les alertes. */
@@ -1097,6 +1097,206 @@ export async function agir(phrase, action, params = {}) {
       const manquante = /function|does not exist|schema cache/i.test(error.message || '');
       return { ok: false, message: manquante
         ? "La console n'est pas installée en base (SENTINELLE_ACTIONS.sql)."
+        : `Erreur : ${error.message}` };
+    }
+    return data || { ok: false, message: 'Réponse vide' };
+  } catch (e) {
+    return { ok: false, message: `Erreur réseau : ${e?.message || e}` };
+  }
+}
+
+/* ════════════════════════════════════════════════════
+   LES FAITS, SANS ELLE
+   ────────────────────────────────────────────────────
+   Cookithan, le 09/09 : « rends-les gratuites aussi » — les pages
+   « L'app en vie » et « La journée » ne vivaient que du tableau rédigé
+   par le modèle, donc les regarder coûtait un tour complet.
+
+   Or ce tableau contient DEUX choses de nature différente :
+
+     · des FAITS      — le cours, les joueurs, les crashs, la frise des
+                        événements. De la lecture de base, rien d'autre.
+     · sa LECTURE     — son mot, ses phrases de bande, ses dossiers, ce
+                        qu'elle retient de la journée. Ça, ça se paye.
+
+   Cette fonction produit la moitié « faits », en tapant la base
+   directement. Les formes sont copiées CHAMP POUR CHAMP sur
+   `donneesTableau` de supabase/functions/sentinelle/index.ts : l'écran
+   ne sait pas d'où viennent ses données, et ne doit pas avoir à le
+   savoir. Quand son point arrive, il se superpose là-dessus.
+
+   ⚠️ CE QUE LA CLÉ PUBLIQUE NE PEUT PAS VOIR
+   La fonction edge lit avec la clé de service, qui ignore la RLS. Ici on
+   n'a que la clé publique, et deux tables restent fermées :
+     · `sentinelle_dossiers` — c'est son travail à elle, il appartient
+       à la moitié payante de toute façon. D'où `allumes: []`.
+     · `signalements` — fermée même en lecture, exprès : elle est
+       nominative. On passe donc par `signalements_lister`, la fonction
+       `security definer` qui exige la phrase. C'est la même porte.
+   `comptes_sous_surveillance` ne renvoie rien non plus à la clé
+   publique : le drapeau `surveille` est donc toujours faux ici. Mieux
+   vaut un badge absent qu'un badge faux — et si ça manque, il suffit
+   d'une policy de lecture sur cette table.
+
+   La différence assumée : `boite` compte ce qui est OUVERT (nouveau +
+   lu) là où la fonction edge comptait les 24 dernières heures. Un
+   signalement reçu ce matin et déjà traité n'y figure donc plus. C'est
+   même plus utile — c'est ce qu'il reste à faire.
+═══════════════════════════════════════════════════════ */
+export async function faitsSentinelle(phrase) {
+  if (!isSupabaseEnabled()) return null;
+  const d24 = new Date(Date.now() - 864e5).toISOString();
+  const d7  = new Date(Date.now() - 7 * 864e5).toISOString();
+  const d48 = new Date(Date.now() - 2 * 864e5).toISOString();
+  const rien = () => [];
+
+  const [marche, histo, users, trans, sante, jrn, rapports, surveilles, boiteRes] = await Promise.all([
+    supabase.from('market_state').select('current_price,shares_in_circulation,circuit_breaker_until').eq('id', 1).maybeSingle().then(r => r.data, () => null),
+    supabase.from('market_history').select('price,recorded_at').gte('recorded_at', d48).order('recorded_at', { ascending: true }).limit(200).then(r => r.data || [], rien),
+    supabase.from('users').select('user_name,user_code,level,total_earned,weekly_earned,cookies,cafes,total_play_time,last_active').gte('last_active', d7).order('last_active', { ascending: false }).limit(40).then(r => r.data || [], rien),
+    supabase.from('market_transactions').select('user_code,type,shares,price_per_share,created_at').gte('created_at', d24).order('created_at', { ascending: false }).limit(40).then(r => r.data || [], rien),
+    supabase.from('app_health').select('kind,user_name,user_code,app_version,detail,created_at').gte('created_at', d24).order('created_at', { ascending: false }).limit(80).then(r => r.data || [], rien),
+    supabase.from('sentinelle_journal').select('created_at,action,cible,resultat,message').gte('created_at', d24).order('created_at', { ascending: false }).limit(60).then(r => r.data || [], rien),
+    supabase.from('sentinelle_rapports').select('created_at,verdict,categorie,titre').gte('created_at', d24).neq('verdict', 'ok').order('created_at', { ascending: false }).limit(30).then(r => r.data || [], rien),
+    supabase.from('comptes_sous_surveillance').select('user_code').then(r => r.data || [], rien),
+    listerSignalements(phrase, null, 60),
+  ]);
+
+  const sigs = boiteRes?.lignes || [];
+  const parCode = new Map(users.map(u => [u.user_code, u.user_name]));
+  const nom = (code, repli) => String(parCode.get(code) ?? repli ?? code ?? '?');
+
+  /* La frise brute : tout ce qui s'est passé, d'où que ça vienne. */
+  const ev = [];
+  const vus = new Set();
+  for (const h of sante) {
+    if (h.kind === 'ouverture') {
+      /* Une ouverture par joueur et par heure : sans ça, un joueur qui
+         relance l'app dix fois noie la journée à lui seul. */
+      const k = `${h.user_code}:${String(h.created_at).slice(0, 13)}`;
+      if (vus.has(k)) continue;
+      vus.add(k);
+      ev.push({ quand: h.created_at, genre: 'app', texte: `${nom(h.user_code, h.user_name)} a ouvert l'app${h.app_version ? ' (' + h.app_version + ')' : ''}`, acteur: 'joueur' });
+    } else {
+      ev.push({ quand: h.created_at, genre: h.kind === 'crash' ? 'app' : 'triche', texte: `${h.kind} · ${nom(h.user_code, h.user_name)} — ${String(h.detail ?? '').slice(0, 80)}`, acteur: 'app' });
+    }
+  }
+  for (const t of trans) ev.push({ quand: t.created_at, genre: 'marche', texte: `${nom(t.user_code)} a ${t.type === 'buy' ? 'acheté' : 'vendu'} ${t.shares} action(s) à ${Number(t.price_per_share ?? 0).toFixed(0)}`, acteur: 'joueur' });
+  for (const g of sigs) ev.push({ quand: g.cree_le, genre: 'boite', texte: `${nom(g.user_code, g.user_name)} a signalé : ${g.categorie}`, acteur: 'joueur' });
+  for (const j of jrn) {
+    const elle = ['ronde_ia', 'ecrire_au_joueur', 'appliquer_plafond'].includes(String(j.action)) || String(j.message ?? '').includes('horloge');
+    ev.push({ quand: j.created_at, genre: 'sentinelle', texte: `${j.action}${j.cible ? ' · ' + nom(j.cible) : ''}${j.message ? ' — ' + String(j.message).slice(0, 70) : ''}`, acteur: elle ? 'sentinelle' : 'regis' });
+  }
+  for (const r of rapports) ev.push({ quand: r.created_at, genre: r.categorie === 'marché' ? 'marche' : r.categorie, texte: `${String(r.verdict).toUpperCase()} · ${r.titre}`, acteur: 'ronde' });
+  ev.sort((a, b) => (a.quand < b.quand ? 1 : -1));
+
+  const m = marche || {};
+  const surv = new Set(surveilles.map(x => x.user_code));
+  const versions = new Map();
+  for (const h of sante) if (h.kind === 'ouverture' && h.app_version) versions.set(h.app_version, (versions.get(h.app_version) ?? 0) + 1);
+
+  return {
+    marche: {
+      prix: Number(m.current_price ?? 0),
+      actions: Number(m.shares_in_circulation ?? 0),
+      ferme: !!(m.circuit_breaker_until && new Date(m.circuit_breaker_until) > new Date()),
+      jusqu_a: m.circuit_breaker_until ?? null,
+      courbe: histo.map(h => Number(h.price)),
+      ordres24h: trans.length,
+    },
+    joueurs: users.map(u => ({
+      nom: u.user_name, code: u.user_code,
+      niveau: Number(u.level ?? 0),
+      semaine: Number(u.weekly_earned ?? 0),
+      cumul: Number(u.total_earned ?? 0),
+      minutes: Math.round(Number(u.total_play_time ?? 0) / 60),
+      vu: u.last_active,
+      surveille: surv.has(u.user_code),
+      actif24: String(u.last_active) >= d24,
+    })),
+    economie: {
+      semaine: users.reduce((acc, u) => acc + Number(u.weekly_earned ?? 0), 0),
+      actifs24: users.filter(u => String(u.last_active) >= d24).length,
+      actifs7: users.length,
+    },
+    app: {
+      ouvertures24: sante.filter(h => h.kind === 'ouverture').length,
+      crashs: sante.filter(h => h.kind === 'crash').length,
+      versions: [...versions.entries()].map(([v, n]) => ({ v, n })),
+    },
+    boite: {
+      nouveaux: sigs.filter(g => g.statut === 'nouveau').length,
+      total24: sigs.length,
+    },
+    allumes: [],
+    evenements: ev.slice(0, 60),
+    /* Pour que l'écran sache qu'il regarde des faits nus, sans sa lecture. */
+    gratuit: true,
+  };
+}
+
+/* ── Ce sur quoi elle a buté ────────────────────────────────────
+   Cookithan, le 09/09 : « quand elle ne peut pas faire des choses elle
+   doit le mettre en mémoire pour pouvoir le faire la prochaine fois ».
+
+   Sa mémoire des manques vit dans `sentinelle_notes`, qui est fermée à
+   la clé publique — la console ne peut donc pas la lire. Mais chaque
+   manque laisse AUSSI une ligne au journal, qui est lisible sans rien
+   dépenser. C'est par là qu'ils remontent jusqu'à cet écran.
+
+   Et c'est le point important : se souvenir d'un manque ne le comble
+   pas. Elle peut noter cent fois qu'il lui manque une donnée, elle ne
+   se la donnera jamais toute seule. La mémoire sert à ce que Cookithan
+   le VOIE, et qu'un manque vu six fois cesse d'être invisible. Le
+   comblement, lui, passe par du code. */
+export async function manquesConnus(limite = 120) {
+  if (!isSupabaseEnabled()) return [];
+  try {
+    const { data } = await supabase
+      .from('sentinelle_journal')
+      .select('created_at, cible, message')
+      .eq('action', 'manque')
+      .order('created_at', { ascending: false })
+      .limit(limite);
+
+    /* Une ligne par occurrence en base, un sujet par ligne à l'écran :
+       c'est le nombre de fois qui dit si ça vaut le coup d'y passer du
+       temps. */
+    const par = new Map();
+    for (const l of (data || [])) {
+      const cle = l.cible || 'sans sujet';
+      const v = par.get(cle);
+      if (v) { v.fois += 1; v.depuis = l.created_at; }
+      else par.set(cle, { sujet: cle, fois: 1, derniere: l.created_at, depuis: l.created_at, quoi: l.message || '' });
+    }
+    return [...par.values()].sort((a, b) => b.fois - a.fois || (a.derniere < b.derniere ? 1 : -1));
+  } catch {
+    return [];
+  }
+}
+
+/* ── Modifier un compte ─────────────────────────────────────────
+   Le seul geste qui ne passe PAS par `action_sentinelle`. Il vit dans
+   sa propre fonction (SENTINELLE_MODIFIER.sql) parce que l'y greffer
+   aurait demandé de réécrire les onze autres depuis leur propre code
+   source, ce que l'éditeur SQL refuse.
+
+   Même porte (la phrase), même journal, même liste blanche de champs —
+   `agir` reste donc le bon modèle mental, c'est juste l'adresse qui
+   change. La liste blanche est côté BASE : envoyer un champ qui n'y est
+   pas ne l'écrit pas, il est simplement ignoré. */
+export async function modifierJoueur(phrase, cible, params = {}) {
+  if (!isSupabaseEnabled()) return { ok: false, message: 'Hors ligne' };
+  if (!phrase) return { ok: false, message: 'Phrase de passe requise' };
+  if (!cible)  return { ok: false, message: 'Code du joueur requis' };
+  try {
+    const { data, error } = await supabase.rpc('sentinelle_modifier_joueur', {
+      p_phrase: phrase, p_cible: cible, p_params: params,
+    });
+    if (error) {
+      const manquante = /function|does not exist|schema cache/i.test(error.message || '');
+      return { ok: false, message: manquante
+        ? "Ce geste n'est pas installé en base (SENTINELLE_MODIFIER.sql)."
         : `Erreur : ${error.message}` };
     }
     return data || { ok: false, message: 'Réponse vide' };
