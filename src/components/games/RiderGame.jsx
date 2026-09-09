@@ -121,9 +121,12 @@ const TAU = Math.PI * 2;
    qui font l'écart. D'où des paliers de distance plats en haut et un
    bonus de figure élevé.
    Mesuré sur 300 parties de 75 s par profil :
-     · qui mitraille le doigt        →  3 s        →   0 🍪
-     · qui roule sans jamais tourner → 75 s        → 110 🍪
-     · qui tourne (13 figures méd.)  → 75 s        → 266 🍪
+     · qui mitraille le doigt        →  3 s → 0 🍪
+     · qui roule sans jamais tourner → 75 s → 110 🍪
+     · qui tourne (13 figures méd.)  → 75 s → 266 🍪
+   Les miettes (GEM_VALUE) s'ajoutent par-dessus, mais elles sont posées
+   sur la parabole d'un saut pris à PLEINE vitesse : les avoir toutes
+   veut dire qu'on a piloté juste, pas qu'on est passé par là.
    L'ancre reste Café Express : ~300 🍪 pour sa meilleure partie de 60 s.
    ⚠ Les bots ont un doigt parfait au 1/60e de seconde. À revoir après
    de vraies parties. */
@@ -136,21 +139,33 @@ const REWARD_PALIERS = [
   { m:3300, r:110 },
 ];
 const FLIP_BONUS = 12;
+const GEM_VALUE  = 2;        // par miette ramassée en vol
 const REWARD_CAP = 320;
 const DIST_CAP   = 5000;     // garde-fou : aucun bug ne peut imprimer à l'infini
 
-function rewardFor(m, flips){
+function rewardFor(m, flips, gems = 0){
   let base = 0;
   for(const p of REWARD_PALIERS) if(m >= p.m) base = p.r;
-  if(base === 0 && flips === 0) return 0;
-  return Math.min(REWARD_CAP, base + flips * FLIP_BONUS);
+  if(base === 0 && flips === 0 && gems === 0) return 0;
+  return Math.min(REWARD_CAP, base + flips * FLIP_BONUS + gems * GEM_VALUE);
 }
 
 /* ── La piste ──────────────────────────────────────
    Un run = une plateforme = { x0, ys[] }, un point tous les STEP px. Le
    trou entre deux plateformes n'est stocké nulle part : c'est simplement
    l'absence de piste entre la fin de l'une et le début de la suivante. */
-function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', loops:[] }; }
+function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', loops:[], gems:[] }; }
+
+/* Les miettes ne sont pas semées au hasard : on les pose SUR la parabole
+   que le saut va décrire à pleine vitesse. C'est ce qui en fait une
+   récompense de pilotage et pas un ramassage — les avoir toutes veut dire
+   qu'on a pris le tremplin comme il fallait. */
+function semerMiettes(run, x0, y0, vy0, vx, tVol, n){
+  for(let i = 1; i <= n; i++){
+    const t = tVol * (i / (n + 1));
+    run.gems.push({ x: x0 + vx * t, y: y0 + vy0 * t + 0.5 * G * t * t, pris:false });
+  }
+}
 function runEndX(run){ return run.x0 + (run.ys.length - 1) * STEP; }
 function runEndY(run){ return run.ys[run.ys.length - 1]; }
 
@@ -233,8 +248,11 @@ function addFeature(runs, diff){
     const penteSortie = 1.5 * rise / rl;
     const pr     = 0.30;
     const tVol   = vTop * (pr + penteSortie) / (0.5 * G);
+    const tipX   = runEndX(run);
+    const tipY   = runEndY(run);
     const recLen = Math.max(420, vTop * tVol * 1.25);
     span(run, recLen, u => pr * recLen * u);
+    semerMiettes(run, tipX, tipY - R, -penteSortie * vTop, vTop, tVol, 3);
     return;
   }
 
@@ -267,8 +285,11 @@ function addFeature(runs, diff){
     const trou = 0.5 * vTop * 0.86 * tChute;
     const next = makeRun(runEndX(run) + trou, runEndY(run) + chute);
     next.last  = 'falaise';
+    const bordX  = runEndX(run);
+    const bordY  = runEndY(run);
     const recLen = Math.max(520, vTop * tChute * 1.3);
     span(next, recLen, u => 0.22 * recLen * u);
+    semerMiettes(next, bordX, bordY - R, 0, vTop * 0.86, tChute, 4);
     runs.push(next);
     return;
   }
@@ -333,14 +354,16 @@ function solLePlusBas(runs){
 function buildPaths(runs){
   let crust = '';
   const loops = [];
+  const gems  = [];
   for(const run of runs){
     for(const b of run.loops) loops.push(b);
+    for(const g of run.gems) if(!g.pris) gems.push(g);
     const n = run.ys.length;
     let d = `M ${run.x0.toFixed(1)} ${run.ys[0].toFixed(1)}`;
     for(let i = 1; i < n; i++) d += ` L ${(run.x0 + i * STEP).toFixed(1)} ${run.ys[i].toFixed(1)}`;
     crust += `${d} `;
   }
-  return { crust: crust.trim(), loops };
+  return { crust: crust.trim(), loops, gems };
 }
 
 function normAngle(a){
@@ -379,11 +402,13 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [phase, setPhase] = useState('idle');       // idle | countdown | playing | done
   const [countdownVal, setCountdownVal] = useState(null);
   const [echelleArene, setEchelleArene] = useState(1);
-  const [paths, setPaths] = useState({ crust:'', loops:[] });
+  const [paths, setPaths] = useState({ crust:'', loops:[], gems:[] });
   const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true });
   const [dist,  setDist]  = useState(0);
   const [reste, setReste] = useState(RUN_TIME);
   const [flips, setFlips] = useState(0);
+  const [gems,  setGems]  = useState(0);
+  const [tag,   setTag]   = useState(null);   // petit mot après une belle figure
   const [crashed, setCrashed] = useState(false);
   const [crashReason, setCrashReason] = useState(null);   // 'flip' | 'fall' | 'wall' | 'time'
   const [shake, setShake] = useState(false);
@@ -413,6 +438,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const tempsRef  = useRef(0);
   const resteRef  = useRef(RUN_TIME);
   const flipsRef  = useRef(0);
+  const gemsRef   = useRef(0);
   const crashedRef = useRef(false);
   const crashTRef  = useRef(0);
   const crashKindRef = useRef(null);
@@ -457,6 +483,18 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     stopRiderEngine();
   }, []);
 
+  /* Le petit mot d'après-figure. Volontairement en minuscules et bref :
+     dans Rider il commente sans jamais féliciter, c'est ce ton-là qui
+     donne envie de recommencer. */
+  const TAGS = { 1:3, 2:3, 3:3, loop:2 };
+  const montrerTag = (famille) => {
+    const n   = TAGS[famille] || 1;
+    const cle = `game_rider.tag_${famille === 'loop' ? 'loop' : famille === 1 ? 'solo' : famille === 2 ? 'double' : 'triple'}_${Math.floor(Math.random() * n)}`;
+    const id  = Date.now() + Math.random();
+    setTag({ id, cle });
+    setTimeout(() => setTag(cur => (cur && cur.id === id ? null : cur)), 700);
+  };
+
   const popFlip = (n) => {
     const id = Date.now() + Math.random();
     setPops(p => [...p, { id, n }]);
@@ -477,7 +515,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     vyRef.current = 0;
     angRef.current = 0; spinRef.current = 0; avRef.current = 0;
     groundedRef.current = true; airTimeRef.current = 0;
-    distRef.current = 0; flipsRef.current = 0; tempsRef.current = 0; resteRef.current = RUN_TIME;
+    distRef.current = 0; flipsRef.current = 0; gemsRef.current = 0; tempsRef.current = 0; resteRef.current = RUN_TIME;
     crashedRef.current = false; crashTRef.current = 0; crashKindRef.current = null;
     boucleRef.current = null;
     retourCamRef.current = 0;
@@ -490,7 +528,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     ensure(runs, camXRef.current);
     basRef.current = solLePlusBas(runs);
     setPaths(buildPaths(runs));
-    setDist(0); setFlips(0); setReste(RUN_TIME); setCrashed(false); setCrashReason(null);
+    setDist(0); setFlips(0); setGems(0); setTag(null); setReste(RUN_TIME); setCrashed(false); setCrashReason(null);
     setPops([]); setHolding(false); setSquash(false);
     setFrame({ camX:camXRef.current, camY:camYRef.current, rx:RIDER_X, ry:yRef.current, ang:0, v:START_V, gr:true });
   };
@@ -502,7 +540,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     stopRiderEngine();
     throttleRef.current = false; setHolding(false);
     if(crashKindRef.current === 'time') setCrashReason('time');
-    const reward = rewardFor(distRef.current, flipsRef.current);
+    const reward = rewardFor(distRef.current, flipsRef.current, gemsRef.current);
     if(reward > 0){ onEarn(reward); playSound('coin'); }
     else playSound('error');
   };
@@ -568,7 +606,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
         vyRef.current  = 0; avRef.current = 0; spinRef.current = 0;
         groundedRef.current = true;
         flipsRef.current += 1; setFlips(flipsRef.current);
-        playSound('flip'); haptic('success'); popFlip(1);
+        playSound('flip'); haptic('success'); popFlip(1); montrerTag('loop');
       } else {
         xRef.current   = b.x + b.r * Math.sin(b.theta);
         yRef.current   = (b.y - R - b.r) + b.r * Math.cos(b.theta);
@@ -710,11 +748,32 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
                 playSound('flip');
                 haptic('light');
                 popFlip(n);
+                montrerTag(Math.min(3, n));
               }
               spinRef.current = 0;
             }
           }
         }
+      }
+    }
+
+    /* Ramassage. On balaie toutes les miettes en jeu : elles sont une
+       soixantaine au plus (la piste est élaguée derrière), donc le test
+       de distance au carré coûte moins cher qu'un index à maintenir. */
+    if(!crashedRef.current){
+      let pris = 0;
+      for(const run of runs){
+        for(const g of run.gems){
+          if(g.pris) continue;
+          const dx = g.x - xRef.current;
+          const dy = g.y - yRef.current;
+          if(dx * dx + dy * dy < 26 * 26){ g.pris = true; pris++; }
+        }
+      }
+      if(pris){
+        gemsRef.current += pris; setGems(gemsRef.current);
+        playSound('coin', { volume:0.35 });
+        setPaths(buildPaths(runs));
       }
     }
 
@@ -804,7 +863,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   };
   const up = () => { throttleRef.current = false; setHolding(false); };
 
-  const earnedNow    = rewardFor(dist, flips);
+  const earnedNow    = rewardFor(dist, flips, gems);
   const riderScreenX = frame.rx * ZOOM;
   const riderScreenY = (frame.ry - frame.camY) * ZOOM;
   const vitesse01    = Math.max(0, Math.min(1, (frame.v - STREAK_FROM) / 220));
@@ -827,7 +886,13 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
         </div>
         <div style={{ flex:1, padding:'10px 6px', borderRadius:14, background:C.card, border:`1.5px solid ${C.border}`, textAlign:'center' }}>
           <div style={{ fontSize:11 }}>🔄</div>
-          <div style={{ fontSize:21, fontWeight:900, color:C.text, lineHeight:1.1 }}>{flips}</div>
+          <div style={{ fontSize:21, fontWeight:900, color:C.text, lineHeight:1.1, display:'flex', alignItems:'baseline', justifyContent:'center', gap:5 }}>
+            {flips}
+            {/* Les miettes vivent dans la même case que les figures : les
+                deux se gagnent en l'air, et une quatrième colonne aurait
+                écrasé les trois autres sur un écran de 360 px. */}
+            {gems > 0 && <span style={{ fontSize:12, fontWeight:800, color:GOLD }}>◆{gems}</span>}
+          </div>
           <div style={{ fontSize:9, color:C.muted, fontWeight:700, letterSpacing:1, textTransform:'uppercase' }}>{t('game_rider.flips_label')}</div>
         </div>
         <div style={{ flex:1, padding:'10px 6px', borderRadius:14, background:C.card, border:`1.5px solid ${C.border}`, textAlign:'center' }}>
@@ -915,6 +980,13 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             <path d={paths.crust} fill="none" stroke="rgba(212,160,23,.10)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
             <path d={paths.crust} fill="none" stroke="rgba(233,180,88,.26)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
             <path d={paths.crust} fill="none" stroke="#FFE3AC" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Les miettes — losanges posés sur la trajectoire du saut */}
+            {paths.gems.map((g, i) => (
+              <g key={`g${i}`} transform={`rotate(45 ${g.x.toFixed(1)} ${g.y.toFixed(1)})`}>
+                <rect x={g.x - 9} y={g.y - 9} width="18" height="18" rx="3" fill="rgba(212,160,23,.20)" />
+                <rect x={g.x - 5} y={g.y - 5} width="10" height="10" rx="2" fill="#FFD98A" />
+              </g>
+            ))}
           </svg>
         </div>
 
@@ -959,6 +1031,16 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             {t('game_rider.flip_pop', { n:p.n })}
           </div>
         ))}
+
+        {/* Le petit mot — bas de l'aire, minuscules, il s'efface seul */}
+        {tag && (
+          <div key={tag.id} className="rider-tag" style={{
+            position:'absolute', left:0, right:0, bottom:34, textAlign:'center',
+            fontSize:21, fontWeight:800, letterSpacing:.2,
+            color:'rgba(255,231,186,.92)', pointerEvents:'none',
+            textShadow:'0 2px 14px rgba(0,0,0,.65)',
+          }}>{t(tag.cle)}</div>
+        )}
 
         {/* Décompte */}
         {countdownVal !== null && (

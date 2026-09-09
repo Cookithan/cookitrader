@@ -505,4 +505,14 @@ export const GLOBAL_CSS = `
     0%   { transform: translate3d(0, 0, 0) scale(.5); opacity: .55; }
     100% { transform: translate3d(-46px, -14px, 0) scale(1.5); opacity: 0; }
   }
+
+  /* Cooki Rider — le petit mot après une figure. Il ne félicite pas, il
+     constate : c'est ce ton-là qui donne envie de recommencer. */
+  @keyframes riderTag {
+    0%   { opacity: 0; transform: translateY(7px) scale(.96); }
+    20%  { opacity: 1; transform: translateY(0)   scale(1);   }
+    70%  { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-5px); }
+  }
+  .rider-tag { animation: riderTag .7s ease-out both; }
 `;
