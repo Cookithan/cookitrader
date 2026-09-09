@@ -79,7 +79,12 @@ const TRACK_TH = 15;         // épaisseur du ruban : une PISTE, pas un paysage
 const AHEAD    = 620;        // marge de piste générée devant la caméra
 const BEHIND   = 240;        // marge conservée derrière
 
-const G         = 1000;
+/* Volontairement plus légère qu'une vraie gravité : à 1000 le vol était
+   écrasé, on retombait avant d'avoir eu le temps de décider quoi que ce
+   soit. Elle sert AUSSI à tracer la piste (longueur des réceptions,
+   dénivelé des trous, pente maximale d'une vague) — tout ce qui en
+   dépend est donc recalculé à partir d'elle, jamais figé en dur. */
+const G         = 720;
 const ACCEL     = 340;       // gaz maintenu, au sol
 const BRAKE     = 300;       // doigt levé, au sol
 const SLOPE_ACC = 420;       // ce que la pente donne (descente) ou reprend (montée)
@@ -189,12 +194,17 @@ function addFeature(runs, diff){
      les roues. */
   const r = run.last === 'tremplin' ? 0 : Math.random();
 
+  const vTop = MAX_V + V_RAMP * diff;
+
   if(r < 0.55){
     run.last = 'vague';
-    const len = 240 + Math.random() * 170;
-    /* Pente bornée : au-delà, la vague deviendrait un tremplin
-       involontaire et on décollerait sans l'avoir demandé. */
-    const dyMax = 0.18 * len;
+    const len = 260 + Math.random() * 180;
+    /* Une vague ne doit JAMAIS faire décoller : suivre une crête demande
+       une accélération verticale de dy·π²·v²/2len², et si elle dépasse
+       la gravité le biscuit quitte le sol tout seul. On borne donc dy
+       par ce que la gravité peut tenir à la vitesse de pointe du coin —
+       une constante en dur serait fausse dès qu'on touche à G. */
+    const dyMax = Math.min(0.18 * len, 2 * G * len * len / (Math.PI * Math.PI * vTop * vTop));
     let dy = (Math.random() * 2 - 1) * (40 + 34 * diff);
     dy = Math.max(-dyMax, Math.min(dyMax, dy));
     span(run, len, u => dy * (0.5 - 0.5 * Math.cos(Math.PI * u)));
@@ -203,26 +213,35 @@ function addFeature(runs, diff){
 
   if(r < 0.86){
     run.last = 'tremplin';
-    /* La pente de sortie est bornée à ~0,75 : au-delà, le vol dépasse
-       1,3 s et 800 px, on survole toute la réception et on va mourir
-       plus loin sans comprendre. À 0,75 le vol dure ~1,1 s — soit tout
-       juste le temps d'un tour complet, ce qui n'est pas un hasard. */
+    /* La pente de sortie reste bornée : au-delà, le vol devient si long
+       qu'on ne voit plus où l'on va retomber. Dans cette fourchette il
+       dure de 0,95 s au début à 1,4 s en fin de partie — soit à peu près
+       la durée d'un tour complet (1,12 s), ce qui n'est pas un hasard :
+       tenir jusqu'au bout boucle une figure, lâcher tôt pose à plat, et
+       les deux marchent. */
     const rl   = 150 + Math.random() * 40;
     const rise = Math.min(0.48 * rl, 42 + 24 * diff + Math.random() * 18);
     span(run, rl, u => -rise * Math.pow(u, 1.5));
-    /* La réception : longue et descendante, toujours plus longue que le
-       vol qu'elle reçoit. Sans elle on retombe dans la montée suivante,
-       nez en bas, et ça, aucun geste ne le rattrape. */
-    span(run, 530 + 170 * diff, u => (150 + 110 * diff) * u);
+    /* Longueur de la réception CALCULÉE, pas choisie : on résout la
+       rencontre entre la parabole du saut et la pente de réception, à la
+       vitesse de pointe, et on ajoute 25 %. Une longueur en dur se fait
+       systématiquement survoler dès qu'on touche à la gravité ou à la
+       vitesse — c'est comme ça qu'on meurt deux plateformes plus loin
+       sans rien avoir fait de mal. */
+    const penteSortie = 1.5 * rise / rl;
+    const pr    = 0.30;
+    const tVol  = vTop * (pr + penteSortie) / (0.5 * G);
+    const recLen = Math.max(420, vTop * tVol * 1.25);
+    span(run, recLen, u => pr * recLen * u);
     return;
   }
+
 
   /* Trou. Sa largeur est déduite d'un temps de vol court et constant :
      un trou n'est pas là pour faire tourner le biscuit, seulement pour
      sanctionner celui qui a levé le doigt trop tôt. Et le sol d'en face
      est posé au bout de la parabole, pas au hasard. */
-  const vMaxIci = MAX_V + V_RAMP * diff;
-  const vRequis = vMaxIci * 0.86;
+  const vRequis = vTop * 0.86;
   const tVol    = 0.20 + Math.random() * 0.06;
   const trou    = vRequis * tVol;
   const n0      = run.ys.length;
