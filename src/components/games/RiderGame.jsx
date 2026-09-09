@@ -160,6 +160,46 @@ const STREAK_FROM = 240;     // vitesse à partir de laquelle les traits de vite
 
 const TAU = Math.PI * 2;
 
+/* ── Les mondes ────────────────────────────────────
+   La piste traverse quatre décors, et le décor n'est pas qu'une couleur :
+   chacun rebat les probabilités de figures, l'amplitude du relief et la
+   fréquence des flaques. C'est ce qui fait qu'on SENT qu'on avance, plus
+   que la difficulté qui monte en continu — celle-là est trop lente pour
+   se remarquer.
+
+   Palette café tenue de bout en bout : moka, cuivre, crème, espresso.
+   « La Crème » inverse tout (piste sombre sur fond clair) — c'est le
+   monde qui surprend, et il tombe au milieu de la partie exprès.
+
+   `deb` est en MÈTRES. Le tableau est lu du dernier au premier. */
+const MONDES = [
+  { id:'comptoir', deb:0,
+    ciel:'linear-gradient(180deg, #2A1A11 0%, #1B100A 55%, #120A06 100%)',
+    piste:'#FFE3AC', halo:'rgba(212,160,23,.10)', halo2:'rgba(233,180,88,.26)',
+    collines:'rgba(92,58,32,.42)', texte:'rgba(255,231,186,.94)',
+    tremplin:0.31, boucle:0.10, falaise:0.10, ampli:1.00, flaque:0.00 },
+  { id:'torrefaction', deb:380,
+    ciel:'linear-gradient(180deg, #3A1C0A 0%, #24100430 55%, #140800 100%)',
+    piste:'#FFB870', halo:'rgba(214,110,26,.12)', halo2:'rgba(236,150,70,.28)',
+    collines:'rgba(120,58,18,.46)', texte:'rgba(255,206,158,.94)',
+    tremplin:0.38, boucle:0.10, falaise:0.12, ampli:1.25, flaque:0.30 },
+  { id:'creme', deb:820,
+    ciel:'linear-gradient(180deg, #F6E7CF 0%, #E7CFAA 55%, #D2B084 100%)',
+    piste:'#4A2C17', halo:'rgba(74,44,23,.14)', halo2:'rgba(110,70,38,.30)',
+    collines:'rgba(150,112,72,.38)', texte:'rgba(58,33,19,.92)',
+    tremplin:0.30, boucle:0.16, falaise:0.14, ampli:1.15, flaque:0.35 },
+  { id:'expresso', deb:1280,
+    ciel:'linear-gradient(180deg, #12100E 0%, #0A0806 60%, #050403 100%)',
+    piste:'#FFD24D', halo:'rgba(255,210,77,.13)', halo2:'rgba(255,210,77,.30)',
+    collines:'rgba(70,54,34,.40)', texte:'rgba(255,226,140,.95)',
+    tremplin:0.34, boucle:0.20, falaise:0.18, ampli:1.45, flaque:0.45 },
+];
+
+function mondeA(metres){
+  for(let i = MONDES.length - 1; i >= 0; i--) if(metres >= MONDES[i].deb) return i;
+  return 0;
+}
+
 /* ── Barème ────────────────────────────────────────
    La distance n'est PAS la mesure du talent : avec un chrono et une
    vitesse plafonnée, tout le monde parcourt à peu près la même chose
@@ -207,7 +247,7 @@ function rewardFor(m, flips, gems = 0){
    Un run = une plateforme = { x0, ys[] }, un point tous les STEP px. Le
    trou entre deux plateformes n'est stocké nulle part : c'est simplement
    l'absence de piste entre la fin de l'une et le début de la suivante. */
-function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', loops:[], gems:[] }; }
+function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', loops:[], gems:[], flaques:[] }; }
 
 /* Les miettes ne sont pas semées au hasard : on les pose SUR la parabole
    que le saut va décrire à pleine vitesse. C'est ce qui en fait une
@@ -260,7 +300,7 @@ function groundAt(runs, x){
                    deux marchent ; c'est s'arrêter au milieu qui tue.
      · le trou   — court exprès (~0,22 s de vol) : on le passe gaz au
                    plancher sans y penser. Il ne teste que la vitesse. */
-function addFeature(runs, diff){
+function addFeature(runs, diff, monde){
   const run = runs[runs.length - 1];
   /* Jamais de trou ni de boucle juste après un tremplin ou une falaise :
      on vole encore quand ils arrivent, on les survole sans les voir, et
@@ -269,9 +309,14 @@ function addFeature(runs, diff){
   const enVol = run.last === 'tremplin' || run.last === 'falaise';
   const r = enVol ? 0 : Math.random();
   const vTop = MAX_V + V_RAMP * diff;
+  /* Les seuils sont cumulés depuis les poids du monde : le reste (ce qui
+     dépasse) revient à la vague, qui est le tracé de fond. */
+  const sTremplin = monde.tremplin;
+  const sBoucle   = sTremplin + monde.boucle;
+  const sFalaise  = sBoucle + monde.falaise;
 
   /* ── la vague : le gros du tracé ── */
-  if(r < 0.46){
+  if(r >= sFalaise + 0.10){
     run.last = 'vague';
     const len = 260 + Math.random() * 180;
     /* Une vague ne doit JAMAIS faire décoller : suivre une crête demande
@@ -280,14 +325,14 @@ function addFeature(runs, diff){
        par ce que la gravité peut tenir à la vitesse de pointe du coin —
        une constante en dur serait fausse dès qu'on touche à G. */
     const dyMax = Math.min(0.18 * len, 2 * G * len * len / (Math.PI * Math.PI * vTop * vTop));
-    let dy = (Math.random() * 2 - 1) * (40 + 34 * diff);
+    let dy = (Math.random() * 2 - 1) * (40 + 34 * diff) * monde.ampli;
     dy = Math.max(-dyMax, Math.min(dyMax, dy));
     span(run, len, u => dy * (0.5 - 0.5 * Math.cos(Math.PI * u)));
     return;
   }
 
   /* ── le tremplin : le vol moyen, celui où l'on décide ── */
-  if(r < 0.70){
+  if(r < sTremplin){
     run.last = 'tremplin';
     /* Pente de sortie 0,57 à 0,95 : le vol dure alors de 0,93 s à 1,31 s,
        soit toujours plus que les 0,90 s d'un tour complet. C'est la
@@ -311,6 +356,14 @@ function addFeature(runs, diff){
     const recLen = Math.max(420, vTop * tVol * 1.25);
     span(run, recLen, u => pr * recLen * u);
     semerMiettes(run, tipX, tipY - R, -penteSortie * vTop, vTop, tVol, 3);
+    /* La flaque est posée SOUS la trajectoire du saut, avant le point de
+       chute : bien pris, le tremplin la survole ; pris trop lentement, on
+       atterrit dedans. Elle ne tue pas, elle coupe la vitesse — et c'est
+       la vitesse qui fait passer le trou suivant. La sanction arrive donc
+       deux secondes plus tard, là où on l'a comprise. */
+    if(Math.random() < monde.flaque){
+      run.flaques.push({ x: tipX + vTop * tVol * (0.5 + Math.random() * 0.25), prise:false });
+    }
     return;
   }
 
@@ -320,7 +373,7 @@ function addFeature(runs, diff){
      alors il passe dessous et on n'a rien. Tenir son gaz sur toute la
      ligne droite qui précède, c'est ça le prix — et ça rend le maintien
      spectaculaire au lieu de seulement utile. */
-  if(r < 0.80){
+  if(r < sBoucle){
     run.last = 'boucle';
     span(run, 150 + Math.random() * 60, () => 0);
     /* `r` est le rayon du CENTRE de la roue, pas du ruban : c'est lui
@@ -333,13 +386,13 @@ function addFeature(runs, diff){
   }
 
   /* ── la falaise : la grande chute, deux figures si on ose ── */
-  if(r < 0.90){
+  if(r < sFalaise){
     run.last = 'falaise';
     /* Une falaise doit offrir DEUX tours à qui ose : la chute est donc
        calibrée pour 1,5 s de vol au minimum en fin de partie. */
     /* Les plus grandes falaises passent les 1,85 s de vol : de quoi
        boucler DEUX tours pour qui ose. C'est le morceau de bravoure. */
-    const chute  = 500 + 450 * diff + Math.random() * 400;
+    const chute  = (500 + 450 * diff + Math.random() * 400) * monde.ampli;
     const tChute = Math.sqrt(2 * chute / G);
     /* Le trou vaut la MOITIÉ de ce que le vol couvre : on ne peut pas
        tomber court, on se pose forcément bien après le bord. Une falaise
@@ -385,7 +438,8 @@ function ensure(runs, camX){
   let changed = false;
   let guard = 0;
   while(runEndX(runs[runs.length - 1]) < camX + ARENA_W + AHEAD && guard++ < 40){
-    addFeature(runs, Math.min(1, Math.max(0, runEndX(runs[runs.length - 1]) / 11000)));
+    const bout = runEndX(runs[runs.length - 1]);
+    addFeature(runs, Math.min(1, Math.max(0, bout / 11000)), MONDES[mondeA(bout / PX_PAR_METRE)]);
     changed = true;
   }
   return changed;
@@ -418,19 +472,30 @@ function solLePlusBas(runs){
 /* La ligne de piste, en coordonnées monde. Reconstruite uniquement à la
    génération d'une figure — jamais à l'image. Un « M » par morceau : les
    trous deviennent donc naturellement des sous-chemins séparés. */
+/* Hauteur du ruban à une abscisse, dans un run donné — pour poser les
+   flaques À PLAT sur la piste plutôt qu'à leur altitude de création. */
+function hauteurA(run, x){
+  const f = (x - run.x0) / STEP;
+  const i = Math.max(0, Math.min(run.ys.length - 2, Math.floor(f)));
+  const t = f - i;
+  return run.ys[i] + (run.ys[i + 1] - run.ys[i]) * t;
+}
+
 function buildPaths(runs){
   let crust = '';
   const loops = [];
   const gems  = [];
+  const flaques = [];
   for(const run of runs){
     for(const b of run.loops) loops.push(b);
     for(const g of run.gems) if(!g.pris) gems.push(g);
+    for(const f of run.flaques) if(!f.prise) flaques.push({ x:f.x, y:hauteurA(run, f.x) });
     const n = run.ys.length;
     let d = `M ${run.x0.toFixed(1)} ${run.ys[0].toFixed(1)}`;
     for(let i = 1; i < n; i++) d += ` L ${(run.x0 + i * STEP).toFixed(1)} ${run.ys[i].toFixed(1)}`;
     crust += `${d} `;
   }
-  return { crust: crust.trim(), loops, gems };
+  return { crust: crust.trim(), loops, gems, flaques };
 }
 
 /* Où va-t-on retomber ? Calculé UNE SEULE FOIS au décollage : en vol, ni
@@ -484,13 +549,14 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [phase, setPhase] = useState('idle');       // idle | countdown | playing | done
   const [countdownVal, setCountdownVal] = useState(null);
   const [echelleArene, setEchelleArene] = useState(1);
-  const [paths, setPaths] = useState({ crust:'', loops:[], gems:[] });
+  const [paths, setPaths] = useState({ crust:'', loops:[], gems:[], flaques:[] });
   const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true, sq:0, z:ZOOM_BASE });
   const [dist,  setDist]  = useState(0);
   const [reste, setReste] = useState(RUN_TIME);
   const [flips, setFlips] = useState(0);
   const [gems,  setGems]  = useState(0);
   const [tag,   setTag]   = useState(null);   // petit mot après une belle figure
+  const [annonce, setAnnonce] = useState(null);  // carton d'entrée dans un monde
   const [crashed, setCrashed] = useState(false);
   const [crashReason, setCrashReason] = useState(null);   // 'flip' | 'fall' | 'wall' | 'time'
   const [shake, setShake] = useState(false);
@@ -523,6 +589,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const resteRef  = useRef(RUN_TIME);
   const flipsRef  = useRef(0);
   const gemsRef   = useRef(0);
+  const mondeRef  = useRef(0);
+  const annonceNRef = useRef(0);
   const crashedRef = useRef(false);
   const crashTRef  = useRef(0);
   const crashKindRef = useRef(null);
@@ -570,12 +638,16 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
      dans Rider il commente sans jamais féliciter, c'est ce ton-là qui
      donne envie de recommencer. */
   const TAGS = { 1:3, 2:3, 3:3, loop:2 };
+  const montrerTexte = (cle) => {
+    const id = Date.now() + Math.random();
+    setTag({ id, cle });
+    setTimeout(() => setTag(cur => (cur && cur.id === id ? null : cur)), 700);
+  };
+
   const montrerTag = (famille) => {
     const n   = TAGS[famille] || 1;
     const cle = `game_rider.tag_${famille === 'loop' ? 'loop' : famille === 1 ? 'solo' : famille === 2 ? 'double' : 'triple'}_${Math.floor(Math.random() * n)}`;
-    const id  = Date.now() + Math.random();
-    setTag({ id, cle });
-    setTimeout(() => setTag(cur => (cur && cur.id === id ? null : cur)), 700);
+    montrerTexte(cle);
   };
 
   const popFlip = (n) => {
@@ -617,6 +689,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     setPaths(buildPaths(runs));
     setDist(0); setFlips(0); setGems(0); setTag(null); setReste(RUN_TIME); setCrashed(false); setCrashReason(null);
     setPops([]); setHolding(false); squashRef.current = 0;
+    mondeRef.current = 0; setAnnonce(null);
     setFrame({ camX:camXRef.current, camY:camYRef.current, rx:RIDER_X, ry:yRef.current, ang:0, v:START_V, gr:true, sq:0, z:ZOOM_BASE });
   };
 
@@ -873,6 +946,25 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       }
     }
 
+    /* Les flaques : au sol seulement, et une seule fois. Elles ne tuent
+       pas, elles coupent la vitesse de plus de moitié — et comme c'est la
+       vitesse qui fait passer le trou suivant, la vraie sanction tombe
+       deux secondes plus tard. */
+    if(groundedRef.current && !crashedRef.current){
+      const recule = vRef.current * dt + 6;
+      for(const run of runs){
+        for(const f of run.flaques){
+          if(f.prise || f.x > xRef.current || f.x < xRef.current - recule) continue;
+          f.prise = true;
+          vRef.current *= 0.45;
+          playSound('error'); haptic('warning');
+          setShake(true); setTimeout(() => setShake(false), 200);
+          montrerTexte('game_rider.tag_flaque');
+          setPaths(buildPaths(runs));
+        }
+      }
+    }
+
     /* Ramassage. On balaie toutes les miettes en jeu : elles sont une
        soixantaine au plus (la piste est élaguée derrière), donc le test
        de distance au carré coûte moins cher qu'un index à maintenir. */
@@ -900,7 +992,20 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
     if(xRef.current > maxXRef.current) maxXRef.current = xRef.current;
     const m = Math.min(DIST_CAP, Math.max(0, Math.floor(maxXRef.current / PX_PAR_METRE)));
-    if(m !== distRef.current){ distRef.current = m; setDist(m); }
+    if(m !== distRef.current){
+      distRef.current = m;
+      setDist(m);
+      const idx = mondeA(m);
+      if(idx !== mondeRef.current){
+        mondeRef.current = idx;
+        /* Compteur plutôt que Date.now() : `tick` tourne dans la boucle
+           de rendu et une horloge y est une source impure. */
+        const id = ++annonceNRef.current;
+        setAnnonce({ id, idx });
+        playSound('levelup', { volume:0.35 });
+        setTimeout(() => setAnnonce(cur => (cur && cur.id === id ? null : cur)), 1700);
+      }
+    }
 
     boucleRef.current = null;
     zoomRef.current = ZOOM_BASE;
@@ -1010,6 +1115,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
      simulées) — c'est le même effort raconté deux fois, une fois pour
      l'œil, une fois pour l'économie. */
   const score        = dist + flips * 200 + gems * 40;
+  const monde        = MONDES[mondeA(dist)];
   const z            = frame.z;
   const riderScreenX = frame.rx * z;
   const riderScreenY = (frame.ry - frame.camY) * z;
@@ -1064,7 +1170,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
              contraste qui rend la trajectoire lisible en mouvement, pas
              la finesse du dessin. On garde la palette café : de l'or sur
              de l'espresso, jamais de néon rouge ou vert. */
-          background:'linear-gradient(180deg, #2A1A11 0%, #1B100A 55%, #120A06 100%)',
+          background: monde.ciel,
           border:`2px solid ${C.border}`,
           touchAction: (enPartie || phase === 'countdown') ? 'none' : 'manipulation',
           userSelect:'none', cursor:'pointer',
@@ -1082,7 +1188,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             <div key={`${k}-${i}`} style={{
               position:'absolute', left:k * PARA_W + n.x, top:n.y,
               width:n.w, height:n.h, borderRadius:n.h,
-              background:'rgba(92,58,32,.42)',
+              background: monde.collines,
             }} />
           )))}
         </div>
@@ -1118,14 +1224,19 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
                 à calculer. */}
             {paths.loops.map((b, i) => (
               <g key={`b${i}`}>
-                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke="rgba(212,160,23,.10)" strokeWidth="22" />
-                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke="rgba(233,180,88,.26)" strokeWidth="12" />
-                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke="#FFE3AC" strokeWidth="5" />
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke={monde.halo} strokeWidth="22" />
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke={monde.halo2} strokeWidth="12" />
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke={monde.piste} strokeWidth="5" />
               </g>
             ))}
-            <path d={paths.crust} fill="none" stroke="rgba(212,160,23,.10)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={paths.crust} fill="none" stroke="rgba(233,180,88,.26)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={paths.crust} fill="none" stroke="#FFE3AC" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={paths.crust} fill="none" stroke={monde.halo} strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={paths.crust} fill="none" stroke={monde.halo2} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={paths.crust} fill="none" stroke={monde.piste} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Les flaques — posées à plat sur le ruban */}
+            {paths.flaques.map((f, i) => (
+              <ellipse key={`f${i}`} cx={f.x} cy={f.y + 4} rx="27" ry="6.5"
+                       fill="rgba(40,22,12,.82)" stroke={monde.halo2} strokeWidth="2" />
+            ))}
             {/* Les miettes — losanges posés sur la trajectoire du saut */}
             {paths.gems.map((g, i) => (
               <g key={`g${i}`} transform={`rotate(45 ${g.x.toFixed(1)} ${g.y.toFixed(1)})`}>
@@ -1223,13 +1334,30 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           </div>
         ))}
 
+        {/* Carton de monde. C'est lui qui fait sentir qu'on avance : la
+            difficulté qui monte en continu est trop lente pour se
+            remarquer, un changement de décor annoncé, non. */}
+        {annonce && (
+          <div key={annonce.id} className="su" style={{
+            position:'absolute', left:0, right:0, top:'42%', textAlign:'center',
+            pointerEvents:'none',
+          }}>
+            <div style={{ fontSize:11, fontWeight:900, letterSpacing:3, color:monde.texte, opacity:.7 }}>
+              {t('game_rider.monde_label')}
+            </div>
+            <div style={{ fontSize:29, fontWeight:900, letterSpacing:.5, color:monde.texte, textShadow:'0 3px 18px rgba(0,0,0,.5)' }}>
+              {t(`game_rider.monde_${MONDES[annonce.idx].id}`)}
+            </div>
+          </div>
+        )}
+
         {/* Le petit mot — bas de l'aire, minuscules, il s'efface seul */}
         {tag && (
           <div key={tag.id} className="rider-tag" style={{
             position:'absolute', left:0, right:0, bottom:34, textAlign:'center',
             fontSize:26, fontWeight:900, letterSpacing:.3,
-            color:'rgba(255,231,186,.92)', pointerEvents:'none',
-            textShadow:'0 2px 14px rgba(0,0,0,.65)',
+            color: monde.texte, pointerEvents:'none',
+            textShadow:'0 2px 14px rgba(0,0,0,.5)',
           }}>{t(tag.cle)}</div>
         )}
 
@@ -1256,8 +1384,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           <div style={{
             position:'absolute', left:0, right:0, top:22, textAlign:'center',
             fontSize:40, fontWeight:900, letterSpacing:-1,
-            color:'rgba(255,231,186,.94)', pointerEvents:'none',
-            textShadow:'0 3px 18px rgba(0,0,0,.7)', lineHeight:1,
+            color: monde.texte, pointerEvents:'none',
+            textShadow:'0 3px 18px rgba(0,0,0,.45)', lineHeight:1,
           }}>{score}</div>
         )}
 
