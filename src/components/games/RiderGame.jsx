@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
@@ -75,10 +75,15 @@ const RIDER_X = 84;          // x ÉCRAN du biscuit — il ne bouge jamais, c'es
 const COOKIE_SIZE = 40;
 const R = COOKIE_SIZE / 2;
 
+/* Le monde est dessiné à 0,62 : on voit 516 px de piste de large au lieu
+   de 320, et 380 px DEVANT le biscuit au lieu de 236. C'est la première
+   chose qui frappe sur les captures de Rider — on voit arriver ce qu'on
+   va devoir faire, et le véhicule est minuscule. En gros plan, aucun
+   réglage de physique ne peut rendre le jeu lisible. */
+const ZOOM     = 0.62;
 const STEP     = 16;         // espacement des points de piste
-const TRACK_TH = 15;         // épaisseur du ruban : une PISTE, pas un paysage
-const AHEAD    = 620;        // marge de piste générée devant la caméra
-const BEHIND   = 240;        // marge conservée derrière
+const AHEAD    = 980;        // marge de piste générée devant la caméra
+const BEHIND   = 380;        // marge conservée derrière
 
 /* Volontairement plus légère qu'une vraie gravité : à 1000 le vol était
    écrasé, on retombait avant d'avoir eu le temps de décider quoi que ce
@@ -145,7 +150,7 @@ function rewardFor(m, flips){
    Un run = une plateforme = { x0, ys[] }, un point tous les STEP px. Le
    trou entre deux plateformes n'est stocké nulle part : c'est simplement
    l'absence de piste entre la fin de l'une et le début de la suivante. */
-function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', chips:null, loops:[] }; }
+function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', loops:[] }; }
 function runEndX(run){ return run.x0 + (run.ys.length - 1) * STEP; }
 function runEndY(run){ return run.ys[run.ys.length - 1]; }
 
@@ -322,41 +327,20 @@ function solLePlusBas(runs){
   return m;
 }
 
-/* Le ruban de pâte, sa croûte dorée et ses pépites. Reconstruit
-   uniquement à la génération d'une plateforme. */
+/* La ligne de piste, en coordonnées monde. Reconstruite uniquement à la
+   génération d'une figure — jamais à l'image. Un « M » par morceau : les
+   trous deviennent donc naturellement des sous-chemins séparés. */
 function buildPaths(runs){
-  let ribbon = '';
-  let crust  = '';
-  const chips = [];
+  let crust = '';
   const loops = [];
   for(const run of runs){
     for(const b of run.loops) loops.push(b);
     const n = run.ys.length;
-    let haut = `M ${run.x0.toFixed(1)} ${run.ys[0].toFixed(1)}`;
-    for(let i = 1; i < n; i++) haut += ` L ${(run.x0 + i * STEP).toFixed(1)} ${run.ys[i].toFixed(1)}`;
-    crust += `${haut} `;
-    let d = haut;
-    for(let i = n - 1; i >= 0; i--){
-      d += ` L ${(run.x0 + i * STEP).toFixed(1)} ${(run.ys[i] + TRACK_TH).toFixed(1)}`;
-    }
-    ribbon += `${d} Z `;
-
-    /* Pépites tirées une fois pour toutes à la création : si on les
-       retirait au hasard à chaque reconstruction, elles sauteraient d'un
-       endroit à l'autre sous les yeux du joueur. */
-    if(!run.chips){
-      run.chips = [];
-      for(let i = 2; i < n - 1; i += 4){
-        run.chips.push({
-          x: run.x0 + i * STEP + (Math.random() * 12 - 6),
-          y: run.ys[i] + 6 + Math.random() * (TRACK_TH - 12),
-          r: 2.4 + Math.random() * 1.5,
-        });
-      }
-    }
-    for(const c of run.chips) if(c.x >= run.x0) chips.push(c);
+    let d = `M ${run.x0.toFixed(1)} ${run.ys[0].toFixed(1)}`;
+    for(let i = 1; i < n; i++) d += ` L ${(run.x0 + i * STEP).toFixed(1)} ${run.ys[i].toFixed(1)}`;
+    crust += `${d} `;
   }
-  return { ribbon: ribbon.trim(), crust: crust.trim(), chips, loops };
+  return { crust: crust.trim(), loops };
 }
 
 function normAngle(a){
@@ -389,17 +373,13 @@ const PARA_W = 700;
 
 export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const { t } = useTranslation();
-  /* Id SVG préfixé : deux <defs> qui partagent un id se télescopent dans
-     le DOM et le second rend comme le premier (même piège que
-     SkinnedCookie). */
-  const dough = `riderDough-${useId().replace(/:/g, '')}`;
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
   const skin = COOKIE_SKINS[activeSkin] || COOKIE_SKINS[''];
 
   const [phase, setPhase] = useState('idle');       // idle | countdown | playing | done
   const [countdownVal, setCountdownVal] = useState(null);
   const [echelleArene, setEchelleArene] = useState(1);
-  const [paths, setPaths] = useState({ ribbon:'', crust:'', chips:[], loops:[] });
+  const [paths, setPaths] = useState({ crust:'', loops:[] });
   const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true });
   const [dist,  setDist]  = useState(0);
   const [reste, setReste] = useState(RUN_TIME);
@@ -502,8 +482,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     boucleRef.current = null;
     retourCamRef.current = 0;
     maxXRef.current = xRef.current;
-    camXRef.current = xRef.current - RIDER_X;
-    camYRef.current = yRef.current - ARENA_H * 0.40;
+    camXRef.current = xRef.current - RIDER_X / ZOOM;
+    camYRef.current = yRef.current - (ARENA_H * 0.42) / ZOOM;
     lastTRef.current = 0;
     throttleRef.current = false;
 
@@ -597,8 +577,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
       /* La caméra lâche le biscuit et cadre l'ANNEAU, en x comme en y :
          c'est le tour qu'on doit voir, pas un gros plan sur la roue. */
-      const cx = b.x - ARENA_W * 0.5;
-      const cy = (b.y - R - b.r) - ARENA_H * 0.45;
+      const cx = b.x - (ARENA_W * 0.5) / ZOOM;
+      const cy = (b.y - R - b.r) - (ARENA_H * 0.45) / ZOOM;
       camXRef.current += (cx - camXRef.current) * Math.min(1, 4 * dt);
       camYRef.current += (cy - camYRef.current) * Math.min(1, 5 * dt);
       if(xRef.current > maxXRef.current) maxXRef.current = xRef.current;
@@ -753,14 +733,14 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
        verrait. Un lissage permanent, lui, coûterait de la visibilité
        devant : à 450 px/s, un suivi lissé traîne de 50 px, autant de
        piste qu'on ne voit plus arriver. */
-    const cibleCamX = xRef.current - RIDER_X;
+    const cibleCamX = xRef.current - RIDER_X / ZOOM;
     if(retourCamRef.current > 0){
       retourCamRef.current -= dt;
       camXRef.current += (cibleCamX - camXRef.current) * Math.min(1, 7 * dt);
     } else {
       camXRef.current = cibleCamX;
     }
-    const targetCamY = yRef.current - ARENA_H * 0.40;
+    const targetCamY = yRef.current - (ARENA_H * 0.42) / ZOOM;
     camYRef.current += (targetCamY - camYRef.current) * Math.min(1, 6 * dt);
 
     const grew   = ensure(runs, camXRef.current);
@@ -825,8 +805,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const up = () => { throttleRef.current = false; setHolding(false); };
 
   const earnedNow    = rewardFor(dist, flips);
-  const riderScreenX = frame.rx;
-  const riderScreenY = frame.ry - frame.camY;
+  const riderScreenX = frame.rx * ZOOM;
+  const riderScreenY = (frame.ry - frame.camY) * ZOOM;
   const vitesse01    = Math.max(0, Math.min(1, (frame.v - STREAK_FROM) / 220));
   const jauge01      = Math.max(0, Math.min(1, (frame.v - MIN_V) / (MAX_V + V_RAMP - MIN_V)));
   const enPartie     = phase === 'playing';
@@ -868,8 +848,12 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
         style={{
           position:'relative', width:ARENA_W, height:ARENA_H,
           borderRadius:20, overflow:'hidden',
-          /* Ciel latte : mousse en haut, café au lait en bas. */
-          background:'linear-gradient(180deg, #FCF3E4 0%, #F2DCBB 42%, #E2C295 100%)',
+          /* Nuit moka. Rider joue sur du presque-noir pour que le trait
+             de piste soit la seule chose lumineuse de l'écran — c'est ce
+             contraste qui rend la trajectoire lisible en mouvement, pas
+             la finesse du dessin. On garde la palette café : de l'or sur
+             de l'espresso, jamais de néon rouge ou vert. */
+          background:'linear-gradient(180deg, #2A1A11 0%, #1B100A 55%, #120A06 100%)',
           border:`2px solid ${C.border}`,
           touchAction: (enPartie || phase === 'countdown') ? 'none' : 'manipulation',
           userSelect:'none', cursor:'pointer',
@@ -887,7 +871,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             <div key={`${k}-${i}`} style={{
               position:'absolute', left:k * PARA_W + n.x, top:n.y,
               width:n.w, height:n.h, borderRadius:n.h,
-              background:'rgba(255,255,255,.62)',
+              background:'rgba(92,58,32,.42)',
             }} />
           )))}
         </div>
@@ -909,37 +893,28 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             d'une plateforme. */}
         <div style={{
           position:'absolute', left:0, top:0, width:0, height:0,
-          transform:`translate3d(${-frame.camX}px, ${-frame.camY}px, 0)`,
+          transform:`scale(${ZOOM}) translate(${-frame.camX}px, ${-frame.camY}px)`,
+          transformOrigin:'0 0',
           willChange:'transform', pointerEvents:'none',
         }}>
           <svg style={{ position:'absolute', left:0, top:0, width:1, height:1, overflow:'visible' }}>
-            <defs>
-              <linearGradient id={dough} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor="#DCA968" />
-                <stop offset="45%"  stopColor="#BE8547" />
-                <stop offset="100%" stopColor="#8E5F30" />
-              </linearGradient>
-            </defs>
-            {/* Les boucles d'abord : le ruban de la piste passe par-dessus
-                leur base, et la jonction se lit comme un anneau qui sort
-                du sol au lieu de deux traits collés. */}
+            {/* La piste est UN TRAIT LUMINEUX, pas un ruban plein.
+                Le halo est fait de trois passes de plus en plus fines sur
+                le même chemin — un filtre SVG donnerait un flou plus joli
+                mais se recalcule à chaque image sur un chemin de 1000 px,
+                et c'est exactement ce qu'il ne faut pas faire à 60 fps sur
+                un téléphone. Trois traits, trois compositings, zéro flou
+                à calculer. */}
             {paths.loops.map((b, i) => (
               <g key={`b${i}`}>
-                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R + TRACK_TH / 2}
-                        fill="none" stroke={`url(#${dough})`} strokeWidth={TRACK_TH} />
-                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R}
-                        fill="none" stroke="#F3CE8B" strokeWidth="3" />
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke="rgba(212,160,23,.10)" strokeWidth="22" />
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke="rgba(233,180,88,.26)" strokeWidth="12" />
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R} fill="none" stroke="#FFE3AC" strokeWidth="5" />
               </g>
             ))}
-
-            {/* Ombre portée sous le ruban : détache la piste du ciel */}
-            <path d={paths.ribbon} fill="rgba(90,53,32,.20)" transform="translate(0,7)" />
-            <path d={paths.ribbon} fill={`url(#${dough})`} />
-            {paths.chips.map((c, i) => (
-              <circle key={i} cx={c.x} cy={c.y} r={c.r} fill="#4A2C17" opacity="0.78" />
-            ))}
-            {/* La croûte dorée : c'est elle qui donne le biscuit */}
-            <path d={paths.crust} fill="none" stroke="#F3CE8B" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={paths.crust} fill="none" stroke="rgba(212,160,23,.10)" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={paths.crust} fill="none" stroke="rgba(233,180,88,.26)" strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={paths.crust} fill="none" stroke="#FFE3AC" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
 
@@ -963,7 +938,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           position:'absolute', left:0, top:0,
           width:COOKIE_SIZE, height:COOKIE_SIZE,
           marginLeft:-COOKIE_SIZE / 2, marginTop:-COOKIE_SIZE / 2,
-          transform:`translate3d(${riderScreenX}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${squash ? 1.14 : 1}, ${squash ? 0.84 : 1})`,
+          transform:`translate3d(${riderScreenX}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${ZOOM * (squash ? 1.14 : 1)}, ${ZOOM * (squash ? 0.84 : 1)})`,
           willChange:'transform', pointerEvents:'none',
           filter: crashed ? 'grayscale(.7)' : 'none',
         }}>
@@ -998,18 +973,18 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
         {enPartie && !crashed && dist < 45 && (
           <div style={{
             position:'absolute', left:0, right:0, bottom:14, textAlign:'center',
-            fontSize:12, fontWeight:800, color:'#4A2C17', pointerEvents:'none',
-            textShadow:'0 1px 0 rgba(255,255,255,.6)',
+            fontSize:12, fontWeight:800, color:'rgba(255,226,170,.9)', pointerEvents:'none',
+            textShadow:'0 2px 8px rgba(0,0,0,.6)',
           }}>{t('game_rider.hold_hint')}</div>
         )}
 
         {/* Chrono — un filet en haut de l'aire, pas un chiffre de plus */}
         {enPartie && (
-          <div style={{ position:'absolute', left:10, right:10, top:8, height:4, borderRadius:3, background:'rgba(74,44,23,.22)', overflow:'hidden', pointerEvents:'none' }}>
+          <div style={{ position:'absolute', left:10, right:10, top:8, height:4, borderRadius:3, background:'rgba(255,226,170,.14)', overflow:'hidden', pointerEvents:'none' }}>
             <div style={{
               height:'100%', borderRadius:3,
               width:`${Math.max(0, Math.min(100, (reste / RUN_TIME) * 100))}%`,
-              background: reste <= 10 ? '#8E5F30' : 'rgba(255,255,255,.8)',
+              background: reste <= 10 ? '#8E5F30' : 'rgba(255,226,170,.85)',
               transition:'width .25s linear',
             }} />
           </div>
