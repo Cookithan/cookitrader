@@ -37,6 +37,12 @@ export function pileSentinelle(phrase, { forcer = false } = {}) {
   return appeler({ phrase, mode: 'dossiers', forcer });
 }
 
+/* L'écran entier : les bandes, la pile allumée là où elle se passe, la
+   frise. Ne dépense un jeton que si la pile date de plus de 10 min. */
+export function tableauSentinelle(phrase, { forcer = false } = {}) {
+  return appeler({ phrase, mode: 'tableau', forcer });
+}
+
 export function deciderDossier(phrase, id, decision) {
   return appeler({ phrase, mode: 'decider', id, decision });
 }

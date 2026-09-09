@@ -21,6 +21,17 @@
                   dossier, avec ses outils si besoin. L'échange reste
                   attaché au dossier.
    · parler     — la ligne du bas, pour le rare cas sans dossier.
+   · tableau    — l'écran : les bandes (marché, joueurs, économie, app,
+                  boîte) avec sa phrase dans chacune, la pile allumée là
+                  où elle se passe, et la frise de la journée annotée.
+                  Rafraîchit la pile si elle date de plus de 10 min.
+   · ronde      — L'HORLOGE LA RÉVEILLE, sans personne. Même travail que
+                  la pile, mais elle est seule : elle agit sur tout ce
+                  qu'elle a le droit de faire, et laisse à Régis ce qu'il
+                  est le seul à pouvoir décider. Authentifiée par un jeton
+                  stocké en base, pas par la phrase — le cron ne la
+                  connaît pas ; la fonction va la chercher elle-même avec
+                  la clé de service.
    · briefing   — conservé pour compatibilité (l'ancien chat).
 
    LA LIGNE, TENUE EN CODE
@@ -111,6 +122,23 @@ const REMETTRE: Anthropic.Tool = {
     properties: {
       mot: { type: "string", description: "Ton mot d'accueil : ce qui l'attend, en une ou deux phrases. Max 50 mots." },
       seule: { type: "string", description: "Ce que tu as fait seule depuis la dernière fois (regarde le journal, l'horloge, et tes gestes de ce tour). Max 40 mots. Vide si rien." },
+      bandes: {
+        type: "object",
+        description: "Une phrase par bande du tableau, max 14 mots chacune, factuelle, avec un chiffre si tu en as un. Ce que tu dirais en passant devant.",
+        properties: {
+          marche:   { type: "string" },
+          joueurs:  { type: "string" },
+          economie: { type: "string" },
+          app:      { type: "string" },
+          boite:    { type: "string" },
+        },
+        required: ["marche", "joueurs", "economie", "app", "boite"],
+      },
+      frise: {
+        type: "array",
+        description: "Les moments de la journée qui méritent un mot de toi — 0 à 6, du plus récent au plus ancien. Chaque texte max 16 mots, à la première personne quand c'est toi qui as agi.",
+        items: { type: "object", properties: { quand: { type: "string", description: "HH:MM" }, texte: { type: "string" } }, required: ["quand", "texte"] },
+      },
       dossiers: {
         type: "array",
         items: {
@@ -132,7 +160,7 @@ const REMETTRE: Anthropic.Tool = {
         },
       },
     },
-    required: ["mot", "seule", "dossiers"],
+    required: ["mot", "seule", "bandes", "frise", "dossiers"],
   },
 };
 
@@ -377,18 +405,24 @@ async function tourner(client: Anthropic, sb: SB, phrase: string, messages: Anth
 async function lirePile(sb: SB) {
   const [{ data: dossiers }, { data: etat }] = await Promise.all([
     sb.from("sentinelle_dossiers").select("id,created_at,updated_at,cle,genre,gravite,titre,explication,proposition,actions,echanges").eq("statut", "ouvert").order("created_at", { ascending: false }),
-    sb.from("sentinelle_etat").select("dernier_mot,derniere_seule,dossiers_rediges_le").eq("id", 1).maybeSingle(),
+    sb.from("sentinelle_etat").select("dernier_mot,derniere_seule,dossiers_rediges_le,dernieres_bandes,derniere_frise").eq("id", 1).maybeSingle(),
   ]);
   const ordre = { haute: 0, moyenne: 1, basse: 2 } as Record<string, number>;
   const tries = (dossiers ?? []).slice().sort((a: Record<string, unknown>, b: Record<string, unknown>) => (ordre[a.gravite as string] ?? 9) - (ordre[b.gravite as string] ?? 9));
-  return { mot: etat?.dernier_mot ?? "", seule: etat?.derniere_seule ?? "", rediges_le: etat?.dossiers_rediges_le ?? null, dossiers: tries };
+  return {
+    mot: etat?.dernier_mot ?? "", seule: etat?.derniere_seule ?? "",
+    bandes: etat?.dernieres_bandes ?? null, frise: etat?.derniere_frise ?? [],
+    rediges_le: etat?.dossiers_rediges_le ?? null, dossiers: tries,
+  };
 }
 
-async function redigerPile(client: Anthropic, sb: SB, phrase: string) {
+async function redigerPile(client: Anthropic, sb: SB, phrase: string, seuleAuMonde = false) {
   const ctx = await contexte(sb);
   const messages: Anthropic.MessageParam[] = [{
     role: "user",
-    content: `[Régis vient d'ouvrir la Sentinelle. Regarde tout. Fais d'abord seule ce que tu peux faire seule (répondre, compenser dans les plafonds, marquer, noter, fermer le marché s'il déraille). Puis appelle remettre_dossiers UNE fois, avec la pile : une chose à décider = un dossier, le geste déjà rempli. Ne recrée pas un dossier déjà ouvert ou classé sans fait nouveau. Si rien ne demande sa décision, la pile est vide et ton mot le dit.]\n\n--- CONTEXTE À JOUR (généré par le serveur, fiable) ---\n${ctx}`,
+    content: `${seuleAuMonde
+      ? "[C'est ta RONDE : l'horloge te réveille, Régis n'est pas là. Tu gères l'app avec lui, à parts égales — donc fais tout ce que tu as le droit de faire sans lui : répondre aux joueurs, compenser dans les plafonds, marquer les signalements, fermer un marché qui déraille, noter. Ne laisse dans la pile QUE ce qu'il est le seul à pouvoir décider. Puis appelle remettre_dossiers UNE fois. Ton mot s'adresse à lui pour quand il ouvrira : ce que tu as fait, ce qui l'attend.]"
+      : "[Régis vient d'ouvrir la Sentinelle. Regarde tout. Fais d'abord seule ce que tu peux faire seule (répondre, compenser dans les plafonds, marquer, noter, fermer le marché s'il déraille). Puis appelle remettre_dossiers UNE fois, avec la pile : une chose à décider = un dossier, le geste déjà rempli. Ne recrée pas un dossier déjà ouvert ou classé sans fait nouveau. Si rien ne demande sa décision, la pile est vide et ton mot le dit.]"}\n\n--- CONTEXTE À JOUR (généré par le serveur, fiable) ---\n${ctx}`,
   }];
   const { actions, remis } = await tourner(client, sb, phrase, messages, { outils: [...OUTILS, REMETTRE], terminal: "remettre_dossiers", forcer: "remettre_dossiers" });
 
@@ -421,9 +455,76 @@ async function redigerPile(client: Anthropic, sb: SB, phrase: string) {
     else await sb.from("sentinelle_dossiers").update({ ...ligne, statut: "ouvert", decision: null, decision_le: null }).eq("id", existant.id);
   }
 
-  await sb.from("sentinelle_etat").update({ dernier_mot: mot, derniere_seule: seule, dossiers_rediges_le: maintenant }).eq("id", 1);
-  await sb.from("sentinelle_conversation").insert([{ role: "user", contenu: "[pile]" }, { role: "assistant", contenu: mot || "(pile vide)", actions: gestes.length ? gestes : null }]);
+  const bandes = (remis?.bandes && typeof remis.bandes === "object") ? remis.bandes : null;
+  const frise = Array.isArray(remis?.frise) ? (remis!.frise as Record<string, unknown>[]).slice(0, 6).map(f => ({ quand: String(f.quand ?? "").slice(0, 5), texte: String(f.texte ?? "").slice(0, 160) })) : [];
+  await sb.from("sentinelle_etat").update({ dernier_mot: mot, derniere_seule: seule, dernieres_bandes: bandes, derniere_frise: frise, dossiers_rediges_le: maintenant }).eq("id", 1);
+  await sb.from("sentinelle_conversation").insert([{ role: "user", contenu: seuleAuMonde ? "[ronde]" : "[pile]" }, { role: "assistant", contenu: mot || "(pile vide)", actions: gestes.length ? gestes : null }]);
+  if (seuleAuMonde) {
+    await sb.from("sentinelle_journal").insert({ action: "ronde_ia", cible: null, resultat: "ok", message: `${gestes.length} geste(s), ${bruts.length} dossier(s)` });
+  }
   return { ...(await lirePile(sb)), gestes };
+}
+
+/* ── Le tableau : ce que l'écran affiche sans un jeton dépensé ──── */
+async function donneesTableau(sb: SB) {
+  const d24 = new Date(Date.now() - 864e5).toISOString();
+  const d7 = new Date(Date.now() - 7 * 864e5).toISOString();
+  const d48h = new Date(Date.now() - 2 * 864e5).toISOString();
+  const [marche, histo, users, trans, sante, sigs, journal, rapports, surveilles, dossiers] = await Promise.all([
+    sb.from("market_state").select("current_price,shares_in_circulation,circuit_breaker_until").eq("id", 1).maybeSingle(),
+    sb.from("market_history").select("price,recorded_at").gte("recorded_at", d48h).order("recorded_at", { ascending: true }).limit(200),
+    sb.from("users").select("user_name,user_code,level,total_earned,weekly_earned,cookies,cafes,total_play_time,last_active").gte("last_active", d7).order("last_active", { ascending: false }).limit(40),
+    sb.from("market_transactions").select("user_code,type,shares,price_per_share,created_at").gte("created_at", d24).order("created_at", { ascending: false }).limit(40),
+    sb.from("app_health").select("kind,user_name,user_code,app_version,detail,created_at").gte("created_at", d24).order("created_at", { ascending: false }).limit(80),
+    sb.from("signalements").select("id,cree_le,user_name,user_code,categorie,statut").gte("cree_le", d24).order("cree_le", { ascending: false }).limit(20),
+    sb.from("sentinelle_journal").select("created_at,action,cible,resultat,message").gte("created_at", d24).order("created_at", { ascending: false }).limit(60),
+    sb.from("sentinelle_rapports").select("created_at,verdict,categorie,titre").gte("created_at", d24).neq("verdict", "ok").order("created_at", { ascending: false }).limit(30),
+    sb.from("comptes_sous_surveillance").select("user_code"),
+    sb.from("sentinelle_dossiers").select("cle,genre").eq("statut", "ouvert"),
+  ]);
+  type R = Record<string, unknown>;
+  const nomsParCode = new Map((users.data ?? []).map((u: R) => [u.user_code, u.user_name]));
+  const nom = (code: unknown, repli?: unknown) => String(nomsParCode.get(code as string) ?? repli ?? code ?? "?");
+
+  /* La frise brute : tout ce qui s'est passé, d'où que ça vienne. */
+  const ev: { quand: string; genre: string; texte: string; acteur: string }[] = [];
+  const vus = new Set<string>();
+  for (const h of (sante.data ?? []) as R[]) {
+    if (h.kind === "ouverture") {
+      const k = `${h.user_code}:${String(h.created_at).slice(0, 13)}`;
+      if (vus.has(k)) continue; vus.add(k);
+      ev.push({ quand: h.created_at as string, genre: "app", texte: `${nom(h.user_code, h.user_name)} a ouvert l'app${h.app_version ? " (" + h.app_version + ")" : ""}`, acteur: "joueur" });
+    } else {
+      ev.push({ quand: h.created_at as string, genre: h.kind === "crash" ? "app" : "triche", texte: `${h.kind} · ${nom(h.user_code, h.user_name)} — ${String(h.detail ?? "").slice(0, 80)}`, acteur: "app" });
+    }
+  }
+  for (const t of (trans.data ?? []) as R[]) ev.push({ quand: t.created_at as string, genre: "marche", texte: `${nom(t.user_code)} a ${t.type === "buy" ? "acheté" : "vendu"} ${t.shares} action(s) à ${Number(t.price_per_share ?? 0).toFixed(0)}`, acteur: "joueur" });
+  for (const g of (sigs.data ?? []) as R[]) ev.push({ quand: g.cree_le as string, genre: "boite", texte: `${nom(g.user_code, g.user_name)} a signalé : ${g.categorie}`, acteur: "joueur" });
+  for (const j of (journal.data ?? []) as R[]) {
+    const elle = ["ronde_ia", "ecrire_au_joueur", "appliquer_plafond"].includes(String(j.action)) || String(j.message ?? "").includes("horloge");
+    ev.push({ quand: j.created_at as string, genre: "sentinelle", texte: `${j.action}${j.cible ? " · " + nom(j.cible) : ""}${j.message ? " — " + String(j.message).slice(0, 70) : ""}`, acteur: elle ? "sentinelle" : "regis" });
+  }
+  for (const r of (rapports.data ?? []) as R[]) ev.push({ quand: r.created_at as string, genre: r.categorie === "marché" ? "marche" : (r.categorie as string), texte: `${String(r.verdict).toUpperCase()} · ${r.titre}`, acteur: "ronde" });
+  ev.sort((a, b) => (a.quand < b.quand ? 1 : -1));
+
+  const m = (marche.data ?? {}) as R;
+  const surv = new Set((surveilles.data ?? []).map((x: R) => x.user_code));
+  const allumes = new Set((dossiers.data ?? []).map((x: R) => x.genre));
+  const actifs24 = (users.data ?? []).filter((u: R) => String(u.last_active) >= d24).length;
+  const semaine = (users.data ?? []).reduce((acc: number, u: R) => acc + Number(u.weekly_earned ?? 0), 0);
+  const crashs = (sante.data ?? []).filter((h: R) => h.kind === "crash").length;
+  const versions = new Map<string, number>();
+  for (const h of (sante.data ?? []) as R[]) if (h.kind === "ouverture" && h.app_version) versions.set(h.app_version as string, (versions.get(h.app_version as string) ?? 0) + 1);
+
+  return {
+    marche: { prix: Number(m.current_price ?? 0), actions: Number(m.shares_in_circulation ?? 0), ferme: !!(m.circuit_breaker_until && new Date(m.circuit_breaker_until as string) > new Date()), jusqu_a: m.circuit_breaker_until ?? null, courbe: (histo.data ?? []).map((h: R) => Number(h.price)), ordres24h: (trans.data ?? []).length },
+    joueurs: (users.data ?? []).map((u: R) => ({ nom: u.user_name, code: u.user_code, niveau: Number(u.level ?? 0), semaine: Number(u.weekly_earned ?? 0), cumul: Number(u.total_earned ?? 0), minutes: Math.round(Number(u.total_play_time ?? 0) / 60), vu: u.last_active, surveille: surv.has(u.user_code), actif24: String(u.last_active) >= d24 })),
+    economie: { semaine, actifs24, actifs7: (users.data ?? []).length },
+    app: { ouvertures24: (sante.data ?? []).filter((h: R) => h.kind === "ouverture").length, crashs, versions: [...versions.entries()].map(([v, n]) => ({ v, n })) },
+    boite: { nouveaux: (sigs.data ?? []).filter((g: R) => g.statut === "nouveau").length, total24: (sigs.data ?? []).length },
+    allumes: [...allumes],
+    evenements: ev.slice(0, 60),
+  };
 }
 
 /* ── Le tour de conversation ────────────────────────────────── */
@@ -435,17 +536,48 @@ Deno.serve(async (req) => {
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return repondre({ ok: false, message: "Corps illisible." }, 400); }
 
-  const phrase = String(body.phrase ?? "");
   const mode = String(body.mode ?? "message");
-  if (!phrase) return repondre({ ok: false, message: "Phrase de passe absente." }, 401);
-
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: porte } = await sb.rpc("action_sentinelle", { phrase, action: "verifier", params: {} });
-  if (!porte?.ok) return repondre({ ok: false, message: porte?.message ?? "Phrase refusée." }, 401);
-
   const cle = Deno.env.get("ANTHROPIC_API_KEY");
   if (!cle) return repondre({ ok: false, message: "La clé Anthropic n'est pas configurée sur le serveur (npx supabase secrets set ANTHROPIC_API_KEY=…)." }, 503);
   const client = new Anthropic({ apiKey: cle });
+
+  /* ── ronde : l'horloge, pas Régis ──
+     Le cron ne connaît pas la phrase et ne doit pas la connaître. Il
+     présente un jeton, tiré au hasard en base ; la fonction compare, et
+     va chercher la phrase elle-même avec la clé de service pour pouvoir
+     agir. Deux lectures de la même ligne, aucun secret dans le code. */
+  if (mode === "ronde") {
+    const { data: secret } = await sb.from("sentinelle_secret").select("phrase,jeton_cron").eq("id", 1).maybeSingle();
+    const jeton = String(body.jeton ?? "");
+    if (!secret?.jeton_cron || !jeton || jeton !== secret.jeton_cron) return repondre({ ok: false, message: "Jeton refusé." }, 401);
+    if (!secret.phrase || String(secret.phrase).startsWith("CHANGE-MOI")) return repondre({ ok: false, message: "Phrase par défaut : la Sentinelle reste fermée." }, 403);
+    try {
+      const pile = await redigerPile(client, sb, String(secret.phrase), true);
+      return repondre({ ok: true, dossiers: pile.dossiers.length, gestes: pile.gestes.length });
+    } catch (e) {
+      await sb.from("sentinelle_journal").insert({ action: "ronde_ia", cible: null, resultat: "erreur", message: String((e as Error)?.message ?? e).slice(0, 200) });
+      return repondre({ ok: false, message: String((e as Error)?.message ?? e) }, 500);
+    }
+  }
+
+  const phrase = String(body.phrase ?? "");
+  if (!phrase) return repondre({ ok: false, message: "Phrase de passe absente." }, 401);
+  const { data: porte } = await sb.rpc("action_sentinelle", { phrase, action: "verifier", params: {} });
+  if (!porte?.ok) return repondre({ ok: false, message: porte?.message ?? "Phrase refusée." }, 401);
+
+  /* ── tableau : l'écran entier ── */
+  if (mode === "tableau") {
+    let pile = await lirePile(sb);
+    const age = pile.rediges_le ? (Date.now() - new Date(pile.rediges_le).getTime()) / 60000 : Infinity;
+    let erreur: string | null = null;
+    if (age >= FRAICHEUR_MIN || body.forcer) {
+      try { pile = await redigerPile(client, sb, phrase); }
+      catch (e) { erreur = String((e as Error)?.message ?? e); }
+    }
+    const donnees = await donneesTableau(sb);
+    return repondre({ ok: true, ...pile, ...donnees, erreur });
+  }
 
   /* ── dossiers ── */
   if (mode === "dossiers") {

@@ -5,8 +5,7 @@
    sien, et un seul : bleu acier et blanc. On y lit des alertes et on y
    sanctionne des comptes — le voir changer de peau selon le thème
    équipé ajouterait une variable inutile à un moment où il vaut mieux
-   n'en avoir aucune. Partagé entre la console (SentinelleOverlay) et
-   la conversation (SentinelleChat).
+   n'en avoir aucune. C'est la peau du tableau (SentinelleTableau).
 ═══════════════════════════════════════════════════════ */
 
 export const MARINE = '#0B2E4D';   /* l'encre : titres graves, texte de danger */

@@ -27,8 +27,7 @@ import { GLOBAL_CSS } from "./styles/globalStyles.js";
 import { AvatarFigure } from "./components/AvatarFigure.jsx";
 import { LevelsModal } from "./components/modals/LevelsModal.jsx";
 import { LevelCookieMedal } from "./components/LevelCookieMedal.jsx";
-import { SentinelleOverlay } from "./components/overlays/SentinelleOverlay.jsx";
-import { SentinelleDossiers } from "./components/overlays/SentinelleDossiers.jsx";
+import { SentinelleTableau } from "./components/overlays/SentinelleTableau.jsx";
 import { SignalementOverlay } from "./components/overlays/SignalementOverlay.jsx";
 import { MarketTeaser } from "./components/market/MarketTeaser.jsx";
 import { signalerOuverture, brancherRapportDeCrash, rondeSiNecessaire, alertesEnCours, signalementsOuverts, versionPlusRecente } from "./lib/sentinelle.js";
@@ -5057,12 +5056,7 @@ export default function CookiMiner() {
           phrase de passe, vérifiée en base, sans laquelle rien ne se lit
           ni ne s'exécute. Cacher un écran n'a jamais protégé personne. */}
       {vueSentinelle === 'console' && peutVoirSentinelle(userName, userCode) && (
-        <SentinelleDossiers onClose={()=>setVueSentinelle(null)} onVoirDonnees={()=>setVueSentinelle('donnees')} userName={userName} />
-      )}
-      {/* L'ancienne console à onglets reste là, derrière « Données » : la
-          conversation d'abord, les tableaux à portée. */}
-      {vueSentinelle === 'donnees' && peutVoirSentinelle(userName, userCode) && (
-        <SentinelleOverlay onClose={()=>setVueSentinelle('console')} userName={userName} />
+        <SentinelleTableau onClose={()=>setVueSentinelle(null)} userName={userName} />
       )}
 
       {vueSentinelle === 'signalement' && (
