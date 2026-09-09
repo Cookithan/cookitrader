@@ -4,6 +4,7 @@ import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { playSound, startRiderEngine, setRiderEngine, stopRiderEngine } from "../../lib/audio.js";
 import { haptic } from "../../lib/haptic.js";
+import { RiderMount } from "./RiderMount.jsx";
 import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
@@ -144,7 +145,7 @@ function rewardFor(m, flips){
    Un run = une plateforme = { x0, ys[] }, un point tous les STEP px. Le
    trou entre deux plateformes n'est stocké nulle part : c'est simplement
    l'absence de piste entre la fin de l'une et le début de la suivante. */
-function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', chips:null }; }
+function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', chips:null, loops:[] }; }
 function runEndX(run){ return run.x0 + (run.ys.length - 1) * STEP; }
 function runEndY(run){ return run.ys[run.ys.length - 1]; }
 
@@ -188,15 +189,16 @@ function groundAt(runs, x){
                    plancher sans y penser. Il ne teste que la vitesse. */
 function addFeature(runs, diff){
   const run = runs[runs.length - 1];
-  /* Jamais de trou juste après un tremplin : on vole encore quand il
-     arrive, on le survole sans le voir, et on s'écrase sur le bord d'en
-     face sans avoir rien fait de mal. Une vague, le temps de reposer
-     les roues. */
-  const r = run.last === 'tremplin' ? 0 : Math.random();
-
+  /* Jamais de trou ni de boucle juste après un tremplin ou une falaise :
+     on vole encore quand ils arrivent, on les survole sans les voir, et
+     on s'écrase de l'autre côté sans avoir rien fait de mal. Une vague,
+     le temps de reposer les roues. */
+  const enVol = run.last === 'tremplin' || run.last === 'falaise';
+  const r = enVol ? 0 : Math.random();
   const vTop = MAX_V + V_RAMP * diff;
 
-  if(r < 0.55){
+  /* ── la vague : le gros du tracé ── */
+  if(r < 0.46){
     run.last = 'vague';
     const len = 260 + Math.random() * 180;
     /* Une vague ne doit JAMAIS faire décoller : suivre une crête demande
@@ -211,14 +213,9 @@ function addFeature(runs, diff){
     return;
   }
 
-  if(r < 0.86){
+  /* ── le tremplin : le vol moyen, celui où l'on décide ── */
+  if(r < 0.70){
     run.last = 'tremplin';
-    /* La pente de sortie reste bornée : au-delà, le vol devient si long
-       qu'on ne voit plus où l'on va retomber. Dans cette fourchette il
-       dure de 0,95 s au début à 1,4 s en fin de partie — soit à peu près
-       la durée d'un tour complet (1,12 s), ce qui n'est pas un hasard :
-       tenir jusqu'au bout boucle une figure, lâcher tôt pose à plat, et
-       les deux marchent. */
     const rl   = 150 + Math.random() * 40;
     const rise = Math.min(0.48 * rl, 42 + 24 * diff + Math.random() * 18);
     span(run, rl, u => -rise * Math.pow(u, 1.5));
@@ -229,18 +226,51 @@ function addFeature(runs, diff){
        vitesse — c'est comme ça qu'on meurt deux plateformes plus loin
        sans rien avoir fait de mal. */
     const penteSortie = 1.5 * rise / rl;
-    const pr    = 0.30;
-    const tVol  = vTop * (pr + penteSortie) / (0.5 * G);
+    const pr     = 0.30;
+    const tVol   = vTop * (pr + penteSortie) / (0.5 * G);
     const recLen = Math.max(420, vTop * tVol * 1.25);
     span(run, recLen, u => pr * recLen * u);
     return;
   }
 
+  /* ── la boucle : le morceau de bravoure ──
+     Elle ne tue jamais et ne se rate pas : elle se MÉRITE. En dessous de
+     la vitesse critique √(G·r) le biscuit ne tiendrait pas au plafond,
+     alors il passe dessous et on n'a rien. Tenir son gaz sur toute la
+     ligne droite qui précède, c'est ça le prix — et ça rend le maintien
+     spectaculaire au lieu de seulement utile. */
+  if(r < 0.80){
+    run.last = 'boucle';
+    span(run, 150 + Math.random() * 60, () => 0);
+    /* `r` est le rayon du CENTRE de la roue, pas du ruban : c'est lui
+       qui fixe la vitesse critique √(G·r), donc autant le stocker tel
+       quel et dessiner le ruban autour. */
+    const rl = 62 + 16 * diff + Math.random() * 14;
+    run.loops.push({ x: runEndX(run), y: runEndY(run), r: rl });
+    span(run, 240 + Math.random() * 120, () => 0);
+    return;
+  }
 
-  /* Trou. Sa largeur est déduite d'un temps de vol court et constant :
-     un trou n'est pas là pour faire tourner le biscuit, seulement pour
-     sanctionner celui qui a levé le doigt trop tôt. Et le sol d'en face
-     est posé au bout de la parabole, pas au hasard. */
+  /* ── la falaise : la grande chute, deux figures si on ose ── */
+  if(r < 0.90){
+    run.last = 'falaise';
+    const chute  = 260 + 190 * diff + Math.random() * 150;
+    const tChute = Math.sqrt(2 * chute / G);
+    /* Le trou vaut la MOITIÉ de ce que le vol couvre : on ne peut pas
+       tomber court, on se pose forcément bien après le bord. Une falaise
+       doit impressionner, pas piéger. */
+    const trou = 0.5 * vTop * 0.86 * tChute;
+    const next = makeRun(runEndX(run) + trou, runEndY(run) + chute);
+    next.last  = 'falaise';
+    const recLen = Math.max(520, vTop * tChute * 1.3);
+    span(next, recLen, u => 0.22 * recLen * u);
+    runs.push(next);
+    return;
+  }
+
+  /* ── le trou : court exprès (~0,22 s de vol). Il ne fait pas tourner
+     le biscuit, il ne sanctionne que le doigt levé trop tôt. ── */
+  run.last = 'trou';
   const vRequis = vTop * 0.86;
   const tVol    = 0.20 + Math.random() * 0.06;
   const trou    = vRequis * tVol;
@@ -298,7 +328,9 @@ function buildPaths(runs){
   let ribbon = '';
   let crust  = '';
   const chips = [];
+  const loops = [];
   for(const run of runs){
+    for(const b of run.loops) loops.push(b);
     const n = run.ys.length;
     let haut = `M ${run.x0.toFixed(1)} ${run.ys[0].toFixed(1)}`;
     for(let i = 1; i < n; i++) haut += ` L ${(run.x0 + i * STEP).toFixed(1)} ${run.ys[i].toFixed(1)}`;
@@ -324,7 +356,7 @@ function buildPaths(runs){
     }
     for(const c of run.chips) if(c.x >= run.x0) chips.push(c);
   }
-  return { ribbon: ribbon.trim(), crust: crust.trim(), chips };
+  return { ribbon: ribbon.trim(), crust: crust.trim(), chips, loops };
 }
 
 function normAngle(a){
@@ -367,8 +399,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [phase, setPhase] = useState('idle');       // idle | countdown | playing | done
   const [countdownVal, setCountdownVal] = useState(null);
   const [echelleArene, setEchelleArene] = useState(1);
-  const [paths, setPaths] = useState({ ribbon:'', crust:'', chips:[] });
-  const [frame, setFrame] = useState({ camX:0, camY:0, ry:0, ang:0, v:START_V, gr:true });
+  const [paths, setPaths] = useState({ ribbon:'', crust:'', chips:[], loops:[] });
+  const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true });
   const [dist,  setDist]  = useState(0);
   const [reste, setReste] = useState(RUN_TIME);
   const [flips, setFlips] = useState(0);
@@ -391,6 +423,9 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const avRef     = useRef(0);
   const groundedRef = useRef(true);
   const airTimeRef  = useRef(0);
+  const boucleRef = useRef(null);
+  const maxXRef   = useRef(0);
+  const retourCamRef = useRef(0);
   const camXRef   = useRef(0);
   const camYRef   = useRef(0);
   const basRef    = useRef(0);
@@ -464,6 +499,9 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     groundedRef.current = true; airTimeRef.current = 0;
     distRef.current = 0; flipsRef.current = 0; tempsRef.current = 0; resteRef.current = RUN_TIME;
     crashedRef.current = false; crashTRef.current = 0; crashKindRef.current = null;
+    boucleRef.current = null;
+    retourCamRef.current = 0;
+    maxXRef.current = xRef.current;
     camXRef.current = xRef.current - RIDER_X;
     camYRef.current = yRef.current - ARENA_H * 0.40;
     lastTRef.current = 0;
@@ -474,7 +512,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     setPaths(buildPaths(runs));
     setDist(0); setFlips(0); setReste(RUN_TIME); setCrashed(false); setCrashReason(null);
     setPops([]); setHolding(false); setSquash(false);
-    setFrame({ camX:camXRef.current, camY:camYRef.current, ry:yRef.current, ang:0, v:START_V, gr:true });
+    setFrame({ camX:camXRef.current, camY:camYRef.current, rx:RIDER_X, ry:yRef.current, ang:0, v:START_V, gr:true });
   };
 
   const endGame = () => {
@@ -514,6 +552,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
     const runs = runsRef.current;
     const hold = throttleRef.current;
+    const maxV = MAX_V + V_RAMP * Math.min(1, xRef.current / 11000);
 
     /* Le chrono ne court pas pendant la chute finale : mourir à la
        dernière seconde ne doit pas escamoter l'animation de casse. */
@@ -524,6 +563,53 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       const r = Math.max(0, Math.ceil(RUN_TIME - tempsRef.current));
       if(r !== resteRef.current){ resteRef.current = r; setReste(r); }
       if(tempsRef.current >= RUN_TIME){ crashKindRef.current = 'time'; endGame(); return; }
+    }
+
+    /* ── Dans la boucle ──
+       Position et angle sont pilotés par l'arc, pas par la gravité : une
+       fois engagé on va au bout. Le gaz reste actif (il fait la vitesse
+       de sortie) mais on ne peut pas descendre sous la vitesse critique
+       — se décrocher au plafond serait une mort qu'on ne comprendrait
+       pas, et la boucle est là pour amuser, pas pour punir. */
+    if(boucleRef.current && !crashedRef.current){
+      const b = boucleRef.current;
+      const vCrit = Math.sqrt(G * b.r);
+      vRef.current += (hold ? ACCEL : -BRAKE) * dt;
+      vRef.current = Math.max(vCrit, Math.min(maxV, vRef.current));
+      b.theta += (vRef.current / b.r) * dt;
+
+      if(b.theta >= TAU){
+        boucleRef.current = null;
+        retourCamRef.current = 0.5;
+        xRef.current = b.x;
+        const g = groundAt(runs, b.x);
+        yRef.current   = (g ? g.y : b.y) - R;
+        angRef.current = g ? Math.atan2(g.slope, 1) : 0;
+        vyRef.current  = 0; avRef.current = 0; spinRef.current = 0;
+        groundedRef.current = true;
+        flipsRef.current += 1; setFlips(flipsRef.current);
+        playSound('flip'); haptic('success'); popFlip(1);
+      } else {
+        xRef.current   = b.x + b.r * Math.sin(b.theta);
+        yRef.current   = (b.y - R - b.r) + b.r * Math.cos(b.theta);
+        angRef.current = -b.theta;
+      }
+
+      /* La caméra lâche le biscuit et cadre l'ANNEAU, en x comme en y :
+         c'est le tour qu'on doit voir, pas un gros plan sur la roue. */
+      const cx = b.x - ARENA_W * 0.5;
+      const cy = (b.y - R - b.r) - ARENA_H * 0.45;
+      camXRef.current += (cx - camXRef.current) * Math.min(1, 4 * dt);
+      camYRef.current += (cy - camYRef.current) * Math.min(1, 5 * dt);
+      if(xRef.current > maxXRef.current) maxXRef.current = xRef.current;
+      setFrame({
+        camX:camXRef.current, camY:camYRef.current,
+        rx:xRef.current - camXRef.current, ry:yRef.current, ang:angRef.current,
+        v:vRef.current, gr:false,
+      });
+      setRiderEngine((vRef.current - MIN_V) / (MAX_V + V_RAMP - MIN_V), hold);
+      rafRef.current = requestAnimationFrame(tick);
+      return;
     }
 
     if(crashedRef.current){
@@ -539,13 +625,29 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       const g0 = groundAt(runs, xRef.current);
       const slope = g0 ? g0.slope : 0;
       vRef.current += (hold ? ACCEL : -BRAKE) * dt + slope * SLOPE_ACC * dt;
-      /* Le plafond de vitesse monte avec la distance : les vols
-         s'allongent, les trous se passent plus vite mais se ratent plus
-         franchement. La tension monte sans un obstacle de plus. */
-      const maxV = MAX_V + V_RAMP * Math.min(1, xRef.current / 11000);
       vRef.current = Math.max(MIN_V, Math.min(maxV, vRef.current));
 
       const nx = xRef.current + vRef.current * dt;
+
+      /* Entrée en boucle : elle se mérite, elle ne se rate pas. Sous la
+         vitesse critique le biscuit passerait sous l'anneau — alors il
+         passe dessous, sans dommage et sans figure. */
+      for(const run of runs){
+        for(const b of run.loops){
+          if(b.x > xRef.current && b.x <= nx && vRef.current >= Math.sqrt(G * b.r) * 1.02){
+            boucleRef.current = { x:b.x, y:b.y, r:b.r, theta:0 };
+            xRef.current = b.x;
+            playSound('swipe');
+            break;
+          }
+        }
+        if(boucleRef.current) break;
+      }
+      if(boucleRef.current){
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
       const g1 = groundAt(runs, nx);
 
       if(!g1){
@@ -636,10 +738,28 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       }
     }
 
-    const m = Math.min(DIST_CAP, Math.max(0, Math.floor(xRef.current / 10)));
+    /* La distance se lit sur le point le plus AVANCÉ : dans une boucle
+       x recule puis revient, et un compteur qui redescend est une
+       promesse cassée. */
+    if(xRef.current > maxXRef.current) maxXRef.current = xRef.current;
+    const m = Math.min(DIST_CAP, Math.max(0, Math.floor(maxXRef.current / 10)));
     if(m !== distRef.current){ distRef.current = m; setDist(m); }
 
-    camXRef.current = xRef.current - RIDER_X;
+    boucleRef.current = null;
+    retourCamRef.current = 0;
+    maxXRef.current = xRef.current;
+    /* La caméra colle au biscuit — SAUF pendant la demi-seconde qui suit
+       une boucle : elle vient de cadrer l'anneau et un saut sec se
+       verrait. Un lissage permanent, lui, coûterait de la visibilité
+       devant : à 450 px/s, un suivi lissé traîne de 50 px, autant de
+       piste qu'on ne voit plus arriver. */
+    const cibleCamX = xRef.current - RIDER_X;
+    if(retourCamRef.current > 0){
+      retourCamRef.current -= dt;
+      camXRef.current += (cibleCamX - camXRef.current) * Math.min(1, 7 * dt);
+    } else {
+      camXRef.current = cibleCamX;
+    }
     const targetCamY = yRef.current - ARENA_H * 0.40;
     camYRef.current += (targetCamY - camYRef.current) * Math.min(1, 6 * dt);
 
@@ -656,7 +776,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
     setFrame({
       camX:camXRef.current, camY:camYRef.current,
-      ry:yRef.current, ang:angRef.current,
+      rx:xRef.current - camXRef.current, ry:yRef.current, ang:angRef.current,
       v:vRef.current, gr:groundedRef.current,
     });
     rafRef.current = requestAnimationFrame(tick);
@@ -705,6 +825,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const up = () => { throttleRef.current = false; setHolding(false); };
 
   const earnedNow    = rewardFor(dist, flips);
+  const riderScreenX = frame.rx;
   const riderScreenY = frame.ry - frame.camY;
   const vitesse01    = Math.max(0, Math.min(1, (frame.v - STREAK_FROM) / 220));
   const jauge01      = Math.max(0, Math.min(1, (frame.v - MIN_V) / (MAX_V + V_RAMP - MIN_V)));
@@ -799,6 +920,18 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
                 <stop offset="100%" stopColor="#8E5F30" />
               </linearGradient>
             </defs>
+            {/* Les boucles d'abord : le ruban de la piste passe par-dessus
+                leur base, et la jonction se lit comme un anneau qui sort
+                du sol au lieu de deux traits collés. */}
+            {paths.loops.map((b, i) => (
+              <g key={`b${i}`}>
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R + TRACK_TH / 2}
+                        fill="none" stroke={`url(#${dough})`} strokeWidth={TRACK_TH} />
+                <circle cx={b.x} cy={b.y - R - b.r} r={b.r + R}
+                        fill="none" stroke="#F3CE8B" strokeWidth="3" />
+              </g>
+            ))}
+
             {/* Ombre portée sous le ruban : détache la piste du ciel */}
             <path d={paths.ribbon} fill="rgba(90,53,32,.20)" transform="translate(0,7)" />
             <path d={paths.ribbon} fill={`url(#${dough})`} />
@@ -816,7 +949,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             {[0, 1, 2].map(i => (
               <div key={i} style={{
                 position:'absolute',
-                left: RIDER_X - 12, top: riderScreenY + R - 4,
+                left: riderScreenX - 12, top: riderScreenY + R - 4,
                 width: 9 - i, height: 9 - i, borderRadius:'50%',
                 background:'rgba(142,95,48,.55)',
                 animation:`riderDust ${0.42 + i * 0.06}s linear ${i * 0.13}s infinite`,
@@ -830,24 +963,20 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           position:'absolute', left:0, top:0,
           width:COOKIE_SIZE, height:COOKIE_SIZE,
           marginLeft:-COOKIE_SIZE / 2, marginTop:-COOKIE_SIZE / 2,
-          transform:`translate3d(${RIDER_X}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${squash ? 1.14 : 1}, ${squash ? 0.84 : 1})`,
+          transform:`translate3d(${riderScreenX}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${squash ? 1.14 : 1}, ${squash ? 0.84 : 1})`,
           willChange:'transform', pointerEvents:'none',
           filter: crashed ? 'grayscale(.7)' : 'none',
         }}>
-          {/* La tasse : c'est ELLE qui dit si l'atterrissage est bon. Elle
-              tourne avec le biscuit, donc « à l'endroit » se lit d'un coup
-              d'œil, sans jauge ni indicateur. */}
-          <div style={{
-            position:'absolute', left:'50%', top:-16, transform:'translateX(-50%)',
-            fontSize:16, lineHeight:1, filter:'drop-shadow(0 2px 3px rgba(74,44,23,.45))',
-          }}>☕</div>
           {hasCustomSkin ? <SkinnedCookie skin={skin} noShadow /> : <PremiumCookie noShadow />}
+          {/* L'attelage par-dessus la roue : c'est le gobelet qui dit si
+              l'atterrissage est bon, et il tourne avec elle. */}
+          <RiderMount />
         </div>
 
         {/* Pops de figure */}
         {pops.map(p => (
           <div key={p.id} className="fu" style={{
-            position:'absolute', left:RIDER_X, top:riderScreenY - 52,
+            position:'absolute', left:riderScreenX, top:riderScreenY - 52,
             transform:'translateX(-50%)', pointerEvents:'none',
             fontSize:14, fontWeight:900, color:GOLD, whiteSpace:'nowrap',
             textShadow:'0 2px 6px rgba(74,44,23,.5)',
