@@ -78,6 +78,7 @@ const INTERVALLE_RONDE_MS = 60 * 60 * 1000;
    rendement régulier de l'app, plafonne à ~300 cookies pour 60-180 s.
    Au-delà de 400/min tenus dans la durée, aucune chance ne l'explique. */
 const RENDEMENT_IMPOSSIBLE = 400;
+const MIN_JOUEURS_CONCENTRATION = 8;
 const RENDEMENT_ELEVE      = 200;
 const PART_HEBDO_MAX       = 0.40;   // un joueur au-delà de 40 % du total de la semaine
 const JOURS_ACTIF          = 14;
@@ -256,10 +257,19 @@ function controleConcentration(users) {
       `Dominer en jouant beaucoup est normal ; au-delà de ${RENDEMENT_ELEVE} 🍪/min, c'est le rendement qui pose question.`,
     ]);
   }
+  /* Une part n'a de sens qu'avec assez de monde pour la partager : à six
+     actifs, la part égale est déjà de 17 %, et le plus assidu passe les
+     40 % sans rien faire d'anormal. Le contrôle le disait dans son détail
+     tout en escaladant quand même. En dessous du seuil c'est une
+     information, pas un verdict — l'ALERTE sur le RENDEMENT, elle, ne
+     bouge pas. Posé le 09/09 avec 6 actifs ; à relever si ça grossit. */
+  if (gros.length && liste.length >= MIN_JOUEURS_CONCENTRATION) {
+    return faire('voir', 'classement', `${gros.length} joueur(s) pèse(nt) plus de ${Math.round(PART_HEBDO_MAX * 100)} % de la semaine`, detail);
+  }
   if (gros.length) {
-    return faire('voir', 'classement', `${gros.length} joueur(s) pèse(nt) plus de ${Math.round(PART_HEBDO_MAX * 100)} % de la semaine`, [
+    return faire('ok', 'classement', `${gros.length} joueur(s) domine(nt), mais à ${liste.length} actifs c'est arithmétique`, [
       ...detail,
-      `Avec ${liste.length} joueur(s) actif(s), c'est attendu : le plus assidu prend une grosse part.`,
+      `Il faut au moins ${MIN_JOUEURS_CONCENTRATION} joueurs actifs pour qu'une part veuille dire quelque chose.`,
     ]);
   }
   return faire('ok', 'classement', `Semaine équilibrée — ${liste.length} joueur(s), ${total} 🍪`, detail);
@@ -283,17 +293,29 @@ function gainsPourNiveau(L) {
   return Math.round(total);
 }
 
-function controleCoherenceNiveau(users) {
+/* ⚠️ Les comptes SANCTIONNÉS sont exclus (09/09). Une sanction pose le
+   niveau et le cumul À LA MAIN, à des valeurs qui ne se répondent pas :
+   le ratio n'y mesure plus rien, et le contrôle signalait Fedider pour
+   un écart que NOUS avions créé. Même famille que les vétérans sans
+   total_play_time — un contrôle doit pouvoir avoir RAISON.
+
+   La liste vient du journal et non de comptes_sous_surveillance, qui est
+   fermée à la clé publique. */
+function controleCoherenceNiveau(users, sanctionnes = new Set()) {
   const ecarts = users
-    .filter(u => !isAdminName(u.user_name) && num(u.level) >= 10 && !num(u.prestige_level))
+    .filter(u => !isAdminName(u.user_name) && !sanctionnes.has(u.user_code)
+              && num(u.level) >= 10 && !num(u.prestige_level))
     .map(u => ({ u, requis: gainsPourNiveau(num(u.level)), affiche: num(u.total_earned) }))
     .filter(x => x.requis > 0 && x.affiche < x.requis * 0.75)
     .sort((a, b) => (a.affiche / a.requis) - (b.affiche / b.requis));
 
-  if (!ecarts.length) return faire('ok', 'triche', 'Niveaux cohérents avec les gains affichés');
+  const perim = sanctionnes.size
+    ? `${sanctionnes.size} compte(s) sanctionné(s) exclu(s) : leurs valeurs ont été posées à la main.`
+    : 'Aucun compte sanctionné à exclure.';
+  if (!ecarts.length) return faire('ok', 'triche', 'Niveaux cohérents avec les gains affichés', [perim]);
   return faire('voir', 'triche', `${ecarts.length} compte(s) dont le niveau n'est pas justifié par le total`,
     ecarts.map(x => `${x.u.user_name} — niveau ${x.u.level} réclame ~${x.requis} 🍪, en affiche ${x.affiche}`)
-      .concat(['Deux explications possibles : le cap anti-écart du leader, ou un total gonflé puis corrigé.']));
+      .concat(['Deux explications possibles : le cap anti-écart du leader, ou un total gonflé puis corrigé.', perim]));
 }
 
 /* ── Soldes impossibles ───────────────────────────────
@@ -887,7 +909,7 @@ function controleSchema(schema) {
 export async function faireUneRonde({ enregistrer = true } = {}) {
   if (!isSupabaseEnabled()) return [];
 
-  const [users, state, portefeuilles, sante, versions, transactions, surveilles, codes, signalements, status, dernierOrdre] = await Promise.all([
+  const [users, state, portefeuilles, sante, versions, transactions, surveilles, codes, signalements, status, dernierOrdre, sanctions] = await Promise.all([
     supabase.from('users').select('user_name, user_code, level, total_earned, weekly_earned, weekly_week_id, total_play_time, last_active, prestige_level, cookies, cafes, join_date, unlocked, earned_achievements').limit(2000).then(r => r.data || []),
     supabase.from('market_state').select('*').eq('id', 1).maybeSingle().then(r => r.data),
     supabase.from('market_portfolio').select('user_code, shares, total_invested').limit(2000).then(r => r.data || []),
@@ -907,13 +929,23 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
     supabase.from('market_transactions').select('created_at')
       .order('created_at', { ascending: false }).limit(1)
       .then(r => r.data?.[0]?.created_at || null, () => null),
+    /* Les comptes sanctionnés. On les lit au JOURNAL et non dans
+       comptes_sous_surveillance, qui ne rend rien à la clé publique :
+       la table est fermée, le journal a une policy de lecture. Une
+       sanction en `ok` suffit à prouver que les valeurs du compte ont
+       été posées à la main. */
+    supabase.from('sentinelle_journal').select('cible')
+      .eq('action', 'sanctionner').eq('resultat', 'ok').limit(200)
+      .then(r => r.data || [], () => []),
   ]);
+
+  const sanctionnes = new Set((sanctions || []).map(x => x.cible).filter(Boolean));
 
   const schema = await verifierSchema();
 
   const rapports = [
     controleRendement(users),
-    controleCoherenceNiveau(users),
+    controleCoherenceNiveau(users, sanctionnes),
     controleSoldes(users),
     controleConcentration(users),
     ...controleMarche(state, portefeuilles, users),

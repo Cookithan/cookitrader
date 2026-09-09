@@ -79,11 +79,14 @@ function lireSnapshot() {
   try { return JSON.parse(fs.readFileSync(FICHIER_SNAPSHOT, 'utf8')); }
   catch { return null; }
 }
-function ecrireSnapshot(users, state) {
+function ecrireSnapshot(users, state, podiumsVus = []) {
   const s = state[0] || {};
   fs.writeFileSync(FICHIER_SNAPSHOT, JSON.stringify({
     at: Date.now(),
     prix: Number(s.current_price) || 0,
+    /* Les semaines à gros score déjà signalées : elles ne le seront plus,
+       sauf nouvelle venue. */
+    podiumsVus: podiumsVus,
     users: users.map(u => ({
       c: u.user_code, n: u.user_name,
       e: num(u.total_earned), l: num(u.level),
@@ -143,16 +146,23 @@ function rendement(users) {
    donc inaperçu si on ne regarde que total_earned. Un compte dont le
    niveau réclame bien plus de gains qu'il n'en affiche a été soit
    plafonné (légitime), soit gonflé (pas légitime). */
-function coherenceNiveau(users) {
+function coherenceNiveau(users, sanctionnes = new Set()) {
   const ecarts = users
     .filter(u => !ADMINS.includes(String(u.user_name).toLowerCase())
+              && !sanctionnes.has(u.user_code)
               && num(u.level) >= 10 && !num(u.prestige_level))
     .map(u => ({ u, requis: gainsPourNiveau(num(u.level)), affiche: num(u.total_earned) }))
     .filter(x => x.affiche < x.requis * 0.75)
     .sort((a, b) => (a.affiche / a.requis) - (b.affiche / b.requis));
-  if (!ecarts.length) return ok('Niveaux cohérents avec les gains affichés');
+  /* Le périmètre est ANNONCÉ, comme pour le rendement : un verdict qui
+     tait ce qu'il n'a pas regardé se fait croire plus large qu'il n'est. */
+  const perim = sanctionnes.size
+    ? `${sanctionnes.size} compte(s) sanctionné(s) exclu(s) — leurs valeurs ont été posées à la main, le ratio n'y mesure plus rien`
+    : 'aucun compte sanctionné à exclure';
+  if (!ecarts.length) return ok(`Niveaux cohérents avec les gains affichés — ${perim}`);
   voir(`${ecarts.length} compte(s) dont le niveau n'est pas justifié par le total affiché`,
-    ecarts.map(x => `${x.u.user_name} (${x.u.user_code}) — niv ${x.u.level} réclame ~${fmt(x.requis)}, affiche ${fmt(x.affiche)}   [cap leader, ou exploit]`));
+    ecarts.map(x => `${x.u.user_name} (${x.u.user_code}) — niv ${x.u.level} réclame ~${fmt(x.requis)}, affiche ${fmt(x.affiche)}   [cap leader, ou exploit]`)
+      .concat([perim]));
 }
 
 /* 3. Concentration de la semaine en cours.
@@ -166,6 +176,17 @@ function coherenceNiveau(users) {
    vaut qu'un « à voir ». Ça ne devient une ALERTE que si le dominant
    affiche EN PLUS un rendement suspect — dominer en jouant beaucoup est
    normal, dominer en gagnant trop vite ne l'est pas. */
+/* Une PART n'a de sens qu'avec assez de monde pour la partager. À six
+   joueurs actifs, la part égale est déjà de 17 % : celui qui joue deux
+   soirs de plus que les autres passe les 40 % sans rien faire d'anormal.
+   Le contrôle le disait lui-même dans son détail (« à si peu de monde,
+   c'est attendu ») tout en escaladant quand même — il se contredisait à
+   voix haute, une fois par exécution.
+   En dessous de ce seuil, la concentration seule n'est plus un verdict,
+   c'est une information. L'ALERTE, elle, ne bouge pas : elle porte sur le
+   RENDEMENT, qui reste mesurable quel que soit le nombre de joueurs.
+   Posé le 2026-09-09, avec 6 actifs. À relever si la base grossit. */
+const MIN_JOUEURS_CONCENTRATION = 8;
 function concentrationHebdo(users) {
   const parSemaine = {};
   users
@@ -190,20 +211,65 @@ function concentrationHebdo(users) {
 
   if (grosDouteux.length) alerte(`Semaine ${semaine} : ${grosDouteux.length} joueur(s) domine(nt) AVEC un rendement suspect`,
     [...detail, "Dominer en jouant beaucoup est normal ; au-delà de 200 🍪/min, c'est le rendement qui pose question."]);
-  else if (gros.length)   voir(`Semaine ${semaine} : ${gros.length} joueur(s) pèse(nt) plus de 40 % du total (${fmt(total)} cookies)`,
-    [...detail, `Sur ${list.length} joueur(s) actif(s) cette semaine — à si peu de monde, c'est attendu.`]);
+  else if (gros.length && list.length >= MIN_JOUEURS_CONCENTRATION)
+    voir(`Semaine ${semaine} : ${gros.length} joueur(s) pèse(nt) plus de 40 % du total (${fmt(total)} cookies)`, detail);
+  else if (gros.length)
+    ok(`Semaine ${semaine} : ${gros.length} joueur(s) domine(nt), mais à ${list.length} actifs c'est arithmétique`,
+       [...detail, `Il faut au moins ${MIN_JOUEURS_CONCENTRATION} joueurs actifs pour qu'une part veuille dire quelque chose. Le rendement, lui, reste surveillé.`]);
   else                    ok(`Semaine ${semaine} équilibrée — ${fmt(total)} cookies répartis sur ${list.length} joueur(s)`, detail);
 }
 
-/* 4. Podiums hebdo. Les semaines saines se gagnent en CENTAINES ; un
-   vainqueur à 5 chiffres signe un exploit qui tournait — et les cafés
-   du podium, eux, sont déjà versés. */
-function podiums(rows) {
+/* 4. Podiums hebdo.
+   ⚠️ RECALIBRÉ LE 2026-09-09, deux fois pour la même raison.
+
+   Ce contrôle criait ALERTE sur trois semaines depuis des mois :
+   29 450 (Fedider, 29/05 — l'exploit du Memory), 13 341 (Le vrai Cooki,
+   03/07) et 16 758 (Miagguy, 28/08). Les trois sont connues, instruites
+   et closes. Deux défauts, et le second est le vrai :
+
+   1. LE SEUIL DE 10 000 EST PÉRIMÉ. Il datait d'une économie où les
+      semaines se gagnaient en centaines. La semaine EN COURS est à
+      26 982 pour Aaronxbox, et elle est parfaitement légitime (rendement
+      vérifié). Tout seuil fixe sous 30 000 sonnerait dessus dès sa
+      clôture. On ne peut donc pas régler ça par un nombre.
+
+   2. UNE SEMAINE CLOSE NE SE RÉPARE PAS. weekly_winners ne contient que
+      des semaines terminées, dont les cafés du podium sont VERSÉS. Il
+      n'y a aucun geste au bout de cette alerte — or une alerte sans
+      geste possible est du bruit par construction, et on apprend à la
+      sauter (cf. le mur inopérant, neuf jours).
+
+   Première tentative de correctif : n'escalader que sur les semaines
+   « récentes ». Fausse piste, et il faut le dire — l'âge n'a rien à voir.
+   Une semaine de douze jours a son café versé depuis douze jours ; elle
+   n'est pas plus réparable qu'une de mai. AUCUNE semaine close ne l'est.
+
+   Le vrai critère n'est pas l'âge, c'est : L'AI-JE DÉJÀ VUE. Un podium
+   aberrant mérite d'être signalé UNE fois — après, il est instruit, et le
+   répéter à chaque exécution est ce qui apprend à sauter la ligne.
+   L'audit garde déjà un instantané entre deux passages (FICHIER_SNAPSHOT,
+   cf. le contrôle d'évolution) : on s'en sert pour ne signaler que ce qui
+   est NOUVEAU depuis la dernière fois.
+
+   La concentration de la semaine EN COURS garde son alerte, elle : elle
+   porte sur des cafés qui ne sont pas encore versés, donc sur un geste
+   encore possible. */
+function podiums(rows, dejaVus = []) {
   const gros = rows.filter(w => num(w.top1_earned) >= 10000);
   const detail = rows.slice(0, 6).map(w => `${w.week_id} — ${w.top1_name || '(personne)'} : ${fmt(w.top1_earned)} cookies`);
-  if (gros.length) alerte(`${gros.length} semaine(s) gagnée(s) avec un score à 5 chiffres`,
-    gros.map(w => `${w.week_id} — ${w.top1_name} : ${fmt(w.top1_earned)} cookies   ⚠️ podium café déjà versé`));
-  else ok('Aucun podium hebdo aberrant', detail);
+  if (!gros.length) return ok('Aucun podium hebdo aberrant', detail);
+
+  const connus = new Set(dejaVus);
+  const nouveaux = gros.filter(w => !connus.has(w.week_id));
+  const lignes = gros.map(w => `${w.week_id} — ${w.top1_name} : ${fmt(w.top1_earned)} cookies` +
+    (connus.has(w.week_id) ? '   (déjà instruite)' : '   ← NOUVEAU'));
+
+  if (nouveaux.length) {
+    return voir(`${nouveaux.length} nouveau(x) podium(s) à 5 chiffres depuis la dernière vérification`,
+      lignes.concat(['Le café du podium est déjà versé : le geste possible porte sur le COMPTE, pas sur la semaine.']));
+  }
+  return ok(`${gros.length} grosse(s) semaine(s) dans l'historique, toutes déjà instruites`,
+    lignes.concat(['Signalées une fois, puis tues : les répéter chaque jour apprendrait à sauter la ligne.']));
 }
 
 /* 6. ÉVOLUTION DEPUIS LA DERNIÈRE EXÉCUTION.
@@ -349,15 +415,19 @@ function marche(state, txs, portefeuilles, historique) {
   console.log('\x1b[1m\nBILAN DE SANTÉ COOKIMINER\x1b[0m  ' + new Date().toLocaleString('fr-FR'));
   console.log('lecture seule · ' + BASE.replace('https://', ''));
 
-  let users, winners, state, txs, portefeuilles, historique;
+  let users, winners, state, txs, portefeuilles, historique, sanctions;
   try {
-    [users, winners, state, txs, portefeuilles, historique] = await Promise.all([
+    [users, winners, state, txs, portefeuilles, historique, sanctions] = await Promise.all([
       q('users?select=user_name,user_code,level,xp,total_earned,weekly_earned,weekly_week_id,cookies,cafes,total_play_time,prestige_level,last_active,join_date&limit=2000'),
       q('weekly_winners?select=week_id,top1_name,top1_code,top1_earned&order=week_id.desc&limit=12'),
       q('market_state?select=*&limit=1'),
       q('market_transactions?select=user_code,type,shares,total_amount,created_at&order=created_at.desc&limit=500'),
       q('market_portfolio?select=user_code,shares&limit=2000'),
       q('market_history?select=recorded_at,price&order=recorded_at.desc&limit=1'),
+      /* comptes_sous_surveillance est fermé à la clé publique (RLS) ; le
+         journal, lui, est lisible. Une sanction en `ok` prouve que les
+         valeurs du compte ont été posées à la main. */
+      q('sentinelle_journal?select=cible&action=eq.sanctionner&resultat=eq.ok&limit=200'),
     ]);
   } catch (e) {
     console.error('\nÉchec de lecture : ' + e.message);
@@ -367,13 +437,15 @@ function marche(state, txs, portefeuilles, historique) {
   const actifs = users.filter(u => jours(u.last_active) <= 14).length;
   console.log(`${users.length} comptes · ${actifs} actifs sur 14 jours`);
 
+  const sanctionnes = new Set((sanctions || []).map(x => x.cible).filter(Boolean));
+
   rendement(users);
-  coherenceNiveau(users);
+  coherenceNiveau(users, sanctionnes);
   concentrationHebdo(users);
-  podiums(winners);
+  podiums(winners, lireSnapshot()?.podiumsVus || []);
   marche(state, txs, portefeuilles, historique);
   evolution(users, lireSnapshot());
-  ecrireSnapshot(users, state);
+  ecrireSnapshot(users, state, (winners || []).filter(w => num(w.top1_earned) >= 10000).map(w => w.week_id));
 
   const couleur = { OK: '\x1b[32m', VOIR: '\x1b[33m', ALERTE: '\x1b[31m' };
   const puce    = { OK: '  OK  ', VOIR: ' VOIR ', ALERTE: 'ALERTE' };
