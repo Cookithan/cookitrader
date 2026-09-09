@@ -5,7 +5,7 @@ import { BOT_NAMES } from '../data/leaderboard.js';
    duels — Duels 1v1 asynchrones (défis ouverts)
    ────────────────────────────────────────────────────
    Couche client au-dessus de la table `duels` + fonctions
-   SECURITY DEFINER (cf. MIGRATION_duels.sql). Modèle de confiance
+   SECURITY DEFINER (cf. sql/MIGRATION_duels.sql). Modèle de confiance
    identique au boss : la monnaie reste client-authoritative, ces
    fonctions ne coordonnent que l'état du duel. Le SERVEUR tranche
    qui gagne ; le versement du pot au gagnant se fera côté client
@@ -15,7 +15,7 @@ import { BOT_NAMES } from '../data/leaderboard.js';
    retour null / [] / {error} si !isSupabaseEnabled().
 
    ⚠️ DUEL_CONFIG.MAX_STAKE_* DOIVENT rester synchro avec les
-      constantes serveur de create_duel (MIGRATION_duels.sql).
+      constantes serveur de create_duel (sql/MIGRATION_duels.sql).
 
    PHASE 1 = data layer pur (pas d'UI, pas de crédit/débit d'éco).
    Le débit de mise (escrow) et le versement du pot sont câblés en

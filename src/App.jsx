@@ -914,7 +914,7 @@ export default function CookiMiner() {
   /* Maintenance LIVE — pilotée par la table Supabase public.system_status
      via Realtime. Permet de basculer l'app en maintenance OU de pousser
      un popup "Mise à jour disponible" sans devoir redéployer.
-     Voir MIGRATION_system_status.sql pour le schéma + les SQL de toggle. */
+     Voir sql/MIGRATION_system_status.sql pour le schéma + les SQL de toggle. */
   const [systemStatus,           setSystemStatus]           = useState(DEFAULT_SYSTEM_STATUS);
   const [liveMaintenanceActive,  setLiveMaintenanceActive]  = useState(false);
   const [showMaintenanceWarning, setShowMaintenanceWarning] = useState(false);
@@ -2544,7 +2544,7 @@ export default function CookiMiner() {
           qui rend la vigie autonome : ni PC, ni ligne de commande, ni
           personne pour la déclencher.
 
-     Tout est enveloppé : si MIGRATION_SENTINELLE.sql n'est pas passé,
+     Tout est enveloppé : si sql/MIGRATION_SENTINELLE.sql n'est pas passé,
      les tables n'existent pas et la vigie se tait. L'app ne doit jamais
      casser parce que la surveillance est absente.
   ────────────────────────────────────────────────────────────── */

@@ -67,7 +67,7 @@ export const MARKET_CONFIG = {
      peuvent en acheter que ~550. Un flottant de 10 000 affichait « 9 785
      actions disponibles » — un chiffre qui ne voulait plus rien dire.
      ⚠️ market_state.total_shares_supply doit valoir la même chose en base
-     (c'est LUI qui alimente available_shares) — cf. SPLIT_MARCHE_500.sql. */
+     (c'est LUI qui alimente available_shares) — cf. sql/SPLIT_MARCHE_500.sql. */
   TOTAL_SHARES: 2000,             // Cap PCT 0.05 = 100 actions max/user, soit 50 000 🍪 — une limite qui mord enfin pour les gros portefeuilles.
   IMPACT_PER_SHARE: 0.001,        // +0.1 % par action. Relevé (0.0003 → 0.001) parce que plus rien d'autre ne bouge la courbe : il faut qu'un ordre se VOIE. 30 actions/tx = 3 %, 100 actions = 10,5 %. Toutes les actions du flottant achetées = ×7,4 (borné par PRICE_MAX).
   MAX_PRICE_IMPACT_PCT: 0.10,     // Cap : aucune transaction unique ne peut bouger le prix de plus de 10 % (évite les chutes/pumps catastrophiques quand un whale liquide tout via un pass premium)
@@ -133,7 +133,7 @@ export const MARKET_CONFIG = {
    ⚠️ Ce que ça implique : les ordres passés ainsi sont de VRAIS ordres.
    Ils bougent le vrai cours, consomment le vrai flottant et laissent
    des lignes dans market_transactions. Nettoyer avec
-   RESET_APRES_ESSAIS.sql avant la réouverture. */
+   sql/RESET_APRES_ESSAIS.sql avant la réouverture. */
 const DEV_FORCE_OPEN = (() => {
   try { return !!import.meta.env?.DEV && import.meta.env?.VITE_MARKET_FORCE_OPEN === '1'; }
   catch { return false; }

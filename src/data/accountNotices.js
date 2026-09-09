@@ -15,7 +15,7 @@
 
    ⚠️ CES MESSAGES N'APPLIQUENT AUCUN EFFET. Ils ne débitent ni ne
    créditent rien : les corrections sont faites en SQL, une fois pour
-   toutes (SANCTION_EXPLOIT_MEMORY.sql et RESTAURER_ACTIONS_CKM.sql).
+   toutes (sql/SANCTION_EXPLOIT_MEMORY.sql et sql/RESTAURER_ACTIONS_CKM.sql).
    C'est délibéré. Les anciennes sanctions de mai 2026 appliquaient
    leur débit côté client avec un verrou en localStorage, donc PAR
    APPAREIL : un joueur rouvrant l'app sur un téléphone neuf se faisait
@@ -109,7 +109,7 @@ const ACTIONS_RENDUES = {
    étaient tenues par des scores fabriqués, donc tout le monde remonte
    de deux rangs. Cafés du podium : 1er +3, 2e +2, 3e +1 — Miagguy
    avait déjà touché 1 café en tant que 3e, d'où +2 et non +3.
-   Cf. SANCTION_EXPLOIT_MEMORY.sql pour la reconstruction des rangs. */
+   Cf. sql/SANCTION_EXPLOIT_MEMORY.sql pour la reconstruction des rangs. */
 const BONUS = {
   'XN2-Z7M': ['2 cafés — tu passes 1er du classement de la semaine du 28 août, la place t\'avait été prise'],
   'X6G-4ZL': ['2 cafés — tu passes 2e du classement de la semaine du 28 août'],
@@ -132,7 +132,7 @@ export const REWARD_NOTICES = Object.fromEntries(
 /* ── Regroupement d'actions du 08/09/2026 ─────────────
    L'action passe de 100 à 500 🍪. Pour que la valeur des portefeuilles
    ne bouge pas, 5 anciennes actions deviennent 1 nouvelle (cf.
-   SPLIT_MARCHE_500.sql). Un porteur qui rouvre l'app sans explication
+   sql/SPLIT_MARCHE_500.sql). Un porteur qui rouvre l'app sans explication
    voit ses 327 actions devenues 66 : il croit à une confiscation.
 
    Les quantités sont dérivées d'ACTIONS_RENDUES — c'est la même table

@@ -275,7 +275,7 @@ const QUESTIONS = [
         return {
           titre: 'Aucun code promo en base',
           lignes: [
-            "La table est vide. Colle CODES_HISTORIQUES_EN_BASE.sql dans Supabase pour y verser les 24 codes historiques.",
+            "La table est vide. Colle sql/CODES_HISTORIQUES_EN_BASE.sql dans Supabase pour y verser les 24 codes historiques.",
             "En attendant ils fonctionnent toujours — ils vivent dans le code de l'app — mais tu ne peux ni les voir ni les supprimer d'ici.",
             "Pour en créer un nouveau : Agir → L'application → Créer un code promo.",
           ],
@@ -297,7 +297,7 @@ const QUESTIONS = [
                "Ils ne marchent plus. Ceux qui les avaient déjà utilisés gardent leur récompense — on ne reprend rien."]
             : []),
           ...(!historiques.length
-            ? ["⚠️ Les 24 codes historiques ne sont pas encore en base : colle CODES_HISTORIQUES_EN_BASE.sql pour pouvoir les gérer d'ici."]
+            ? ["⚠️ Les 24 codes historiques ne sont pas encore en base : colle sql/CODES_HISTORIQUES_EN_BASE.sql pour pouvoir les gérer d'ici."]
             : []),
         ],
       };

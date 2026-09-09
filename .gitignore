@@ -36,6 +36,9 @@ android/
 
 # Contient la phrase de passe de la console Sentinelle en clair.
 # Le depot est public : ce fichier ne doit JAMAIS y entrer.
+# La phrase de passe de la Sentinelle est EN CLAIR dedans, et ce depot est
+# public. Motif sans slash = il s'applique a toute profondeur, donc il
+# protege aussi sql/A_LANCER_PRIVE.sql depuis le rangement du 09/09.
 A_LANCER_PRIVE.sql
 
 # Fichiers de travail temporaires (scripts de patch, verifications).

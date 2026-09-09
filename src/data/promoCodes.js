@@ -169,7 +169,7 @@ function fusionner(ecrit, base){
    de marcher, en affichant le contraire. La ligne morte laissée en base
    est ce qui interdit ce retour en arrière.
 
-   Le troisième est le filet : tant que CODES_HISTORIQUES_EN_BASE.sql
+   Le troisième est le filet : tant que sql/CODES_HISTORIQUES_EN_BASE.sql
    n'est pas collé — ou si Supabase est injoignable — tout fonctionne
    comme avant. */
 export function lookupPromoCode(rawInput, revealed = [], codesEnBase = []){

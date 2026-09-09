@@ -204,7 +204,9 @@ Les passages de niveau se font **un par un** (jamais 2 paliers d'un coup, même 
 8. **Toute fonction Supabase doit être safe en mode dégradé** : `isSupabaseEnabled()` check en tête, retour neutre sinon.
 9. **i18n** : tout nouveau texte UI doit passer par `t('clé')` (FR/EN). Les data dynamiques (REWARDS, QUESTIONS…) utilisent `localizedField(item, 'name')` qui lit `item.name_en` ou fallback sur `item.name`.
 10. **CHANGELOG** : à chaque release notable, mettre à jour `src/lib/appInfo.js` (version + entrée en tête de `CHANGELOG`, max 5-6 entrées). Inclure `title_en` et `changes_en`.
-11. **Bloc de vérification d'un fichier SQL — NE JAMAIS appeler une fonction avec une fausse phrase de passe.** `sentinelle_phrase_ok` journalise chaque refus, et **dix refus en quinze minutes ferment la console pour un quart d'heure** : coller deux ou trois fichiers d'affilée verrouillait l'écran à l'instant précis où on venait de l'installer. Ça prouvait d'ailleurs moins qu'il n'y paraissait — dans l'éditeur SQL on est `postgres`, pas `anon`, donc le refus obtenu ne disait rien du droit d'appel réel de l'app.
+11. **Les fichiers SQL vivent dans `sql/`**, jamais a la racine, et jamais dans `supabase/migrations/` (la CLI essaierait de les rejouer). Ce ne sont pas des migrations : on les colle a la main dans l'editeur Supabase, et ils sont idempotents. `sql/README.md` dit lesquels forment le socle vivant et lesquels sont de l'histoire deja passee.
+
+12. **Bloc de vérification d'un fichier SQL — NE JAMAIS appeler une fonction avec une fausse phrase de passe.** `sentinelle_phrase_ok` journalise chaque refus, et **dix refus en quinze minutes ferment la console pour un quart d'heure** : coller deux ou trois fichiers d'affilée verrouillait l'écran à l'instant précis où on venait de l'installer. Ça prouvait d'ailleurs moins qu'il n'y paraissait — dans l'éditeur SQL on est `postgres`, pas `anon`, donc le refus obtenu ne disait rien du droit d'appel réel de l'app.
 
     Un fichier SQL se termine par une vérification qui teste ce qui **casse vraiment** : l'objet existe-t-il, et `anon` peut-il l'appeler.
 

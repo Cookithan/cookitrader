@@ -12,7 +12,7 @@
       Toggle instantané sans deploy via UPDATE SQL. Les clients
       ouverts voient le MaintenanceWarningModal après 30s de grace,
       puis l'écran plein. Recommandé pour 99% des cas.
-      Voir MIGRATION_system_status.sql à la racine du repo.
+      Voir sql/MIGRATION_system_status.sql à la racine du repo.
 
    Quand le flag est actif, l'app affiche un écran plein qui remplace
    l'UI normale. Les joueurs ne peuvent plus rien faire : pas de tick

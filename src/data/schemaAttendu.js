@@ -5,7 +5,7 @@
    colonne manquait en production. Le dépôt savait ce qu'il fallait, la
    base ne l'avait pas, et rien ne comparait les deux. Ce fichier est la
    moitié « ce qu'il faut » de cette comparaison ; la fonction
-   `sentinelle_schema` (SENTINELLE_SCHEMA.sql) est la moitié « ce qu'il
+   `sentinelle_schema` (sql/SENTINELLE_SCHEMA.sql) est la moitié « ce qu'il
    y a ».
 
    AJOUTER UN CONTRÔLE = ajouter une entrée ici. Aucun SQL à repasser :
@@ -32,7 +32,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: 'Les plafonds de repli du mur anti-restauration',
     casse: "La console de sanction échoue à écrire — mais surtout, le mur tourne encore sans « security definer » : il ne voit pas la liste de surveillance, donc il ne bloque personne. Un compte sanctionné peut remonter ses valeurs depuis son téléphone.",
-    fichier: 'LE_MUR_CORRECTIF.sql',
+    fichier: 'sql/LE_MUR_CORRECTIF.sql',
   },
   {
     id: 'surveillance',
@@ -40,7 +40,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: 'La liste des comptes sous surveillance',
     casse: "Sanctionner devient impossible et le mur n'a plus rien à consulter.",
-    fichier: 'LE_MUR.sql',
+    fichier: 'sql/LE_MUR.sql',
   },
   {
     id: 'actions',
@@ -48,7 +48,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: 'Le moteur des actions de la console',
     casse: 'Aucun bouton de l\'onglet Agir ne fonctionne.',
-    fichier: 'SENTINELLE_ACTIONS.sql',
+    fichier: 'sql/SENTINELLE_ACTIONS.sql',
   },
   {
     id: 'modifier',
@@ -56,7 +56,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'utile',
     quoi: 'La main directe sur un compte',
     casse: "La Sentinelle ne peut plus rien changer sur un compte quand Cookithan le lui demande de vive voix.",
-    fichier: 'SENTINELLE_MODIFIER.sql',
+    fichier: 'sql/SENTINELLE_MODIFIER.sql',
   },
   {
     id: 'horloge_portes',
@@ -64,7 +64,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: 'Les portes devant ses rondes',
     casse: "Sans elles, l'horloge appelle le modele toutes les heures sans condition : la nuit, quand rien n'a bouge, et sans plafond journalier. C'est le budget API qui se vide.",
-    fichier: 'SENTINELLE_ECONOMIE.sql',
+    fichier: 'sql/SENTINELLE_ECONOMIE.sql',
   },
   {
     id: 'mode',
@@ -72,7 +72,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: "L'interrupteur d'autonomie",
     casse: "Impossible de couper ses rondes depuis la console : le seul frein a la depense passerait par l'editeur SQL.",
-    fichier: 'SENTINELLE_ECONOMIE.sql',
+    fichier: 'sql/SENTINELLE_ECONOMIE.sql',
   },
   {
     id: 'annonce',
@@ -80,7 +80,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'utile',
     quoi: 'Ses annonces aux joueurs',
     casse: "Elle ne peut plus prevenir les joueurs d'un marche rouvert ou d'une panne finie.",
-    fichier: 'SENTINELLE_ANNONCE.sql',
+    fichier: 'sql/SENTINELLE_ANNONCE.sql',
   },
   {
     id: 'registre_gestes',
@@ -88,7 +88,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: 'Le registre annulable de ses gestes autonomes',
     casse: "Le mode full autonome n'a plus de filet : elle agit sans que rien ne garde l'etat d'avant, donc plus rien ne se defait. NE PAS activer le mode full tant que ce registre manque.",
-    fichier: 'SENTINELLE_AUTONOMIE.sql',
+    fichier: 'sql/SENTINELLE_AUTONOMIE.sql',
   },
   {
     id: 'annuler',
@@ -96,7 +96,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: "Le bouton qui defait ce qu'elle a fait",
     casse: "L'ecran de retour montre ce qu'elle a fait mais ne peut plus le defaire.",
-    fichier: 'SENTINELLE_AUTONOMIE.sql',
+    fichier: 'sql/SENTINELLE_AUTONOMIE.sql',
   },
   {
     id: 'phrase',
@@ -104,7 +104,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: 'La vérification de la phrase de passe',
     casse: 'La console ne se déverrouille plus du tout.',
-    fichier: 'SIGNALEMENTS.sql',
+    fichier: 'sql/SIGNALEMENTS.sql',
   },
   {
     id: 'garde_prix',
@@ -112,7 +112,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'bloquant',
     quoi: 'La garde sur le cours du $CKM',
     casse: "Un saut de prix aberrant n'est plus refusé : le marché peut être écrit à n'importe quelle valeur.",
-    fichier: 'PROTEGER_LE_PRIX.sql',
+    fichier: 'sql/PROTEGER_LE_PRIX.sql',
   },
   {
     id: 'signalements',
@@ -120,7 +120,7 @@ export const SCHEMA_ATTENDU = [
     gravite: 'utile',
     quoi: 'L\'envoi des signalements de joueurs',
     casse: 'Les joueurs ne peuvent plus rien signaler ; le formulaire échoue en silence.',
-    fichier: 'SIGNALEMENTS.sql',
+    fichier: 'sql/SIGNALEMENTS.sql',
   },
   {
     id: 'signalements_langue',
@@ -129,6 +129,6 @@ export const SCHEMA_ATTENDU = [
     gravite: 'utile',
     quoi: 'La langue d\'un signalement',
     casse: "Les signalements arrivent sans savoir en quelle langue répondre.",
-    fichier: 'SIGNALEMENTS_LANGUE.sql',
+    fichier: 'sql/SIGNALEMENTS_LANGUE.sql',
   },
 ];

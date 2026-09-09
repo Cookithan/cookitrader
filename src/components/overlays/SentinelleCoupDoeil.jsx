@@ -31,7 +31,7 @@ import { haptic } from "../../lib/haptic.js";
      · les rapports de la dernière ronde   (sentinelle_rapports)
      · le journal des gestes                (sentinelle_journal)
      · le cours                             (market_state)
-     · la boîte                             (fonctions de SIGNALEMENTS.sql)
+     · la boîte                             (fonctions de sql/SIGNALEMENTS.sql)
      · les onze gestes + modifier_joueur    (action_sentinelle & co)
      · ce sur quoi elle a bute              (sentinelle_journal, action manque)
 
@@ -458,7 +458,7 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
               {etat.derniere && <> · la dernière {jour(etat.derniere)} à {heure(etat.derniere)}</>}
               {etat.raison && <div style={{ marginTop: 4 }}>Elle ne tourne pas : <b style={{ color: ACIER }}>{etat.raison}</b>.</div>}
             </>
-          ) : "L'interrupteur n'est pas encore installé en base (SENTINELLE_ECONOMIE.sql)."}
+          ) : "L'interrupteur n'est pas encore installé en base (sql/SENTINELLE_ECONOMIE.sql)."}
         </div>
       </Bloc>
 

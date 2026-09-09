@@ -1467,7 +1467,7 @@ export async function applyPatchOnce({ userCode, lsKey, patchKey, applyFn, isCan
    ────────────────────────────────────────────────────
    Table singleton public.system_status (id=1). Permet de basculer
    l'app en maintenance ou de forcer un reload sans redéployer.
-   Voir MIGRATION_system_status.sql pour le schéma + les requêtes
+   Voir sql/MIGRATION_system_status.sql pour le schéma + les requêtes
    SQL de toggle (côté admin).
 
    Realtime activé sur la table → les clients ouverts reçoivent les
@@ -1508,7 +1508,7 @@ export async function getSystemStatus(){
        d'une maintenance active). */
     const data = await withRetry(async () => {
       /* select('*') : tolère l'absence des colonnes banner_* tant que
-         le MIGRATION_banner.sql n'est pas passé en prod. Les champs
+         le sql/MIGRATION_banner.sql n'est pas passé en prod. Les champs
          absents tombent simplement à undefined → normalize les met
          à null/'info' (defaults DEFAULT_SYSTEM_STATUS). */
       const { data: row, error } = await supabase
@@ -1557,7 +1557,7 @@ export function subscribeSystemStatus(onChange){
    ────────────────────────────────────────────────────
    Boss à PV partagés déclenché tous les 100 000 🍪 cumulés
    communauté (cf. getCommunityCookieTotal). Toutes les écritures
-   passent par 2 RPC SECURITY DEFINER (cf. MIGRATION_boss_communautaire.sql)
+   passent par 2 RPC SECURITY DEFINER (cf. sql/MIGRATION_boss_communautaire.sql)
    qui imposent PV/durée/cooldown/cap côté serveur — la clé anon
    publique ne peut donc pas tricher l'état partagé.
 

@@ -4,7 +4,7 @@
    Description DÉCLARATIVE de ce que la sentinelle sait faire. L'écran
    fabrique les formulaires à partir d'ici : ajouter une action, c'est
    ajouter une entrée ici et une branche dans la fonction Postgres
-   `action_sentinelle` (cf. SENTINELLE_ACTIONS.sql). Aucune UI à écrire.
+   `action_sentinelle` (cf. sql/SENTINELLE_ACTIONS.sql). Aucune UI à écrire.
 
    ⚠️ CE FICHIER PART CHEZ TOUS LES JOUEURS. Il ne contient donc que
    des NOMS d'actions et des libellés — jamais le droit de les
@@ -43,7 +43,7 @@ export const ACTIONS_PAR_CONSTAT = {
 
 /* Deux actions ne figurent PAS dans ce catalogue et c'est volontaire :
    `classer_sans_suite` et `reprendre_constat`. Elles existent côté base
-   (cf. SENTINELLE_ACTIONS.sql) mais ne s'atteignent que depuis le
+   (cf. sql/SENTINELLE_ACTIONS.sql) mais ne s'atteignent que depuis le
    constat concerné, dans l'onglet État — les mettre dans une liste
    d'actions obligerait à recopier une signature à la main, alors que
    le bouton la connaît déjà. Elles apparaissent en revanche dans le

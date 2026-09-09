@@ -46,7 +46,7 @@ import { SentinelleBienvenue } from "../SentinelleBienvenue.jsx";
    Cet écran ne connaît aucune catégorie : il descend une structure.
    Ajouter une branche ne demande donc pas d'y toucher.
 
-   ⚠️ Nécessite SIGNALEMENTS.sql. Sans lui, l'envoi échoue avec un
+   ⚠️ Nécessite sql/SIGNALEMENTS.sql. Sans lui, l'envoi échoue avec un
    message qui le dit — jamais un échec muet.
 ═══════════════════════════════════════════════════════ */
 

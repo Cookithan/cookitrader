@@ -53,7 +53,7 @@ import { SCHEMA_ATTENDU } from '../data/schemaAttendu.js';
    mentir sur SON rapport (`app_health`). Les rondes, elles, lisent les
    tables de jeu — c'est ce qui fait foi.
 
-   ⚠️ Nécessite MIGRATION_SENTINELLE.sql. Sans les tables, tout
+   ⚠️ Nécessite sql/MIGRATION_SENTINELLE.sql. Sans les tables, tout
    no-ope en silence : l'app ne doit jamais casser parce que la vigie
    est absente.
 ═══════════════════════════════════════════════════════ */
@@ -83,7 +83,7 @@ const RENDEMENT_ELEVE      = 200;
 const PART_HEBDO_MAX       = 0.40;   // un joueur au-delà de 40 % du total de la semaine
 const JOURS_ACTIF          = 14;
 const TEMPS_JEU_MIN_S      = 600;    // sous 10 min jouées, le ratio ne veut rien dire
-/* `total_play_time` n'existe que depuis MIGRATION_total_play_time.sql.
+/* `total_play_time` n'existe que depuis sql/MIGRATION_total_play_time.sql.
    Un compte plus ancien a un compteur qui démarre après ses premiers
    gains : son rendement paraît énorme sans qu'il ait rien fait. */
 const COMPTEUR_TEMPS_DEPUIS = Date.parse('2026-05-12T00:00:00Z');
@@ -348,7 +348,7 @@ function controleMarche(state, portefeuilles, users) {
   if (prix < PRICE_MIN || prix > PRICE_MAX) {
     rapports.push(faire('alerte', 'marché', `Cours hors bornes — ${prix.toFixed(1)} (attendu entre ${PRICE_MIN} et ${PRICE_MAX})`, [
       'Un client resté sur une ancienne version peut écrire le prix.',
-      'Vérifier que PROTEGER_LE_PRIX.sql est bien passé.',
+      'Vérifier que sql/PROTEGER_LE_PRIX.sql est bien passé.',
     ]));
   } else {
     rapports.push(faire('ok', 'marché', `Cours à ${prix.toFixed(0)} 🍪, dans les bornes`));
@@ -580,7 +580,7 @@ function controleSurveillance(users, surveilles) {
   /* ── Le schéma d'abord ──
      Ajouté le 09/09 après un incident qu'elle n'aurait PAS pu voir :
      la console de sanction refusait d'écrire, « column plafond_earned
-     does not exist ». LE_MUR_CORRECTIF.sql n'était jamais passé en base.
+     does not exist ». sql/LE_MUR_CORRECTIF.sql n'était jamais passé en base.
 
      Deux conséquences, et la seconde est la grave :
        · on ne peut plus sanctionner personne ;
@@ -599,7 +599,7 @@ function controleSurveillance(users, surveilles) {
       "La colonne plafond_earned n'existe pas dans comptes_sous_surveillance.",
       'Conséquence 1 : la console de sanction échoue à écrire.',
       'Conséquence 2, la vraie : la fonction du mur est restée sans « security definer », donc invisible pour le rôle anonyme — un compte sanctionné peut réécrire ses valeurs depuis son téléphone.',
-      'Correctif : passer LE_MUR_CORRECTIF.sql (idempotent).',
+      'Correctif : passer sql/LE_MUR_CORRECTIF.sql (idempotent).',
     ]);
   }
 
@@ -618,7 +618,7 @@ function controleSurveillance(users, surveilles) {
   if (!repartis.length) return faire('ok', 'triche', `${surveilles.length} compte(s) sous surveillance, tous dans les clous`);
   return faire('alerte', 'triche', `${repartis.length} compte(s) sanctionné(s) repassé(s) au-dessus de leur plafond`, [
     ...repartis,
-    "Le mur en base devrait l'interdire : vérifier que LE_MUR_CORRECTIF.sql est bien passé (security definer).",
+    "Le mur en base devrait l'interdire : vérifier que sql/LE_MUR_CORRECTIF.sql est bien passé (security definer).",
   ]);
 }
 
@@ -775,7 +775,7 @@ function controleMarcheVivant(state, derniereTransaction) {
       `Dernier ordre : ${new Date(dernier).toLocaleString('fr-FR')}`,
       `Dernière écriture du prix : ${majPrix ? new Date(majPrix).toLocaleString('fr-FR') : 'jamais'}`,
       "Un ordre est le SEUL événement qui bouge la courbe : s'il n'écrit plus, le marché est figé sans que ça se voie.",
-      'Vérifier les droits en écriture sur market_state et que PROTEGER_LE_PRIX.sql ne bloque pas tout.',
+      'Vérifier les droits en écriture sur market_state et que sql/PROTEGER_LE_PRIX.sql ne bloque pas tout.',
     ]);
   }
   return faire('ok', 'marché', 'Le cours suit les ordres');
@@ -890,7 +890,7 @@ function controleSchema(schema) {
   if (!schema) return null;
   if (schema.fonctionAbsente) {
     return faire('voir', 'app', "La vigie ne peut pas encore vérifier la base", [
-      "La fonction sentinelle_schema n'existe pas : passer SENTINELLE_SCHEMA.sql (lecture seule, une seule fois).",
+      "La fonction sentinelle_schema n'existe pas : passer sql/SENTINELLE_SCHEMA.sql (lecture seule, une seule fois).",
       "Tant qu'elle manque, un fichier SQL oublié reste invisible — c'est exactement ce qui a laissé le mur inopérant le 09/09.",
     ]);
   }
@@ -1109,7 +1109,7 @@ export function anciennete(rondes, verdict) {
    ────────────────────────────────────────────────────
    Tout passe par une seule fonction Postgres, `action_sentinelle`,
    qui vérifie la phrase de passe avant d'exécuter quoi que ce soit
-   (cf. SENTINELLE_ACTIONS.sql).
+   (cf. sql/SENTINELLE_ACTIONS.sql).
 
    La phrase ne transite QUE dans cet appel. Elle n'est jamais gardée
    en localStorage, jamais dans un state persistant, jamais écrite dans
@@ -1124,11 +1124,11 @@ export async function agir(phrase, action, params = {}) {
   try {
     const { data, error } = await supabase.rpc('action_sentinelle', { phrase, action, params });
     if (error) {
-      /* Fonction absente = SENTINELLE_ACTIONS.sql pas encore passé. On
+      /* Fonction absente = sql/SENTINELLE_ACTIONS.sql pas encore passé. On
          le dit clairement plutôt que de laisser un échec muet. */
       const manquante = /function|does not exist|schema cache/i.test(error.message || '');
       return { ok: false, message: manquante
-        ? "La console n'est pas installée en base (SENTINELLE_ACTIONS.sql)."
+        ? "La console n'est pas installée en base (sql/SENTINELLE_ACTIONS.sql)."
         : `Erreur : ${error.message}` };
     }
     return data || { ok: false, message: 'Réponse vide' };
@@ -1327,7 +1327,7 @@ export async function gestesEnAttente(phrase) {
     if (error) {
       const manquante = /function|does not exist|schema cache/i.test(error.message || '');
       return { ok: false, lignes: [], message: manquante
-        ? "Le socle annulable n'est pas installe (SENTINELLE_AUTONOMIE.sql)."
+        ? "Le socle annulable n'est pas installe (sql/SENTINELLE_AUTONOMIE.sql)."
         : error.message };
     }
     return { ok: !!data?.ok, lignes: data?.lignes || [], message: data?.message };
@@ -1403,7 +1403,7 @@ export async function changerMode(phrase, mode) {
     if (error) {
       const manquante = /function|does not exist|schema cache/i.test(error.message || '');
       return { ok: false, message: manquante
-        ? "L'interrupteur n'est pas installe en base (SENTINELLE_ECONOMIE.sql)."
+        ? "L'interrupteur n'est pas installe en base (sql/SENTINELLE_ECONOMIE.sql)."
         : `Erreur : ${error.message}` };
     }
     return data || { ok: false, message: 'Reponse vide' };
@@ -1414,7 +1414,7 @@ export async function changerMode(phrase, mode) {
 
 /* ── Modifier un compte ─────────────────────────────────────────
    Le seul geste qui ne passe PAS par `action_sentinelle`. Il vit dans
-   sa propre fonction (SENTINELLE_MODIFIER.sql) parce que l'y greffer
+   sa propre fonction (sql/SENTINELLE_MODIFIER.sql) parce que l'y greffer
    aurait demandé de réécrire les onze autres depuis leur propre code
    source, ce que l'éditeur SQL refuse.
 
@@ -1433,7 +1433,7 @@ export async function modifierJoueur(phrase, cible, params = {}) {
     if (error) {
       const manquante = /function|does not exist|schema cache/i.test(error.message || '');
       return { ok: false, message: manquante
-        ? "Ce geste n'est pas installé en base (SENTINELLE_MODIFIER.sql)."
+        ? "Ce geste n'est pas installé en base (sql/SENTINELLE_MODIFIER.sql)."
         : `Erreur : ${error.message}` };
     }
     return data || { ok: false, message: 'Réponse vide' };
@@ -1617,7 +1617,7 @@ export async function listerIgnores() {
 }
 
 /* Les codes promo en base — les 24 historiques recopiés par
-   CODES_HISTORIQUES_EN_BASE.sql comme ceux créés depuis la console. Lus
+   sql/CODES_HISTORIQUES_EN_BASE.sql comme ceux créés depuis la console. Lus
    par la modale de saisie. Silencieux si la table n'existe pas : le
    joueur ne doit jamais voir une erreur parce qu'une fonctionnalité
    d'administration n'est pas installée.
@@ -1664,7 +1664,7 @@ export async function journal(limite = 30) {
 
    Rien ne passe par la table directement — elle est fermée, même en
    lecture. Tout passe par les fonctions security definer de
-   SIGNALEMENTS.sql, qui comptent, freinent et vérifient. Un signalement
+   sql/SIGNALEMENTS.sql, qui comptent, freinent et vérifient. Un signalement
    est nominatif (celui qui écrit, et souvent celui qu'il accuse) : le
    rendre lisible avec la clé publique reviendrait à publier les
    dénonciations.
@@ -1675,7 +1675,7 @@ export async function journal(limite = 30) {
 function manquePeutEtre(error, quoi) {
   const absente = /function|does not exist|schema cache/i.test(error?.message || '');
   return absente
-    ? `La boîte aux lettres n'est pas installée en base (SIGNALEMENTS.sql).`
+    ? `La boîte aux lettres n'est pas installée en base (sql/SIGNALEMENTS.sql).`
     : `Erreur ${quoi} : ${error?.message || 'inconnue'}`;
 }
 

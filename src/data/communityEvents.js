@@ -6,7 +6,7 @@
    (cf. plan : "1 événement propre d'abord").
 
    ⚠️ Les valeurs marquées (SQL) DOIVENT rester synchro avec
-   MIGRATION_boss_communautaire.sql — elles y sont ré-imposées
+   sql/MIGRATION_boss_communautaire.sql — elles y sont ré-imposées
    côté serveur (source de vérité anti-triche). Côté client elles
    ne servent qu'à l'UI (prédire le coût/dégâts, afficher le cooldown).
 
@@ -34,7 +34,7 @@ export const ANNOUNCE_LEAD_MS = 60 * 60 * 1000;
 export const BOSS_LEVEL_MIN = 3;
 
 /* PV de départ — (SQL) v_hp dans create_boss_event ET valeur du boss
-   relancé manuellement (cf. LAUNCH_BOSS_50K.sql). Constante de référence :
+   relancé manuellement (cf. sql/LAUNCH_BOSS_50K.sql). Constante de référence :
    l'UI lit en réalité boss_max_hp renvoyé par le serveur. 50 000 = relance
    plus courte que les 100 000 d'origine (tension assumée). */
 export const BOSS_BASE_HP = 50_000;
