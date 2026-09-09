@@ -177,22 +177,22 @@ const MONDES = [
     ciel:'linear-gradient(180deg, #2A1A11 0%, #1B100A 55%, #120A06 100%)',
     piste:'#FFE3AC', halo:'rgba(212,160,23,.10)', halo2:'rgba(233,180,88,.26)',
     collines:'rgba(92,58,32,.42)', texte:'rgba(255,231,186,.94)', avant:'#0C0704', grain:'rgba(255,255,255,.05)',
-    tremplin:0.31, boucle:0.10, falaise:0.10, ampli:1.00, flaque:0.00 },
+    tremplin:0.31, boucle:0.10, falaise:0.10, ampli:1.00, flaque:0.00, plafond:0.00 },
   { id:'torrefaction', deb:380,
     ciel:'linear-gradient(180deg, #3A1C0A 0%, #24100430 55%, #140800 100%)',
     piste:'#FFB870', halo:'rgba(214,110,26,.12)', halo2:'rgba(236,150,70,.28)',
     collines:'rgba(120,58,18,.46)', texte:'rgba(255,206,158,.94)', avant:'#170800', grain:'rgba(255,255,255,.05)',
-    tremplin:0.38, boucle:0.10, falaise:0.12, ampli:1.25, flaque:0.30 },
+    tremplin:0.38, boucle:0.10, falaise:0.12, ampli:1.25, flaque:0.30, plafond:0.20 },
   { id:'creme', deb:820,
     ciel:'linear-gradient(180deg, #F6E7CF 0%, #E7CFAA 55%, #D2B084 100%)',
     piste:'#4A2C17', halo:'rgba(74,44,23,.14)', halo2:'rgba(110,70,38,.30)',
     collines:'rgba(150,112,72,.38)', texte:'rgba(58,33,19,.92)', avant:'#8A6A44', grain:'rgba(58,33,19,.06)',
-    tremplin:0.30, boucle:0.16, falaise:0.14, ampli:1.15, flaque:0.35 },
+    tremplin:0.30, boucle:0.16, falaise:0.14, ampli:1.15, flaque:0.35, plafond:0.24 },
   { id:'expresso', deb:1280,
     ciel:'linear-gradient(180deg, #12100E 0%, #0A0806 60%, #050403 100%)',
     piste:'#FFD24D', halo:'rgba(255,210,77,.13)', halo2:'rgba(255,210,77,.30)',
     collines:'rgba(70,54,34,.40)', texte:'rgba(255,226,140,.95)', avant:'#000000', grain:'rgba(255,255,255,.05)',
-    tremplin:0.34, boucle:0.20, falaise:0.18, ampli:1.45, flaque:0.45 },
+    tremplin:0.34, boucle:0.20, falaise:0.18, ampli:1.45, flaque:0.45, plafond:0.30 },
 ];
 
 function mondeA(metres){
@@ -219,13 +219,18 @@ function mondeA(metres){
 /* Paliers redivisés avec PX_PAR_METRE : ce sont les mêmes distances de
    piste qu'avant, exprimées dans la nouvelle unité. L'équilibre validé
    sur des centaines de parties simulées ne bouge donc pas d'un cookie. */
+/* Recalés après l'arrivée des plafonds : lever le doigt coûte de la
+   vitesse, donc un parcours propre couvre ~580 m au lieu de 1640. Les
+   paliers suivent la nouvelle réalité pour qu'une partie menée jusqu'au
+   bout vaille toujours ses 110 🍪 — et ils SATURENT là, exprès : passé
+   ce point, seules les figures font l'écart. */
 const REWARD_PALIERS = [
-  { m:70,   r:5   },
-  { m:230,  r:20  },
-  { m:450,  r:40  },
-  { m:730,  r:60  },
-  { m:1090, r:85  },
-  { m:1500, r:110 },
+  { m:40,  r:5   },
+  { m:130, r:20  },
+  { m:250, r:40  },
+  { m:380, r:60  },
+  { m:480, r:85  },
+  { m:570, r:110 },
 ];
 const FLIP_BONUS = 12;
 const GEM_VALUE  = 2;        // par miette ramassée en vol
@@ -247,7 +252,7 @@ function rewardFor(m, flips, gems = 0){
    Un run = une plateforme = { x0, ys[] }, un point tous les STEP px. Le
    trou entre deux plateformes n'est stocké nulle part : c'est simplement
    l'absence de piste entre la fin de l'une et le début de la suivante. */
-function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', loops:[], gems:[], flaques:[] }; }
+function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', loops:[], gems:[], flaques:[], plafonds:[] }; }
 
 /* Les miettes ne sont pas semées au hasard : on les pose SUR la parabole
    que le saut va décrire à pleine vitesse. C'est ce qui en fait une
@@ -361,6 +366,26 @@ function addFeature(runs, diff, monde){
        atterrit dedans. Elle ne tue pas, elle coupe la vitesse — et c'est
        la vitesse qui fait passer le trou suivant. La sanction arrive donc
        deux secondes plus tard, là où on l'a comprise. */
+    /* LE PLAFOND — la seule chose du tracé qui punisse la vitesse
+       maximale, et donc la seule raison de lâcher le gaz. Il est posé à
+       80 % de la hauteur qu'atteindrait un saut pris à pleine vitesse :
+       plein gaz on le percute, à 80 % du régime on passe dessous.
+       Sans lui, garder le doigt collé était toujours la bonne réponse et
+       le parcours se jouait tout seul. */
+    if(Math.random() < monde.plafond){
+      const vy0   = -penteSortie * vTop;
+      const apex  = (vy0 * vy0) / (2 * G);
+      const tApex = -vy0 / G;
+      run.plafonds.push({
+        x: tipX + vTop * tApex - 80,
+        y: tipY - R - apex * 0.88,
+        w: 130,
+        /* Le panneau : posé sur la piste AVANT la rampe, parce que la
+           décision se prend au sol. Voir la barre en décollant ne sert
+           à rien — la vitesse d'envol est déjà jouée. */
+        sx: tipX - rl - 150,
+      });
+    }
     if(Math.random() < monde.flaque){
       run.flaques.push({ x: tipX + vTop * tVol * (0.5 + Math.random() * 0.25), prise:false });
     }
@@ -486,16 +511,18 @@ function buildPaths(runs){
   const loops = [];
   const gems  = [];
   const flaques = [];
+  const plafonds = [];
   for(const run of runs){
     for(const b of run.loops) loops.push(b);
     for(const g of run.gems) if(!g.pris) gems.push(g);
     for(const f of run.flaques) if(!f.prise) flaques.push({ x:f.x, y:hauteurA(run, f.x) });
+    for(const b of run.plafonds) plafonds.push({ ...b, sy: hauteurA(run, b.sx) });
     const n = run.ys.length;
     let d = `M ${run.x0.toFixed(1)} ${run.ys[0].toFixed(1)}`;
     for(let i = 1; i < n; i++) d += ` L ${(run.x0 + i * STEP).toFixed(1)} ${run.ys[i].toFixed(1)}`;
     crust += `${d} `;
   }
-  return { crust: crust.trim(), loops, gems, flaques };
+  return { crust: crust.trim(), loops, gems, flaques, plafonds };
 }
 
 /* Où va-t-on retomber ? Calculé UNE SEULE FOIS au décollage : en vol, ni
@@ -631,6 +658,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const gemsRef   = useRef(0);
   const mondeRef  = useRef(0);
   const annonceNRef = useRef(0);
+  const froleRef  = useRef(null);   // plafond frôlé pendant ce vol
+  const volGemsRef = useRef(0);     // cookies pris depuis le décollage
   const crashedRef = useRef(false);
   const crashTRef  = useRef(0);
   const crashKindRef = useRef(null);
@@ -677,7 +706,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   /* Le petit mot d'après-figure. Volontairement en minuscules et bref :
      dans Rider il commente sans jamais féliciter, c'est ce ton-là qui
      donne envie de recommencer. */
-  const TAGS = { 1:3, 2:3, 3:3, loop:2 };
+  const TAGS = { 1:4, 2:4, 3:4, loop:3, frole:3, ligne:3 };
   const montrerTexte = (cle) => {
     const id = Date.now() + Math.random();
     setTag({ id, cle });
@@ -686,7 +715,10 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
   const montrerTag = (famille) => {
     const n   = TAGS[famille] || 1;
-    const cle = `game_rider.tag_${famille === 'loop' ? 'loop' : famille === 1 ? 'solo' : famille === 2 ? 'double' : 'triple'}_${Math.floor(Math.random() * n)}`;
+    const nom = typeof famille === 'string'
+      ? famille
+      : (famille === 1 ? 'solo' : famille === 2 ? 'double' : 'triple');
+    const cle = `game_rider.tag_${nom}_${Math.floor(Math.random() * n)}`;
     montrerTexte(cle);
   };
 
@@ -892,6 +924,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
         /* La plateforme s'arrête : on part avec la vitesse verticale que
            le tremplin vient de donner. */
         groundedRef.current = false; airTimeRef.current = 0; spinRef.current = 0; avRef.current = 0;
+        froleRef.current = null; volGemsRef.current = 0;
         xRef.current = nx;
         atterRef.current = predireAtterrissage(runs, xRef.current, yRef.current, vyRef.current, vRef.current);
         playSound('flappy_jump');
@@ -902,6 +935,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           /* Suivre la piste demanderait de tomber plus vite qu'une chute
              libre → impossible, on décolle. */
           groundedRef.current = false; airTimeRef.current = 0; spinRef.current = 0; avRef.current = 0;
+          froleRef.current = null; volGemsRef.current = 0;
           vyRef.current += G * dt;
           xRef.current = nx;
           yRef.current += vyRef.current * dt;
@@ -942,7 +976,24 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       angRef.current  += avRef.current * dt;
       spinRef.current += avRef.current * dt;
 
-      if(yRef.current > basRef.current + FALL_DEPTH){
+      let sousPlafond = false;
+      for(const run of runs){
+        for(const b of run.plafonds){
+          if(xRef.current < b.x || xRef.current > b.x + b.w) continue;
+          if(yRef.current <= b.y){ sousPlafond = true; break; }
+          /* Passé dessous à moins de 45 px : on le dit. Un jeu doit
+             saluer ce qu'il a failli sanctionner, sinon le joueur ne
+             sait même pas qu'il vient de bien faire. */
+          if(b.y - yRef.current < 45 && froleRef.current !== b){
+            froleRef.current = b;
+            montrerTag('frole');
+          }
+        }
+        if(sousPlafond) break;
+      }
+      if(sousPlafond){
+        crash('plafond');
+      } else if(yRef.current > basRef.current + FALL_DEPTH){
         crash('fall');
       } else if(airTimeRef.current > AIR_GRACE){
         const g = groundAt(runs, xRef.current);
@@ -970,6 +1021,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
               /* Seules les rotations ARRIÈRE comptent : `spin` accumule
                  aussi la dérive avant du doigt levé, et une chute assez
                  longue aurait offert une figure à qui n'a rien fait. */
+              if(volGemsRef.current >= 3) montrerTag('ligne');
+              volGemsRef.current = 0;
               const n = Math.max(0, Math.round(-spinRef.current / TAU));
               if(n > 0){
                 flipsRef.current += n;
@@ -1020,6 +1073,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       }
       if(pris){
         gemsRef.current += pris; setGems(gemsRef.current);
+        if(!groundedRef.current) volGemsRef.current += pris;
         playMiette();
         setPaths(buildPaths(runs));
       }
@@ -1296,6 +1350,24 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             <path d={paths.crust} fill="none" stroke={monde.halo} strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
             <path d={paths.crust} fill="none" stroke={monde.halo2} strokeWidth="12" strokeLinecap="round" strokeLinejoin="round" />
             <path d={paths.crust} fill="none" stroke={monde.piste} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+            {/* Les plafonds — barre pleine, dessous lumineux : on doit lire
+                « ça bloque » et « c'est par en dessous que ça passe ». */}
+            {paths.plafonds.map((b, i) => (
+              <g key={`p${i}`}>
+                <rect x={b.x} y={b.y - 26} width={b.w} height="26" rx="5" fill="rgba(28,16,9,.94)" />
+                <rect x={b.x} y={b.y - 5} width={b.w} height="5" rx="2.5" fill={monde.piste} opacity="0.85" />
+                {/* Panneau au sol : trois chevrons qui disent « lève le
+                    doigt ici ». Sans lui l'obstacle est injuste — on
+                    découvrirait la barre une fois en l'air, quand la
+                    trajectoire est déjà décidée. */}
+                {[0, 1, 2].map(k => (
+                  <path key={k}
+                        d={`M ${b.sx + k * 15} ${b.sy - 16} l 9 8 l -9 8`}
+                        fill="none" stroke={monde.piste} strokeWidth="3.4"
+                        strokeLinecap="round" strokeLinejoin="round" opacity={0.35 + k * 0.22} />
+                ))}
+              </g>
+            ))}
             {/* Les flaques — posées à plat sur le ruban */}
             {paths.flaques.map((f, i) => (
               <ellipse key={`f${i}`} cx={f.x} cy={f.y + 4} rx="27" ry="6.5"
@@ -1399,12 +1471,16 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             vitesse qui crée la profondeur, bien plus que le dessin. */}
         <div style={{
           position:'absolute', left:0, bottom:0, width:PARA_AVANT * 2, height:ARENA_H,
-          transform:`translate3d(${-((frame.camX * 1.7) % PARA_AVANT)}px, ${-frame.camY * 0.34}px, 0)`,
+          /* Pas de parallaxe verticale ici : le premier plan est le SOL
+             sur lequel on regarde la piste, il est collé au bas de
+             l'écran. Le faire monter et descendre avec la caméra en
+             faisait une tache flottante sans point d'attache. */
+          transform:`translate3d(${-((frame.camX * 1.7) % PARA_AVANT)}px, 0, 0)`,
           willChange:'transform', pointerEvents:'none', opacity:.9,
         }}>
           {[0, 1].map(k => AVANT_PLAN.map((n, i) => (
             <div key={`a${k}-${i}`} style={{
-              position:'absolute', left:k * PARA_AVANT + n.x, bottom:-52,
+              position:'absolute', left:k * PARA_AVANT + n.x, bottom:-34,
               width:n.w, height:n.h,
               background:monde.avant, clipPath:CRETES,
             }} />
@@ -1503,7 +1579,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             {phase === 'done' ? (
               <>
                 <div style={{ fontSize:19, fontWeight:900, color:'#fff' }}>
-                  {crashReason === 'time' ? t('game_rider.end_time')
+                  {crashReason === 'plafond' ? t('game_rider.end_plafond')
+                    : crashReason === 'time' ? t('game_rider.end_time')
                     : crashReason === 'fall' ? t('game_rider.end_fall')
                     : crashReason === 'wall' ? t('game_rider.end_wall')
                     : t('game_rider.end_flip')}

@@ -258,16 +258,21 @@ export function startRiderEngine(){
      des one-shots et s'en sortent ; un son continu, non. */
   if(ctx.state === 'suspended') ctx.resume().catch(() => {});
   try{
+    /* Triangle et non plus dent-de-scie. La dent-de-scie porte tous les
+       harmoniques impairs : elle « sonne moteur » tout de suite, mais au
+       bout de quarante secondes elle scie l'oreille. Le triangle donne
+       le même mouvement de hauteur sans la rugosité — un grondement
+       qu'on sent plus qu'on ne l'entend, ce qui est le but. */
     const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.value = 62;
+    osc.type = 'triangle';
+    osc.frequency.value = 58;
     const sub = ctx.createOscillator();     // octave basse : donne le corps
-    sub.type = 'triangle';
-    sub.frequency.value = 31;
+    sub.type = 'sine';
+    sub.frequency.value = 29;
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.value = 520;
-    lp.Q.value = 0.7;
+    lp.frequency.value = 300;
+    lp.Q.value = 0.4;
     const gain = ctx.createGain();
     gain.gain.value = 0;
     osc.connect(lp); sub.connect(lp);
@@ -284,10 +289,13 @@ export function setRiderEngine(v01, gaz){
   const t = ctx.currentTime;
   const v = Math.max(0, Math.min(1, v01));
   try{
-    osc.frequency.setTargetAtTime(60 + 120 * v, t, 0.05);
-    sub.frequency.setTargetAtTime(30 + 60 * v, t, 0.05);
-    lp.frequency.setTargetAtTime(gaz ? 480 + 950 * v : 280, t, 0.09);
-    gain.gain.setTargetAtTime(gaz ? 0.10 : 0.04, t, 0.07);
+    /* Plage de hauteur resserrée et filtre bas : on garde l'information
+       « je vais vite » sans le sifflement qui fatigue. Volume divisé par
+       deux — à ce niveau il porte l'effort, il ne couvre plus rien. */
+    osc.frequency.setTargetAtTime(56 + 62 * v, t, 0.06);
+    sub.frequency.setTargetAtTime(28 + 31 * v, t, 0.06);
+    lp.frequency.setTargetAtTime(gaz ? 260 + 300 * v : 170, t, 0.12);
+    gain.gain.setTargetAtTime(gaz ? 0.052 : 0.018, t, 0.09);
   }catch{ /* contexte fermé par l'OS en cours de partie */ }
 }
 
