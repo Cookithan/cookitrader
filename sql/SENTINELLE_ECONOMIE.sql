@@ -30,8 +30,11 @@
    2. LE PLAFOND DU JOUR. 12 rondes maximum par 24 h, quoi qu'il arrive.
       C'est la seule garantie dure sur la facture : toutes les autres
       portes dépendent de ce qui se passe dans l'app, celle-ci non.
-   3. LE PLANCHER. Jamais deux rondes à moins d'une heure d'écart, même
-      sous une alerte qui se répète.
+   3. LE PLANCHER, A DEUX VITESSES. Dix minutes quand un joueur attend une
+      reponse ou qu'une alerte vient de tomber ; une heure le reste du
+      temps. Les dix minutes servent autant a REGROUPER qu'a temporiser :
+      dix amis qui ecrivent dans le meme quart d'heure sont traites par UNE
+      ronde, pas dix.
    4. LA NUIT (22 h – 6 h, heure de Paris). Elle dort, SAUF si la vigie
       déterministe a levé une ALERTE depuis sa dernière ronde. La vigie,
       elle, continue de tourner toutes les 10 minutes : c'est du SQL, ça
@@ -51,10 +54,11 @@
       s'entendre dire qu'il n'y a rien.
       Une ALERTE fraîche court-circuite la cadence (pas le plancher).
 
-   Le cron tourne toutes les 30 minutes, mais un passage bloqué ne coûte
-   RIEN : les portes sont du SQL pur, et l'appel au modèle n'a lieu qu'au
-   bout. Cette fréquence sert à réagir vite à une alerte de nuit, pas à
-   tourner souvent.
+   Le cron tourne toutes les 5 minutes, mais un passage bloque ne coute
+   RIEN : les portes sont du SQL pur, et l'appel au modele n'a lieu qu'au
+   bout. La frequence du cron ne pilote donc PAS la depense — ce sont les
+   portes qui la pilotent. Elle sert a ce qu'un joueur qui ecrit ait sa
+   reponse dans le quart d'heure, pas a tourner souvent.
 ══════════════════════════════════════════════════════════════════ */
 
 /* ── 1. Ce qu'il faut retenir entre deux rondes ──────────────── */
@@ -93,6 +97,7 @@ declare
   bouge     boolean;
   depuis    timestamptz;
   cadence   interval;
+  plancher  interval;
 begin
   select * into e from public.sentinelle_etat where id = 1;
   if not found then return 'etat introuvable'; end if;
@@ -105,11 +110,6 @@ begin
     return 'plafond du jour atteint (12 rondes)';
   end if;
 
-  -- 3. le plancher d une heure
-  if e.derniere_ronde_ia is not null and e.derniere_ronde_ia > now() - interval '1 hour' then
-    return 'moins d une heure depuis la derniere ronde';
-  end if;
-
   depuis := coalesce(e.derniere_ronde_ia, now() - interval '24 hours');
 
   -- une ALERTE de la vigie deterministe depuis la derniere ronde ?
@@ -118,22 +118,44 @@ begin
      where verdict = 'alerte' and created_at > depuis
   ) into alerte;
 
+  -- un joueur attend-il une reponse ?
+  select exists (
+    select 1 from public.signalements where statut in ('nouveau', 'vu')   -- statuts reels : nouveau | vu | traite | sans_suite
+  ) into attend;
+
+  /* ── LE PLANCHER, ET POURQUOI IL EST A DEUX VITESSES ──
+     Il etait d une heure pour tout le monde. Cookithan : « le pote patiente
+     au pire 1 h, ca va pas, elle repond. » Il a raison : une heure
+     d attente pour quelqu un qui vient de signaler un probleme, c est
+     l impression qu on l ignore.
+
+     Mais le plancher n est pas la pour embeter le joueur, il est la pour
+     borner la facture : sans lui, chaque evenement declencherait un tour
+     de modele. D ou deux vitesses :
+
+     · 10 MINUTES quand un joueur attend (ou qu une alerte vient de
+       tomber). Assez court pour qu il ne se sente pas ignore, assez long
+       pour REGROUPER : dix amis qui ecrivent dans le meme quart d heure
+       sont traites par UNE seule ronde, pas dix. C est le vrai garde-fou,
+       et il vaut mieux qu un plancher long.
+     · 1 HEURE le reste du temps. Un crash, un ordre de marche, un geste
+       au journal : rien de tout ca n attend une reponse.
+
+     Le plafond de 12 rondes par jour reste la garantie dure sur le
+     budget, quoi qu il arrive. */
+  plancher := case when attend or alerte then interval '10 minutes'
+                                         else interval '1 hour' end;
+
+  -- 3. le plancher
+  if e.derniere_ronde_ia is not null and e.derniere_ronde_ia > now() - plancher then
+    return format('moins de %s depuis la derniere ronde', plancher);
+  end if;
+
   -- 4. la nuit : elle dort, sauf alerte
   heure := extract(hour from timezone('Europe/Paris', now()))::int;
   if (heure >= 22 or heure < 6) and not alerte then
     return 'nuit (22h-6h Paris), rien d urgent';
   end if;
-
-  /* Un joueur qui attend passe devant la cadence.
-     Sans ca, quelqu un qui ecrit a 10 h 05 pouvait attendre jusqu a 13 h
-     avant d avoir une reponse : on croirait la Sentinelle en panne, et le
-     joueur, lui, croirait qu on l ignore. Le plancher d une heure borne
-     quand meme le rythme, donc au pire il patiente une heure.
-     La NUIT ne bouge pas : un signalement n est pas une urgence, et il
-     sera rattrape a 6 h. */
-  select exists (
-    select 1 from public.signalements where statut in ('nouveau', 'vu')   -- les statuts reels : nouveau | vu | traite | sans_suite
-  ) into attend;
 
   /* LA CADENCE DEPEND DU MODE, et ce n est pas un caprice :
      - SEMI (2 h) : c est Cookithan qui decide. Il veut des piles
@@ -213,7 +235,13 @@ begin
 exception when others then null;
 end $$;
 
-select cron.schedule('sentinelle_horloge_ia', '*/30 * * * *',
+/* Toutes les 5 MINUTES et non 30 : avec un plancher de 10 min pour un
+   joueur qui attend, un tic toutes les demi-heures rendrait ce plancher
+   decoratif — il aurait quand meme patiente 30 min. Un tic bloque ne
+   coute RIEN (les portes sont du SQL pur, l appel au modele n a lieu
+   qu au bout), donc la frequence du cron ne pilote pas la depense : ce
+   sont les portes qui la pilotent. */
+select cron.schedule('sentinelle_horloge_ia', '*/5 * * * *',
   $$ select public.sentinelle_horloge_ia(); $$);
 
 /* ── 5. Changer de mode depuis la console ────────────────────
