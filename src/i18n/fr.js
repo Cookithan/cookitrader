@@ -904,6 +904,7 @@ export const FR = {
     flip_pop:     'Figure ×{n}',
     end_flip:     '☕ Café renversé !',
     end_fall:     '🕳️ Tombé dans le vide !',
+    end_time:     '⏱️ Temps écoulé !',
     end_wall:     '💥 Dans le flanc de la plateforme !',
     end_recap:    '{m} m parcourus · {f} figure(s)',
     end_none:     'Trop court pour une récompense',

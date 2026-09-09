@@ -75,7 +75,7 @@ const COOKIE_SIZE = 40;
 const R = COOKIE_SIZE / 2;
 
 const STEP     = 16;         // espacement des points de piste
-const TRACK_TH = 22;         // épaisseur du ruban de pâte
+const TRACK_TH = 15;         // épaisseur du ruban : une PISTE, pas un paysage
 const AHEAD    = 620;        // marge de piste générée devant la caméra
 const BEHIND   = 240;        // marge conservée derrière
 
@@ -88,44 +88,41 @@ const MAX_V     = 360;       // plafond de départ
 const V_RAMP    = 150;       // ce que le plafond gagne à difficulté maximale
 const START_V   = 210;
 
-const FLIP_AV     = -9.0;    // rad/s, doigt POSÉ en l'air → rotation arrière, un tour en ~0,70 s
-const AIR_FWD     = 1.60;    // rad/s, doigt LEVÉ en l'air → le biscuit part en avant tout seul
-/* Au sol le doigt veut dire « gaz », en l'air il veut dire « tourne ».
-   Sans délai, quitter une plateforme fait basculer le sens du geste à
-   l'image près : on tombe dans un trou en poussant et on se retrouve en
-   vrille avant d'avoir compris. Pendant SPIN_DELAY le doigt continue
-   donc de ne rien faire tourner — le temps de franchir les petits trous
-   sans y penser. La rotation s'installe ensuite progressivement
-   (AV_LERP), comme une roue qui prend son inertie. */
-const SPIN_DELAY  = 0.30;    // s d'air avant que le maintien fasse tourner
-const AV_LERP     = 11;      // vitesse d'installation de la rotation
-const LAND_TOL    = 0.75;    // rad (~43°) — au-delà, la tasse se renverse
+const FLIP_AV  = -5.6;   // rad/s, doigt POSÉ en l'air → un tour complet en ~1,12 s
+const AV_LERP  = 14;     // la rotation s'installe en ~70 ms au lieu de claquer
+const LAND_TOL    = 1.45;    // rad (~83°) — on ne meurt qu'en retombant franchement à l'envers
 const EDGE_HIT    = 26;      // px de pénétration au 1er contact = flanc pris de plein fouet
 const FALL_DEPTH  = 300;     // px sous la plateforme la plus basse = tombé dans le vide
 const AIR_GRACE   = 0.06;    // s — pas de test d'atterrissage juste après le décollage
+/* Durée d'une partie. Les règles sont volontairement indulgentes — on
+   ne meurt qu'en retombant franchement à l'envers — donc un pilote
+   prudent ne tomberait jamais : sans chrono, la partie ne finirait pas.
+   Le chrono borne la séance ; le crash, lui, reste la vraie sanction. */
+const RUN_TIME    = 75;      // s
 const STREAK_FROM = 240;     // vitesse à partir de laquelle les traits de vitesse apparaissent
 
 const TAU = Math.PI * 2;
 
 /* ── Barème ────────────────────────────────────────
-   Calé sur 400 parties simulées par profil de joueur, pas sur une jolie
-   arithmétique. Ce que ça donne, et c'est la forme qu'on cherchait :
-     · qui mitraille le doigt              →  3 s →   5 🍪
-     · qui ne touche à rien en l'air       → 16 s →  15 🍪
-     · qui dose vraiment, figures incluses → 61 s → 258 🍪
-   L'écart est énorme, et c'est voulu : ce jeu se joue avec un seul
-   doigt, tout ce qui reste à départager, c'est QUAND on le lève. L'ancre reste Café Express : ~300 🍪 pour une
-   partie de 60 s. Rien avant 120 m — une partie ratée en trois secondes
-   ne doit rien rapporter.
-   ⚠ Les bots ont un doigt parfait au 1/60e de seconde ; un humain tombe
-   entre les deux profils. À revoir après de vraies parties. */
+   La distance n'est PAS la mesure du talent : avec un chrono et une
+   vitesse plafonnée, tout le monde parcourt à peu près la même chose
+   s'il ne tombe pas. Elle mesure donc la SURVIE, et ce sont les figures
+   qui font l'écart. D'où des paliers de distance plats en haut et un
+   bonus de figure élevé.
+   Mesuré sur 300 parties de 75 s par profil :
+     · qui mitraille le doigt        →  3 s        →   0 🍪
+     · qui roule sans jamais tourner → 75 s        → 110 🍪
+     · qui tourne (13 figures méd.)  → 75 s        → 266 🍪
+   L'ancre reste Café Express : ~300 🍪 pour sa meilleure partie de 60 s.
+   ⚠ Les bots ont un doigt parfait au 1/60e de seconde. À revoir après
+   de vraies parties. */
 const REWARD_PALIERS = [
-  { m:120,  r:5   },
-  { m:350,  r:15  },
-  { m:650,  r:40  },
-  { m:1000, r:80  },
-  { m:1450, r:150 },
-  { m:2100, r:250 },
+  { m:150,  r:5   },
+  { m:500,  r:20  },
+  { m:1000, r:40  },
+  { m:1600, r:60  },
+  { m:2400, r:85  },
+  { m:3300, r:110 },
 ];
 const FLIP_BONUS = 12;
 const REWARD_CAP = 320;
@@ -142,7 +139,7 @@ function rewardFor(m, flips){
    Un run = une plateforme = { x0, ys[] }, un point tous les STEP px. Le
    trou entre deux plateformes n'est stocké nulle part : c'est simplement
    l'absence de piste entre la fin de l'une et le début de la suivante. */
-function makeRun(x0, y0){ return { x0, ys:[y0], kicker:false, chips:null }; }
+function makeRun(x0, y0){ return { x0, ys:[y0], last:'vague', chips:null }; }
 function runEndX(run){ return run.x0 + (run.ys.length - 1) * STEP; }
 function runEndY(run){ return run.ys[run.ys.length - 1]; }
 
@@ -168,71 +165,78 @@ function groundAt(runs, x){
   return null;                                // au-delà de la piste générée
 }
 
-/* La difficulté ne monte pas par des obstacles plus vicieux mais par la
-   géométrie : trous plus larges, tremplins plus cabrés, plafond de
-   vitesse plus haut. Le même geste devient tendu tout seul. */
+/* ── Le tracé ──────────────────────────────────────
+   LA PISTE EST CONTINUE. C'est le point que j'avais raté deux fois : en
+   posant un trou derrière chaque plateforme, le biscuit passait sa vie
+   en l'air, donc en rotation, donc le doigt ne voulait plus jamais dire
+   « gaz ». Ici on roule, et on ne décolle que sur un tremplin ou sur un
+   trou — deux événements qu'on voit venir.
+
+   Trois figures, et une seule demande vraiment quelque chose :
+     · la vague  — le gros du tracé. Sa pente est bornée pour qu'on ne
+                   décolle JAMAIS dessus par accident.
+     · le tremplin — on part en l'air une seconde environ. C'est LE
+                   moment de décision : lâcher tôt pour poser à plat, ou
+                   tenir jusqu'au bout et boucler un tour entier. Les
+                   deux marchent ; c'est s'arrêter au milieu qui tue.
+     · le trou   — court exprès (~0,22 s de vol) : on le passe gaz au
+                   plancher sans y penser. Il ne teste que la vitesse. */
 function addFeature(runs, diff){
-  const prev = runs[runs.length - 1];
-  const y0   = runEndY(prev);
+  const run = runs[runs.length - 1];
+  /* Jamais de trou juste après un tremplin : on vole encore quand il
+     arrive, on le survole sans le voir, et on s'écrase sur le bord d'en
+     face sans avoir rien fait de mal. Une vague, le temps de reposer
+     les roues. */
+  const r = run.last === 'tremplin' ? 0 : Math.random();
 
-  /* La plateforme précédente se terminait par un tremplin → gros trou et
-     grosse chute : c'est LE moment où il y a le temps de tourner. */
-  const gros = prev.kicker;
+  if(r < 0.55){
+    run.last = 'vague';
+    const len = 240 + Math.random() * 170;
+    /* Pente bornée : au-delà, la vague deviendrait un tremplin
+       involontaire et on décollerait sans l'avoir demandé. */
+    const dyMax = 0.18 * len;
+    let dy = (Math.random() * 2 - 1) * (40 + 34 * diff);
+    dy = Math.max(-dyMax, Math.min(dyMax, dy));
+    span(run, len, u => dy * (0.5 - 0.5 * Math.cos(Math.PI * u)));
+    return;
+  }
 
-  const trou = gros ? 165 + 130 * diff + Math.random() * 70
-                    : 72  + 78  * diff + Math.random() * 42;
+  if(r < 0.86){
+    run.last = 'tremplin';
+    /* La pente de sortie est bornée à ~0,75 : au-delà, le vol dépasse
+       1,3 s et 800 px, on survole toute la réception et on va mourir
+       plus loin sans comprendre. À 0,75 le vol dure ~1,1 s — soit tout
+       juste le temps d'un tour complet, ce qui n'est pas un hasard. */
+    const rl   = 150 + Math.random() * 40;
+    const rise = Math.min(0.48 * rl, 42 + 24 * diff + Math.random() * 18);
+    span(run, rl, u => -rise * Math.pow(u, 1.5));
+    /* La réception : longue et descendante, toujours plus longue que le
+       vol qu'elle reçoit. Sans elle on retombe dans la montée suivante,
+       nez en bas, et ça, aucun geste ne le rattrape. */
+    span(run, 530 + 170 * diff, u => (150 + 110 * diff) * u);
+    return;
+  }
 
-  /* Le dénivelé n'est PAS tiré au hasard : il est CALCULÉ, en rejouant
-     le vol que le trou impose. Un biscuit qui quitte la plateforme à la
-     vitesse `vRequis` suit une parabole ; si la plateforme d'en face
-     n'est pas posée au bout de cette parabole, on la prend par le flanc
-     quoi qu'on fasse — c'est ce qui rendait la première piste injouable
-     (95 % des morts contre un flanc).
-     On la pose donc juste sous la trajectoire d'un joueur qui tient son
-     gaz, et pas plus bas : en dessous de cette vitesse, on s'écrase.
-     C'est ce calcul, et lui seul, qui fait que TENIR LE GAZ est la règle
-     du jeu plutôt qu'une décoration.
-     La pente de sortie compte autant que le trou : un tremplin envoie
-     vers le haut, donc il faut aller chercher la réception bien plus
-     loin en bas — et c'est ce long vol qui laisse le temps de tourner. */
+  /* Trou. Sa largeur est déduite d'un temps de vol court et constant :
+     un trou n'est pas là pour faire tourner le biscuit, seulement pour
+     sanctionner celui qui a levé le doigt trop tôt. Et le sol d'en face
+     est posé au bout de la parabole, pas au hasard. */
   const vMaxIci = MAX_V + V_RAMP * diff;
-  /* vRequis est volontairement PRESQUE le plafond : la piste est tracée
-     sur la trajectoire d'un joueur plein gaz. C'est le sens de tout le
-     jeu — celui qui tient passe, celui qui lève le doigt arrive trop bas
-     et prend le flanc. Viser une vitesse « raisonnable » (0,8 × plafond)
-     donnait l'inverse : le joueur rapide survolait la réception entière
-     et s'écrasait sur la suivante, 99 % des morts. */
-  const vRequis = vMaxIci * (0.88 + Math.random() * 0.10);
-  const n0      = prev.ys.length;
-  const pente0  = n0 > 1 ? (prev.ys[n0 - 1] - prev.ys[n0 - 2]) / STEP : 0;
-  const tVol    = trou / vRequis;
-  /* La parabole évaluée au bout du trou : la plateforme est posée
-     exactement là où le vol retombe. Après un tremplin elle peut donc
-     être PLUS HAUTE que le départ (chute négative) — c'est le saut qui
-     franchit un vide, et c'est ce qu'on veut voir. */
-  const chute   = Math.max(-110, pente0 * vRequis * tVol + 0.5 * G * tVol * tVol + 10 + Math.random() * 26);
+  const vRequis = vMaxIci * 0.86;
+  const tVol    = 0.20 + Math.random() * 0.06;
+  const trou    = vRequis * tVol;
+  const n0      = run.ys.length;
+  const pente0  = n0 > 1 ? (run.ys[n0 - 1] - run.ys[n0 - 2]) / STEP : 0;
+  const chute   = pente0 * vRequis * tVol + 0.5 * G * tVol * tVol + 8 + Math.random() * 20;
 
-  const run = makeRun(runEndX(prev) + trou, y0 + chute);
-
-  /* Une plateforme commence toujours à plat ou en descente : c'est la
-     garantie qu'on peut toujours s'y poser. */
-  /* Réception d'un gros saut : plus longue, parce que la vitesse réelle
-     du joueur ne sera jamais pile celle du tracé et qu'il faut de la
-     marge des deux côtés. */
-  const longueur = gros ? 260 + Math.random() * 220 : 190 + Math.random() * 150;
-  if(Math.random() < 0.42) span(run, longueur, () => 0);
-  else {
-    const pente = 44 + Math.random() * 84;
-    span(run, longueur + 40, u => pente * u);
-  }
-
-  /* Seule la fin peut se cabrer. Un tremplin sur trois environ. */
-  run.kicker = Math.random() < 0.34;
-  if(run.kicker){
-    const rise = 44 + 42 * diff + Math.random() * 22;
-    span(run, 72 + Math.random() * 40, u => -rise * u);
-  }
-  runs.push(run);
+  const next = makeRun(runEndX(run) + trou, runEndY(run) + chute);
+  next.last = 'trou';
+  /* Le tirage est DEHORS : dans la fonction de forme, il serait rejoué
+     à chaque point et la plateforme sortirait en dents de scie — des
+     pentes de 1,5 invisibles à l'œil mais mortelles à l'atterrissage. */
+  const penteRecue = 30 + Math.random() * 50;
+  span(next, 240 + Math.random() * 140, u => penteRecue * u);
+  runs.push(next);
 }
 
 function ensure(runs, camX){
@@ -347,9 +351,10 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [paths, setPaths] = useState({ ribbon:'', crust:'', chips:[] });
   const [frame, setFrame] = useState({ camX:0, camY:0, ry:0, ang:0, v:START_V, gr:true });
   const [dist,  setDist]  = useState(0);
+  const [reste, setReste] = useState(RUN_TIME);
   const [flips, setFlips] = useState(0);
   const [crashed, setCrashed] = useState(false);
-  const [crashReason, setCrashReason] = useState(null);   // 'flip' | 'fall' | 'wall'
+  const [crashReason, setCrashReason] = useState(null);   // 'flip' | 'fall' | 'wall' | 'time'
   const [shake, setShake] = useState(false);
   const [holding, setHolding] = useState(false);
   const [squash, setSquash] = useState(false);
@@ -371,6 +376,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const camYRef   = useRef(0);
   const basRef    = useRef(0);
   const distRef   = useRef(0);
+  const tempsRef  = useRef(0);
+  const resteRef  = useRef(RUN_TIME);
   const flipsRef  = useRef(0);
   const crashedRef = useRef(false);
   const crashTRef  = useRef(0);
@@ -436,7 +443,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     vyRef.current = 0;
     angRef.current = 0; spinRef.current = 0; avRef.current = 0;
     groundedRef.current = true; airTimeRef.current = 0;
-    distRef.current = 0; flipsRef.current = 0;
+    distRef.current = 0; flipsRef.current = 0; tempsRef.current = 0; resteRef.current = RUN_TIME;
     crashedRef.current = false; crashTRef.current = 0; crashKindRef.current = null;
     camXRef.current = xRef.current - RIDER_X;
     camYRef.current = yRef.current - ARENA_H * 0.40;
@@ -446,7 +453,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     ensure(runs, camXRef.current);
     basRef.current = solLePlusBas(runs);
     setPaths(buildPaths(runs));
-    setDist(0); setFlips(0); setCrashed(false); setCrashReason(null);
+    setDist(0); setFlips(0); setReste(RUN_TIME); setCrashed(false); setCrashReason(null);
     setPops([]); setHolding(false); setSquash(false);
     setFrame({ camX:camXRef.current, camY:camYRef.current, ry:yRef.current, ang:0, v:START_V, gr:true });
   };
@@ -457,6 +464,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     if(rafRef.current){ cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     stopRiderEngine();
     throttleRef.current = false; setHolding(false);
+    if(crashKindRef.current === 'time') setCrashReason('time');
     const reward = rewardFor(distRef.current, flipsRef.current);
     if(reward > 0){ onEarn(reward); playSound('coin'); }
     else playSound('error');
@@ -487,6 +495,17 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
     const runs = runsRef.current;
     const hold = throttleRef.current;
+
+    /* Le chrono ne court pas pendant la chute finale : mourir à la
+       dernière seconde ne doit pas escamoter l'animation de casse. */
+    if(!crashedRef.current){
+      tempsRef.current += dt;
+      /* Comparaison contre un ref, pas contre l'état : `tick` est créé
+         une fois au départ et garderait une valeur périmée. */
+      const r = Math.max(0, Math.ceil(RUN_TIME - tempsRef.current));
+      if(r !== resteRef.current){ resteRef.current = r; setReste(r); }
+      if(tempsRef.current >= RUN_TIME){ crashKindRef.current = 'time'; endGame(); return; }
+    }
 
     if(crashedRef.current){
       crashTRef.current += dt;
@@ -544,21 +563,14 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
          MI-CHEMIN de sa trajectoire : après un très gros vol on pique à
          près de 70°, et suivre ce piqué à la lettre rendrait la pose
          impossible quoi que fasse le joueur. Un pilote redresse. */
-      /* RIEN ne remet le biscuit droit tout seul : c'est là qu'était
-         l'erreur des deux premières versions. Un redressement
-         automatique fait du relâchement une sécurité gratuite, et la
-         partie ne finit jamais — le bot roulait 180 s sans mourir.
-         Ici, doigt levé, la roue part en AVANT d'elle-même ; doigt posé,
-         elle repart en arrière. Poser le biscuit à plat est donc un
-         dosage, à un seul doigt, du décollage jusqu'à l'impact. Et tenir
-         un peu plus longtemps boucle un tour entier : c'est le même
-         geste qui sauve et qui rapporte.
-         Les deux premières dixièmes de seconde en l'air font exception
-         (cf. SPIN_DELAY) : un petit trou se franchit gaz au plancher
-         sans partir en vrille. */
-      const cible = hold
-        ? (airTimeRef.current < SPIN_DELAY ? 0 : FLIP_AV)
-        : AIR_FWD;
+      /* La règle de Rider, et rien d'autre : doigt posé, le biscuit
+         tourne en arrière ; doigt levé, il GARDE son angle. Aucune
+         dérive, aucun redressement automatique — ce que tu vois est ce
+         que tu as demandé, et c'est ça qui rend le vol lisible.
+         Mes versions précédentes ajoutaient une rotation avant subie et
+         un délai pour la compenser : deux inventions qui se battaient
+         entre elles, et un jeu injouable. */
+      const cible = hold ? FLIP_AV : 0;
       avRef.current += (cible - avRef.current) * Math.min(1, AV_LERP * dt);
       angRef.current  += avRef.current * dt;
       spinRef.current += avRef.current * dt;
@@ -843,6 +855,18 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           }}>{t('game_rider.hold_hint')}</div>
         )}
 
+        {/* Chrono — un filet en haut de l'aire, pas un chiffre de plus */}
+        {enPartie && (
+          <div style={{ position:'absolute', left:10, right:10, top:8, height:4, borderRadius:3, background:'rgba(74,44,23,.22)', overflow:'hidden', pointerEvents:'none' }}>
+            <div style={{
+              height:'100%', borderRadius:3,
+              width:`${Math.max(0, Math.min(100, (reste / RUN_TIME) * 100))}%`,
+              background: reste <= 10 ? '#8E5F30' : 'rgba(255,255,255,.8)',
+              transition:'width .25s linear',
+            }} />
+          </div>
+        )}
+
         {/* Jauge de vitesse — le seul état permanent affiché */}
         {enPartie && (
           <div style={{
@@ -872,7 +896,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             {phase === 'done' ? (
               <>
                 <div style={{ fontSize:19, fontWeight:900, color:'#fff' }}>
-                  {crashReason === 'fall' ? t('game_rider.end_fall')
+                  {crashReason === 'time' ? t('game_rider.end_time')
+                    : crashReason === 'fall' ? t('game_rider.end_fall')
                     : crashReason === 'wall' ? t('game_rider.end_wall')
                     : t('game_rider.end_flip')}
                 </div>

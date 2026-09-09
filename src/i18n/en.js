@@ -885,6 +885,7 @@ export const EN = {
     flip_pop:     'Flip ×{n}',
     end_flip:     '☕ Coffee spilled!',
     end_fall:     '🕳️ Fell into the void!',
+    end_time:     "⏱️ Time's up!",
     end_wall:     '💥 Straight into the platform edge!',
     end_recap:    '{m} m ridden · {f} flip(s)',
     end_none:     'Too short for a reward',
