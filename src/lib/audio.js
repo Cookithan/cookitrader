@@ -187,6 +187,56 @@ function playSwipeSynth(){
   src.stop(ctx.currentTime + dur);
 }
 
+/* ── MIETTE — la clochette de ramassage de Cooki Rider ───────────
+   On l'entend des dizaines de fois par partie : c'est le son qu'il faut
+   le plus soigner de tout le jeu. Trois choix pour qu'il ne fatigue pas.
+
+   1. Une sinusoïde plus une harmonique douce, pas un « coin » d'arcade :
+      le spectre reste pauvre, donc il se pose derrière la musique au
+      lieu de la percer.
+   2. La note MONTE quand on enchaîne — et elle monte sur une gamme
+      pentatonique, la seule qui ne peut pas sonner faux quelle que soit
+      la note qui suit. Ramasser une ligne entière joue une phrase.
+   3. La série se remet à zéro après 0,9 s de silence, donc on
+      redescend naturellement au lieu de plafonner au sommet.
+
+   Volume 0,13 : c'est peu, et c'est voulu. */
+let mietteT = 0;
+let mietteN = 0;
+const MIETTE_GAMME = [0, 2, 4, 7, 9, 12, 14];   // pentatonique majeure
+
+export function playMiette(){
+  if(!getSettings().uiSoundEnabled) return;
+  const ctx = ensureAudioContext();
+  if(!ctx) return;
+  const now = ctx.currentTime;
+  mietteN = (now - mietteT > 0.9) ? 0 : Math.min(MIETTE_GAMME.length - 1, mietteN + 1);
+  mietteT = now;
+  const f = 523.25 * Math.pow(2, MIETTE_GAMME[mietteN] / 12);
+  try{
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = f;
+    const harm = ctx.createOscillator();
+    harm.type = 'triangle';
+    harm.frequency.value = f * 2;
+    const gh = ctx.createGain();
+    gh.gain.value = 0.18;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(0.13, now + 0.008);
+    env.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 3000;
+    osc.connect(env);
+    harm.connect(gh).connect(env);
+    env.connect(lp).connect(ctx.destination);
+    osc.start(now); harm.start(now);
+    osc.stop(now + 0.45); harm.stop(now + 0.45);
+  }catch{ /* contexte audio fermé par l'OS */ }
+}
+
 /* ── MOTEUR COOKI RIDER — bourdon continu piloté par la vitesse ───
    Le maintien du doigt est la commande entière de Cooki Rider, et un
    doigt posé sur une vitre ne renvoie rien : sans son, accélérer ne se

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { GOLD, COOKIE_SKINS } from "../../data/themes.js";
 import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
-import { playSound, startRiderEngine, setRiderEngine, stopRiderEngine } from "../../lib/audio.js";
+import { playSound, playMiette, startRiderEngine, setRiderEngine, stopRiderEngine } from "../../lib/audio.js";
 import { haptic } from "../../lib/haptic.js";
 import { SingleCup } from "./SingleCup.jsx";
 import { useTranslation } from "../../i18n/index.js";
@@ -176,22 +176,22 @@ const MONDES = [
   { id:'comptoir', deb:0,
     ciel:'linear-gradient(180deg, #2A1A11 0%, #1B100A 55%, #120A06 100%)',
     piste:'#FFE3AC', halo:'rgba(212,160,23,.10)', halo2:'rgba(233,180,88,.26)',
-    collines:'rgba(92,58,32,.42)', texte:'rgba(255,231,186,.94)',
+    collines:'rgba(92,58,32,.42)', texte:'rgba(255,231,186,.94)', avant:'#0C0704', grain:'rgba(255,255,255,.05)',
     tremplin:0.31, boucle:0.10, falaise:0.10, ampli:1.00, flaque:0.00 },
   { id:'torrefaction', deb:380,
     ciel:'linear-gradient(180deg, #3A1C0A 0%, #24100430 55%, #140800 100%)',
     piste:'#FFB870', halo:'rgba(214,110,26,.12)', halo2:'rgba(236,150,70,.28)',
-    collines:'rgba(120,58,18,.46)', texte:'rgba(255,206,158,.94)',
+    collines:'rgba(120,58,18,.46)', texte:'rgba(255,206,158,.94)', avant:'#170800', grain:'rgba(255,255,255,.05)',
     tremplin:0.38, boucle:0.10, falaise:0.12, ampli:1.25, flaque:0.30 },
   { id:'creme', deb:820,
     ciel:'linear-gradient(180deg, #F6E7CF 0%, #E7CFAA 55%, #D2B084 100%)',
     piste:'#4A2C17', halo:'rgba(74,44,23,.14)', halo2:'rgba(110,70,38,.30)',
-    collines:'rgba(150,112,72,.38)', texte:'rgba(58,33,19,.92)',
+    collines:'rgba(150,112,72,.38)', texte:'rgba(58,33,19,.92)', avant:'#8A6A44', grain:'rgba(58,33,19,.06)',
     tremplin:0.30, boucle:0.16, falaise:0.14, ampli:1.15, flaque:0.35 },
   { id:'expresso', deb:1280,
     ciel:'linear-gradient(180deg, #12100E 0%, #0A0806 60%, #050403 100%)',
     piste:'#FFD24D', halo:'rgba(255,210,77,.13)', halo2:'rgba(255,210,77,.30)',
-    collines:'rgba(70,54,34,.40)', texte:'rgba(255,226,140,.95)',
+    collines:'rgba(70,54,34,.40)', texte:'rgba(255,226,140,.95)', avant:'#000000', grain:'rgba(255,255,255,.05)',
     tremplin:0.34, boucle:0.20, falaise:0.18, ampli:1.45, flaque:0.45 },
 ];
 
@@ -541,6 +541,33 @@ const NUAGES = [
 ];
 const PARA_W = 700;
 
+/* ── Trois plans, pas un ──
+   Un seul rideau de collines donne une image plate : rien ne dit à
+   quelle distance sont les choses. Ici le lointain rampe à 0,10 de la
+   vitesse caméra, le moyen à 0,28, et le PREMIER PLAN file à 1,7 — plus
+   vite que la piste elle-même. C'est ce dernier qui fait la profondeur :
+   l'œil déduit la distance de l'écart des vitesses, pas du dessin.
+   Les silhouettes sont découpées en clip-path : un polygone anguleux
+   coûte le même compositing qu'un rectangle, et lit « falaise » là où un
+   dégradé arrondi ne lit rien. */
+const CRETES = 'polygon(0% 100%, 9% 38%, 21% 66%, 33% 14%, 47% 52%, 58% 24%, 72% 61%, 86% 30%, 100% 100%)';
+const LOINTAIN = [
+  { x:0,   w:300, h:230 }, { x:330, w:220, h:300 },
+  { x:580, w:280, h:200 }, { x:880, w:240, h:265 },
+];
+const PARA_LOIN = 1180;
+const AVANT_PLAN = [
+  { x:0,   w:260, h:120 }, { x:330, w:180, h:170 },
+  { x:560, w:300, h:100 },
+];
+const PARA_AVANT = 900;
+
+/* Cadrage de l'aperçu d'accueil : les mêmes formules que la caméra en
+   jeu, appliquées à la position de départ. C'est ce qui garantit que
+   l'écran d'accueil montre EXACTEMENT ce qu'on verra au « GO ». */
+const APERCU_CAM_X = 70 - RIDER_X / ZOOM_BASE;
+const APERCU_CAM_Y = (60 - R) - (ARENA_H * 0.42) / ZOOM_BASE;
+
 export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const { t } = useTranslation();
   const hasCustomSkin = !!(activeSkin && COOKIE_SKINS[activeSkin] && activeSkin !== '');
@@ -549,8 +576,21 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [phase, setPhase] = useState('idle');       // idle | countdown | playing | done
   const [countdownVal, setCountdownVal] = useState(null);
   const [echelleArene, setEchelleArene] = useState(1);
-  const [paths, setPaths] = useState({ crust:'', loops:[], gems:[], flaques:[] });
-  const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true, sq:0, z:ZOOM_BASE });
+  /* L'écran d'accueil montrait un ciel VIDE : la piste n'était générée
+     qu'au départ de la partie, donc la première image du jeu ne
+     ressemblait pas au jeu. On en fabrique une au montage, dans
+     l'initialiseur paresseux du state — pas dans un effet, qui
+     déclencherait un second rendu pour rien. */
+  const [paths, setPaths] = useState(() => {
+    const runs = [makeRun(0, 60)];
+    span(runs[0], 520, () => 0);
+    ensure(runs, APERCU_CAM_X);
+    return buildPaths(runs);
+  });
+  const [frame, setFrame] = useState({
+    camX:APERCU_CAM_X, camY:APERCU_CAM_Y,
+    rx:RIDER_X, ry:60 - R, ang:0, v:START_V, gr:true, sq:0, z:ZOOM_BASE,
+  });
   const [dist,  setDist]  = useState(0);
   const [reste, setReste] = useState(RUN_TIME);
   const [flips, setFlips] = useState(0);
@@ -980,7 +1020,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       }
       if(pris){
         gemsRef.current += pris; setGems(gemsRef.current);
-        playSound('coin', { volume:0.35 });
+        playMiette();
         setPaths(buildPaths(runs));
       }
     }
@@ -1178,7 +1218,22 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           transition:'transform .06s',
         }}
       >
-        {/* Mousse de lait en parallaxe lente */}
+        {/* Plan LOINTAIN — le plus lent, le plus sombre */}
+        <div style={{
+          position:'absolute', left:0, bottom:0, width:PARA_LOIN * 2, height:ARENA_H,
+          transform:`translate3d(${-((frame.camX * 0.10) % PARA_LOIN)}px, ${-frame.camY * 0.05}px, 0)`,
+          willChange:'transform', pointerEvents:'none', opacity:.55,
+        }}>
+          {[0, 1].map(k => LOINTAIN.map((n, i) => (
+            <div key={`l${k}-${i}`} style={{
+              position:'absolute', left:k * PARA_LOIN + n.x, bottom:-40,
+              width:n.w, height:n.h,
+              background:monde.avant, clipPath:CRETES,
+            }} />
+          )))}
+        </div>
+
+        {/* Plan MOYEN */}
         <div style={{
           position:'absolute', left:0, top:0, width:PARA_W * 2, height:ARENA_H,
           transform:`translate3d(${paraX}px, ${paraY}px, 0)`,
@@ -1192,6 +1247,15 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             }} />
           )))}
         </div>
+
+        {/* Grain + vignette : une image trop propre paraît vide. Le grain
+            est fixe (il ne défile pas), donc il ne coûte rien. */}
+        <div style={{
+          position:'absolute', inset:0, pointerEvents:'none',
+          backgroundImage:`radial-gradient(${monde.grain} 1px, transparent 1px)`,
+          backgroundSize:'4px 4px',
+          boxShadow:'inset 0 0 90px rgba(0,0,0,.5)',
+        }} />
 
         {/* Traits de vitesse — n'apparaissent qu'au-delà de STREAK_FROM.
             Seule l'opacité du conteneur change d'une image à l'autre. */}
@@ -1237,11 +1301,19 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
               <ellipse key={`f${i}`} cx={f.x} cy={f.y + 4} rx="27" ry="6.5"
                        fill="rgba(40,22,12,.82)" stroke={monde.halo2} strokeWidth="2" />
             ))}
-            {/* Les miettes — losanges posés sur la trajectoire du saut */}
+            {/* Les miettes sont des cookies. Dessinés ici plutôt que
+                rendus avec le vrai composant : à 15 px de diamètre on ne
+                verrait rien de son détail, et vingt SkinnedCookie à
+                l'écran, ce sont vingt SVG avec leurs dégradés à composer
+                en permanence. Un disque, un liseré, trois pépites : à
+                cette taille c'est exactement la même lecture. */}
             {paths.gems.map((g, i) => (
-              <g key={`g${i}`} transform={`rotate(45 ${g.x.toFixed(1)} ${g.y.toFixed(1)})`}>
-                <rect x={g.x - 9} y={g.y - 9} width="18" height="18" rx="3" fill="rgba(212,160,23,.20)" />
-                <rect x={g.x - 5} y={g.y - 5} width="10" height="10" rx="2" fill="#FFD98A" />
+              <g key={`g${i}`}>
+                <circle cx={g.x} cy={g.y} r="14" fill={monde.halo} />
+                <circle cx={g.x} cy={g.y} r="7.5" fill="#D9A566" stroke={monde.piste} strokeWidth="1.6" />
+                <circle cx={g.x - 2.6} cy={g.y - 2.4} r="1.5" fill="#4A2C17" />
+                <circle cx={g.x + 2.9} cy={g.y - 0.3} r="1.4" fill="#4A2C17" />
+                <circle cx={g.x - 0.5} cy={g.y + 3.1} r="1.3" fill="#4A2C17" />
               </g>
             ))}
           </svg>
@@ -1320,6 +1392,23 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
               {hasCustomSkin ? <SkinnedCookie skin={skin} noShadow /> : <PremiumCookie noShadow />}
             </div>
           ))}
+        </div>
+
+        {/* PREMIER PLAN — dessiné après l'attelage, donc il passe DEVANT.
+            Il file à 1,7 fois la vitesse caméra : c'est cet écart de
+            vitesse qui crée la profondeur, bien plus que le dessin. */}
+        <div style={{
+          position:'absolute', left:0, bottom:0, width:PARA_AVANT * 2, height:ARENA_H,
+          transform:`translate3d(${-((frame.camX * 1.7) % PARA_AVANT)}px, ${-frame.camY * 0.34}px, 0)`,
+          willChange:'transform', pointerEvents:'none', opacity:.9,
+        }}>
+          {[0, 1].map(k => AVANT_PLAN.map((n, i) => (
+            <div key={`a${k}-${i}`} style={{
+              position:'absolute', left:k * PARA_AVANT + n.x, bottom:-52,
+              width:n.w, height:n.h,
+              background:monde.avant, clipPath:CRETES,
+            }} />
+          )))}
         </div>
 
         {/* Pops de figure */}
@@ -1407,7 +1496,9 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           <div style={{
             position:'absolute', inset:0, display:'flex', flexDirection:'column',
             alignItems:'center', justifyContent:'center', gap:12, padding:'0 22px',
-            background:'rgba(58,33,19,.55)', backdropFilter:'blur(2px)', textAlign:'center',
+            /* Voile allégé : maintenant qu'il y a une vraie piste derrière,
+               il doit la laisser voir. C'est elle qui vend le jeu. */
+            background:'rgba(18,11,6,.44)', backdropFilter:'blur(1px)', textAlign:'center',
           }}>
             {phase === 'done' ? (
               <>
