@@ -243,12 +243,13 @@ begin
 exception when others then null;
 end $$;
 
-/* Toutes les 5 MINUTES et non 30 : avec un plancher de 10 min pour un
-   joueur qui attend, un tic toutes les demi-heures rendrait ce plancher
-   decoratif — il aurait quand meme patiente 30 min. Un tic bloque ne
-   coute RIEN (les portes sont du SQL pur, l appel au modele n a lieu
-   qu au bout), donc la frequence du cron ne pilote pas la depense : ce
-   sont les portes qui la pilotent. */
+/* Toutes les 5 MINUTES et non 30 : un joueur qui signale quelque chose
+   n a AUCUN plancher devant lui, donc c est le tic du cron qui fixe son
+   attente. A 30 minutes, sa reponse aurait mis une demi-heure quoi qu on
+   ecrive ailleurs ; a 5 minutes, elle arrive tout de suite.
+   Un tic bloque ne coute RIEN (les portes sont du SQL pur, l appel au
+   modele n a lieu qu au bout) : la frequence du cron ne pilote donc pas
+   la depense, ce sont les portes qui la pilotent. */
 select cron.schedule('sentinelle_horloge_ia', '*/5 * * * *',
   $$ select public.sentinelle_horloge_ia(); $$);
 
