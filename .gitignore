@@ -49,3 +49,7 @@ _*.js
 _*.jsx
 _*.sh
 .verif/
+
+# Supabase CLI — état local du lien, jamais versionné
+supabase/.temp/
+supabase/.branches/
