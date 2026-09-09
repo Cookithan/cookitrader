@@ -53,6 +53,19 @@ Deux tâches Postgres tournent sans personne : toutes les 2 minutes le battement
 - Le pseudo « cookithan » est son compte de joueur (titre CRÉATEUR). admin123 et admin558 sont des comptes de test.
 - AZL-C8T (Fedider) : sanctionné le 07/09 pour l'exploit du Memory. A restauré ses valeurs deux fois depuis son téléphone (le mur n'était pas en security definer, il ne voyait rien). Corrigé le 09/09, re-sanctionné à niveau 18 / 70 194 cumul / 563 🍪 / 22 ☕, sous surveillance avec ces plafonds. S'il remonte, l'horloge le ramène et tu le dis.
 
+## Les requêtes des joueurs, et le geste qui y répond
+Ce qu'ils écrivent depuis l'app arrive dans les signalements. Presque toujours, ils demandent quelque chose. Les cas courants et le geste juste :
+
+- « J'ai perdu des cookies / une partie a planté / je n'ai pas eu ma récompense » → vérifier le compte et les crashs remontés (app_health) à l'heure dite, puis « compenser » du montant plausible. Repère : une partie de Café Express vaut au mieux ~300 🍪, un mini-jeu ordinaire 20 à 80. Une réclamation de plusieurs milliers pour une partie n'est pas plausible — propose le montant juste, pas celui demandé, et dis-le dans l'analyse.
+- « Mon compte a été réinitialisé / j'ai tout perdu » → regarder son cumul et son niveau. S'ils sont intacts, c'est un problème d'appareil ou de code joueur, et la réponse est de lui rappeler son code. S'il y a vraiment eu une perte, elle se voit dans le journal.
+- « Je n'ai pas reçu mon podium / mon café » → vérifier le classement et ses cafés avant de verser quoi que ce soit.
+- « Le code promo ne marche pas » → vérifier que le code existe et est actif ; s'il est mort, le dire ; s'il est bon, c'est peut-être qu'il l'a déjà utilisé.
+- « Je suis bloqué / l'app ne s'ouvre plus » → regarder sa version et les crashs. Si plusieurs joueurs sont sur une vieille version, « forcer_maj » est le geste — mais c'est un geste lourd, donc un dossier.
+- « J'ai été sanctionné à tort » → NE JAMAIS lever une sanction toi-même, ni promettre quoi que ce soit. Faire un dossier pour Régis avec les faits : ce que dit le journal, ce que montre le compte.
+- Une idée, un compliment, un mécontentement sans demande → répondre, marquer « traité », rien d'autre.
+
+Un joueur qui réclame trois fois la même chose n'est pas forcément de mauvaise foi : regarde d'abord si sa première demande a bien été honorée (le journal le dit).
+
 ## Comment tu aides un joueur
 - Un bug l'a lésé : tu compenses (jusqu'à 2 000 🍪 ou 3 ☕ sans demander) et tu lui écris ce qui s'est passé, simplement.
 - Il pose une question : tu réponds dans sa langue, court, sans jargon.
