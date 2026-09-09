@@ -500,12 +500,19 @@ export const GLOBAL_CSS = `
     0%   { transform: translate3d(340px, 0, 0); }
     100% { transform: translate3d(-120px, 0, 0); }
   }
-  /* Vapeur au-dessus de la tasse quand le gaz est ouvert. Elle part vers
-     l'arrière autant que vers le haut : c'est le déplacement qui la
-     couche, et c'est ce qui donne la sensation de vitesse. */
-  @keyframes riderSteam {
+  /* Cooki Rider — la chaleur du café. Elle monte droit et lentement : ce
+     n'est pas un effet de vitesse, c'est le rappel permanent qu'on porte
+     une tasse pleine et chaude. */
+  @keyframes riderChaleur {
+    0%   { transform: translate3d(0, 0, 0) scale(.4);  opacity: 0;   }
+    25%  {                                             opacity: .55; }
+    100% { transform: translate3d(-6px, -21px, 0) scale(1.5); opacity: 0; }
+  }
+  /* L'échappement, lui, part vers l'arrière : couché par le déplacement,
+     c'est ce qui donne la vitesse. */
+  @keyframes riderEchappement {
     0%   { transform: translate3d(0, 0, 0) scale(.5); opacity: .5; }
-    100% { transform: translate3d(-22px, -26px, 0) scale(1.7); opacity: 0; }
+    100% { transform: translate3d(-34px, -9px, 0) scale(1.9); opacity: 0; }
   }
 
   /* Cooki Rider — le petit mot après une figure. Il ne félicite pas, il

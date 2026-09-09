@@ -106,7 +106,11 @@ const TASSE_MT     = TASSE_BAS - TASSE_W * (42 / 130);
    chose qui frappe sur les captures de Rider — on voit arriver ce qu'on
    va devoir faire, et le véhicule est minuscule. En gros plan, aucun
    réglage de physique ne peut rendre le jeu lisible. */
-const ZOOM     = 0.62;
+const ZOOM_BASE = 0.62;      // échelle au sol
+const ZOOM_MIN  = 0.30;      /* échelle en grande chute. La caméra recule
+                                pour cadrer le POINT D'ARRIVÉE : sans ça on
+                                tombe à l'aveugle et le salto devient un pari
+                                au lieu d'une décision. */
 const STEP     = 16;         // espacement des points de piste
 const AHEAD    = 980;        // marge de piste générée devant la caméra
 const BEHIND   = 380;        // marge conservée derrière
@@ -172,18 +176,25 @@ const TAU = Math.PI * 2;
    L'ancre reste Café Express : ~300 🍪 pour sa meilleure partie de 60 s.
    ⚠ Les bots ont un doigt parfait au 1/60e de seconde. À revoir après
    de vraies parties. */
+/* Paliers redivisés avec PX_PAR_METRE : ce sont les mêmes distances de
+   piste qu'avant, exprimées dans la nouvelle unité. L'équilibre validé
+   sur des centaines de parties simulées ne bouge donc pas d'un cookie. */
 const REWARD_PALIERS = [
-  { m:150,  r:5   },
-  { m:500,  r:20  },
-  { m:1000, r:40  },
-  { m:1600, r:60  },
-  { m:2400, r:85  },
-  { m:3300, r:110 },
+  { m:70,   r:5   },
+  { m:230,  r:20  },
+  { m:450,  r:40  },
+  { m:730,  r:60  },
+  { m:1090, r:85  },
+  { m:1500, r:110 },
 ];
 const FLIP_BONUS = 12;
 const GEM_VALUE  = 2;        // par miette ramassée en vol
 const REWARD_CAP = 320;
-const DIST_CAP   = 5000;     // garde-fou : aucun bug ne peut imprimer à l'infini
+const PX_PAR_METRE = 22;     /* Un mètre vaut 22 px de piste, pas 10. Le
+                                compteur montait trop vite pour qu'on le
+                                lise — un score qui défile ne veut plus
+                                rien dire. */
+const DIST_CAP   = 2500;     // garde-fou : aucun bug ne peut imprimer à l'infini
 
 function rewardFor(m, flips, gems = 0){
   let base = 0;
@@ -422,6 +433,21 @@ function buildPaths(runs){
   return { crust: crust.trim(), loops, gems };
 }
 
+/* Où va-t-on retomber ? Calculé UNE SEULE FOIS au décollage : en vol, ni
+   la vitesse horizontale ni la gravité ne changent, donc la parabole est
+   déjà écrite. Rejouer la prédiction à chaque image coûterait cent
+   intégrations par seconde pour le même résultat. */
+function predireAtterrissage(runs, x, y, vy, v){
+  const h = 1 / 60;
+  let px = x, py = y, pvy = vy, air = 0;
+  for(let i = 0; i < 600; i++){
+    pvy += G * h; px += v * h; py += pvy * h; air += h;
+    const g = groundAt(runs, px);
+    if(air > AIR_GRACE && g && py >= g.y - R) return { x:px, y:py };
+  }
+  return null;
+}
+
 function normAngle(a){
   let x = a % TAU;
   if(x >  Math.PI) x -= TAU;
@@ -459,7 +485,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [countdownVal, setCountdownVal] = useState(null);
   const [echelleArene, setEchelleArene] = useState(1);
   const [paths, setPaths] = useState({ crust:'', loops:[], gems:[] });
-  const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true, sq:0 });
+  const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true, sq:0, z:ZOOM_BASE });
   const [dist,  setDist]  = useState(0);
   const [reste, setReste] = useState(RUN_TIME);
   const [flips, setFlips] = useState(0);
@@ -483,6 +509,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const avRef     = useRef(0);
   const groundedRef = useRef(true);
   const airTimeRef  = useRef(0);
+  const zoomRef   = useRef(ZOOM_BASE);
+  const atterRef  = useRef(null);
   const boucleRef = useRef(null);
   const maxXRef   = useRef(0);
   const retourCamRef = useRef(0);
@@ -573,11 +601,14 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     distRef.current = 0; flipsRef.current = 0; gemsRef.current = 0; tempsRef.current = 0; resteRef.current = RUN_TIME;
     crashedRef.current = false; crashTRef.current = 0; crashKindRef.current = null;
     boucleRef.current = null;
+    zoomRef.current = ZOOM_BASE;
+    atterRef.current = null;
     retourCamRef.current = 0;
     cibleCamXMonotone.current = -Infinity;
     maxXRef.current = xRef.current;
-    camXRef.current = xRef.current - RIDER_X / ZOOM;
-    camYRef.current = yRef.current - (ARENA_H * 0.42) / ZOOM;
+    camXRef.current = xRef.current - RIDER_X / ZOOM_BASE;
+    camYRef.current = yRef.current - (ARENA_H * 0.42) / ZOOM_BASE;
+    zoomRef.current = ZOOM_BASE;
     lastTRef.current = 0;
     throttleRef.current = false;
 
@@ -586,7 +617,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     setPaths(buildPaths(runs));
     setDist(0); setFlips(0); setGems(0); setTag(null); setReste(RUN_TIME); setCrashed(false); setCrashReason(null);
     setPops([]); setHolding(false); squashRef.current = 0;
-    setFrame({ camX:camXRef.current, camY:camYRef.current, rx:RIDER_X, ry:yRef.current, ang:0, v:START_V, gr:true, sq:0 });
+    setFrame({ camX:camXRef.current, camY:camYRef.current, rx:RIDER_X, ry:yRef.current, ang:0, v:START_V, gr:true, sq:0, z:ZOOM_BASE });
   };
 
   const endGame = () => {
@@ -688,8 +719,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
       /* La caméra lâche le biscuit et cadre l'ANNEAU, en x comme en y :
          c'est le tour qu'on doit voir, pas un gros plan sur la roue. */
-      const cx = b.x - (ARENA_W * 0.5) / ZOOM;
-      const cy = (b.y - R - b.r) - (ARENA_H * 0.45) / ZOOM;
+      const cx = b.x - (ARENA_W * 0.5) / zoomRef.current;
+      const cy = (b.y - R - b.r) - (ARENA_H * 0.45) / zoomRef.current;
       /* Elle s'arrête sur l'anneau, elle ne RECULE pas : dans une boucle
          x redescend, et une caméra qui suivrait x donnerait l'impression
          qu'on rembobine. Le max l'empêche partout. */
@@ -699,7 +730,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       setFrame({
         camX:camXRef.current, camY:camYRef.current,
         rx:xRef.current - camXRef.current, ry:yRef.current, ang:angRef.current,
-        v:vRef.current, gr:false, sq:0,
+        v:vRef.current, gr:false, sq:0, z:zoomRef.current,
       });
       setRiderEngine((vRef.current - MIN_V) / (MAX_V + V_RAMP - MIN_V), hold);
       rafRef.current = requestAnimationFrame(tick);
@@ -749,6 +780,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
            le tremplin vient de donner. */
         groundedRef.current = false; airTimeRef.current = 0; spinRef.current = 0; avRef.current = 0;
         xRef.current = nx;
+        atterRef.current = predireAtterrissage(runs, xRef.current, yRef.current, vyRef.current, vRef.current);
         playSound('flappy_jump');
       } else {
         const ny = g1.y - R;
@@ -760,6 +792,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           vyRef.current += G * dt;
           xRef.current = nx;
           yRef.current += vyRef.current * dt;
+          atterRef.current = predireAtterrissage(runs, xRef.current, yRef.current, vyRef.current, vRef.current);
         } else {
           xRef.current = nx;
           yRef.current = ny;
@@ -812,6 +845,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
               crash('flip');
             } else {
               groundedRef.current = true;
+              atterRef.current = null;
               yRef.current = g.y - R;
               avRef.current = 0;
               vyRef.current = g.slope * vRef.current;
@@ -865,10 +899,12 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     squashRef.current = Math.max(0, squashRef.current - dt * 7);
 
     if(xRef.current > maxXRef.current) maxXRef.current = xRef.current;
-    const m = Math.min(DIST_CAP, Math.max(0, Math.floor(maxXRef.current / 10)));
+    const m = Math.min(DIST_CAP, Math.max(0, Math.floor(maxXRef.current / PX_PAR_METRE)));
     if(m !== distRef.current){ distRef.current = m; setDist(m); }
 
     boucleRef.current = null;
+    zoomRef.current = ZOOM_BASE;
+    atterRef.current = null;
     retourCamRef.current = 0;
     cibleCamXMonotone.current = -Infinity;
     maxXRef.current = xRef.current;
@@ -877,7 +913,18 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
        verrait. Un lissage permanent, lui, coûterait de la visibilité
        devant : à 450 px/s, un suivi lissé traîne de 50 px, autant de
        piste qu'on ne voit plus arriver. */
-    const cibleCamX = xRef.current - RIDER_X / ZOOM;
+    /* Échelle : au sol on reste au plus près ; en l'air on recule juste
+       assez pour tenir le point d'arrivée à l'écran. C'est la réponse au
+       « on ne sait pas où on atterrit » — une grande chute se voit en
+       entier, donc le salto redevient une décision. */
+    const atter = atterRef.current;
+    const cibleZoom = (!groundedRef.current && atter)
+      ? Math.max(ZOOM_MIN, Math.min(ZOOM_BASE, (ARENA_H * 0.72) / (Math.abs(atter.y - yRef.current) + 190)))
+      : ZOOM_BASE;
+    zoomRef.current += (cibleZoom - zoomRef.current) * Math.min(1, 3.4 * dt);
+    const z = zoomRef.current;
+
+    const cibleCamX = xRef.current - RIDER_X / z;
     if(retourCamRef.current > 0){
       retourCamRef.current -= dt;
       camXRef.current += (cibleCamX - camXRef.current) * Math.min(1, 7 * dt);
@@ -888,7 +935,11 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
        que trois endroits différents veulent bouger la caméra. */
     camXRef.current = Math.max(camXRef.current, cibleCamXMonotone.current);
     cibleCamXMonotone.current = camXRef.current;
-    const targetCamY = yRef.current - (ARENA_H * 0.42) / ZOOM;
+    /* On cadre entre le biscuit et son point de chute, pas sur le
+       biscuit seul : sinon reculer ne servirait à rien, le sol resterait
+       hors champ. */
+    const ancreY = (!groundedRef.current && atter) ? (yRef.current + atter.y) / 2 : yRef.current;
+    const targetCamY = ancreY - (ARENA_H * (groundedRef.current ? 0.42 : 0.5)) / z;
     camYRef.current += (targetCamY - camYRef.current) * Math.min(1, 6 * dt);
 
     const grew   = ensure(runs, camXRef.current);
@@ -905,7 +956,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     setFrame({
       camX:camXRef.current, camY:camYRef.current,
       rx:xRef.current - camXRef.current, ry:yRef.current, ang:angRef.current,
-      v:vRef.current, gr:groundedRef.current, sq:squashRef.current,
+      v:vRef.current, gr:groundedRef.current, sq:squashRef.current, z:zoomRef.current,
     });
     rafRef.current = requestAnimationFrame(tick);
   };
@@ -959,8 +1010,9 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
      simulées) — c'est le même effort raconté deux fois, une fois pour
      l'œil, une fois pour l'économie. */
   const score        = dist + flips * 200 + gems * 40;
-  const riderScreenX = frame.rx * ZOOM;
-  const riderScreenY = (frame.ry - frame.camY) * ZOOM;
+  const z            = frame.z;
+  const riderScreenX = frame.rx * z;
+  const riderScreenY = (frame.ry - frame.camY) * z;
   const vitesse01    = Math.max(0, Math.min(1, (frame.v - STREAK_FROM) / 220));
   const enPartie     = phase === 'playing';
   const paraX        = -((frame.camX * 0.22) % PARA_W);
@@ -1052,7 +1104,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             d'une plateforme. */}
         <div style={{
           position:'absolute', left:0, top:0, width:0, height:0,
-          transform:`scale(${ZOOM}) translate(${-frame.camX}px, ${-frame.camY}px)`,
+          transform:`scale(${z}) translate(${-frame.camX}px, ${-frame.camY}px)`,
           transformOrigin:'0 0',
           willChange:'transform', pointerEvents:'none',
         }}>
@@ -1084,22 +1136,40 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           </svg>
         </div>
 
-        {/* La vapeur sort du HAUT de la tasse, pas de sous les roues — et
-            son ancrage est multiplié par ZOOM, ce que l'ancienne
-            poussière oubliait : elle était posée en pixels monde dans un
-            repère écran, donc décalée en permanence.
-            Elle ne fume que gaz ouvert : c'est le retour visuel du
-            maintien, autant qu'un détail de décor. */}
-        {enPartie && holding && frame.gr && !crashed && (
+        {/* Deux fumées, et elles ne disent pas la même chose.
+
+            LA CHALEUR monte du café en permanence : c'est elle qui pose le
+            but du jeu sans une ligne de texte — on transporte une tasse
+            pleine et chaude, et tout l'enjeu est de ne pas la renverser.
+
+            L'ÉCHAPPEMENT part de l'ARRIÈRE de l'attelage et seulement gaz
+            ouvert : c'est le retour visuel du maintien. Devant la tasse il
+            se lisait comme de la vapeur, derrière il se lit comme de la
+            vitesse.
+
+            Les deux sont ancrés en pixels monde multipliés par le zoom
+            courant — l'échelle change en vol, un ancrage fixe décrocherait
+            de l'attelage au moment précis où on le regarde. */}
+        {enPartie && frame.gr && !crashed && (
           <div style={{ position:'absolute', left:0, top:0, pointerEvents:'none' }}>
             {[0, 1, 2].map(i => (
-              <div key={i} style={{
+              <div key={`c${i}`} style={{
                 position:'absolute',
-                left: riderScreenX + TASSE_CX * ZOOM,
-                top:  riderScreenY + TASSE_MT * ZOOM,
-                width: 7 - i, height: 7 - i, borderRadius:'50%',
-                background:'rgba(255,240,214,.42)',
-                animation:`riderSteam ${0.62 + i * 0.08}s linear ${i * 0.2}s infinite`,
+                left: riderScreenX + TASSE_CX * z,
+                top:  riderScreenY + TASSE_MT * z,
+                width: 6 - i, height: 6 - i, borderRadius:'50%',
+                background:'rgba(255,244,224,.5)',
+                animation:`riderChaleur .7s linear ${i * 0.23}s infinite`,
+              }} />
+            ))}
+            {holding && [0, 1, 2].map(i => (
+              <div key={`e${i}`} style={{
+                position:'absolute',
+                left: riderScreenX - (ROUE_DX + ROUE / 2) * z,
+                top:  riderScreenY + ROUE_Y * z,
+                width: 8 - i, height: 8 - i, borderRadius:'50%',
+                background:'rgba(196,142,80,.42)',
+                animation:`riderEchappement ${0.5 + i * 0.07}s linear ${i * 0.16}s infinite`,
               }} />
             ))}
           </div>
@@ -1110,7 +1180,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           position:'absolute', left:0, top:0,
           width:COOKIE_SIZE, height:COOKIE_SIZE,
           marginLeft:-COOKIE_SIZE / 2, marginTop:-COOKIE_SIZE / 2,
-          transform:`translate3d(${riderScreenX}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${ZOOM * (1 + 0.15 * frame.sq)}, ${ZOOM * (1 - 0.15 * frame.sq)})`,
+          transform:`translate3d(${riderScreenX}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${z * (1 + 0.15 * frame.sq)}, ${z * (1 - 0.15 * frame.sq)})`,
           willChange:'transform', pointerEvents:'none',
           filter: crashed ? 'grayscale(.7)' : 'none',
         }}>
