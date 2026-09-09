@@ -89,8 +89,17 @@ const V_RAMP    = 150;       // ce que le plafond gagne à difficulté maximale
 const START_V   = 210;
 
 const FLIP_AV     = -9.0;    // rad/s, doigt POSÉ en l'air → rotation arrière, un tour en ~0,70 s
-const AIR_FWD     = 1.45;     // rad/s, doigt LEVÉ en l'air → le biscuit part en avant tout seul
-const LAND_TOL    = 0.85;    // rad (~43°) — au-delà, la tasse se renverse
+const AIR_FWD     = 1.60;    // rad/s, doigt LEVÉ en l'air → le biscuit part en avant tout seul
+/* Au sol le doigt veut dire « gaz », en l'air il veut dire « tourne ».
+   Sans délai, quitter une plateforme fait basculer le sens du geste à
+   l'image près : on tombe dans un trou en poussant et on se retrouve en
+   vrille avant d'avoir compris. Pendant SPIN_DELAY le doigt continue
+   donc de ne rien faire tourner — le temps de franchir les petits trous
+   sans y penser. La rotation s'installe ensuite progressivement
+   (AV_LERP), comme une roue qui prend son inertie. */
+const SPIN_DELAY  = 0.30;    // s d'air avant que le maintien fasse tourner
+const AV_LERP     = 11;      // vitesse d'installation de la rotation
+const LAND_TOL    = 0.75;    // rad (~43°) — au-delà, la tasse se renverse
 const EDGE_HIT    = 26;      // px de pénétration au 1er contact = flanc pris de plein fouet
 const FALL_DEPTH  = 300;     // px sous la plateforme la plus basse = tombé dans le vide
 const AIR_GRACE   = 0.06;    // s — pas de test d'atterrissage juste après le décollage
@@ -101,11 +110,11 @@ const TAU = Math.PI * 2;
 /* ── Barème ────────────────────────────────────────
    Calé sur 400 parties simulées par profil de joueur, pas sur une jolie
    arithmétique. Ce que ça donne, et c'est la forme qu'on cherchait :
-     · qui mitraille le doigt            →  2 s  →   0 🍪
-     · qui ne touche à rien en l'air     → 21 s  →  40 🍪
-     · qui dose vraiment, figures incluses → 28 s → 112 🍪 (p90 : 320)
-   Trois fois plus pour qui pilote que pour qui subit, et rien du tout
-   pour qui tape au hasard. L'ancre reste Café Express : ~300 🍪 pour une
+     · qui mitraille le doigt              →  3 s →   5 🍪
+     · qui ne touche à rien en l'air       → 16 s →  15 🍪
+     · qui dose vraiment, figures incluses → 61 s → 258 🍪
+   L'écart est énorme, et c'est voulu : ce jeu se joue avec un seul
+   doigt, tout ce qui reste à départager, c'est QUAND on le lève. L'ancre reste Café Express : ~300 🍪 pour une
    partie de 60 s. Rien avant 120 m — une partie ratée en trois secondes
    ne doit rien rapporter.
    ⚠ Les bots ont un doigt parfait au 1/60e de seconde ; un humain tombe
@@ -118,7 +127,7 @@ const REWARD_PALIERS = [
   { m:1450, r:150 },
   { m:2100, r:250 },
 ];
-const FLIP_BONUS = 8;
+const FLIP_BONUS = 12;
 const REWARD_CAP = 320;
 const DIST_CAP   = 5000;     // garde-fou : aucun bug ne peut imprimer à l'infini
 
@@ -355,6 +364,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const vyRef     = useRef(0);
   const angRef    = useRef(0);
   const spinRef   = useRef(0);
+  const avRef     = useRef(0);
   const groundedRef = useRef(true);
   const airTimeRef  = useRef(0);
   const camXRef   = useRef(0);
@@ -424,7 +434,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     yRef.current = (g ? g.y : 60) - R;
     vRef.current = START_V;
     vyRef.current = 0;
-    angRef.current = 0; spinRef.current = 0;
+    angRef.current = 0; spinRef.current = 0; avRef.current = 0;
     groundedRef.current = true; airTimeRef.current = 0;
     distRef.current = 0; flipsRef.current = 0;
     crashedRef.current = false; crashTRef.current = 0; crashKindRef.current = null;
@@ -503,7 +513,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       if(!g1){
         /* La plateforme s'arrête : on part avec la vitesse verticale que
            le tremplin vient de donner. */
-        groundedRef.current = false; airTimeRef.current = 0; spinRef.current = 0;
+        groundedRef.current = false; airTimeRef.current = 0; spinRef.current = 0; avRef.current = 0;
         xRef.current = nx;
         playSound('flappy_jump');
       } else {
@@ -512,7 +522,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
         if(implied > vyRef.current + G * dt + 6){
           /* Suivre la piste demanderait de tomber plus vite qu'une chute
              libre → impossible, on décolle. */
-          groundedRef.current = false; airTimeRef.current = 0; spinRef.current = 0;
+          groundedRef.current = false; airTimeRef.current = 0; spinRef.current = 0; avRef.current = 0;
           vyRef.current += G * dt;
           xRef.current = nx;
           yRef.current += vyRef.current * dt;
@@ -539,13 +549,19 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
          automatique fait du relâchement une sécurité gratuite, et la
          partie ne finit jamais — le bot roulait 180 s sans mourir.
          Ici, doigt levé, la roue part en AVANT d'elle-même ; doigt posé,
-         elle repart en arrière, quatre fois plus vite. Poser le biscuit
-         à plat est donc un dosage, à un seul doigt, du décollage jusqu'à
-         l'impact. Et tenir un peu plus longtemps boucle un tour entier :
-         c'est le même geste qui sauve et qui rapporte. */
-      const av = hold ? FLIP_AV : AIR_FWD;
-      angRef.current  += av * dt;
-      spinRef.current += av * dt;
+         elle repart en arrière. Poser le biscuit à plat est donc un
+         dosage, à un seul doigt, du décollage jusqu'à l'impact. Et tenir
+         un peu plus longtemps boucle un tour entier : c'est le même
+         geste qui sauve et qui rapporte.
+         Les deux premières dixièmes de seconde en l'air font exception
+         (cf. SPIN_DELAY) : un petit trou se franchit gaz au plancher
+         sans partir en vrille. */
+      const cible = hold
+        ? (airTimeRef.current < SPIN_DELAY ? 0 : FLIP_AV)
+        : AIR_FWD;
+      avRef.current += (cible - avRef.current) * Math.min(1, AV_LERP * dt);
+      angRef.current  += avRef.current * dt;
+      spinRef.current += avRef.current * dt;
 
       if(yRef.current > basRef.current + FALL_DEPTH){
         crash('fall');
@@ -565,6 +581,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
               groundedRef.current = true;
               yRef.current = g.y - R;
               angRef.current = sa;
+              avRef.current = 0;
               vyRef.current = g.slope * vRef.current;
               vRef.current *= 0.96;
               setSquash(true);
