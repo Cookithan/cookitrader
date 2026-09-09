@@ -524,4 +524,14 @@ export const GLOBAL_CSS = `
     100% { opacity: 0; transform: translateY(-5px); }
   }
   .rider-tag { animation: riderTag .7s ease-out both; }
+
+  /* Sentinelle — les pages et les stories (09/09).
+     Une story arrive comme une carte qu'on pose : légère montée, fondu,
+     rien de plus. La page glisse par transition CSS, pas par keyframe.
+     Le mot de la Sentinelle s'écrit mot à mot depuis React ; le curseur
+     seul est animé ici. */
+  @keyframes sentinelleStory { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+  .s-story { animation: sentinelleStory .32s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes sentinelleCurseur { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+  .s-curseur { display: inline-block; width: 2px; height: .95em; background: currentColor; margin-left: 2px; vertical-align: -2px; animation: sentinelleCurseur .7s steps(1) infinite; }
 `;
