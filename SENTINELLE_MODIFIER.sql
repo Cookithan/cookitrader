@@ -160,5 +160,27 @@ $fn$;
 revoke all on function public.sentinelle_modifier_joueur(text, text, jsonb) from public;
 grant execute on function public.sentinelle_modifier_joueur(text, text, jsonb) to anon, authenticated;
 
-/* -- Verification : sans la bonne phrase, elle doit refuser -- */
-select public.sentinelle_modifier_joueur('phrase-volontairement-fausse', 'AAA-000', '{}'::jsonb) as doit_refuser;
+/* ── Vérification ────────────────────────────────────────────
+   ⚠️ ON NE VÉRIFIE PLUS EN APPELANT AVEC UNE FAUSSE PHRASE.
+   `sentinelle_phrase_ok` journalise chaque refus, et dix refus en quinze
+   minutes ferment la porte pour un quart d'heure : coller plusieurs
+   fichiers d'affilée pouvait donc verrouiller la console à l'instant
+   précis où on venait de l'installer.
+
+   Et ça prouvait moins qu'il n'y paraissait : dans l'éditeur SQL on est
+   `postgres`, pas `anon` — le refus obtenu ne disait rien du droit
+   d'appel réel de l'app.
+
+   On vérifie donc ce qui casse VRAIMENT : la fonction existe-t-elle, et
+   `anon` a-t-il le droit de l'appeler. Une ligne manquante ou un
+   `anon_peut_appeler` à false, c'est l'app en panne ; une fausse phrase
+   refusée, c'était un test qui se testait lui-même. */
+select p.proname                                    as fonction,
+       pg_get_function_identity_arguments(p.oid)    as arguments,
+       has_function_privilege('anon', p.oid, 'EXECUTE') as anon_peut_appeler
+  from pg_proc p
+  join pg_namespace ns on ns.oid = p.pronamespace
+ where ns.nspname = 'public'
+   and p.proname in ('sentinelle_modifier_joueur')
+ order by p.proname;
+

@@ -204,3 +204,21 @@ Les passages de niveau se font **un par un** (jamais 2 paliers d'un coup, même 
 8. **Toute fonction Supabase doit être safe en mode dégradé** : `isSupabaseEnabled()` check en tête, retour neutre sinon.
 9. **i18n** : tout nouveau texte UI doit passer par `t('clé')` (FR/EN). Les data dynamiques (REWARDS, QUESTIONS…) utilisent `localizedField(item, 'name')` qui lit `item.name_en` ou fallback sur `item.name`.
 10. **CHANGELOG** : à chaque release notable, mettre à jour `src/lib/appInfo.js` (version + entrée en tête de `CHANGELOG`, max 5-6 entrées). Inclure `title_en` et `changes_en`.
+11. **Bloc de vérification d'un fichier SQL — NE JAMAIS appeler une fonction avec une fausse phrase de passe.** `sentinelle_phrase_ok` journalise chaque refus, et **dix refus en quinze minutes ferment la console pour un quart d'heure** : coller deux ou trois fichiers d'affilée verrouillait l'écran à l'instant précis où on venait de l'installer. Ça prouvait d'ailleurs moins qu'il n'y paraissait — dans l'éditeur SQL on est `postgres`, pas `anon`, donc le refus obtenu ne disait rien du droit d'appel réel de l'app.
+
+    Un fichier SQL se termine par une vérification qui teste ce qui **casse vraiment** : l'objet existe-t-il, et `anon` peut-il l'appeler.
+
+    ```sql
+    select p.proname                                    as fonction,
+           pg_get_function_identity_arguments(p.oid)    as arguments,
+           has_function_privilege('anon', p.oid, 'EXECUTE') as anon_peut_appeler
+      from pg_proc p
+      join pg_namespace ns on ns.oid = p.pronamespace
+     where ns.nspname = 'public'
+       and p.proname in ('ma_fonction', 'mon_autre_fonction')
+     order by p.proname;
+    ```
+
+    Toujours la forme `pg_proc` et jamais `has_function_privilege('anon', 'public.f(text,int)', …)` : la forme textuelle exige de deviner les types au caractère près, et une erreur de signature fait échouer le fichier **en plein milieu**, ce qui est pire que le défaut qu'on corrige.
+
+    Corollaire : un fichier SQL ne doit **rien écrire** dont un compteur de sécurité tienne le compte. Avant d'ajouter une ligne d'essai, se demander ce qu'elle laisse derrière elle.

@@ -294,7 +294,16 @@ select public.envoyer_signalement('TEST-SQL', 'essai', '0.0.0', 'bug', 'Essai de
 select public.envoyer_signalement('TEST-SQL', 'essai', '0.0.0', 'bug', 'Essai depuis l''éditeur SQL',
        'Deuxième essai immédiat, doit être refusé.', '{"essai":true}'::jsonb) as essai_2_refuse;
 
-select public.signalements_lister('phrase-volontairement-fausse') as essai_3_lecture_refusee;
+/* L'essai 3 lisait avec une fausse phrase : chaque refus alimente le
+   compteur anti-force-brute (dix en quinze minutes et la porte se ferme),
+   donc installer verrouillait un peu la console. On vérifie plutôt que
+   `anon` a le droit d'appeler la lecture — c'est ce qui casse l'app. */
+select p.proname                                    as fonction,
+       pg_get_function_identity_arguments(p.oid)    as arguments,
+       has_function_privilege('anon', p.oid, 'EXECUTE') as anon_peut_appeler
+  from pg_proc p
+  join pg_namespace ns on ns.oid = p.pronamespace
+ where ns.nspname = 'public' and p.proname = 'signalements_lister';
 
 select public.signalements_ouverts() as essai_4_compteur;
 

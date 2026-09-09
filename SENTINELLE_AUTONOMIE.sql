@@ -333,6 +333,30 @@ begin
   end loop;
 end $$;
 
-/* ── 7. Verification ─────────────────────────────────────────── */
+/* ── 7. Vérification ────────────────────────────────────────── */
 select public.sentinelle_budget() as budget_du_jour;
-select public.sentinelle_gestes_en_attente('phrase-volontairement-fausse') as doit_refuser;
+
+/* ── Vérification ────────────────────────────────────────────
+   ⚠️ ON NE VÉRIFIE PLUS EN APPELANT AVEC UNE FAUSSE PHRASE.
+   `sentinelle_phrase_ok` journalise chaque refus, et dix refus en quinze
+   minutes ferment la porte pour un quart d'heure : coller plusieurs
+   fichiers d'affilée pouvait donc verrouiller la console à l'instant
+   précis où on venait de l'installer.
+
+   Et ça prouvait moins qu'il n'y paraissait : dans l'éditeur SQL on est
+   `postgres`, pas `anon` — le refus obtenu ne disait rien du droit
+   d'appel réel de l'app.
+
+   On vérifie donc ce qui casse VRAIMENT : la fonction existe-t-elle, et
+   `anon` a-t-il le droit de l'appeler. Une ligne manquante ou un
+   `anon_peut_appeler` à false, c'est l'app en panne ; une fausse phrase
+   refusée, c'était un test qui se testait lui-même. */
+select p.proname                                    as fonction,
+       pg_get_function_identity_arguments(p.oid)    as arguments,
+       has_function_privilege('anon', p.oid, 'EXECUTE') as anon_peut_appeler
+  from pg_proc p
+  join pg_namespace ns on ns.oid = p.pronamespace
+ where ns.nspname = 'public'
+   and p.proname in ('sentinelle_annuler_geste', 'sentinelle_garder_geste', 'sentinelle_gestes_en_attente', 'sentinelle_retirer_actions')
+ order by p.proname;
+
