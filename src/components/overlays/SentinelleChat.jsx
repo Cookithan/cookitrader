@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, Send, Table2 } from "lucide-react";
-import { GOLD, ESPRESSO } from "../../data/themes.js";
 import { verifierPhrase } from "../../lib/sentinelle.js";
+import { THEME_SENTINELLE, ACIER, MARINE } from "../../data/sentinelleTheme.js";
 import { parlerSentinelle } from "../../lib/sentinelleIA.js";
 import { playSound } from "../../lib/audio.js";
 
@@ -27,10 +27,10 @@ import { playSound } from "../../lib/audio.js";
    Props : onClose, onVoirDonnees, userName
 ═══════════════════════════════════════════════════════ */
 
-const C = {
-  bg: '#1B100A', card: '#2A1A11', card2: '#3A2418',
-  text: '#F5E9D6', muted: 'rgba(245,233,214,.62)', border: 'rgba(255,255,255,.10)',
-};
+/* La peau de la Sentinelle, pas celle du joueur : bleu acier et blanc,
+   la même que la console. C'est un écran où l'on lit des alertes et où
+   l'on sanctionne — il vaut mieux qu'il ne change jamais de tête. */
+const C = THEME_SENTINELLE;
 
 /* Un geste → une pastille lisible. Les lectures (lire_*) s'affichent en
    retrait : savoir qu'elle a regardé un joueur avant d'en parler compte,
@@ -52,10 +52,10 @@ function pastille(a) {
 }
 
 const TONS = {
-  fait:    { background: 'rgba(212,160,23,.18)', color: '#F3CE8B', border: '1px solid rgba(212,160,23,.35)' },
-  attente: { background: 'rgba(245,233,214,.08)', color: '#F5E9D6', border: '1px dashed rgba(245,233,214,.35)' },
-  refus:   { background: 'rgba(0,0,0,.35)', color: 'rgba(245,233,214,.75)', border: `1px solid ${ESPRESSO}` },
-  lecture: { background: 'transparent', color: 'rgba(245,233,214,.5)', border: '1px solid transparent' },
+  fait:    { background: 'rgba(43,124,178,.11)', color: ACIER, border: '1.5px solid rgba(43,124,178,.35)' },
+  attente: { background: '#FFFFFF', color: MARINE, border: `1.5px dashed ${ACIER}` },
+  refus:   { background: '#EAF3FA', color: '#5A7E9B', border: '1.5px solid #CCE0EE' },
+  lecture: { background: 'transparent', color: '#5A7E9B', border: '1.5px solid transparent' },
 };
 
 export function SentinelleChat({ onClose, onVoirDonnees, userName }) {
@@ -122,12 +122,12 @@ export function SentinelleChat({ onClose, onVoirDonnees, userName }) {
   return (
     <div style={{
       position: 'fixed', top: 0, left: '50%', transform: 'translateX(-50%)',
-      width: '100%', maxWidth: 430, bottom: 0, background: C.bg, zIndex: 60,
+      width: '100%', maxWidth: 430, bottom: 0, background: C.bg, zIndex: 62,
       display: 'flex', flexDirection: 'column', color: C.text,
     }}>
       {/* En-tête */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: `1px solid ${C.border}`, background: C.card, flexShrink: 0 }}>
-        <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 12, background: C.card2, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text, border: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: `1.5px solid ${C.border}`, background: C.card, flexShrink: 0 }}>
+        <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 12, background: C.card2, border: `1.5px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.text }}>
           <ChevronLeft size={20} />
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -139,7 +139,7 @@ export function SentinelleChat({ onClose, onVoirDonnees, userName }) {
         {ouverte && (
           <button onClick={onVoirDonnees} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '8px 11px', borderRadius: 12,
-            background: 'transparent', border: `1px solid ${C.border}`, color: C.muted, fontSize: 11.5, fontWeight: 700,
+            background: C.card2, border: `1.5px solid ${C.border}`, color: ACIER, fontSize: 11.5, fontWeight: 800,
             touchAction: 'manipulation',
           }}>
             <Table2 size={14} /> Données
@@ -158,12 +158,12 @@ export function SentinelleChat({ onClose, onVoirDonnees, userName }) {
             type="password" value={phrase} onChange={e => setPhrase(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') entrer(); }}
             placeholder="ta phrase de passe" autoFocus
-            style={{ padding: '14px 16px', borderRadius: 14, border: `1px solid ${C.border}`, background: C.card, color: C.text, fontSize: 15, outline: 'none' }}
+            style={{ padding: '14px 16px', borderRadius: 14, border: `1.5px solid ${C.border}`, background: C.card, color: C.text, fontSize: 15, outline: 'none' }}
           />
           {erreurPorte && <div style={{ fontSize: 12.5, color: C.muted }}>{erreurPorte}</div>}
           <button onClick={entrer} disabled={!phrase || verif} style={{
             padding: '14px', borderRadius: 16, border: 'none', fontSize: 14.5, fontWeight: 900,
-            background: (!phrase || verif) ? C.card2 : GOLD, color: (!phrase || verif) ? C.muted : '#fff',
+            background: (!phrase || verif) ? C.card2 : ACIER, color: (!phrase || verif) ? C.muted : '#fff',
             touchAction: 'manipulation',
           }}>
             {verif ? 'je vérifie…' : 'Entrer'}
@@ -188,9 +188,10 @@ export function SentinelleChat({ onClose, onVoirDonnees, userName }) {
                   <div style={{
                     maxWidth: '86%', padding: '11px 14px', borderRadius: 18,
                     borderBottomLeftRadius: elle ? 6 : 18, borderBottomRightRadius: elle ? 18 : 6,
-                    background: m.systeme ? 'rgba(0,0,0,.35)' : elle ? C.card : GOLD,
+                    background: m.systeme ? C.card2 : elle ? C.card : ACIER,
                     color: elle ? C.text : '#fff',
-                    border: m.systeme ? `1px solid ${ESPRESSO}` : 'none',
+                    border: m.systeme ? `1.5px solid ${C.border}` : elle ? `1.5px solid ${C.border}` : 'none',
+                    boxShadow: elle ? '0 2px 8px rgba(14,51,85,.06)' : '0 3px 12px rgba(27,94,140,.28)',
                     fontSize: 14, lineHeight: 1.5, whiteSpace: 'pre-wrap',
                     opacity: m.ancien ? .72 : 1,
                   }}>
@@ -214,7 +215,7 @@ export function SentinelleChat({ onClose, onVoirDonnees, userName }) {
           })}
           {attente && (
             <div style={{ display: 'flex' }}>
-              <div style={{ padding: '11px 14px', borderRadius: 18, borderBottomLeftRadius: 6, background: C.card, color: C.muted, fontSize: 13 }}>
+              <div style={{ padding: '11px 14px', borderRadius: 18, borderBottomLeftRadius: 6, background: C.card, border: `1.5px solid ${C.border}`, color: C.muted, fontSize: 13 }}>
                 <span className="live-pulse">…</span>
               </div>
             </div>
@@ -225,19 +226,19 @@ export function SentinelleChat({ onClose, onVoirDonnees, userName }) {
 
       {/* ── La saisie ── */}
       {ouverte && (
-        <div style={{ display: 'flex', gap: 8, padding: '10px 12px 14px', borderTop: `1px solid ${C.border}`, background: C.card, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 8, padding: '10px 12px 14px', borderTop: `1.5px solid ${C.border}`, background: C.card, flexShrink: 0 }}>
           <textarea
             ref={saisieRef} value={saisie} onChange={e => setSaisie(e.target.value)} onKeyDown={surTouche}
             placeholder="dis-lui quoi faire, ou demande-lui" rows={1}
             style={{
               flex: 1, resize: 'none', padding: '11px 14px', borderRadius: 16, maxHeight: 96,
-              border: `1px solid ${C.border}`, background: C.bg, color: C.text, fontSize: 14, lineHeight: 1.4, outline: 'none',
+              border: `1.5px solid ${C.border}`, background: C.card2, color: C.text, fontSize: 14, lineHeight: 1.4, outline: 'none',
               fontFamily: 'inherit',
             }}
           />
           <button onClick={envoyer} disabled={!saisie.trim() || attente} style={{
             width: 44, height: 44, borderRadius: 14, border: 'none', flexShrink: 0, alignSelf: 'flex-end',
-            background: (!saisie.trim() || attente) ? C.card2 : GOLD, color: (!saisie.trim() || attente) ? C.muted : '#fff',
+            background: (!saisie.trim() || attente) ? C.card2 : ACIER, color: (!saisie.trim() || attente) ? C.muted : '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation',
           }}>
             <Send size={18} />

@@ -1,3 +1,4 @@
+import { MARINE, ACIER, THEME_SENTINELLE } from "../../data/sentinelleTheme.js";
 import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import {
@@ -69,8 +70,6 @@ import { tousLesJoueurs, demander, EXEMPLES, correspondQuestion } from "../../li
    pour ce qui va bien. Trois bleus, trois niveaux, aucun rouge.
 ═══════════════════════════════════════════════════════ */
 
-const MARINE = '#0B2E4D';   /* l'encre : titres graves, texte de danger */
-const ACIER  = '#1B5E8C';   /* l'accent : ce sur quoi on peut appuyer   */
 
 /* ── LE THÈME DE LA SENTINELLE ───────────────────────
    L'écran ne prend PAS le thème du joueur. Il a le sien, et un seul.
@@ -91,14 +90,6 @@ const ACIER  = '#1B5E8C';   /* l'accent : ce sur quoi on peut appuyer   */
    téléphone : la lisibilité passe avant le confort nocturne. Même forme
    qu'un thème du jeu (bg/card/card2/text/muted/border), donc les
    sous-composants n'ont rien à savoir de tout ça. */
-const THEME_SENTINELLE = {
-  bg:     'linear-gradient(170deg,#F3F9FD 0%,#E4F0F9 55%,#DAECF7 100%)',
-  card:   '#FFFFFF',
-  card2:  '#EAF3FA',
-  text:   '#0E3355',
-  muted:  '#5A7E9B',
-  border: '#CCE0EE',
-};
 
 /* Chaque gravité a sa teinte, son ruban et son mot. Le mot compte
    autant que la couleur : « à corriger » dit quoi faire, « alerte » ne
