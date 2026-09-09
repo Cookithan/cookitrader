@@ -266,7 +266,11 @@ async function contexte(sb: SB) {
     sb.from("market_state").select("current_price,shares_in_circulation,circuit_breaker_until,last_inflation_at").eq("id", 1).maybeSingle(),
     sb.from("sentinelle_rapports").select("created_at,verdict,categorie,titre,detail").neq("verdict", "ok").order("created_at", { ascending: false }).limit(15),
     sb.from("signalements").select("id,cree_le,user_code,user_name,categorie,chemin,message,statut").in("statut", ["nouveau", "vu"]).order("cree_le", { ascending: false }).limit(12),
-    sb.from("sentinelle_journal").select("created_at,action,cible,resultat,message").order("created_at", { ascending: false }).limit(20),
+    /* .neq('resultat', 'lecture') : les consultations sont journalisées
+       pour que Cookithan puisse verifier « j'ai regardé », mais elles
+       n'apprennent rien à la Sentinelle et chasseraient les vrais gestes
+       de sa fenêtre de vingt lignes. */
+    sb.from("sentinelle_journal").select("created_at,action,cible,resultat,message").neq("resultat", "lecture").order("created_at", { ascending: false }).limit(20),
     sb.from("comptes_sous_surveillance").select("user_code,motif,plafond_earned,plafond_cookies,plafond_cafes,plafond_level,ajoute_le"),
     sb.from("app_health").select("kind,user_name,app_version,detail,created_at").gte("created_at", depuis24h).order("created_at", { ascending: false }).limit(30),
     sb.from("sentinelle_etat").select("*").eq("id", 1).maybeSingle(),
@@ -441,6 +445,19 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
       crashs: sante.filter((h: R) => h.kind === "crash").length,
       autres_signaux: sante.filter((h: R) => h.kind !== "ouverture" && h.kind !== "crash").length,
     };
+    /* ── Pourquoi on journalise une LECTURE ──
+       Cookithan, le 09/09 : elle écrit « j'ai regardé ton compte » et rien
+       ne permettait de le vérifier — seuls les gestes laissaient une
+       trace. Une phrase invérifiable finit par ne plus être crue.
+
+       Le résultat est 'lecture' et non 'ok' : c'est ce qui permet de les
+       SORTIR du journal qu'il lit en premier, et de son propre contexte.
+       Sans ça, quinze consultations noieraient les trois gestes qui
+       comptent — et lui coûteraient des jetons au passage. */
+    await sb.from("sentinelle_journal").insert({
+      action: "lire_joueur", cible: u.user_code, resultat: "lecture",
+      message: `${u.user_name ?? "?"} · niv ${u.level ?? "?"} · ${u.cookies ?? "?"} cookies`,
+    });
     const { unlocked: _u, earned_achievements: _e, ...compte } = u;
     return { trouve: true, compte, connexions, portefeuille: pf.data, surveillance: sv.data, journal: jn.data, signalements: sg.data };
   }
@@ -450,6 +467,10 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
     let q = sb.from("signalements").select("id,cree_le,user_code,user_name,app_version,categorie,chemin,message,contexte,statut,note").order("cree_le", { ascending: false }).limit(25);
     if (statut !== "tous") q = q.eq("statut", statut);
     const { data } = await q;
+    await sb.from("sentinelle_journal").insert({
+      action: "lire_signalements", resultat: "lecture",
+      message: `${(data ?? []).length} signalement(s) lus (${statut})`,
+    });
     return { signalements: data ?? [] };
   }
 

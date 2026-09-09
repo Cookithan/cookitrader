@@ -58,7 +58,7 @@ const CONTOUR = `1.5px solid ${BLEU[200]}`;
    ici ne dépend de son état, et l'effet de montage peut donc s'en servir
    sans la traîner en dépendance. */
 const lire = (phrase) => Promise.all([
-  derniersRapports(20), journal(14), prixMarche(), signalementsOuverts(), manquesConnus(), lireMode(),
+  derniersRapports(20), journal(40), prixMarche(), signalementsOuverts(), manquesConnus(), lireMode(),
   gestesEnAttente(phrase),
 ]);
 
@@ -245,6 +245,7 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
   const [bascule, setBascule]       = useState(null);   /* le mode qu'on est en train de poser */
   const [gestes, setGestes]         = useState([]);
   const [enCoursGeste, setEnCoursGeste] = useState(null);
+  const [voirLectures, setVoirLectures] = useState(false);
 
   const charger = async () => {
     setChargement(true);
@@ -305,6 +306,11 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
     playSound('toggle'); haptic('success');
     setEtat(e => ({ ...(e || {}), mode: id, erreur: null }));
   };
+
+  /* Deux natures différentes dans la même table : ce qu'elle a FAIT, et
+     ce qu'elle a REGARDÉ. Le résultat 'lecture' les sépare. */
+  const gestesJournal = lignes.filter(l => l.resultat !== 'lecture');
+  const lectures      = lignes.filter(l => l.resultat === 'lecture');
 
   const trancher = async (id, garder) => {
     if (enCoursGeste) return;
@@ -558,10 +564,29 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
       </Bloc>
 
       {/* ── Ce qui a été fait ── */}
-      <Bloc emoji="📜" titre="Le journal" compte={lignes.length}>
-        {!lignes.length ? (
+      <Bloc emoji="📜" titre="Le journal" compte={gestesJournal.length}>
+        {/* Les LECTURES sont à part, et repliées par défaut.
+            Elle consulte beaucoup plus qu'elle n'agit : mélangées, quinze
+            consultations noieraient les trois gestes qui comptent, et ce
+            journal est la première chose qu'on lit en rentrant. Elles sont
+            là pour VÉRIFIER un « j'ai regardé ton compte », pas pour être
+            parcourues tous les jours. */}
+        {lectures.length > 0 && (
+          <button onClick={() => setVoirLectures(v => !v)}
+            style={{ width: '100%', marginBottom: 9, padding: '9px 11px', borderRadius: 11, border: CONTOUR, background: BLEU[50], color: ACIER, fontSize: 12, fontWeight: 800, textAlign: 'left', touchAction: 'manipulation' }}>
+            {voirLectures ? '▾' : '▸'} {lectures.length} consultation(s) — ce qu'elle a regardé sans rien changer
+          </button>
+        )}
+        {voirLectures && lectures.map(l => (
+          <div key={l.id} style={{ display: 'flex', gap: 9, padding: '5px 0', fontSize: 11.5, lineHeight: 1.4, color: C.muted }}>
+            <span style={{ flexShrink: 0, minWidth: 68, fontVariantNumeric: 'tabular-nums' }}>{jour(l.created_at)} {heure(l.created_at)}</span>
+            <span style={{ flex: 1, minWidth: 0 }}>{l.action === 'lire_joueur' ? '👁 ' : '📮 '}{l.message || l.action}</span>
+          </div>
+        ))}
+
+        {!gestesJournal.length ? (
           <div style={{ fontSize: 12.5, color: C.muted }}>Aucun geste enregistré.</div>
-        ) : lignes.map(l => (
+        ) : gestesJournal.map(l => (
           <div key={l.id} style={{ display: 'flex', gap: 9, padding: '6px 0', fontSize: 12, lineHeight: 1.45, borderBottom: `1px solid ${C.trait}` }}>
             <span style={{ color: C.muted, flexShrink: 0, minWidth: 68, fontVariantNumeric: 'tabular-nums', fontWeight: 600 }}>{jour(l.created_at)} {heure(l.created_at)}</span>
             <span style={{ flex: 1, minWidth: 0 }}>

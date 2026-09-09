@@ -87,6 +87,7 @@ declare
   e         record;
   heure     int;
   alerte    boolean;
+  attend    boolean;
   bouge     boolean;
   depuis    timestamptz;
 begin
@@ -120,10 +121,21 @@ begin
     return 'nuit (22h-6h Paris), rien d urgent';
   end if;
 
-  -- 5. la cadence de 3 h, court-circuitee par une alerte
-  if not alerte and e.derniere_ronde_ia is not null
+  /* Un joueur qui attend passe devant la cadence.
+     Sans ca, quelqu un qui ecrit a 10 h 05 pouvait attendre jusqu a 13 h
+     avant d avoir une reponse : on croirait la Sentinelle en panne, et le
+     joueur, lui, croirait qu on l ignore. Le plancher d une heure borne
+     quand meme le rythme, donc au pire il patiente une heure.
+     La NUIT ne bouge pas : un signalement n est pas une urgence, et il
+     sera rattrape a 6 h. */
+  select exists (
+    select 1 from public.signalements where statut in ('nouveau', 'vu')   -- les statuts reels : nouveau | vu | traite | sans_suite
+  ) into attend;
+
+  -- 5. la cadence de 3 h, court-circuitee par une alerte ou une attente
+  if not alerte and not attend and e.derniere_ronde_ia is not null
      and e.derniere_ronde_ia > now() - interval '3 hours' then
-    return 'moins de 3 h depuis la derniere ronde';
+    return 'moins de 3 h depuis la derniere ronde, et rien n attend';
   end if;
 
   -- 5 bis. s est-il passe quelque chose ?
@@ -135,7 +147,7 @@ begin
     exists (select 1 from public.market_transactions where created_at > depuis)
   into bouge;
 
-  if not bouge then return 'rien de nouveau depuis la derniere ronde'; end if;
+  if not bouge and not attend then return 'rien de nouveau depuis la derniere ronde'; end if;
 
   return null;   -- elle peut tourner
 end;
