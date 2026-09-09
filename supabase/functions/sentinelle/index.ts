@@ -376,7 +376,7 @@ async function tourner(client: Anthropic, sb: SB, phrase: string, messages: Anth
 /* ── La pile ────────────────────────────────────────────────── */
 async function lirePile(sb: SB) {
   const [{ data: dossiers }, { data: etat }] = await Promise.all([
-    sb.from("sentinelle_dossiers").select("id,created_at,updated_at,cle,genre,gravite,titre,analyse,proposition,actions,echanges").eq("statut", "ouvert").order("created_at", { ascending: false }),
+    sb.from("sentinelle_dossiers").select("id,created_at,updated_at,cle,genre,gravite,titre,explication,proposition,actions,echanges").eq("statut", "ouvert").order("created_at", { ascending: false }),
     sb.from("sentinelle_etat").select("dernier_mot,derniere_seule,dossiers_rediges_le").eq("id", 1).maybeSingle(),
   ]);
   const ordre = { haute: 0, moyenne: 1, basse: 2 } as Record<string, number>;
@@ -407,7 +407,8 @@ async function redigerPile(client: Anthropic, sb: SB, phrase: string) {
       genre: ["triche", "marche", "signalement", "joueur", "app", "info"].includes(String(d.genre)) ? String(d.genre) : "info",
       gravite: ["haute", "moyenne", "basse"].includes(String(d.gravite)) ? String(d.gravite) : "moyenne",
       titre: String(d.titre ?? "").slice(0, 300),
-      analyse: String(d.analyse ?? "").slice(0, 800),
+      /* « analyse » est réservé en SQL : la colonne s'appelle explication. */
+      explication: String(d.analyse ?? "").slice(0, 800),
       proposition: String(d.proposition ?? "Classer").slice(0, 80),
       actions: Array.isArray(d.actions) ? (d.actions as Geste[]).filter(g => g && typeof g.outil === "string").slice(0, 3) : [],
       updated_at: maintenant,
@@ -508,7 +509,7 @@ Deno.serve(async (req) => {
     const fil = echanges.map(e => `${e.qui === "regis" ? "Régis" : "Toi"} : ${e.texte}`).join("\n");
     const messages: Anthropic.MessageParam[] = [{
       role: "user",
-      content: `[Régis te parle DANS le dossier « ${d.titre} ».\nTon analyse : ${d.analyse}\nTa proposition : ${d.proposition}\n${fil ? "Échange jusqu'ici :\n" + fil + "\n" : ""}Sa question : ${question}\n\nRéponds court, dans le dossier. Tu peux utiliser tes outils. Si sa question change ta proposition, dis-le clairement — il pourra taper le bouton ensuite ou te dire quoi faire. S'il te dit clairement oui pour un geste lourd, tu peux l'exécuter avec confirmation_utilisateur=true.]\n\n--- CONTEXTE À JOUR ---\n${ctx}`,
+      content: `[Régis te parle DANS le dossier « ${d.titre} ».\nTon analyse : ${d.explication}\nTa proposition : ${d.proposition}\n${fil ? "Échange jusqu'ici :\n" + fil + "\n" : ""}Sa question : ${question}\n\nRéponds court, dans le dossier. Tu peux utiliser tes outils. Si sa question change ta proposition, dis-le clairement — il pourra taper le bouton ensuite ou te dire quoi faire. S'il te dit clairement oui pour un geste lourd, tu peux l'exécuter avec confirmation_utilisateur=true.]\n\n--- CONTEXTE À JOUR ---\n${ctx}`,
     }];
     const { texte, actions } = await tourner(client, sb, phrase, messages, { outils: OUTILS });
     const reponse = texte || (actions.length ? "C'est fait." : "Je n'ai rien à ajouter.");

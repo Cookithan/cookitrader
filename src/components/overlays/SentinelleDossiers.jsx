@@ -145,7 +145,7 @@ function Dossier({ d, phrase, onFerme }) {
       {ouvert && (
         <div style={{ padding: '0 14px 12px' }}>
           <div style={{ fontSize: 13, lineHeight: 1.5, color: C.text, opacity: .88, padding: '10px 12px', background: C.card2, borderRadius: 12 }}>
-            {d.analyse}
+            {d.explication}
           </div>
           {echanges.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>

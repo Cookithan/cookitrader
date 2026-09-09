@@ -29,7 +29,8 @@ create table if not exists public.sentinelle_dossiers (
   /* 'haute' | 'moyenne' | 'basse' */
   gravite      text not null default 'moyenne',
   titre        text not null,            -- sa phrase : le fait, en clair
-  analyse      text,                     -- ce qui a été regardé, et pourquoi elle pense ça
+  /* « analyse » est un mot réservé de Postgres (alias anglais de ANALYZE) : d'où ce nom-ci. */
+  explication  text,
   proposition  text,                     -- le libellé du bouton (ex. « Sanctionner à 70 194 »)
   actions      jsonb,                    -- [{outil, entree}] : le geste, déjà rempli
   /* 'ouvert' | 'classe' | 'fait' */
