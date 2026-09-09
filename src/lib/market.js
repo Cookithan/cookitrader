@@ -21,7 +21,7 @@ import { isAdminName, notAdmin } from '../utils/admin.js';
    quotidienne, plus de retour vers 100, plus de plafond doux, plus de
    mean reversion. Le cours est désormais le produit exact des achats et
    des ventes : prix = 500 × Π(1 ± IMPACT_PER_SHARE × n). Entre deux
-   transactions il ne se passe rien, et c'est voulu (décision Régis) —
+   transactions il ne se passe rien, et c'est voulu (décision Cookithan) —
    une courbe plate est le prix à payer pour une courbe honnête.
    Conséquence à connaître : rien ne ramène le prix vers une valeur de
    confort. S'il monte, c'est que des joueurs ont acheté ; s'il s'effondre,
@@ -82,7 +82,7 @@ export const MARKET_CONFIG = {
   CIRCUIT_BREAKER_THRESHOLD:    0.20,           // 20 % de variation
   CIRCUIT_BREAKER_WINDOW_MS:    5 * 60 * 1000,  // sur 5 min
   CIRCUIT_BREAKER_PAUSE_MS:     30 * 60 * 1000, // pause 30 min
-  /* ⚠️ BONUS DE HOLD RETIRÉ le 08/09/2026 (demande Régis). Il multipliait
+  /* ⚠️ BONUS DE HOLD RETIRÉ le 08/09/2026 (demande Cookithan). Il multipliait
      la plus-value positive par 1,1 / 1,3 / 2 selon la durée de détention
      — donc il fabriquait des cookies par-dessus le marché, en dehors de
      tout mouvement de prix. Vendre au même cours qu'à l'achat pouvait
@@ -90,7 +90,7 @@ export const MARKET_CONFIG = {
      à la demande, le gain doit venir du cours et de rien d'autre.
      `weighted_buy_at` reste écrit et sert toujours : il affiche la durée
      de détention et alimente les frais de garde. */
-  /* PLAFOND PAR JOUEUR RETIRÉ le 08/09/2026 (décision Régis, après que
+  /* PLAFOND PAR JOUEUR RETIRÉ le 08/09/2026 (décision Cookithan, après que
      Vexed s'est heurté aux 100 actions dès le premier jour). La valeur
      reste égale au flottant entier : le cap ne mord plus jamais, mais
      l'export MAX_SHARES_PER_USER continue d'exister pour TradePanel et
@@ -797,7 +797,7 @@ export async function creditFreeShares(userCode, sharesToAdd, options = {}) {
        trace : le joueur recevait 30 actions, la courbe ne bougeait pas,
        et rien n'apparaissait dans l'historique. Vu de l'extérieur, les
        actions semblaient créées « en plus des 2000 » — c'est exactement
-       ce qu'a rapporté Régis.
+       ce qu'a rapporté Cookithan.
 
        Le flottant est fini : 2000 actions, pas une de plus. Une action
        donnée est donc une action de moins dans le pot, et le cours doit

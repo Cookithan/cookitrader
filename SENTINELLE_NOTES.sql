@@ -4,7 +4,7 @@
    À COLLER TEL QUEL. Idempotent.
 
    La conversation est sa mémoire à court terme. Ceci est sa mémoire
-   longue : les décisions que Régis prend (« Miagguy est réglo, ne me
+   longue : les décisions que Cookithan prend (« Miagguy est réglo, ne me
    le ressors plus »), les faits qu'elle établit (« le signalement #12
    est le même bug que #9 »), les choses à ne pas oublier. Elle y écrit
    avec l'outil `retenir`, et relit ses trente dernières notes à chaque

@@ -1,7 +1,7 @@
 -- ════════════════════════════════════════════════════
 -- RESTAURER_ACTIONS_CKM.sql — rendre les actions effacées au reset
 -- ────────────────────────────────────────────────────
--- Régis a vidé les portefeuilles $CKM pour repartir de zéro sur le
+-- Cookithan a vidé les portefeuilles $CKM pour repartir de zéro sur le
 -- marché. Les actions détenues à ce moment-là sont connues par la
 -- capture du classement des traders (2026-09-07, 19 h 25) — reportées
 -- ci-dessous, appariées aux user_code de la base.
@@ -35,7 +35,7 @@
 -- ─────────────────────────────────────────────────────
 -- TRANCHÉ — Le vrai Cooki (FPJ-LJK) : RIEN NE LUI EST RENDU
 -- ─────────────────────────────────────────────────────
--- Décision de Régis (2026-09-07) : il rejoint Fedider du côté des
+-- Décision de Cookithan (2026-09-07) : il rejoint Fedider du côté des
 -- comptes sanctionnés. Ses 500 actions de la capture ne sont donc PAS
 -- restaurées, et le bloc de SANCTION_EXPLOIT_MEMORY.sql qui remet son
 -- portefeuille à 0 reste valable. Les deux fichiers sont cohérents.
@@ -46,7 +46,7 @@
 -- ─────────────────────────────────────────────────────
 -- TRANCHÉ — dokiller (7Z4-977) : ses 90 actions lui sont RENDUES
 -- ─────────────────────────────────────────────────────
--- Décision de Régis (2026-09-07). Sa sanction de mai 2026 portait sur
+-- Décision de Cookithan (2026-09-07). Sa sanction de mai 2026 portait sur
 -- la manipulation du prix, pas sur l'origine de ses actions : celles-ci
 -- ont été acquises normalement, et effacées par la remise à zéro du
 -- marché comme celles de tout le monde. Sa ligne est donc à décommenter

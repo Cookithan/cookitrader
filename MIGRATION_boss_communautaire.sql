@@ -132,7 +132,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  -- Anti-triche par-joueur retiré (demande Régis). Seul le cooldown
+  -- Anti-triche par-joueur retiré (demande Cookithan). Seul le cooldown
   -- 2s est conservé : c'est une MÉCANIQUE de jeu (le "Rechargement"),
   -- pas un cap. Récompense cosmétique → risque assumé.
   c_cooldown           INTERVAL := INTERVAL '2 seconds';

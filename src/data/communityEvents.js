@@ -53,7 +53,7 @@ export const FREE_DMG             = 25;     // dégâts d'un tap gratuit
 export const BOOST_COST_COOKIES   = 100;    // coût 🍪 du "Gros coup"
 export const BOOST_DMG            = 150;    // dégâts du "Gros coup"
 /* Plus de plafond serveur (anti-triche par-joueur retiré, demande
-   Régis). Conservés pour info/UI éventuelle, non imposés côté SQL. */
+   Cookithan). Conservés pour info/UI éventuelle, non imposés côté SQL. */
 export const MAX_DMG_PER_ATTACK   = 100000;
 export const MAX_DMG_PER_USER     = 100000000;
 
@@ -69,7 +69,7 @@ export const SUPER_DOWN_MS = 5000;                // durée "à terre"
 /* ── Récompense ───────────────────────────────────────
    UNIQUEMENT le SKIN EXCLUSIF "Cookie Mangeur" (cosmétique, non
    exploitable) débloqué dès qu'on a participé à une VICTOIRE.
-   AUCUN cookie, AUCUN bonus, JAMAIS de ☕ CF (demande Régis :
+   AUCUN cookie, AUCUN bonus, JAMAIS de ☕ CF (demande Cookithan :
    "ne donne pas de cookies, juste le skin"). */
 export const REWARD_MIN_DAMAGE = 100;          // seuil "j'ai participé"
 export const REWARD_SKIN_ID    = 'skin_mangeur';

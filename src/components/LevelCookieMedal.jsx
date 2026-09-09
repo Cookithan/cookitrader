@@ -32,7 +32,7 @@ import { useId } from "react";
    ⚠️ LE BISCUIT EST ROND, MAIS SANS AUCUN LISERÉ BLANC AUTOUR.
    La première version enfermait le cookie dans un conteneur rond avec
    `border: 2px solid rgba(255,255,255,.38)` : ça lui posait un anneau
-   blanc, visible et laid sur le brun de la bannière. Régis, le 09/09 :
+   blanc, visible et laid sur le brun de la bannière. Cookithan, le 09/09 :
    « il y a un cercle blanc autour ». Le rond, lui, il le veut — c'est
    le liseré qui saute, pas la forme.
 
@@ -61,7 +61,7 @@ function melange(hex, vers, t) {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-/* Le biscuit est ROND — demande de Régis, 09/09 : « pour la bannière le
+/* Le biscuit est ROND — demande de Cookithan, 09/09 : « pour la bannière le
    cookie doit être rond stp ». Un temps il a eu un bord bosselé ; ça ne
    lui allait pas à cette taille, où les bosses passent pour un défaut de
    rendu plutôt que pour du biscuit.

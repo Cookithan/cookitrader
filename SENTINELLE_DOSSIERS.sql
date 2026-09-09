@@ -3,7 +3,7 @@
    ──────────────────────────────────────────────────────────────────
    À COLLER TEL QUEL. Idempotent.
 
-   Régis, le 09/09 : « quand on va sur la Sentinelle, d'abord les choses
+   Cookithan, le 09/09 : « quand on va sur la Sentinelle, d'abord les choses
    à traiter — mais simplifié, avec la Sentinelle qui est là autrement,
    pas un chat à part ». Un associé ne t'attend pas dans une fenêtre :
    il a déjà trié, et il te tend les dossiers.
@@ -35,7 +35,7 @@ create table if not exists public.sentinelle_dossiers (
   actions      jsonb,                    -- [{outil, entree}] : le geste, déjà rempli
   /* 'ouvert' | 'classe' | 'fait' */
   statut       text not null default 'ouvert',
-  decision     text,                     -- ce que Régis a décidé, ou ce qui a été exécuté
+  decision     text,                     -- ce que Cookithan a décidé, ou ce qui a été exécuté
   decision_le  timestamptz,
   resultats    jsonb,                    -- ce que les gestes ont renvoyé
   /* La conversation collée au dossier : [{qui:'regis'|'sentinelle', texte, quand}] */

@@ -111,7 +111,7 @@ begin
 end $$;
 
 /* ── 2 ter. Les codes promo ───────────────────────────────────
-   Cette table sert d'abord aux codes que Régis crée DEPUIS SON
+   Cette table sert d'abord aux codes que Cookithan crée DEPUIS SON
    TÉLÉPHONE, avec les trois récompenses courantes : cookies, cafés,
    actions.
 

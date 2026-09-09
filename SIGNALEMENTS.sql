@@ -9,7 +9,7 @@
 
    CE QUE ÇA OUVRE
    ───────────────
-   Jusqu'ici la Sentinelle ne parlait qu'à Régis. Les joueurs, eux,
+   Jusqu'ici la Sentinelle ne parlait qu'à Cookithan. Les joueurs, eux,
    n'avaient aucun moyen de dire « ça ne marche pas » : au mieux un
    message Discord, au pire rien du tout — et un bug qu'on ne raconte
    jamais n'est jamais corrigé.
@@ -57,7 +57,7 @@ create table if not exists public.signalements (
   message     text not null,
   contexte    jsonb,                    -- niveau, langue, plateforme…
   statut      text not null default 'nouveau',   -- nouveau | vu | traite | sans_suite
-  note        text,                     -- ce que Régis en a fait
+  note        text,                     -- ce que Cookithan en a fait
   traite_le   timestamptz
 );
 

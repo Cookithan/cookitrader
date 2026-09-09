@@ -21,14 +21,14 @@ import {
    ────────────────────────────────────────────────────
    Visuel = BRIEF_BOSS_COMMUNAUTAIRE.md (layout phase 5 / BossPage)
    appliqué sur la LOGIQUE EXISTANTE (hook useCommunityBoss, tables
-   community_boss_events, claim App.jsx) — choix Régis : on garde
+   community_boss_events, claim App.jsx) — choix Cookithan : on garde
    l'archi en place, on ne reprend QUE le visuel du brief.
 
    Adaptations assumées vs brief :
      · cartes externes en couleurs de thème C (pas de blanc/texte
        sombre hardcodés → ne casse pas le thème nuit) ; le panneau
        boss reste le dégradé café sombre du brief.
-     · pas de flash blanc plein écran (Régis l'a explicitement rejeté
+     · pas de flash blanc plein écran (Cookithan l'a explicitement rejeté
        — feedback = recoil + miettes + chiffre + impact barre).
      · 🤎 au lieu de ❤️ (rouge interdit, CLAUDE.md #10).
      · podium = layout 3 colonnes surélevé du brief, mais avec les

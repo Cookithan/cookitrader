@@ -5,7 +5,7 @@ import { supabase, isSupabaseEnabled } from './supabase';
    ────────────────────────────────────────────────────
    Tout part vers la fonction serveur `sentinelle`, qui détient la clé
    Anthropic, vérifie la phrase, rassemble la base et fait tourner le
-   modèle. L'app n'a JAMAIS la clé — seulement la phrase de Régis, en
+   modèle. L'app n'a JAMAIS la clé — seulement la phrase de Cookithan, en
    mémoire le temps de l'écran.
 
    Cinq gestes, un seul appel derrière :

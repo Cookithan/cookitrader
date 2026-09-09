@@ -30,7 +30,7 @@ import {
    sous-écran : l'équipement est une destination à part entière. Il l'a été
    brièvement dans la Boutique — rejeté, ça mélangeait acheter et équiper.
 
-   DEUX NIVEAUX, jamais tout à la fois (règle posée par Régis : « quand on
+   DEUX NIVEAUX, jamais tout à la fois (règle posée par Cookithan : « quand on
    ouvre on a plein de thèmes d'un coup ») :
      1. HUB — 6 cartes, une par catégorie, chacune montrant ce qui est
         ÉQUIPÉ en ce moment + le nombre possédé. Rien d'autre.
@@ -53,7 +53,7 @@ import {
 ═══════════════════════════════════════════════════════ */
 
 /* Items débloquables par code promo — dérivé de PROMO_CODES (champ
-   `unlock`), donc toujours à jour si Régis ajoute un code. Sert à ranger
+   `unlock`), donc toujours à jour si Cookithan ajoute un code. Sert à ranger
    ces cosmétiques dans leur propre groupe : on les retrouve par leur
    provenance, pas par leur couleur. */
 const PROMO_UNLOCK_IDS = new Set(

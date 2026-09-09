@@ -125,7 +125,7 @@ export function QuizGame({ canPlay, msLeft, coins, onEarn, onSpend, onDone, onCl
   );
 
   if(chosenDifficulty === null) {
-    /* Facile REMIS le 08/09/2026 (demande Régis). Il avait été retiré
+    /* Facile REMIS le 08/09/2026 (demande Cookithan). Il avait été retiré
        parce qu'il ne servait à rien : la moitié des questions « Facile »
        portaient sur l'app elle-même — combien de niveaux, quel mini-jeu
        à quel palier — donc faciles pour qui joue, impossibles pour qui

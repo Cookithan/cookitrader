@@ -156,7 +156,7 @@ begin
      Le mur bloque les remontées à l'écriture. Mais si une seule passe —
      un chemin oublié, une colonne non couverte, un compte recréé — rien
      ne la rattrapait ensuite. Ici on RAMÈNE le compte sous le plafond
-     que Régis lui a fixé.
+     que Cookithan lui a fixé.
 
      Ce n'est pas une sanction automatique : c'est l'exécution d'une
      sanction humaine. La nuance est toute la différence. */

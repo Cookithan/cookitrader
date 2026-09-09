@@ -577,7 +577,7 @@ export function setupVisibilityHandler(){
      jamais par « visible » — et la musique restait coupée jusqu'au
      prochain vrai passage en arrière-plan.
 
-     C'est le symptôme rapporté par Régis : de la musique à l'accueil,
+     C'est le symptôme rapporté par Cookithan : de la musique à l'accueil,
      plus rien dans certains mini-jeux. Le `focus` referme la boucle. */
   const onFocus = () => {
     if(!pausedByVisibility || document.hidden) return;

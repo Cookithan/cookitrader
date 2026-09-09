@@ -5,13 +5,13 @@
    Prérequis : SENTINELLE_HORLOGE.sql, SENTINELLE_NOTES.sql,
    SENTINELLE_DOSSIERS.sql, et la fonction serveur déployée.
 
-   Régis : « elle gère autant l'application que moi, c'est le but final ».
+   Cookithan : « elle gère autant l'application que moi, c'est le but final ».
    Jusqu'ici le modèle ne se réveillait que quand il ouvrait la Sentinelle.
    Ici, toutes les heures, l'horloge appelle la fonction serveur en mode
    « ronde » : elle regarde tout AVEC SA TÊTE, fait ce qu'elle a le droit
    de faire seule — répondre aux joueurs, compenser dans les plafonds,
    marquer, fermer un marché qui déraille, noter — et laisse dans la pile
-   uniquement ce que Régis est le seul à pouvoir décider.
+   uniquement ce que Cookithan est le seul à pouvoir décider.
 
    COMMENT ELLE S'AUTHENTIFIE SANS CONNAÎTRE LA PHRASE
    ───────────────────────────────────────────────────

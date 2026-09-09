@@ -78,7 +78,7 @@ export function MarketTeaser({ level, onOpen, C }) {
            fond opaque dessous : elle prenait donc la couleur du thème
            derrière elle. Sur les thèmes à fond dégradé (Cappuccino,
            Caramel…), qui sont la majorité, ça revenait à ne rien
-           dessiner du tout — Régis : « elle a la même couleur que le
+           dessiner du tout — Cookithan : « elle a la même couleur que le
            fond d'écran ». On repose donc C.card, comme toutes les
            autres cartes de l'accueil, et le doré ne fait plus que
            teinter par-dessus. */

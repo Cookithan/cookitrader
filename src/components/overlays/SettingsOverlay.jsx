@@ -175,7 +175,7 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
           </section>
         )}
 
-        {/* À propos — remonté en 2e position (v1.30, demande de Régis) :
+        {/* À propos — remonté en 2e position (v1.30, demande de Cookithan) :
             c'est l'écran qui porte le changelog, les stats de la communauté
             et les crédits, il était la 3e ligne grise d'AIDE & INFOS.
             Accent doré + numéro de version, et pastille NOUVEAU tant que

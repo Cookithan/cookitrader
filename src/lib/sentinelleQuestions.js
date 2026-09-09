@@ -8,7 +8,7 @@ import { CODES_CONCERNES_129 } from '../data/accountNotices.js';
 /* ════════════════════════════════════════════════════
    sentinelleQuestions.js — poser une question à la vigie
    ────────────────────────────────────────────────────
-   Régis voulait « parler » à la sentinelle, pas seulement l'inspecter.
+   Cookithan voulait « parler » à la sentinelle, pas seulement l'inspecter.
    Choix assumé : PAS d'intelligence artificielle. Une IA aurait
    demandé une clé d'API, un coût par message, et un serveur relais —
    pour répondre à des questions qui sont, au fond, des lectures de

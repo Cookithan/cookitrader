@@ -56,7 +56,7 @@ export function BoutiqueTab({
   const [showBuyCafes, setShowBuyCafes] = useState(false);
   const [initialUnlocked] = useState(unlocked);
   /* Catégorie premium affichée. Les 17 items premium tenaient dans un seul
-     défilement à 3 sections — trop long à parcourir (retour de Régis), on
+     défilement à 3 sections — trop long à parcourir (retour de Cookithan), on
      revient à des onglets. Mais 3 pastilles, pas les 7 filtres + 2
      sous-vues d'avant la v1.30 : les 3 familles sont réelles et suffisent. */
   const [premiumCat, setPremiumCat] = useState('cosmetics');

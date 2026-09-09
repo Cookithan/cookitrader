@@ -18,7 +18,7 @@
 create table if not exists public.sentinelle_conversation (
   id          bigserial primary key,
   created_at  timestamptz not null default now(),
-  /* 'user' = Régis · 'assistant' = la Sentinelle */
+  /* 'user' = Cookithan · 'assistant' = la Sentinelle */
   role        text not null check (role in ('user', 'assistant')),
   contenu     text not null,
   /* Ce qu'elle a fait pendant ce tour : [{outil, entree, resultat}] */
