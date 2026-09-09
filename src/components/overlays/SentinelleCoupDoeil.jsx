@@ -83,9 +83,9 @@ const GESTES_NOMS = {
 /* Les trois positions. L'ordre va du moins cher au plus cher : on lit un
    interrupteur de gauche a droite, et c'est la depense qui augmente. */
 const MODES = [
-  { id: 'non',  titre: 'Ne rien faire',  sous: "aucune ronde · zéro euro",  quoi: "Elle ne se réveille plus toute seule. La vigie SQL, le coup d'œil et les douze gestes continuent — tout ça est gratuit. Tu vérifies toi-même, et si tu lui parles c'est toi qui décides de payer." },
-  { id: 'semi', titre: 'Semi-autonome',  sous: 'elle prépare, tu décides',      quoi: "Elle ronde, répond aux joueurs, compense dans ses plafonds, et te laisse en dossier tout ce qui demande ta décision. Au plus une ronde toutes les 3 h, jamais la nuit, et seulement s'il s'est passé quelque chose." },
-  { id: 'full', titre: 'Full autonome',  sous: 'elle agit seule',                quoi: "Elle exécute sans te demander : sanctions, comptes, compensations, réponses. Tout est annulable en un tap depuis l'écran de retour, et un budget quotidien l'arrête." },
+  { id: 'non',  titre: 'non-autonome',  sous: "aucune ronde · zéro euro",  quoi: "Elle ne se réveille plus toute seule. La vigie SQL, le coup d'œil et les douze gestes continuent — tout ça est gratuit. Tu vérifies toi-même, et si tu lui parles c'est toi qui décides de payer." },
+  { id: 'semi', titre: 'semi-autonome',  sous: 'elle prépare, tu décides',      quoi: "Elle ronde, répond aux joueurs, compense dans ses plafonds, et te laisse en dossier tout ce qui demande ta décision. Au plus une ronde toutes les 3 h, jamais la nuit, et seulement s'il s'est passé quelque chose." },
+  { id: 'full', titre: 'full-autonome',  sous: 'elle agit seule',                quoi: "Elle exécute sans te demander : sanctions, comptes, compensations, réponses. Tout est annulable en un tap depuis l'écran de retour, et un budget quotidien l'arrête." },
 ];
 
 const heure = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
@@ -413,8 +413,8 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
       {/* ── L'interrupteur ──
           Il est ICI, sur la page gratuite, parce que c'est d'abord une
           question d'argent : c'est le robinet, pas un réglage de confort. */}
-      <Bloc emoji="⚡" titre="Son autonomie" compte={null} ouvertParDefaut={etat?.mode === 'non'}
-        teinte="linear-gradient(135deg,#F2C879,#D99B2B)">
+      <Bloc emoji="🎛️" titre="Sentinelle autonomie" compte={null} ouvertParDefaut={etat?.mode === 'non'}
+        teinte={DEGRADE}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           {MODES.map(m => {
             const actif = (etat?.mode || 'semi') === m.id;
