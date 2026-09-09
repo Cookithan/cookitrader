@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { ChevronLeft, RefreshCw } from "lucide-react";
 import {
   faireUneRonde, derniersRapports, grouperParRonde, anciennete, agir, journal, verifierPhrase,
-  signatureConstat, listerIgnores, infosJoueur, prixMarche, enregistrerSiDifferent,
+  signatureConstat, listerIgnores, infosJoueur, prixMarche, enregistrerSiDifferent, textesMaintenance,
   listerSignalements, traiterSignalement,
 } from "../../lib/sentinelle.js";
 import { STATUTS } from "../../data/signalements.js";
@@ -384,12 +384,33 @@ function Formulaire({ act, phrase, onFait, C }) {
     setValeurs(v => ({ ...v, version: v.version ?? APP_INFO.version }));
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* Les textes de maintenance déjà en base. Sans ça le formulaire
+     s'ouvre vide alors que quelque chose dort derrière : on croit
+     n'écrire nulle part, et on laisse en place le texte qu'on venait
+     justement retirer. */
+  useEffect(() => {
+    if (!champ('sous_titre')) return;
+    textesMaintenance().then(m => {
+      if (!m) return;
+      setValeurs(v => ({
+        ...v,
+        titre:      v.titre      ?? (m.maintenance_title    || ''),
+        sous_titre: v.sous_titre ?? (m.maintenance_subtitle || ''),
+      }));
+    });
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
   const executer = async () => {
     setEnCours(true); setRetour(null);
     const params = {};
     for (const c of act.champs) {
       const v = valeurs[c.nom];
-      if (v === undefined || v === '') continue;
+      /* Un champ vide n'est normalement pas envoyé : la base garde sa
+         valeur. Mais pour les champs `effacable`, vider EST le geste —
+         « laisser vide pour annuler » l'a longtemps promis sans jamais
+         le faire, parce que le vide n'arrivait jamais jusqu'au SQL. */
+      if (v === undefined) continue;
+      if (v === '' && !c.effacable) continue;
       params[c.nom] = c.type === 'nombre' ? Number(v) : c.type === 'oui_non' ? (v === 'oui') : v;
     }
     const r = await agir(phrase, act.id, params);

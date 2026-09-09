@@ -150,7 +150,7 @@ export const ACTIONS_SENTINELLE = [
     resume: "Affiche « Mise à jour disponible » à qui n'est pas sur cette version",
     aide: "C'est le remède quand la sentinelle signale des versions périmées. ⚠️ L'effet n'est PAS immédiat : ça pose un drapeau que le joueur ne verra qu'en rouvrant son app, parfois des jours plus tard. Le constat restera donc affiché — mais rangé dans « traité, en attente d'effet ». Laisser vide pour annuler.",
     champs: [
-      { nom:'version', label:'Version à imposer', type:'text', exemple:'1.30.0' },
+      { nom:'version', label:'Version à imposer', type:'text', exemple:'1.30.0', effacable:true },
     ],
   },
   {
@@ -158,12 +158,12 @@ export const ACTIONS_SENTINELLE = [
     groupe: 'app',
     titre: 'Maintenance',
     resume: "Coupe l'app pour tout le monde, ou la rallume",
-    aide: "L'écran de maintenance remplace toute l'application. À n'utiliser que le temps d'une correction, sinon les joueurs partent.",
+    aide: "L'écran de maintenance remplace toute l'application. À n'utiliser que le temps d'une correction, sinon les joueurs partent. Les deux textes partent de ce qui est déjà en base : les vider et valider les efface pour de bon.",
     danger: true,
     champs: [
       { nom:'actif',      label:'Activer (oui/non)', type:'oui_non', requis:true },
-      { nom:'titre',      label:'Titre affiché',     type:'text', exemple:'Maintenance en cours' },
-      { nom:'sous_titre', label:'Sous-titre',        type:'text', exemple:'On répare, reviens dans 10 min' },
+      { nom:'titre',      label:'Titre affiché',     type:'text', exemple:'Maintenance en cours', effacable:true },
+      { nom:'sous_titre', label:'Sous-titre',        type:'text', exemple:'On répare, reviens dans 10 min', effacable:true },
     ],
   },
   {

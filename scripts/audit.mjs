@@ -97,25 +97,43 @@ function ecrireSnapshot(users, state) {
 /* 1. Rendement : cookies gagnés par minute de jeu.
    Repère : Café Express, le meilleur rendement de l'app, plafonne à
    ~300 cookies pour 60-180 s de partie. Au-delà de 400/min, impossible.
-   Restreint aux comptes ACTIFS : total_play_time n'existe que depuis le
-   2026-05-12, les comptes plus anciens ont un ratio faussé vers le haut
-   sans avoir triché. */
+
+   ⚠️ Le filtre « comptes actifs » prétendait écarter les ratios faussés
+   par la migration du 2026-05-12 — il ne le faisait pas : un vétéran qui
+   joue encore reste actif. Vérifié le 09/09/2026, les CINQ comptes
+   signalés étaient tous inscrits avant le compteur, et les deux seuls
+   comptes mesurables affichaient 29 et 16 cookies/min. Le contrôle ne
+   pouvait donc se déclencher que sur des chiffres faux.
+
+   Le ratio d'un compte pré-migration ne se répare jamais : son
+   total_play_time démarre à zéro quand total_earned porte déjà des
+   semaines de parties, et personne ne saura plus combien il a joué
+   avant. On l'écarte, et on dit sur qui on a regardé. */
+const COMPTEUR_TEMPS_DEPUIS = Date.parse('2026-05-12T00:00:00Z');
+const mesurable = (u) => Date.parse(u.join_date) >= COMPTEUR_TEMPS_DEPUIS;
+
 function rendement(users) {
-  const susp = users
+  const vus = users
     .filter(u => !ADMINS.includes(String(u.user_name).toLowerCase())
-              && num(u.total_play_time) >= 600 && jours(u.last_active) <= 14)
+              && mesurable(u)
+              && num(u.total_play_time) >= 600 && jours(u.last_active) <= 14);
+  const susp = vus
     .map(u => ({ u, r: Math.round(num(u.total_earned) / (num(u.total_play_time) / 60)) }))
     .filter(x => x.r > 200)   /* 200 et non 150 : la roue (+200) et le jackpot (+500) font bondir le ratio d'un joueur simplement chanceux */
     .sort((a, b) => b.r - a.r);
   const graves = susp.filter(x => x.r > 400);
-  /* Marque les impossibles : la liste affiche tous les suspects (>150),
+  /* Marque les impossibles : la liste affiche tous les suspects (>200),
      le compte du verdict ne retient que les impossibles (>400). Sans ce
      repère, on ne sait pas lesquels sont lesquels. */
   const detail = susp.map(x =>
     `${x.r > 400 ? "!! " : "   "}${x.u.user_name} (${x.u.user_code}) — ${x.r} cookies/min · ${Math.round(num(x.u.total_play_time) / 60)} min jouées · niv ${x.u.level}`);
-  if (graves.length)     alerte(`${graves.length} compte(s) au rendement IMPOSSIBLE (plus de 400 cookies/min)`, detail);
-  else if (susp.length)  voir(`${susp.length} compte(s) au rendement élevé (200 à 400 cookies/min)`, detail);
-  else                   ok('Aucun rendement anormal chez les joueurs actifs');
+  /* Jamais « tout le monde » sur un échantillon : sans ce périmètre,
+     « aucun rendement anormal » se lirait comme un quitus général alors
+     que les vétérans sont hors de portée de la mesure. */
+  const perimetre = `${vus.length} compte(s) mesurable(s) — inscrits avant le 12/05/2026 exclus, leur ratio n'a pas de sens`;
+  if (graves.length)     alerte(`${graves.length} compte(s) au rendement IMPOSSIBLE (plus de 400 cookies/min)`, [...detail, perimetre]);
+  else if (susp.length)  voir(`${susp.length} compte(s) au rendement élevé (200 à 400 cookies/min)`, [...detail, perimetre]);
+  else                   ok(`Aucun rendement anormal — ${perimetre}`);
 }
 
 /* 2. Niveau incohérent avec le total affiché.
@@ -137,8 +155,17 @@ function coherenceNiveau(users) {
     ecarts.map(x => `${x.u.user_name} (${x.u.user_code}) — niv ${x.u.level} réclame ~${fmt(x.requis)}, affiche ${fmt(x.affiche)}   [cap leader, ou exploit]`));
 }
 
-/* 3. Concentration de la semaine en cours. Un joueur qui pèse plus de
-   40 % de tout ce que la communauté a gagné, ce n'est pas du talent. */
+/* 3. Concentration de la semaine en cours.
+   Le seuil de 40 % était calibré pour une communauté nombreuse : à huit
+   joueurs actifs, celui qui joue le plus prend naturellement la moitié
+   de la semaine, et la vigie criait donc tous les jours sur un
+   comportement normal. Une alerte qui se déclenche tous les jours n'est
+   plus lue — le jour où elle a raison, personne ne la regarde.
+
+   Règle retenue (déjà celle de la Sentinelle, portée ici) : dominer ne
+   vaut qu'un « à voir ». Ça ne devient une ALERTE que si le dominant
+   affiche EN PLUS un rendement suspect — dominer en jouant beaucoup est
+   normal, dominer en gagnant trop vite ne l'est pas. */
 function concentrationHebdo(users) {
   const parSemaine = {};
   users
@@ -148,11 +175,24 @@ function concentrationHebdo(users) {
   if (!semaine) return ok('Aucun gain hebdomadaire enregistré');
   const list  = parSemaine[semaine].sort((a, b) => num(b.weekly_earned) - num(a.weekly_earned));
   const total = list.reduce((s, u) => s + num(u.weekly_earned), 0);
-  const gros  = list.filter(u => num(u.weekly_earned) / total > 0.40);
-  const detail = list.slice(0, 6).map(u =>
-    `${u.user_name} — ${fmt(u.weekly_earned)} cookies (${Math.round(num(u.weekly_earned) / total * 100)} % de la semaine)`);
-  if (gros.length) alerte(`Semaine ${semaine} : ${gros.length} joueur(s) pèse(nt) plus de 40 % du total (${fmt(total)} cookies)`, detail);
-  else             ok(`Semaine ${semaine} équilibrée — ${fmt(total)} cookies répartis sur ${list.length} joueur(s)`, detail);
+
+  /* 0 = « pas mesurable », pas « irréprochable » : un vétéran d'avant le
+     compteur ne doit pas faire escalader l'alerte avec un ratio faux. */
+  const taux = (u) => num(u.total_play_time) >= 600 && mesurable(u)
+    ? Math.round(num(u.total_earned) / (num(u.total_play_time) / 60)) : 0;
+
+  const gros        = list.filter(u => num(u.weekly_earned) / total > 0.40);
+  const grosDouteux = gros.filter(u => taux(u) > 200);
+  const detail = list.slice(0, 6).map(u => {
+    const r = taux(u);
+    return `${u.user_name} — ${fmt(u.weekly_earned)} cookies (${Math.round(num(u.weekly_earned) / total * 100)} % de la semaine)${r ? ` · ${r} 🍪/min` : ''}`;
+  });
+
+  if (grosDouteux.length) alerte(`Semaine ${semaine} : ${grosDouteux.length} joueur(s) domine(nt) AVEC un rendement suspect`,
+    [...detail, "Dominer en jouant beaucoup est normal ; au-delà de 200 🍪/min, c'est le rendement qui pose question."]);
+  else if (gros.length)   voir(`Semaine ${semaine} : ${gros.length} joueur(s) pèse(nt) plus de 40 % du total (${fmt(total)} cookies)`,
+    [...detail, `Sur ${list.length} joueur(s) actif(s) cette semaine — à si peu de monde, c'est attendu.`]);
+  else                    ok(`Semaine ${semaine} équilibrée — ${fmt(total)} cookies répartis sur ${list.length} joueur(s)`, detail);
 }
 
 /* 4. Podiums hebdo. Les semaines saines se gagnent en CENTAINES ; un
@@ -291,7 +331,7 @@ function marche(state, txs, portefeuilles) {
   let users, winners, state, txs, portefeuilles;
   try {
     [users, winners, state, txs, portefeuilles] = await Promise.all([
-      q('users?select=user_name,user_code,level,xp,total_earned,weekly_earned,weekly_week_id,cookies,cafes,total_play_time,prestige_level,last_active&limit=2000'),
+      q('users?select=user_name,user_code,level,xp,total_earned,weekly_earned,weekly_week_id,cookies,cafes,total_play_time,prestige_level,last_active,join_date&limit=2000'),
       q('weekly_winners?select=week_id,top1_name,top1_code,top1_earned&order=week_id.desc&limit=12'),
       q('market_state?select=*&limit=1'),
       q('market_transactions?select=user_code,type,shares,total_amount,created_at&order=created_at.desc&limit=500'),

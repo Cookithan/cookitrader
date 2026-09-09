@@ -81,6 +81,10 @@ const RENDEMENT_ELEVE      = 200;
 const PART_HEBDO_MAX       = 0.40;   // un joueur au-delà de 40 % du total de la semaine
 const JOURS_ACTIF          = 14;
 const TEMPS_JEU_MIN_S      = 600;    // sous 10 min jouées, le ratio ne veut rien dire
+/* `total_play_time` n'existe que depuis MIGRATION_total_play_time.sql.
+   Un compte plus ancien a un compteur qui démarre après ses premiers
+   gains : son rendement paraît énorme sans qu'il ait rien fait. */
+const COMPTEUR_TEMPS_DEPUIS = Date.parse('2026-05-12T00:00:00Z');
 
 const num = (v) => Number(v) || 0;
 const jours = (iso) => iso ? (Date.now() - new Date(iso).getTime()) / 86_400_000 : 999;
@@ -168,12 +172,24 @@ function faire(verdict, categorie, titre, detail = []) {
   return { verdict, categorie, titre, detail: detail.filter(Boolean).slice(0, 25) };
 }
 
-/* ── Rendement : cookies gagnés par minute de jeu ───── */
+/* ── Rendement : cookies gagnés par minute de jeu ─────
+   ⚠️ Ne vaut QUE pour les comptes nés après le compteur de temps de
+   jeu (2026-05-12). Avant, `total_play_time` démarre à zéro le jour de
+   la migration alors que `total_earned` porte déjà des semaines de
+   parties : le ratio est gonflé par construction, et il ne se corrige
+   jamais — on ne saura plus jamais combien ces comptes ont joué avant.
+
+   Vérifié le 09/09/2026 : les CINQ comptes que ce contrôle signalait
+   étaient tous des vétérans, et les deux seuls comptes mesurables
+   affichaient 29 et 16 cookies/min. Un contrôle qui ne peut se
+   déclencher que sur des chiffres faux ne surveille rien. */
 function controleRendement(users) {
-  const suspects = users
-    .filter(u => !isAdminName(u.user_name)
+  const mesurables = users.filter(u => !isAdminName(u.user_name)
+              && Date.parse(u.join_date) >= COMPTEUR_TEMPS_DEPUIS
               && num(u.total_play_time) >= TEMPS_JEU_MIN_S
-              && jours(u.last_active) <= JOURS_ACTIF)
+              && jours(u.last_active) <= JOURS_ACTIF);
+
+  const suspects = mesurables
     .map(u => ({ u, r: Math.round(num(u.total_earned) / (num(u.total_play_time) / 60)) }))
     .filter(x => x.r > RENDEMENT_ELEVE)
     .sort((a, b) => b.r - a.r);
@@ -182,9 +198,14 @@ function controleRendement(users) {
   const detail = suspects.map(x =>
     `${x.r > RENDEMENT_IMPOSSIBLE ? '!! ' : '   '}${x.u.user_name} — ${x.r} cookies/min · ${Math.round(num(x.u.total_play_time) / 60)} min jouées · niv ${x.u.level}`);
 
-  if (graves.length) return faire('alerte', 'triche', `${graves.length} compte(s) au rendement IMPOSSIBLE (plus de ${RENDEMENT_IMPOSSIBLE} cookies/min)`, detail);
-  if (suspects.length) return faire('voir', 'triche', `${suspects.length} compte(s) au rendement élevé (${RENDEMENT_ELEVE} à ${RENDEMENT_IMPOSSIBLE} cookies/min)`, detail);
-  return faire('ok', 'triche', 'Aucun rendement anormal chez les joueurs actifs');
+  /* Toujours dire sur qui on a regardé : « aucun rendement anormal »
+     sonne comme « tout le monde est propre » alors que les vétérans
+     sont hors de portée de la mesure. */
+  const perimetre = `${mesurables.length} compte(s) mesurable(s) — les inscrits d'avant le compteur de temps de jeu n'ont pas de ratio fiable`;
+
+  if (graves.length) return faire('alerte', 'triche', `${graves.length} compte(s) au rendement IMPOSSIBLE (plus de ${RENDEMENT_IMPOSSIBLE} cookies/min)`, [...detail, perimetre]);
+  if (suspects.length) return faire('voir', 'triche', `${suspects.length} compte(s) au rendement élevé (${RENDEMENT_ELEVE} à ${RENDEMENT_IMPOSSIBLE} cookies/min)`, [...detail, perimetre]);
+  return faire('ok', 'triche', 'Aucun rendement anormal chez les joueurs mesurables', [perimetre]);
 }
 
 /* ── Concentration du classement hebdomadaire ─────────
@@ -208,7 +229,12 @@ function controleConcentration(users) {
   const total = liste.reduce((a, u) => a + num(u.weekly_earned), 0);
   if (!total) return faire('ok', 'classement', 'Semaine en cours encore vide');
 
+  /* 0 = « pas mesurable », pas « irréprochable ». Un vétéran d'avant le
+     compteur affiche un ratio gonflé (cf. controleRendement) : le
+     laisser escalader en ALERTE ferait crier la vigie sur le joueur qui
+     joue simplement le plus. */
   const rendement = (u) => num(u.total_play_time) >= TEMPS_JEU_MIN_S
+                        && Date.parse(u.join_date) >= COMPTEUR_TEMPS_DEPUIS
     ? Math.round(num(u.total_earned) / (num(u.total_play_time) / 60))
     : 0;
 
@@ -1134,6 +1160,22 @@ export async function prixMarche() {
     const { data } = await supabase
       .from('market_state').select('current_price').eq('id', 1).maybeSingle();
     return data ? Math.round(Number(data.current_price)) : null;
+  } catch {
+    return null;
+  }
+}
+
+/* Les textes de maintenance actuellement en base, pour que le
+   formulaire parte de ce qui est écrit au lieu d'une page blanche : on
+   n'efface bien que ce qu'on voit. */
+export async function textesMaintenance() {
+  if (!isSupabaseEnabled()) return null;
+  try {
+    const { data } = await supabase
+      .from('system_status')
+      .select('maintenance_mode, maintenance_title, maintenance_subtitle')
+      .eq('id', 1).maybeSingle();
+    return data || null;
   } catch {
     return null;
   }

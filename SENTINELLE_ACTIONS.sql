@@ -302,10 +302,19 @@ begin
     msg := 'Mise à jour forcée pour les clients qui ne sont pas sur cette version.';
 
   elsif action = 'maintenance' then
+    -- `coalesce(params->>'titre', maintenance_title)` gardait l'ancien
+    -- texte pour un champ vidé : les textes de maintenance étaient
+    -- inscriptibles mais pas effaçables, et « Test Pour Fedi » a dormi
+    -- en base jusqu'à ce qu'un contrôle le voie. On distingue donc le
+    -- champ ABSENT (on garde) du champ VIDE (on efface).
     update public.system_status set
       maintenance_mode     = coalesce((params->>'actif')::boolean, false),
-      maintenance_title    = coalesce(params->>'titre', maintenance_title),
-      maintenance_subtitle = coalesce(params->>'sous_titre', maintenance_subtitle),
+      maintenance_title    = case when params ? 'titre'
+                                  then nullif(params->>'titre', '')
+                                  else maintenance_title end,
+      maintenance_subtitle = case when params ? 'sous_titre'
+                                  then nullif(params->>'sous_titre', '')
+                                  else maintenance_subtitle end,
       updated_at = now()
     where id = 1;
     msg := case when coalesce((params->>'actif')::boolean, false)
