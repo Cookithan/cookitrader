@@ -9,6 +9,19 @@
 
    Le texte part dans le prompt système, mis en cache : il ne coûte qu'à
    la première lecture de chaque fenêtre de cache.
+
+   ⚠️ DEUX CARACTÈRES INTERDITS CI-DESSOUS
+   Tout ce qui suit vit dans un template literal. Un accent grave (`)
+   referme la chaîne au milieu du texte, et « ${ » ouvre une
+   interpolation qui cherche une variable inexistante. Les deux cassent
+   le fichier, et l'erreur qu'on obtient ne pointe pas vers la ligne
+   fautive — elle tombe cinquante lignes plus loin. C'est arrivé le
+   09/09 en voulant écrire le nom d'un geste entre accents graves :
+   utiliser des guillemets français « comme ceci ».
+
+   ⚠️ MODIFIER CE FICHIER NE SUFFIT PAS : il faut redéployer, sinon elle
+   continue de tourner sur l'ancien savoir sans que rien ne le signale.
+       npx supabase functions deploy sentinelle
 ═══════════════════════════════════════════════════════ */
 
 export const SAVOIR = `
