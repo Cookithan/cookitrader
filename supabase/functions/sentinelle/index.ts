@@ -539,18 +539,50 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
   if (nom === "ecrire_au_joueur") {
     const user_code = String(entree.user_code ?? "").trim();
     if (!user_code) return { ok: false, message: "user_code manquant" };
-    const { error } = await sb.from("inbox_messages").insert({
-      /* 'sentinelle' et non 'system' : l'app fait remonter ce type-là en
-         pop-up bleu. Un joueur qui a signalé un problème attend une
-         réponse — la déposer sans rien dire revient à la lui cacher. */
-      user_code, type: "sentinelle",
+    const ligne = {
+      user_code,
       title: String(entree.titre ?? "Un mot de la Sentinelle").slice(0, 80),
       body: String(entree.corps ?? "").slice(0, 800),
       payload: null,
-    });
+    };
+
+    /* ── Pourquoi deux essais ──
+       Le type 'sentinelle' est ce qui fait remonter sa réponse en pop-up
+       bleu chez le joueur. Mais `inbox_messages.type` porte une
+       contrainte CHECK écrite à la main, hors du dépôt : le 09/09 au soir
+       elle ne connaissait pas cette valeur, et CHAQUE réponse partait en
+       violation de contrainte. Elle n'a plus pu répondre à personne
+       pendant une soirée, et un signalement a été marqué « traité » sans
+       que le joueur reçoive quoi que ce soit.
+
+       Répondre compte plus que la couleur du pop-up. Donc : on tente le
+       bon type, et si la base le refuse on retombe sur 'system', qui
+       passe depuis toujours. Le joueur a sa réponse dans sa messagerie ;
+       il n'a pas le pop-up, et le message de retour le dit pour que ça ne
+       reste pas une panne silencieuse.
+
+       INBOX_TYPE_SENTINELLE.sql ajoute la valeur à la contrainte. Une
+       fois passé, le premier essai réussit et ce repli ne sert plus. */
+    let type = "sentinelle";
+    let { error } = await sb.from("inbox_messages").insert({ ...ligne, type });
+    let degrade = false;
+    if (error) {
+      type = "system";
+      degrade = true;
+      ({ error } = await sb.from("inbox_messages").insert({ ...ligne, type }));
+    }
     if (error) return { ok: false, message: error.message };
-    await sb.from("sentinelle_journal").insert({ action: "ecrire_au_joueur", cible: user_code, resultat: "ok", message: String(entree.titre ?? "").slice(0, 120) });
-    return { ok: true, message: `Message déposé chez ${user_code}.` };
+
+    await sb.from("sentinelle_journal").insert({
+      action: "ecrire_au_joueur", cible: user_code, resultat: "ok",
+      message: String(entree.titre ?? "").slice(0, 120) + (degrade ? " (sans pop-up : type refuse par la base)" : ""),
+    });
+    return {
+      ok: true,
+      message: degrade
+        ? `Message déposé chez ${user_code}, mais SANS pop-up : la base refuse le type « sentinelle ». Dis-le à Cookithan, il lui manque INBOX_TYPE_SENTINELLE.sql.`
+        : `Message déposé chez ${user_code}.`,
+    };
   }
 
   if (nom === "traiter_signalement") {
