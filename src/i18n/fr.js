@@ -92,6 +92,7 @@ export const FR = {
     audio_music_desc:      'Musique de fond pendant le jeu',
     audio_current_music:   'Musique en cours',
     audio_pick_hint:       '🎵 Choisis ta piste dans Ma Collection.',
+    hint_sentinelle:       "🛡️ Un bug, une idée, un souci ? La Sentinelle t'écoute — Réglages, section Signaler.",
     audio_unlock_hint:     "💡 Débloque d'autres musiques dans la boutique",
     audio_now_playing:     '● En lecture',
     lang_select:           'Choisis ta langue',

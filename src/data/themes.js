@@ -156,6 +156,39 @@ export const LEVEL_TIERS = [
 export const levelTier = (n) =>
   LEVEL_TIERS[Math.min(LEVEL_TIERS.length - 1, Math.max(0, Math.floor((n - 1) / 5)))];
 
+/* ─── La bannière de niveau change de peau tous les 5 paliers (10/09) ──
+   Cookithan : « crée différentes variantes de la bannière par rapport au
+   niveau dans lequel on est ». Elle portait ESPRESSO en dur : le même
+   brun du niveau 1 au niveau 25. Monter de vingt-quatre paliers ne se
+   voyait nulle part sur l'écran qu'on regarde le plus.
+
+   Le fond reste SOMBRE dans les cinq cas — le texte y est blanc, et une
+   teinte claire le rendrait illisible. Ce qui change, c'est la FAMILLE :
+   on monte de la noisette au café brûlé, puis l'or pour les cinq
+   derniers. La progression se sent sans qu'on ait besoin de lire le
+   chiffre.
+
+   `halo` teinte les bulles décoratives de la carte, `ombre` sa projection.
+   Les trois viennent de la même famille pour que la carte tienne
+   ensemble. Café-only, aucun rouge ni vert. */
+export const LEVEL_BANNERS = [
+  { fond:'linear-gradient(135deg,#6E4E2E 0%,#523A20 58%,#3C2A17 100%)',
+    halo:'rgba(217,178,122,.10)', ombre:'0 8px 24px rgba(110,78,46,.38)' },
+  { fond:'linear-gradient(135deg,#7C5326 0%,#5A3A19 58%,#402812 100%)',
+    halo:'rgba(201,138,70,.11)',  ombre:'0 8px 24px rgba(124,83,38,.38)' },
+  { fond:'linear-gradient(135deg,#6F4220 0%,#4D2C14 58%,#341D0E 100%)',
+    halo:'rgba(169,102,47,.12)',  ombre:'0 8px 24px rgba(111,66,32,.40)' },
+  { fond:'linear-gradient(135deg,#4A2C17 0%,#3D2010 55%,#2C1810 100%)',
+    halo:'rgba(125,69,32,.13)',   ombre:'0 8px 24px rgba(74,44,23,.42)' },
+  /* Les cinq derniers : de l'or sombre, pas du jaune. Un fond clair
+     tuerait le texte blanc, et l'or vif est déjà pris par le palier en
+     cours dans la médaille. */
+  { fond:'linear-gradient(135deg,#7A5A16 0%,#57400E 55%,#38270A 100%)',
+    halo:'rgba(212,160,23,.16)',  ombre:'0 8px 26px rgba(122,90,22,.45)' },
+];
+export const bannierePalier = (n) =>
+  LEVEL_BANNERS[Math.min(LEVEL_BANNERS.length - 1, Math.max(0, Math.floor((n - 1) / 5)))];
+
 /* Aperçu Cosmos plus foncé, appliqué temporairement quand on est sur l'onglet Premium */
 export const PREMIUM_PALETTE = {
   dark: true,

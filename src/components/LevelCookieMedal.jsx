@@ -104,11 +104,21 @@ export function LevelCookieMedal({
      deux bouts sont OPAQUES — on éclaircit et on assombrit la teinte de
      base plutôt que de reprendre `tier.edge`, qui est translucide et
      laissait le bord du cookie se dissoudre dans la carte. */
-  const from = locked ? C.border : active ? '#F0C050' : melange(tier.base, 255, .20);
-  const to   = locked ? C.border : active ? '#C08A16' : melange(tier.base, 0,   .26);
+  /* ── Écart du dégradé ÉLARGI le 10/09 ──
+     Cookithan : « le cookie des niveaux est moche et fade ». Il l'était
+     pour une raison mesurable : de +20 % de blanc à −26 % de noir, l'écart
+     entre les deux bouts était trop court pour qu'un disque de 54 px lise
+     comme une SPHÈRE. On l'ouvre à +34 / −44 : le haut-gauche s'éclaire,
+     le bas-droit s'enfonce, et le biscuit prend du volume sans changer
+     de couleur ni de forme.
+     Il reste ROND, et sans liseré — c'était déjà tranché le 09/09. */
+  const from = locked ? C.border : active ? '#F7CF66' : melange(tier.base, 255, .34);
+  const to   = locked ? C.border : active ? '#A9760C' : melange(tier.base, 0,   .44);
+  /* Les pépites étaient à 42 % d'alpha : à cette taille elles se voyaient
+     à peine, et un biscuit sans pépites visibles n'est qu'un jeton. */
   const chipColor = locked
     ? C.muted
-    : active ? 'rgba(120,78,10,.55)' : 'rgba(60,34,16,.42)';
+    : active ? 'rgba(104,64,6,.72)' : 'rgba(52,28,12,.62)';
 
   /* Le cookie s'efface un peu derrière le chiffre, mais plus autant
      qu'avant : à 0,62 sur le brun de la bannière, il virait au fondu et

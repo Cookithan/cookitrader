@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette, Bike } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired, bonusNiveau, CAFE_MILESTONES_NIVEAUX, JEUX_EN_CHANTIER } from "./data/constants.js";
-import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, levelTier } from "./data/themes.js";
+import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, levelTier, bannierePalier } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
 import { generateUserCode } from "./utils/userCode.js";
@@ -1543,6 +1543,33 @@ export default function CookiMiner() {
     setActiveHint(CONTEXT_HINTS[id]);
     setSeenHints(s => s.includes(id) ? s : [...s, id]);
   }, [tab, tutorialStep, seenHints, setSeenHints]);
+
+  /* ── « La Sentinelle existe » ─────────────────────────────
+     Cookithan, le 10/09 : « pas tout le monde va dans paramètres ».
+     C'est vrai, et c'est un problème : l'exploit du Memory a tenu neuf
+     semaines parce que personne ne savait où le dire.
+
+     UNE SEULE FOIS DANS TOUTE LA VIE DU COMPTE, pas une par endroit.
+     On la pose sur le Marché ou sur les Jeux — les deux endroits où l'on
+     traîne assez pour lire une bulle, et les deux où quelque chose peut
+     mal tourner.
+
+     ⚠️ ELLE ATTEND SON TOUR. Le Marché a déjà sa propre bulle de
+     première visite ; les afficher ensemble en écraserait une. Tant que
+     la bulle du lieu n'a pas été vue, celle-ci se tait — donc elle tombe
+     à la DEUXIÈME visite du Marché, ou à la première visite des Jeux si
+     c'est par là qu'il passe. Un joueur qui découvre le marché a mieux à
+     lire qu'un mot sur le service après-vente. */
+  useEffect(()=>{
+    if(tutorialStep > 0) return;
+    if(seenHints.includes('sentinelle-existe')) return;
+    const bulleDuLieu = { marche:'first-marche', jeux:null };
+    if(!(tab in bulleDuLieu)) return;
+    const propre = bulleDuLieu[tab];
+    if(propre && !seenHints.includes(propre)) return;
+    setActiveHint({ text: t('settings.hint_sentinelle') });
+    setSeenHints(s => s.includes('sentinelle-existe') ? s : [...s, 'sentinelle-existe']);
+  }, [tab, tutorialStep, seenHints, setSeenHints, t]);
 
   /* Avance d'une étape du tuto (ou termine si dernière). Chaque étape
      navigue auto vers son tab (cf. TUTORIAL_STEPS.goToTab). En fin de
@@ -4291,9 +4318,13 @@ export default function CookiMiner() {
               </button>
             )}
             {/* Level card */}
-            <button id="card-niveau" onClick={()=>{ playSound('modal'); setShowLevels(true); }} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:ESPRESSO, boxShadow:'0 8px 24px rgba(74,44,23,.35)', position:'relative', overflow:'hidden', cursor:'pointer' }}>
+            {/* La peau de la carte suit la tranche de 5 niveaux (10/09) :
+                elle portait ESPRESSO en dur, donc le même brun du niveau 1
+                au 25. Monter de vingt-quatre paliers ne se voyait nulle
+                part sur l'écran qu'on regarde le plus. Cf. LEVEL_BANNERS. */}
+            <button id="card-niveau" onClick={()=>{ playSound('modal'); setShowLevels(true); }} style={{ width:'100%', textAlign:'left', display:'block', borderRadius:24, padding:20, marginBottom:14, background:bannierePalier(level).fond, boxShadow:bannierePalier(level).ombre, position:'relative', overflow:'hidden', cursor:'pointer' }}>
               {/* Bulle décorative qui respire (v1.30) — elle était figée. */}
-              <div className="level-bubble" aria-hidden style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:'rgba(255,255,255,.05)', pointerEvents:'none' }} />
+              <div className="level-bubble" aria-hidden style={{ position:'absolute', top:-25, right:-25, width:88, height:88, borderRadius:'50%', background:bannierePalier(level).halo, pointerEvents:'none' }} />
               {/* Lueur chaude qui enfle et retombe (7 s) — la lumière qui
                   tombe sur le brun, avant même le reflet. */}
               <div className="level-warm" aria-hidden />

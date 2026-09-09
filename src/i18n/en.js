@@ -83,6 +83,7 @@ export const EN = {
     audio_music:           'Background music',
     audio_music_desc:      'Ambient music while playing',
     audio_current_music:   'Now playing',
+    hint_sentinelle:       '🛡️ A bug, an idea, a problem? The Sentinel is listening — Settings, Report section.',
     audio_pick_hint:       '🎵 Pick your track in My Collection.',
     audio_unlock_hint:     '💡 Unlock more tracks in the shop',
     audio_now_playing:     '● Playing',
