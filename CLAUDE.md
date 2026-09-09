@@ -152,9 +152,9 @@ Les passages de niveau se font **un par un** (jamais 2 paliers d'un coup, même 
     - ⚠️ La conversion 1000 🍪 → 1 ☕ « depuis le marché » listée dans l'ancienne doc **n'existe pas dans le code** (jamais implémentée).
   - **Ne JAMAIS ajouter une NOUVELLE source de CF sans confirmation explicite.** Pas de CF par défaut sur les nouveaux achievements.
 
-- **25 niveaux** (cf. `LEVEL_NAMES`). Courbe d'XP rééquilibrée (cf. SMOOTH_XP `data/constants.js`). Niveau 13 débloque la machine à sous, 15 débloque le café loop, 25 = endgame → prestige.
+- **25 niveaux** (cf. `LEVEL_NAMES`). Courbe d'XP rééquilibrée (cf. SMOOTH_XP `data/constants.js`). Niveau 10 débloque la machine à sous (⚠️ la doc disait 13 : c'était faux, `GAMES` dans App.jsx fait foi — l'erreur s'était propagée jusqu'au savoir de la Sentinelle), 15 débloque le café loop, 25 = endgame → prestige.
 
-- **Prestige** : reset niveau→1 mais +10 % gains permanent, items/achievements/cafés/$CKM/amis préservés. Affiché par couronne(s) sur le pseudo.
+- **Prestige** : reset niveau→1, XP→0, cookies→0 **et `total_earned`→0** (vérifié dans `doPrestige`), en échange de +10 % de gains permanent. Items, achievements, cafés, $CKM, amis et série préservés. ⚠️ Le cumul remis à zéro fait ressembler un compte prestigé à un compte trafiqué : tout contrôle de cohérence niveau/cumul doit exclure `prestige_level > 0`. Affiché par couronne(s) sur le pseudo.
 
 - **Achievement apex caché `end_game` ("Légende Vivante !")** : se déclenche **automatiquement** (watcher App.jsx ~3409) quand TOUT est complété — niveau ≥ 16, tous les autres succès visibles gagnés, boutique 100 % (items 🍪 hors limited), les 3 badges secrets, et les 10 récompenses événements. Donne +12 ☕. ⚠️ Aucun achat ni « révélation » : le mécanisme `reveal_master` / item « Dernier Succès Caché » (15 ☕) décrit dans d'anciennes notes **n'existe pas dans le code**. **Ne jamais le mentionner dans les questions du quiz.**
 
