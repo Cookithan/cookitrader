@@ -20,6 +20,12 @@ import { useTranslation } from "../../i18n/index.js";
    La variation se lit sur 24 h. Pas de rouge ni de vert : une hausse est
    dorée, une baisse est moka. La règle du projet vaut aussi ici, et de
    toute façon le vert boursier n'a rien à faire dans un café.
+
+   ⚠️ LA CARTE DOIT AVOIR UN FOND OPAQUE. Sa première version se
+   contentait d'un dégradé doré très transparent : sur un thème à fond
+   dégradé, elle disparaissait purement et simplement dans le décor.
+   Une carte translucide ne marche que sur un fond uni — et aucun des
+   thèmes du jeu n'en a.
 ═══════════════════════════════════════════════════════ */
 
 export function MarketTeaser({ level, onOpen, C }) {
@@ -63,9 +69,25 @@ export function MarketTeaser({ level, onOpen, C }) {
     <button
       onClick={onOpen}
       style={{
-        width:'100%', marginTop:16, padding:'14px 16px', borderRadius:16,
-        background:'linear-gradient(140deg, rgba(212,160,23,.10), rgba(193,127,60,.06))',
-        border:`1px solid ${C.border}`,
+        /* 20 et non 16 : la carte ouvre désormais le bas de l'accueil,
+           juste après la liste des jeux, à l'écart où se tenait la carte
+           des succès. Même respiration qu'elle, sinon la rangée penche. */
+        width:'100%', marginTop:20, padding:'14px 16px', borderRadius:18,
+        /* Une SURFACE, pas un voile.
+           La carte n'avait qu'un dégradé doré à 10 % d'opacité, sans
+           fond opaque dessous : elle prenait donc la couleur du thème
+           derrière elle. Sur les thèmes à fond dégradé (Cappuccino,
+           Caramel…), qui sont la majorité, ça revenait à ne rien
+           dessiner du tout — Régis : « elle a la même couleur que le
+           fond d'écran ». On repose donc C.card, comme toutes les
+           autres cartes de l'accueil, et le doré ne fait plus que
+           teinter par-dessus. */
+        background:`linear-gradient(140deg, rgba(212,160,23,.16), rgba(193,127,60,.04)), ${C.card}`,
+        /* Bordure dorée plutôt que C.border : c'est elle qui détache la
+           carte quel que soit le thème, et elle dit au passage que
+           l'objet est vivant. */
+        border:'1px solid rgba(212,160,23,.45)',
+        boxShadow:'0 2px 10px rgba(0,0,0,.10)',
         display:'flex', alignItems:'center', gap:12,
         cursor:'pointer', textAlign:'left',
       }}

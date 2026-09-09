@@ -4434,6 +4434,20 @@ export default function CookiMiner() {
               ))}
             </div>
 
+            {/* Le cours du $CKM. Le marché est l'écran le plus vivant de
+                l'app et le moins visité : il fallait l'ouvrir pour savoir
+                s'il s'y passait quelque chose, donc personne n'y allait,
+                donc il ne s'y passait rien. La carte casse la boucle — le
+                cours vient au joueur. Elle s'efface d'elle-même sous le
+                niveau 3, où le marché n'existe pas encore.
+
+                Remontée AU-DESSUS des succès le 09/09 : en pied de page,
+                sous la carte des succès et juste avant le lien Discord,
+                elle se lisait comme un pied de page justement — la zone
+                où l'œil ne s'arrête plus. Un cours qui bouge n'a rien à
+                faire dans les mentions légales de l'écran. */}
+            <MarketTeaser level={level} onOpen={() => { playSound('modal'); setTab('marche'); }} C={C} />
+
             {/* Mes Succès — carte compacte (v1.30). La grille complète des
                 22 succès occupait la moitié de l'Accueil (+ un « Voir plus »
                 qui la doublait) ; elle vit maintenant dans
@@ -4489,15 +4503,6 @@ export default function CookiMiner() {
             {/* v1.30 : réduit à une ligne discrète. C'était une carte
                 gradient de 42px de haut sur l'écran le plus vu de l'app,
                 alors que l'entrée existe aussi dans Paramètres. */}
-            {/* Le cours du $CKM, en pied d'accueil. Le marché est
-                l'écran le plus vivant de l'app et le moins visité : il
-                fallait l'ouvrir pour savoir s'il s'y passait quelque
-                chose, donc personne n'y allait, donc il ne s'y passait
-                rien. La carte casse la boucle — le cours vient au
-                joueur. Elle s'efface d'elle-même sous le niveau 3, où
-                le marché n'existe pas encore. */}
-            <MarketTeaser level={level} onOpen={() => { playSound('modal'); setTab('marche'); }} C={C} />
-
             <a
               href="https://discord.gg/EMDQXDBV39"
               target="_blank"

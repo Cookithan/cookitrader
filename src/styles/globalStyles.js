@@ -325,7 +325,16 @@ export const GLOBAL_CSS = `
   .s-out{animation:sentinelleOut .34s ease-in both;will-change:transform,opacity}
   .card-sheen-cool{position:absolute;top:-30%;left:0;width:52%;height:170%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),rgba(255,255,255,.62),rgba(255,255,255,.34),transparent);animation:levelSheen 5s ease-in-out infinite;will-change:transform}
   @keyframes levelGlint{0%{transform:translateX(-160%)}38%{transform:translateX(260%)}100%{transform:translateX(260%)}}
-  .level-glint{position:absolute;top:0;left:0;width:45%;height:100%;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);animation:levelGlint 4.5s ease-in-out infinite;will-change:transform}
+  /* L'eclat de la medaille de palier. Ce n'etait plus un <span> HTML
+     mais un <rect> DANS le SVG depuis qu'on a retire le cercle autour du
+     cookie : c'est le seul moyen de le faire s'arreter sur le bord
+     bosselé du biscuit. Donc plus de position/background ici, ils ne
+     veulent rien dire sur un rect — le degrade et la taille sont portes
+     par le SVG lui-meme.
+     transform-box:fill-box est obligatoire : sans lui, les pourcentages
+     du keyframe se calculent sur le viewBox entier et l'eclat traverse
+     trois fois trop loin. */
+  .level-glint{pointer-events:none;transform-box:fill-box;animation:levelGlint 4.5s ease-in-out infinite;will-change:transform}
   @keyframes levelBubble{0%,100%{transform:scale(1);opacity:.05}50%{transform:scale(1.18);opacity:.1}}
   .level-bubble{animation:levelBubble 5.5s ease-in-out infinite;will-change:transform,opacity}
 

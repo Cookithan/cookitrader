@@ -28,7 +28,48 @@ import { useId } from "react";
 
    Les pépites sont placées en couronne, JAMAIS au centre : c'est là que
    tombe le chiffre, et une pépite sous un 8 le rend illisible.
+
+   ⚠️ LE BISCUIT EST ROND, MAIS SANS AUCUN LISERÉ BLANC AUTOUR.
+   La première version enfermait le cookie dans un conteneur rond avec
+   `border: 2px solid rgba(255,255,255,.38)` : ça lui posait un anneau
+   blanc, visible et laid sur le brun de la bannière. Régis, le 09/09 :
+   « il y a un cercle blanc autour ». Le rond, lui, il le veut — c'est
+   le liseré qui saute, pas la forme.
+
+   Ce qui remplace l'anneau : une lèvre claire DANS le ton du biscuit,
+   et un `drop-shadow` posé sur le SVG. Une ombre portée épouse la forme
+   réelle du dessin, là où un `box-shadow` redessinerait la boîte du
+   conteneur. Ne jamais remettre de `border` blanche ni d'`overflow`
+   sur le conteneur : c'est exactement ce qu'on vient d'enlever.
 ═══════════════════════════════════════════════════════ */
+
+/* Éclaircir ou assombrir une couleur du palier. Sert à fabriquer les
+   deux bouts du dégradé du biscuit à partir de sa seule teinte de base.
+
+   POURQUOI : `tier.edge` est un rgba à 50 % d'alpha. L'utiliser comme
+   bout extérieur du dégradé faisait littéralement DISPARAÎTRE le bord du
+   cookie dans la carte — un biscuit net au centre, flou et délavé sur le
+   pourtour. C'est l'autre moitié du « pas beau ». Un biscuit doit être
+   opaque de bout en bout ; c'est l'ombre portée qui le détache du fond,
+   pas sa transparence. */
+function melange(hex, vers, t) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+  if (!m) return hex;                       // rgba(), nom CSS… : on ne touche pas
+  const n = parseInt(m[1], 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    .map(v => Math.round(v + (vers - v) * t));
+  return `rgb(${c[0]},${c[1]},${c[2]})`;
+}
+
+/* Le biscuit est ROND — demande de Régis, 09/09 : « pour la bannière le
+   cookie doit être rond stp ». Un temps il a eu un bord bosselé ; ça ne
+   lui allait pas à cette taille, où les bosses passent pour un défaut de
+   rendu plutôt que pour du biscuit.
+
+   Le rayon est en dur ici parce qu'il sert TROIS fois : le corps, la
+   lèvre claire, et le masque de l'éclat. Les trois doivent bouger
+   ensemble ou l'éclat déborde. */
+const R = 47;
 
 /* Positions fixes plutôt qu'aléatoires : une médaille doit être la même
    d'un rendu à l'autre, et le trou central doit rester garanti. */
@@ -51,66 +92,90 @@ export function LevelCookieMedal({
   C,
 }) {
   const uid = useId().replace(/:/g, '');
-  const bodyId = `lvlCookie-${uid}`;
+  const bodyId  = `lvlCookie-${uid}`;
+  const clipId  = `lvlClip-${uid}`;
+  const glintId = `lvlGlint-${uid}`;
 
   const active = variant === 'active';
   const locked = variant === 'locked';
 
-  /* Le biscuit : deux teintes du palier, or pour le palier en cours,
-     et la couleur de bordure du thème quand c'est encore verrouillé. */
-  const from = locked ? C.border : active ? '#F0C050' : tier.base;
-  const to   = locked ? C.border : active ? '#C08A16' : tier.edge;
+  /* Le biscuit : deux teintes du palier, or pour le palier en cours, et
+     la couleur de bordure du thème quand c'est encore verrouillé. Les
+     deux bouts sont OPAQUES — on éclaircit et on assombrit la teinte de
+     base plutôt que de reprendre `tier.edge`, qui est translucide et
+     laissait le bord du cookie se dissoudre dans la carte. */
+  const from = locked ? C.border : active ? '#F0C050' : melange(tier.base, 255, .20);
+  const to   = locked ? C.border : active ? '#C08A16' : melange(tier.base, 0,   .26);
   const chipColor = locked
     ? C.muted
     : active ? 'rgba(120,78,10,.55)' : 'rgba(60,34,16,.42)';
 
-  /* « avec de l'opacité » : le cookie s'efface derrière le chiffre.
-     Assez présent pour qu'on reconnaisse un biscuit, assez discret pour
-     qu'un 25 reste lisible d'un coup d'oeil. */
-  const cookieOpacity = locked ? 0.34 : active ? 0.72 : 0.62;
+  /* Le cookie s'efface un peu derrière le chiffre, mais plus autant
+     qu'avant : à 0,62 sur le brun de la bannière, il virait au fondu et
+     c'est une bonne part du « pas beau ». Le chiffre reste lisible sans
+     ça — il est en 900, blanc, avec deux ombres portées. */
+  const cookieOpacity = locked ? 0.38 : 1;
 
   const textColor = locked ? C.muted : active ? '#FFE9A8' : '#fff';
+
+  /* L'ombre épouse le biscuit, pas sa boîte : c'est ce qui le pose SUR
+     la bannière au lieu de le laisser flotter dedans — le rôle que
+     tenait le liseré blanc, en mieux et sans cercle. */
+  /* Une ombre SOMBRE, pas le halo pâle d'avant : `tier.soft` est un
+     beige à 18 % d'alpha, qui sur le brun de la bannière n'accroche
+     rien du tout. C'est l'ombre qui pose le biscuit sur la carte — le
+     rôle que tenait le liseré blanc. */
+  const ombre = locked
+    ? 'none'
+    : active
+      ? 'drop-shadow(0 2px 5px rgba(30,15,6,.5)) drop-shadow(0 0 9px rgba(212,160,23,.5))'
+      : 'drop-shadow(0 2px 5px rgba(30,15,6,.45))';
 
   return (
     <div style={{
       width: size, height: size, flexShrink: 0,
-      position: 'relative', overflow: 'hidden', borderRadius: '50%',
+      position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      /* L'ombre portée et le liseré restent : c'est ce qui pose la
-         médaille SUR la bannière au lieu de la laisser flotter dedans. */
-      border: `2px solid ${locked ? C.border : active ? 'rgba(255,232,154,.5)' : 'rgba(255,255,255,.38)'}`,
-      boxShadow: locked
-        ? 'none'
-        : active
-          ? '0 3px 12px rgba(212,160,23,.35), inset 0 1px 0 rgba(255,255,255,.35)'
-          : `0 3px 10px ${tier.soft}, inset 0 1px 0 rgba(255,255,255,.32)`,
-      background: locked
-        ? 'transparent'
-        : `radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.18), transparent 60%)`,
     }}>
       <svg
         viewBox="0 0 100 100" aria-hidden
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: cookieOpacity }}
+        style={{
+          position: 'absolute', inset: 0, width: '100%', height: '100%',
+          opacity: cookieOpacity, overflow: 'visible', filter: ombre,
+        }}
       >
         <defs>
           <radialGradient id={bodyId} cx="36%" cy="30%" r="78%">
             <stop offset="0%"   stopColor={from} />
             <stop offset="100%" stopColor={to} />
           </radialGradient>
+          {/* Le masque de l'éclat. Il vit dans le SVG et non plus sur le
+              conteneur : c'était l'`overflow:hidden` du conteneur qui
+              posait le liseré blanc avec lui. */}
+          <clipPath id={clipId}>
+            <circle cx="50" cy="50" r={R} />
+          </clipPath>
+          <linearGradient id={glintId} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stopColor="rgba(255,255,255,0)" />
+            <stop offset="50%"  stopColor="rgba(255,255,255,.55)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </linearGradient>
         </defs>
 
-        {/* Le biscuit. Le bord est légèrement bosselé (une suite d'arcs
-            plutôt qu'un cercle parfait) — c'est le seul détail qui fait
-            lire « cookie » et non « jeton ». */}
-        <path
-          d="M50 3
-             C64 3 72 9 78 14 C86 20 97 27 97 41
-             C97 53 93 58 93 68 C93 80 82 97 66 97
-             C57 97 54 93 48 93 C38 93 28 97 18 89
-             C9 82 8 70 6 62 C3 52 3 44 7 34
-             C11 23 20 14 29 9 C36 5 43 3 50 3 Z"
-          fill={`url(#${bodyId})`}
-        />
+        {/* Le biscuit. C'est ce qu'on lit en second, après le chiffre. */}
+        <circle cx="50" cy="50" r={R} fill={`url(#${bodyId})`} />
+
+        {/* Une lèvre plus claire sur le pourtour, DANS le ton du biscuit :
+            elle donne l'épaisseur que le liseré blanc donnait de force,
+            sans poser d'anneau étranger sur la bannière. */}
+        {!locked && (
+          <circle
+            cx="50" cy="50" r={R - 1.2}
+            fill="none"
+            stroke="rgba(255,238,205,.28)"
+            strokeWidth="2.2"
+          />
+        )}
 
         {/* Pépites en couronne — le centre reste libre pour le chiffre. */}
         {CHIPS.map((c, i) => (
@@ -125,6 +190,12 @@ export function LevelCookieMedal({
         {/* Reflet spéculaire en haut à gauche : la lumière qui tombe. */}
         {!locked && (
           <ellipse cx="34" cy="26" rx="17" ry="10" fill="rgba(255,255,255,.22)" transform="rotate(-30 34 26)" />
+        )}
+
+        {glint && (
+          <g clipPath={`url(#${clipId})`}>
+            <rect className="level-glint" x="0" y="-5" width="42" height="110" fill={`url(#${glintId})`} />
+          </g>
         )}
       </svg>
 
@@ -141,7 +212,6 @@ export function LevelCookieMedal({
         {children ?? level}
       </span>
 
-      {glint && <span className="level-glint" aria-hidden />}
     </div>
   );
 }
