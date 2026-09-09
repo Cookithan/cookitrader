@@ -83,10 +83,17 @@ const R = COOKIE_SIZE / 2;   // rayon de contact : c'est LUI que la physique uti
 const ROUE        = 24;      // diamètre d'une roue (max 2×R, sinon elle dépasse le sol)
 const ROUE_DX     = 13;      // écartement : 2 px de jour entre les roues, on en voit bien deux
 const ROUE_Y      = R - ROUE / 2;   // centre de roue sous le châssis → bas pile sur R
-const TASSE_W     = 42;      /* largeur du SingleCup (hauteur auto, ratio
+const TASSE_W     = 46;      /* largeur du SingleCup (hauteur auto, ratio
                                 130×42). Le rapport qui compte est
                                 TASSE_W / ROUE : 2,1 écrasait l'attelage,
-                                1,5 donnait des roues de tracteur. 1,75. */
+                                1,5 donnait des roues de tracteur. */
+/* Le corps de la tasse n'occupe que les 100 premiers 130es du SVG, l'anse
+   le reste — et le miroir (anse à gauche) met donc le corps à DROITE du
+   cadre. Pour que la tasse s'agrandisse vers la droite et pas des deux
+   côtés, on ancre son bord gauche et on laisse la largeur filer. Sans cet
+   ancrage, chaque retouche de TASSE_W la ferait glisser sur les roues. */
+const TASSE_BORD_G = -15.5;  // px depuis l'axe de l'attelage
+const TASSE_ML     = TASSE_BORD_G - (30 / 130) * TASSE_W;
 
 /* Le monde est dessiné à 0,62 : on voit 516 px de piste de large au lieu
    de 320, et 380 px DEVANT le biscuit au lieu de 236. C'est la première
@@ -1054,13 +1061,10 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           {/* La tasse D'ABORD, les roues par-dessus : c'est ce simple
               ordre de rendu qui met les roues devant le café. Elle est
               retournée (anse à gauche) pour regarder dans le sens de la
-              marche — et comme le corps de la tasse n'occupe que les 100
-              premiers 130es du SVG, le miroir déplace son centre : le
-              décalage passe de 0,42 à 0,60 pour qu'elle reste posée pile
-              entre les deux roues. */}
+              marche, et calée par son bord gauche (cf. TASSE_ML). */}
           <div style={{
             position:'absolute', left:'50%', top:'50%',
-            width:TASSE_W, marginLeft:-TASSE_W * 0.60,
+            width:TASSE_W, marginLeft:TASSE_ML,
             marginTop:ROUE_Y - 2 - TASSE_W * (42 / 130),
             lineHeight:0, pointerEvents:'none',
             transform:'scaleX(-1)',
