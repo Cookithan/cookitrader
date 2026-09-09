@@ -73,6 +73,7 @@ const ARENA_W = 320;
 const ARENA_H = 420;
 const RIDER_X = 84;          // x ÉCRAN du biscuit — il ne bouge jamais, c'est la piste qui défile
 const COOKIE_SIZE = 40;
+const ROUE        = 22;      // diamètre d'une roue : 2×11, bas à R sous le centre
 const R = COOKIE_SIZE / 2;
 
 /* Le monde est dessiné à 0,62 : on voit 516 px de piste de large au lieu
@@ -99,8 +100,18 @@ const MAX_V     = 360;       // plafond de départ
 const V_RAMP    = 150;       // ce que le plafond gagne à difficulté maximale
 const START_V   = 210;
 
-const FLIP_AV  = -5.6;   // rad/s, doigt POSÉ en l'air → un tour complet en ~1,12 s
-const AV_LERP  = 14;     // la rotation s'installe en ~70 ms au lieu de claquer
+const FLIP_AV  = -7.0;   /* rad/s en l'air, doigt posé → un tour en 0,90 s.
+                            Ce chiffre n'est pas libre : il doit tenir DANS
+                            le vol le plus court qu'un tremplin produise,
+                            sinon boucler un tour est impossible et le seul
+                            geste qui rapporte n'existe pas. */
+const AV_LERP  = 4.5;    /* La roue met ~0,22 s à prendre son régime, elle
+                            ne claque pas. Ce seul chiffre protège tous les
+                            vols courts : sur un saut de 0,35 s, tenir le
+                            doigt ne fait plus tourner que de 1,1 rad (sous
+                            la tolérance) au lieu de 2,45 — alors qu'un vol
+                            long garde tout son tour. Un délai en dur ne
+                            savait pas faire les deux. */
 const LAND_TOL    = 1.45;    // rad (~83°) — on ne meurt qu'en retombant franchement à l'envers
 const EDGE_HIT    = 26;      // px de pénétration au 1er contact = flanc pris de plein fouet
 const FALL_DEPTH  = 300;     // px sous la plateforme la plus basse = tombé dans le vide
@@ -236,8 +247,13 @@ function addFeature(runs, diff){
   /* ── le tremplin : le vol moyen, celui où l'on décide ── */
   if(r < 0.70){
     run.last = 'tremplin';
+    /* Pente de sortie 0,57 à 0,95 : le vol dure alors de 0,93 s à 1,31 s,
+       soit toujours plus que les 0,90 s d'un tour complet. C'est la
+       condition pour que la figure soit seulement DIFFICILE et pas
+       impossible — avec l'ancienne borne (0,72) le vol plafonnait à
+       1,02 s et aucun tour ne pouvait se boucler. */
     const rl   = 150 + Math.random() * 40;
-    const rise = Math.min(0.48 * rl, 42 + 24 * diff + Math.random() * 18);
+    const rise = Math.min(0.63 * rl, 72 + 26 * diff + Math.random() * 20);
     span(run, rl, u => -rise * Math.pow(u, 1.5));
     /* Longueur de la réception CALCULÉE, pas choisie : on résout la
        rencontre entre la parabole du saut et la pente de réception, à la
@@ -246,7 +262,7 @@ function addFeature(runs, diff){
        vitesse — c'est comme ça qu'on meurt deux plateformes plus loin
        sans rien avoir fait de mal. */
     const penteSortie = 1.5 * rise / rl;
-    const pr     = 0.30;
+    const pr     = 0.36;
     const tVol   = vTop * (pr + penteSortie) / (0.5 * G);
     const tipX   = runEndX(run);
     const tipY   = runEndY(run);
@@ -277,7 +293,11 @@ function addFeature(runs, diff){
   /* ── la falaise : la grande chute, deux figures si on ose ── */
   if(r < 0.90){
     run.last = 'falaise';
-    const chute  = 260 + 190 * diff + Math.random() * 150;
+    /* Une falaise doit offrir DEUX tours à qui ose : la chute est donc
+       calibrée pour 1,5 s de vol au minimum en fin de partie. */
+    /* Les plus grandes falaises passent les 1,85 s de vol : de quoi
+       boucler DEUX tours pour qui ose. C'est le morceau de bravoure. */
+    const chute  = 500 + 450 * diff + Math.random() * 400;
     const tChute = Math.sqrt(2 * chute / G);
     /* Le trou vaut la MOITIÉ de ce que le vol couvre : on ne peut pas
        tomber court, on se pose forcément bien après le bord. Une falaise
@@ -298,7 +318,12 @@ function addFeature(runs, diff){
      le biscuit, il ne sanctionne que le doigt levé trop tôt. ── */
   run.last = 'trou';
   const vRequis = vTop * 0.86;
-  const tVol    = 0.20 + Math.random() * 0.06;
+  /* Durée de vol d'un petit trou : bornée à 0,19 s, et ce n'est pas un
+     chiffre rond choisi au hasard. Doigt posé, le biscuit tourne de
+     FLIP_AV × tVol ; au-delà de 0,19 s on dépasse LAND_TOL et franchir
+     un simple trou gaz au plancher devient mortel. C'était le tout
+     premier reproche du jeu, et il revenait par cette porte-là. */
+  const tVol    = Math.min(0.19, LAND_TOL / Math.abs(FLIP_AV) - 0.02) * (0.72 + Math.random() * 0.28);
   const trou    = vRequis * tVol;
   const n0      = run.ys.length;
   const pente0  = n0 > 1 ? (run.ys[n0 - 1] - run.ys[n0 - 2]) / STEP : 0;
@@ -1014,9 +1039,20 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           willChange:'transform', pointerEvents:'none',
           filter: crashed ? 'grayscale(.7)' : 'none',
         }}>
-          {hasCustomSkin ? <SkinnedCookie skin={skin} noShadow /> : <PremiumCookie noShadow />}
-          {/* L'attelage par-dessus la roue : c'est le gobelet qui dit si
-              l'atterrissage est bon, et il tourne avec elle. */}
+          {/* Deux roues en cookie, et le gobelet posé dessus. Les roues
+              sont les VRAIS cookies : les skins de la boutique roulent.
+              Elles font 22 px, centrées à ±11 px de l'axe et 9 px sous le
+              centre du châssis — leur bas tombe donc pile sur le rayon de
+              contact R que la physique utilise. */}
+          {[-11, 11].map(dx => (
+            <div key={dx} style={{
+              position:'absolute', left:'50%', top:'50%',
+              width:ROUE, height:ROUE,
+              marginLeft:dx - ROUE / 2, marginTop:9 - ROUE / 2,
+            }}>
+              {hasCustomSkin ? <SkinnedCookie skin={skin} noShadow /> : <PremiumCookie noShadow />}
+            </div>
+          ))}
           <RiderMount />
         </div>
 
