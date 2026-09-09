@@ -1307,6 +1307,61 @@ export async function manquesConnus(limite = 120) {
   }
 }
 
+/* ── L'ecran de retour : ce qu'elle a fait sans toi ───────
+   Chaque geste qu'elle execute SEULE (mode full) laisse une ligne avec
+   l'etat d'avant. Ces trois fonctions sont ce qui rend la promesse
+   « tout est annulable » tenable :
+
+     gestesEnAttente  — ce qui attend encore ta decision (7 jours)
+     annulerGeste     — remet en l'etat, au champ pres
+     garderGeste      — « c'etait bien », sors-le de l'ecran
+
+   Un geste non conteste au bout de sept jours est repute accepte et sort
+   tout seul. Il reste au journal : on ne perd pas l'histoire, on arrete
+   juste de poser la question. */
+export async function gestesEnAttente(phrase) {
+  if (!isSupabaseEnabled()) return { ok: false, lignes: [] };
+  if (!phrase) return { ok: false, lignes: [] };
+  try {
+    const { data, error } = await supabase.rpc('sentinelle_gestes_en_attente', { p_phrase: phrase });
+    if (error) {
+      const manquante = /function|does not exist|schema cache/i.test(error.message || '');
+      return { ok: false, lignes: [], message: manquante
+        ? "Le socle annulable n'est pas installe (SENTINELLE_AUTONOMIE.sql)."
+        : error.message };
+    }
+    return { ok: !!data?.ok, lignes: data?.lignes || [], message: data?.message };
+  } catch {
+    return { ok: false, lignes: [] };
+  }
+}
+
+async function deciderGeste(rpc, phrase, id) {
+  if (!isSupabaseEnabled()) return { ok: false, message: 'Hors ligne' };
+  if (!phrase) return { ok: false, message: 'Phrase de passe requise' };
+  try {
+    const { data, error } = await supabase.rpc(rpc, { p_phrase: phrase, p_id: id });
+    if (error) return { ok: false, message: `Erreur : ${error.message}` };
+    return data || { ok: false, message: 'Reponse vide' };
+  } catch (e) {
+    return { ok: false, message: `Erreur reseau : ${e?.message || e}` };
+  }
+}
+export const annulerGeste = (phrase, id) => deciderGeste('sentinelle_annuler_geste', phrase, id);
+export const garderGeste  = (phrase, id) => deciderGeste('sentinelle_garder_geste',  phrase, id);
+
+/* Ce qu'il lui reste a depenser sur 24 h. Lecture libre : c'est une
+   information, pas un geste. */
+export async function budgetSentinelle() {
+  if (!isSupabaseEnabled()) return null;
+  try {
+    const { data, error } = await supabase.rpc('sentinelle_budget');
+    return error ? null : data;
+  } catch {
+    return null;
+  }
+}
+
 /* ── Le mode d'autonomie ──────────────────────────────
    Trois positions, et c'est d'abord une question d'argent :
      'non'  — aucune ronde IA. Zero appel, zero euro. La vigie SQL et le

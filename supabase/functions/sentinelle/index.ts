@@ -71,6 +71,27 @@ const GESTES_A_CONFIRMER = new Set([
 ]);
 const COMPENSATION_LIBRE = { cookies: 2000, cafes: 3 };
 
+/* ── Le mode FULL AUTONOME ────────────────────────────────────────
+   Ce qu'elle exécute sans demander, quand le mode est 'full'. Le
+   découpage n'est pas thématique, il est fondé sur UNE question : est-ce
+   que ça se défait ? Tout ce qui est ici laisse une ligne dans
+   sentinelle_gestes avec l'état d'avant, et se remet en l'état d'un tap.
+
+   Ce qui n'y est PAS, et n'y sera pas : corriger_cours (remettre
+   l'ancien prix ne défait pas les achats faits entre-temps), les codes
+   promo (un code utilisé ne se reprend pas), maintenance et forcer_maj
+   (l'app coupée pour tous ; « annuler » ne rend pas les heures perdues),
+   annoncer (un pop-up vu est vu). */
+const AUTONOMES = new Set([
+  "sanctionner", "lever_sanction", "modifier_joueur", "compenser",
+  "retirer_actions", "nettoyer_portefeuille", "fermer_marche", "ouvrir_marche",
+]);
+
+/* Les champs du compte qu'on relève AVANT d'écrire. C'est cette photo
+   qui rend l'annulation possible : sans elle, le journal raconte ce qui
+   s'est passé mais ne le défait pas. */
+const CHAMPS_COMPTE = "level,xp,cookies,cafes,total_earned,weekly_earned,prestige_level,streak,active_theme,active_title,user_bio,unlocked";
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -97,8 +118,8 @@ const OUTILS: Anthropic.Tool[] = [
     input_schema: {
       type: "object",
       properties: {
-        action: { type: "string", enum: ["sanctionner", "lever_sanction", "compenser", "modifier_joueur", "corriger_cours", "fermer_marche", "ouvrir_marche", "creer_code_promo", "desactiver_code_promo", "forcer_maj", "maintenance", "nettoyer_portefeuille", "annoncer", "taire_annonce"] },
-        params: { type: "object", description: "sanctionner: {user_code, level, total_earned, cookies, cafes, motif} · compenser: {user_code, cookies, cafes} · modifier_joueur: {user_code, et un ou plusieurs de level, xp, cookies, cafes, total_earned, weekly_earned, prestige_level, streak, active_theme, active_title, user_bio, ajouter_unlocked:[ids], retirer_unlocked:[ids]} — ce qui n'est pas fourni ne bouge pas · corriger_cours: {prix} · fermer_marche: {heures} · creer_code_promo: {code, coins, cafes, shares} · desactiver_code_promo: {code} · maintenance: {actif, titre, sous_titre} · forcer_maj: {version} · nettoyer_portefeuille: {user_code} · annoncer: {titre, corps, portee} où portee vaut « maintenant » (ceux qui ont l'app ouverte, pop-up chez eux seuls) ou « tous » (bandeau vu aussi par ceux qui ouvriront plus tard) · taire_annonce: {} pour retirer le bandeau" },
+        action: { type: "string", enum: ["sanctionner", "lever_sanction", "compenser", "modifier_joueur", "corriger_cours", "fermer_marche", "ouvrir_marche", "creer_code_promo", "desactiver_code_promo", "forcer_maj", "maintenance", "nettoyer_portefeuille", "retirer_actions", "annoncer", "taire_annonce"] },
+        params: { type: "object", description: "sanctionner: {user_code, level, total_earned, cookies, cafes, motif} · compenser: {user_code, cookies, cafes} · modifier_joueur: {user_code, et un ou plusieurs de level, xp, cookies, cafes, total_earned, weekly_earned, prestige_level, streak, active_theme, active_title, user_bio, ajouter_unlocked:[ids], retirer_unlocked:[ids]} — ce qui n'est pas fourni ne bouge pas · corriger_cours: {prix} · fermer_marche: {heures} · creer_code_promo: {code, coins, cafes, shares} · desactiver_code_promo: {code} · maintenance: {actif, titre, sous_titre} · forcer_maj: {version} · nettoyer_portefeuille: {user_code} (vide TOUT) · retirer_actions: {user_code, combien} pour n'en retirer qu'une partie — c'est le geste juste quand un compte sanctionné a converti ses gains en $CKM · annoncer: {titre, corps, portee} où portee vaut « maintenant » (ceux qui ont l'app ouverte, pop-up chez eux seuls) ou « tous » (bandeau vu aussi par ceux qui ouvriront plus tard) · taire_annonce: {} pour retirer le bandeau" },
         confirmation_utilisateur: { type: "boolean" },
       },
       required: ["action", "params"],
@@ -287,6 +308,13 @@ async function contexte(sb: SB) {
     (crashs.length ? `\n  incidents : ${(crashs as R[]).slice(0, 6).map(h => `${h.kind} ${donnees(h.user_name ?? "?")} v${h.app_version ?? "?"} — ${donnees(String(h.detail ?? "").slice(0, 120))}`).join(" | ")}` : "");
 
   const e = (etat.data ?? {}) as R;
+  const modeTxt = ((e0: Record<string, unknown>) => {
+    const m = String(e0.mode_autonomie ?? "semi");
+    if (m === "full") return "FULL AUTONOME — tu exécutes SEULE ce qui se défait (sanctionner, lever, modifier un compte, compenser, retirer des actions, nettoyer un portefeuille, fermer ou rouvrir le marché), sans lui demander et sans plafond de compensation. Chaque geste est photographié avant/après : il le voit à son retour et peut le défaire d'un tap. Ce qui ne se défait PAS reste un dossier, même en autonomie : le cours, les codes promo, la maintenance, la mise à jour forcée, et les annonces. Un budget de 24 h t'arrête (40 000 🍪, 100 ☕, 100 actions, 10 sanctions) — épuisé, tout redevient dossier.";
+    if (m === "non") return "NON-AUTONOME — il a coupé tes rondes pour ne pas dépenser. Si tu tournes, c'est qu'il t'a appelée lui-même : fais ce qu'il demande, sois brève.";
+    return "SEMI-AUTONOME — tu fais seule ce qui est sans risque (répondre, compenser dans les plafonds, classer, fermer un marché qui déraille) et tu lui laisses le reste en dossiers.";
+  })((etat.data ?? {}) as R);
+
   const horloge = `dernière ronde serveur ${j(e.derniere_ronde_serveur as string)} (dernier geste : ${e.dernier_geste_serveur ?? "aucun"}) · dernière ronde client ${j(e.derniere_ronde as string)} · dernière pile rédigée ${j(e.dossiers_rediges_le as string)}`;
 
   /* DEUX mémoires, pas une. Les notes disent ce qu'elle SAIT ; les
@@ -308,6 +336,8 @@ COMPTES : ${total.count ?? "?"} au total, ${(users.data ?? []).length} actifs su
 ${joueurs || "(aucun actif)"}
 
 MARCHÉ $CKM : ${marcheTxt}
+
+TON MODE : ${modeTxt}
 
 HORLOGE : ${horloge}
 
@@ -342,6 +372,31 @@ ${dossiersTxt || "(aucun)"}`;
 }
 
 /* ── Les outils, côté exécution ─────────────────────────────── */
+/* ── La photo de l'avant ────────────────────────────────────────
+   Relevée juste avant d'écrire, et rangée dans le registre. C'est tout
+   ce qui sépare « le journal raconte » de « le bouton défait ».
+   Un geste dont on ne sait pas photographier l'avant renvoie null : il
+   ne sera simplement pas annulable, et l'écran de retour le dira au lieu
+   d'afficher un bouton qui mentirait. */
+async function photographier(sb: SB, action: string, params: Record<string, unknown>) {
+  const code = String(params.user_code ?? params.cible ?? "");
+  try {
+    if (["sanctionner", "modifier_joueur", "compenser"].includes(action) && code) {
+      const { data } = await sb.from("users").select(CHAMPS_COMPTE).eq("user_code", code).maybeSingle();
+      return data ?? null;
+    }
+    if (["retirer_actions", "nettoyer_portefeuille"].includes(action) && code) {
+      const { data } = await sb.from("market_portfolio").select("shares,total_invested").eq("user_code", code).maybeSingle();
+      return data ?? null;
+    }
+    if (action === "fermer_marche") {
+      const { data } = await sb.from("market_state").select("circuit_breaker_until").eq("id", 1).maybeSingle();
+      return data ?? null;
+    }
+  } catch { /* une photo ratée ne doit pas empêcher le geste : elle le rend seulement non annulable */ }
+  return null;
+}
+
 async function executer(sb: SB, phrase: string, nom: string, entree: Record<string, unknown>, confirmeParTap = false) {
   if (nom === "lire_joueur") {
     /* `R` est déclaré dans contexte(), pas ici : les deux fonctions ne
@@ -397,7 +452,25 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
   if (nom === "agir") {
     const action = String(entree.action);
     const params = (entree.params ?? {}) as Record<string, unknown>;
-    const confirme = confirmeParTap || entree.confirmation_utilisateur === true;
+    const parTap = confirmeParTap || entree.confirmation_utilisateur === true;
+
+    /* ── Le mode autonome ──
+       En 'full', son oui n'est plus requis pour ce qui se défait — à
+       condition qu'il lui reste du budget. Le budget est compté depuis
+       le registre des gestes, pas depuis un compteur tenu à part : un
+       compteur se désynchronise, une somme ne ment pas. */
+    const { data: etatMode } = await sb.from("sentinelle_etat").select("mode_autonomie").eq("id", 1).maybeSingle();
+    const full = (etatMode?.mode_autonomie ?? "semi") === "full";
+    let seule = false;
+    if (!parTap && full && AUTONOMES.has(action)) {
+      const { data: budget } = await sb.rpc("sentinelle_budget");
+      if (budget?.epuise) {
+        return { ok: false, refus: "budget", message: "Budget de 24 h épuisé : à partir de maintenant, tout passe par un dossier." };
+      }
+      seule = true;
+    }
+    const confirme = parTap || seule;
+
     if (GESTES_A_CONFIRMER.has(action) && !confirme) {
       return { ok: false, refus: "confirmation_requise", message: `« ${action} » exige le oui de Cookithan : fais-en un dossier.` };
     }
@@ -433,9 +506,34 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
       if (error) return { ok: false, message: error.message };
       return data;
     }
-    const { data, error } = await sb.rpc("action_sentinelle", { phrase, action, params });
-    if (error) return { ok: false, message: error.message };
-    return data;
+    /* ── L'avant, relevé JUSTE avant d'écrire ──
+       On ne le relève que pour un geste qu'elle fait seule : quand c'est
+       Cookithan qui tape, il a vu ce qu'il validait, et l'écran de retour
+       n'a pas à lui redemander. */
+    const avant = seule ? await photographier(sb, action, params) : null;
+
+    let res: Record<string, unknown>;
+    if (action === "retirer_actions") {
+      const { data, error } = await sb.rpc("sentinelle_retirer_actions", {
+        p_phrase: phrase,
+        p_cible: String(params.user_code ?? ""),
+        p_combien: params.combien == null ? null : Number(params.combien),
+      });
+      if (error) return { ok: false, message: error.message };
+      res = data;
+    } else {
+      const { data, error } = await sb.rpc("action_sentinelle", { phrase, action, params });
+      if (error) return { ok: false, message: error.message };
+      res = data;
+    }
+
+    if (seule && res?.ok !== false) {
+      await sb.from("sentinelle_gestes").insert({
+        action, cible: String(params.user_code ?? params.cible ?? ""),
+        params, avant, message: String(res?.message ?? ""),
+      });
+    }
+    return res;
   }
 
   if (nom === "ecrire_au_joueur") {

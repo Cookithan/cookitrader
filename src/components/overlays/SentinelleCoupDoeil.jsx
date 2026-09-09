@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { THEME_SENTINELLE, ACIER, MARINE, BLEU, VERRE, OMBRE, OMBRE_VIVE, DEGRADE, CHAMP } from "../../data/sentinelleTheme.js";
 import { GROUPES, ACTIONS_SENTINELLE } from "../../data/sentinelleActions.js";
-import { agir, modifierJoueur, derniersRapports, journal, prixMarche, signalementsOuverts, listerSignalements, traiterSignalement, manquesConnus, lireMode, changerMode } from "../../lib/sentinelle.js";
+import { agir, modifierJoueur, derniersRapports, journal, prixMarche, signalementsOuverts, listerSignalements, traiterSignalement, manquesConnus, lireMode, changerMode, gestesEnAttente, annulerGeste, garderGeste } from "../../lib/sentinelle.js";
 import { playSound } from "../../lib/audio.js";
 import { haptic } from "../../lib/haptic.js";
 
@@ -57,9 +57,28 @@ const CONTOUR = `1.5px solid ${BLEU[200]}`;
 /* Les quatre lectures gratuites, en une passe. Hors du composant : rien
    ici ne dépend de son état, et l'effet de montage peut donc s'en servir
    sans la traîner en dépendance. */
-const lire = () => Promise.all([
+const lire = (phrase) => Promise.all([
   derniersRapports(20), journal(14), prixMarche(), signalementsOuverts(), manquesConnus(), lireMode(),
+  gestesEnAttente(phrase),
 ]);
+
+/* Les libellés des champs, pour que l'avant/après se lise sans être
+   développeur. Un champ absent d'ici s'affiche sous son nom brut : mieux
+   vaut un nom technique qu'une ligne muette. */
+const NOMS = {
+  level: 'niveau', xp: 'XP', cookies: 'cookies', cafes: 'cafés',
+  total_earned: 'cumul', weekly_earned: 'gains de la semaine',
+  prestige_level: 'prestige', streak: 'série', active_theme: 'thème',
+  active_title: 'titre', user_bio: 'bio', unlocked: 'objets',
+  combien: 'actions retirées', shares: 'actions', motif: 'motif',
+};
+const GESTES_NOMS = {
+  sanctionner: 'Sanction', lever_sanction: 'Sanction levée',
+  modifier_joueur: 'Compte modifié', compenser: 'Compensation',
+  retirer_actions: 'Actions retirées', nettoyer_portefeuille: 'Portefeuille vidé',
+  fermer_marche: 'Marché fermé', ouvrir_marche: 'Marché rouvert',
+  ecrire_au_joueur: 'Message envoyé', traiter_signalement: 'Signalement classé',
+};
 
 /* Les trois positions. L'ordre va du moins cher au plus cher : on lit un
    interrupteur de gauche a droite, et c'est la depense qui augmente. */
@@ -215,11 +234,14 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
   const [manques, setManques]       = useState([]);
   const [etat, setEtat]             = useState(null);
   const [bascule, setBascule]       = useState(null);   /* le mode qu'on est en train de poser */
+  const [gestes, setGestes]         = useState([]);
+  const [enCoursGeste, setEnCoursGeste] = useState(null);
 
   const charger = async () => {
     setChargement(true);
-    const [r, j, p, b, mq, md] = await lire();
+    const [r, j, p, b, mq, md, gs] = await lire(phrase);
     setRapports(r); setLignes(j); setPrix(p); setBoite(b); setManques(mq); setEtat(md);
+    setGestes(gs.lignes || []);
     setChargement(false);
   };
 
@@ -231,12 +253,13 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
      lecture. */
   useEffect(() => {
     let vivant = true;
-    lire().then(([r, j, p, b, mq, md]) => {
+    lire(phrase).then(([r, j, p, b, mq, md, gs]) => {
       if (!vivant) return;
-      setRapports(r); setLignes(j); setPrix(p); setBoite(b); setManques(mq); setEtat(md); setChargement(false);
+      setRapports(r); setLignes(j); setPrix(p); setBoite(b); setManques(mq); setEtat(md);
+      setGestes(gs.lignes || []); setChargement(false);
     });
     return () => { vivant = false; };
-  }, []);
+  }, [phrase]);
 
   /* Une ronde = tous les verdicts qui partagent le même instant. On ne
      montre que la dernière : l'historique complet est un autre écran. */
@@ -272,6 +295,20 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
     if (!r?.ok) { playSound('error'); haptic('warning'); setEtat(e => ({ ...(e || {}), erreur: r?.message })); return; }
     playSound('toggle'); haptic('success');
     setEtat(e => ({ ...(e || {}), mode: id, erreur: null }));
+  };
+
+  const trancher = async (id, garder) => {
+    if (enCoursGeste) return;
+    setEnCoursGeste(id);
+    const r = garder ? await garderGeste(phrase, id) : await annulerGeste(phrase, id);
+    setEnCoursGeste(null);
+    if (!r?.ok) {
+      playSound('error'); haptic('warning');
+      setGestes(g => g.map(x => (x.id === id ? { ...x, refus: r?.message } : x)));
+      return;
+    }
+    playSound(garder ? 'toggle' : 'success'); haptic('success');
+    setGestes(g => g.filter(x => x.id !== id));
   };
 
   return (
@@ -313,6 +350,65 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
           </button>
         )}
       </div>
+
+      {/* ── L'écran de retour ──
+          En tête, et ouvert d'office : c'est la première chose à voir en
+          rentrant. Elle a agi sans toi, tu dois pouvoir défaire avant
+          d'aller regarder autre chose. */}
+      {gestes.length > 0 && (
+        <Bloc emoji="↩️" titre="Ce qu'elle a fait sans toi" compte={gestes.length} ouvertParDefaut
+          teinte="linear-gradient(135deg,#9FB0E8,#4A5FC1)">
+          <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.5, marginBottom: 9 }}>
+            Chaque geste garde son état d'avant. Annuler remet le compte
+            exactement comme il était. Sans réponse de ta part, un geste est
+            réputé accepté au bout de sept jours.
+          </div>
+          {gestes.map(g => {
+            const av = g.avant || {};
+            const pr = g.params || {};
+            const changes = Object.keys(pr).filter(k => k !== 'user_code' && k !== 'cible'
+              && av[k] !== undefined && String(av[k]) !== String(pr[k]));
+            return (
+              <div key={g.id} style={{ background: C.card, border: CONTOUR, borderRadius: 13, padding: '11px 12px', marginTop: 8, borderLeft: `3px solid ${BLEU[500]}` }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                  <span style={{ flex: 1, fontSize: 13, fontWeight: 800, color: MARINE }}>
+                    {GESTES_NOMS[g.action] || g.action}{g.cible ? ' · ' + g.cible : ''}
+                  </span>
+                  <span style={{ fontSize: 10.5, color: C.muted, flexShrink: 0 }}>{jour(g.cree_le)} {heure(g.cree_le)}</span>
+                </div>
+                {g.message && <div style={{ fontSize: 12, color: C.text, lineHeight: 1.45, marginTop: 4 }}>{g.message}</div>}
+
+                {changes.length > 0 && (
+                  <div style={{ marginTop: 7, padding: '7px 9px', borderRadius: 10, background: BLEU[50], border: `1px solid ${BLEU[200]}` }}>
+                    {changes.map(k => (
+                      <div key={k} style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.6 }}>
+                        {NOMS[k] || k} : <b style={{ color: C.text }}>{String(av[k])}</b> → <b style={{ color: ACIER }}>{String(pr[k])}</b>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!g.avant && (
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 6, fontStyle: 'italic' }}>
+                    Pas d'état d'avant pour ce geste — il ne pourra pas être défait.
+                  </div>
+                )}
+                {g.refus && <div style={{ fontSize: 11.5, fontWeight: 700, color: MARINE, marginTop: 6 }}>⛔ {g.refus}</div>}
+
+                <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>
+                  <button onClick={() => trancher(g.id, false)} disabled={!!enCoursGeste || !g.avant}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 11, border: 'none', background: g.avant ? `linear-gradient(135deg,${MARINE},#071E33)` : BLEU[100], color: g.avant ? '#fff' : C.muted, fontSize: 12.5, fontWeight: 800, touchAction: 'manipulation', opacity: enCoursGeste === g.id ? .6 : 1 }}>
+                    {enCoursGeste === g.id ? '…' : 'Annuler'}
+                  </button>
+                  <button onClick={() => trancher(g.id, true)} disabled={!!enCoursGeste}
+                    style={{ flex: 1, padding: '10px 0', borderRadius: 11, border: CONTOUR, background: '#fff', color: ACIER, fontSize: 12.5, fontWeight: 800, touchAction: 'manipulation' }}>
+                    Garder
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </Bloc>
+      )}
 
       {/* ── L'interrupteur ──
           Il est ICI, sur la page gratuite, parce que c'est d'abord une
