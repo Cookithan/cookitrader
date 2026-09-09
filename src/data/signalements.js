@@ -119,11 +119,16 @@ const SOUCIS_JEU = [
     exemple:'Raconte ce que tu as vu.',                      exemple_en:'Tell us what you saw.' },
 ];
 
-/* Les treize mini-jeux, nommés par leur clé i18n : un jeu renommé se
-   renomme ici tout seul, dans les deux langues. */
+/* Les mini-jeux LIVRÉS, nommés par leur clé i18n : un jeu renommé se
+   renomme ici tout seul, dans les deux langues.
+
+   Ceux qui sont encore en chantier (JEUX_EN_CHANTIER, data/constants.js)
+   n'y figurent pas : demander à un joueur de signaler un bug sur un jeu
+   qu'il ne peut pas lancer n'a aucun sens. Livrer le jeu, c'est le
+   remettre ici aussi. */
 const JEUX = [
   'checkin', 'quiz', 'spin', 'click', 'pour', 'memory',
-  'guess', 'reflex', 'pyramid', 'slot', 'flappy', 'catcher', 'rider',
+  'guess', 'reflex', 'pyramid', 'slot', 'flappy', 'catcher',
 ].map(id => ({ id, tKey:`games_list.${id}_title`, enfants: SOUCIS_JEU }));
 
 /* ── Les endroits de l'app ────────────────────────────
@@ -275,7 +280,7 @@ export const ARBRE = [
 /* Ce que la console affiche en tête d'un signalement. Un statut doit
    dire ce qu'il reste à faire, pas seulement où on en est.
 
-   Pas de version anglaise : la console est réservée à Régis. Le seul
+   Pas de version anglaise : la console est réservée à Cookithan. Le seul
    écran bilingue est celui des joueurs. */
 export const STATUTS = {
   nouveau:    { label:'Nouveau',    emoji:'📮' },

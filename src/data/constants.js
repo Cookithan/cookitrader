@@ -618,3 +618,26 @@ export function bonusNiveau(niveau){
   const effort   = Math.round(xpRequired(n - 1) / BONUS_NIVEAU_DIV);
   return Math.min(BONUS_NIVEAU_MAX, Math.max(plancher, effort));
 }
+
+/* ════════════════════════════════════════════════════
+   LES JEUX EN CHANTIER
+   ────────────────────────────────────────────────────
+   Cookithan, le 09/09/2026 : « le Rider Cookie n'est pas fini, donc ne le
+   rends pas encore accessible et n'en parle pas ».
+
+   Il était livré : la carte s'affichait dans l'onglet Jeux dès le niveau
+   7, donc n'importe qui pouvait le lancer. Le code reste en place — il
+   est jouable, il n'est simplement pas FINI — mais il ne sort plus du
+   garage.
+
+   Ce que ça fait, exactement :
+     · la carte disparaît de l'onglet Jeux
+     · sauf pour un compte admin, pour qu'il continue de l'essayer sans
+       avoir à republier l'app à chaque fois
+     · le jeu sort aussi de l'entonnoir de signalement : on ne demande pas
+       aux joueurs de rapporter des bugs sur ce qu'ils ne peuvent pas jouer
+
+   POUR LE LIVRER : retirer son id de cette liste. Rien d'autre. Et
+   penser à l'ajouter au CHANGELOG (lib/appInfo.js) ce jour-là — il en a
+   été volontairement absent tant qu'il n'était pas jouable. */
+export const JEUX_EN_CHANTIER = ['rider'];

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette, Bike } from "lucide-react";
 
-import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired, bonusNiveau, CAFE_MILESTONES_NIVEAUX } from "./data/constants.js";
+import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired, bonusNiveau, CAFE_MILESTONES_NIVEAUX, JEUX_EN_CHANTIER } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, levelTier } from "./data/themes.js";
 import { LEADERBOARD_SCHEMA, generateLeaderboard } from "./data/leaderboard.js";
 import { useLocalStorage } from "./hooks/useLocalStorage.js";
@@ -137,7 +137,7 @@ import ForceUpdateModal from "./components/modals/ForceUpdateModal.jsx";
    utilisent isAdminName() qui accepte les 2. */
 const ADMIN_NAME = ADMIN_NAMES[0];
 
-/* Duels — MASQUÉS pendant la v1.30 (décision Régis : « on le fera une
+/* Duels — MASQUÉS pendant la v1.30 (décision Cookithan : « on le fera une
    prochaine fois, c'est pas le plus important »). Seule l'entrée « Trouver
    un duel » de l'onglet Jeux est cachée : toute la machinerie reste en
    place et fonctionnelle (matchmaking, auto-play du bot, mises, résultat).
@@ -1450,7 +1450,7 @@ export default function CookiMiner() {
      `slideDir` mémorise la direction du dernier changement pour
      animer le content entrant (depuis la droite ou la gauche). */
   /* Classement en 3e position : avec 6 onglets de largeur égale aucun ne
-     tombe à 50 % (les centres sont à 8/25/42/58/75/92 %). Régis préfère
+     tombe à 50 % (les centres sont à 8/25/42/58/75/92 %). Cookithan préfère
      Classement juste AVANT le milieu (42 %) plutôt qu'après (58 %). */
   const TAB_ORDER = ['accueil','jeux','classement','collection','marche','boutique'];
   const [slideDir, setSlideDir] = useState(null); // 'next' | 'prev' | null
@@ -2662,7 +2662,7 @@ export default function CookiMiner() {
       if(cancelled) return;
       const reward = bossRewardFor(dmg);
       if(!reward) return;                       // participation insuffisante
-      /* Skin RÉSERVÉ AU TOP 3 des plus gros tapeurs (demande Régis).
+      /* Skin RÉSERVÉ AU TOP 3 des plus gros tapeurs (demande Cookithan).
          getBossRank renvoie le rang 0-indexé (0 = 1er, null si 0 dégât) —
          source de vérité serveur, relue après le coup fatal. rank0 > 2 =
          hors podium → pas de skin. */
@@ -2678,7 +2678,7 @@ export default function CookiMiner() {
           /* UNIQUEMENT le skin exclusif — aucun cookie, jamais de CF. */
           setUnlocked(arr => Array.isArray(arr) && !arr.includes(reward.skinId)
             ? [...arr, reward.skinId] : arr);
-          /* Pop-up de fin de boss retirée (demande Régis) → feedback
+          /* Pop-up de fin de boss retirée (demande Cookithan) → feedback
              discret via toast + inbox, sans overlay intrusif. */
           showToast(`🍪 Fournée #${fourneeNumber(milestone)} sauvée — skin exclusif débloqué !`);
           playSound('levelup');
@@ -2720,7 +2720,7 @@ export default function CookiMiner() {
           const short = FAIL_PENALTY_COOKIES - pay;     // pris sur total gagné
           setCoins(c => Math.max(0, c - pay));
           if(short > 0) setTotalEarned(t => Math.max(0, t - short));
-          /* Pop-up de fin de boss retirée (demande Régis) → toast + inbox
+          /* Pop-up de fin de boss retirée (demande Cookithan) → toast + inbox
              déjà présents ci-dessous suffisent. */
           playSound('error');
           showToast(`☠️ Boss non vaincu — −${FAIL_PENALTY_COOKIES} 🍪`);
@@ -4005,7 +4005,10 @@ export default function CookiMiner() {
     { id:'flappy',  Icon:Coffee,            emoji:'🐦', title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
     { id:'catcher', Icon:Coffee,            emoji:'🥤', title: t('games_list.catcher_title'),      desc: t('games_list.catcher_desc'), reward: t('games_list.catcher_reward'), avail:coins>=10, color:'#B5793E', levelRequired:4 },
     { id:'rider',   Icon:Bike,              emoji:'🛞', title: t('games_list.rider_title'),        desc: t('games_list.rider_desc'), reward: t('games_list.rider_reward'), avail:coins>=10, color:'#8B5A2B', levelRequired:7 },
-  ];
+  /* Un jeu encore en chantier ne se montre qu'aux comptes admin — voir
+     JEUX_EN_CHANTIER dans data/constants.js. Le filtre est ici, au plus
+     près de la liste : c'est le seul endroit d'où part une partie. */
+  ].filter(g => !JEUX_EN_CHANTIER.includes(g.id) || isAdminName(userName));
 
   const s = {
     /* 6 onglets depuis la v1.30 (ajout de Collection) : padding horizontal
@@ -4737,7 +4740,7 @@ export default function CookiMiner() {
           )}
 
           {/* ── MA COLLECTION ── onglet à part entière (v1.30). Décision
-              de Régis : surtout PAS dans la boutique — acheter et équiper
+              de Cookithan : surtout PAS dans la boutique — acheter et équiper
               sont deux gestes différents. */}
           {tab==='collection' && (
             <CollectionContent

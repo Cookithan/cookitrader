@@ -13,7 +13,7 @@
 ═══════════════════════════════════════════════════════ */
 
 export const APP_INFO = {
-  version: '1.30.2',
+  version: '1.31.0',
   releaseDate: '2026-09-09',
   github: 'https://github.com/Cookithan/cookitrader',
   description: "App mobile de récompenses café & cookies. Mini-jeux quotidiens, marché spéculatif $CKM, classement, amis et boutique premium.",
@@ -21,6 +21,26 @@ export const APP_INFO = {
 };
 
 export const CHANGELOG = [
+  /* La console d'administration reste hors changelog — un joueur ne la
+     verra jamais. Mais l'ÉCRAN DE SIGNALEMENT, lui, est à eux : c'est la
+     porte par laquelle ils lui parlent. Et ce qu'elle devient grâce à
+     leurs demandes les concerne directement, donc ça se dit. */
+  {
+    version: '1.31.0',
+    date: '2026-09-09',
+    title: '🛡️ La Sentinelle s’enrichit',
+    title_en: '🛡️ The Sentinel grows',
+    changes: [
+      "🛡️ La Sentinelle s’enrichit chaque jour grâce à vos demandes : chaque signalement qu’elle ne sait pas traiter devient quelque chose qu’elle saura faire",
+      "📮 Écran de signalement refait : texte plus lisible, catégories qui se repèrent d’un coup d’œil, et plus aucun zoom involontaire quand on écrit",
+      "✉️ Vos signalements sont lus et vous recevez une réponse dans votre boîte — plus de messages qui partent dans le vide",
+    ],
+    changes_en: [
+      "🛡️ The Sentinel grows every day from your reports: anything she can’t handle yet becomes something she will",
+      "📮 Reporting screen rebuilt: more readable text, categories you spot at a glance, and no more accidental zoom while typing",
+      "✉️ Your reports are read and answered in your inbox — no more messages vanishing into the void",
+    ],
+  },
   {
     version: '1.30.2',
     date: '2026-09-09',
