@@ -4,7 +4,7 @@ import { SkinnedCookie } from "../cookies/SkinnedCookie.jsx";
 import { PremiumCookie } from "../cookies/PremiumCookie.jsx";
 import { playSound, startRiderEngine, setRiderEngine, stopRiderEngine } from "../../lib/audio.js";
 import { haptic } from "../../lib/haptic.js";
-import { RiderMount } from "./RiderMount.jsx";
+import { SingleCup } from "./SingleCup.jsx";
 import { useTranslation } from "../../i18n/index.js";
 
 /* ════════════════════════════════════════════════════
@@ -73,8 +73,17 @@ const ARENA_W = 320;
 const ARENA_H = 420;
 const RIDER_X = 84;          // x ÉCRAN du biscuit — il ne bouge jamais, c'est la piste qui défile
 const COOKIE_SIZE = 40;
-const ROUE        = 22;      // diamètre d'une roue : 2×11, bas à R sous le centre
-const R = COOKIE_SIZE / 2;
+const R = COOKIE_SIZE / 2;   // rayon de contact : c'est LUI que la physique utilise
+/* L'attelage : une tasse posée sur deux roues en cookie. Rien n'est
+   redessiné — la tasse est le SingleCup de Pile de Tasses, les roues sont
+   les vrais cookies de la boutique. Les trois nombres ci-dessous sont
+   liés : bas de roue = ROUE_Y + ROUE/2, et ça doit tomber pile sur R, le
+   rayon de contact que la physique utilise. Sinon l'attelage flotte ou
+   s'enfonce dans la piste. */
+const ROUE        = 26;      // diamètre d'une roue
+const ROUE_DX     = 12;      // écartement depuis l'axe
+const ROUE_Y      = R - ROUE / 2;   // centre de roue sous le châssis → bas pile sur R
+const TASSE_W     = 54;      // largeur du SingleCup (hauteur auto, ratio 130×42)
 
 /* Le monde est dessiné à 0,62 : on voit 516 px de piste de large au lieu
    de 320, et 380 px DEVANT le biscuit au lieu de 236. C'est la première
@@ -1039,21 +1048,29 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           willChange:'transform', pointerEvents:'none',
           filter: crashed ? 'grayscale(.7)' : 'none',
         }}>
-          {/* Deux roues en cookie, et le gobelet posé dessus. Les roues
-              sont les VRAIS cookies : les skins de la boutique roulent.
-              Elles font 22 px, centrées à ±11 px de l'axe et 9 px sous le
-              centre du châssis — leur bas tombe donc pile sur le rayon de
-              contact R que la physique utilise. */}
-          {[-11, 11].map(dx => (
+          {/* Deux roues en cookie — les VRAIS cookies, donc les skins de
+              la boutique roulent — et la tasse de Pile de Tasses posée
+              dessus. Rien de redessiné pour l'occasion. */}
+          {[-ROUE_DX, ROUE_DX].map(dx => (
             <div key={dx} style={{
               position:'absolute', left:'50%', top:'50%',
               width:ROUE, height:ROUE,
-              marginLeft:dx - ROUE / 2, marginTop:9 - ROUE / 2,
+              marginLeft:dx - ROUE / 2, marginTop:ROUE_Y - ROUE / 2,
             }}>
               {hasCustomSkin ? <SkinnedCookie skin={skin} noShadow /> : <PremiumCookie noShadow />}
             </div>
           ))}
-          <RiderMount />
+          {/* La tasse : c'est elle qui dit si l'atterrissage est bon.
+              Elle tourne avec l'attelage, donc « à l'endroit » se lit
+              d'un coup d'œil, sans jauge ni indicateur à l'écran. */}
+          <div style={{
+            position:'absolute', left:'50%', top:'50%',
+            width:TASSE_W, marginLeft:-TASSE_W * 0.42,
+            marginTop:ROUE_Y - 2 - TASSE_W * (42 / 130),
+            lineHeight:0, pointerEvents:'none',
+          }}>
+            <SingleCup width={TASSE_W} showCoffeeInside skin="classic" />
+          </div>
         </div>
 
         {/* Pops de figure */}
