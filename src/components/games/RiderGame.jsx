@@ -80,13 +80,13 @@ const R = COOKIE_SIZE / 2;   // rayon de contact : c'est LUI que la physique uti
    liés : bas de roue = ROUE_Y + ROUE/2, et ça doit tomber pile sur R, le
    rayon de contact que la physique utilise. Sinon l'attelage flotte ou
    s'enfonce dans la piste. */
-const ROUE        = 28;      // diamètre d'une roue (max 2×R, sinon elle dépasse le sol)
-const ROUE_DX     = 15;      // écartement : 2 px de jour entre les roues, on en voit bien deux
+const ROUE        = 24;      // diamètre d'une roue (max 2×R, sinon elle dépasse le sol)
+const ROUE_DX     = 13;      // écartement : 2 px de jour entre les roues, on en voit bien deux
 const ROUE_Y      = R - ROUE / 2;   // centre de roue sous le châssis → bas pile sur R
 const TASSE_W     = 42;      /* largeur du SingleCup (hauteur auto, ratio
                                 130×42). Le rapport qui compte est
-                                TASSE_W / ROUE : à 2,1 la tasse écrasait
-                                l'attelage, 1,5 la pose sur ses roues. */
+                                TASSE_W / ROUE : 2,1 écrasait l'attelage,
+                                1,5 donnait des roues de tracteur. 1,75. */
 
 /* Le monde est dessiné à 0,62 : on voit 516 px de piste de large au lieu
    de 320, et 380 px DEVANT le biscuit au lieu de 236. C'est la première
