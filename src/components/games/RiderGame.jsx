@@ -83,7 +83,7 @@ const R = COOKIE_SIZE / 2;   // rayon de contact : c'est LUI que la physique uti
 const ROUE        = 24;      // diamètre d'une roue (max 2×R, sinon elle dépasse le sol)
 const ROUE_DX     = 13;      // écartement : 2 px de jour entre les roues, on en voit bien deux
 const ROUE_Y      = R - ROUE / 2;   // centre de roue sous le châssis → bas pile sur R
-const TASSE_W     = 46;      /* largeur du SingleCup (hauteur auto, ratio
+const TASSE_W     = 50;      /* largeur du SingleCup (hauteur auto, ratio
                                 130×42). Le rapport qui compte est
                                 TASSE_W / ROUE : 2,1 écrasait l'attelage,
                                 1,5 donnait des roues de tracteur. */
@@ -94,6 +94,11 @@ const TASSE_W     = 46;      /* largeur du SingleCup (hauteur auto, ratio
    ancrage, chaque retouche de TASSE_W la ferait glisser sur les roues. */
 const TASSE_BORD_G = -15.5;  // px depuis l'axe de l'attelage
 const TASSE_ML     = TASSE_BORD_G - (30 / 130) * TASSE_W;
+/* Hauteur d'assise du fond de la tasse, comptée depuis l'essieu. Elle est
+   ancrée elle aussi : c'est le FOND qui est posé, et la tasse grandit
+   vers le haut. Sans ça, l'élargir la ferait s'enfoncer dans les roues. */
+const TASSE_BAS    = ROUE_Y - 7;
+const TASSE_MT     = TASSE_BAS - TASSE_W * (42 / 130);
 
 /* Le monde est dessiné à 0,62 : on voit 516 px de piste de large au lieu
    de 320, et 380 px DEVANT le biscuit au lieu de 236. C'est la première
@@ -1065,7 +1070,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           <div style={{
             position:'absolute', left:'50%', top:'50%',
             width:TASSE_W, marginLeft:TASSE_ML,
-            marginTop:ROUE_Y - 2 - TASSE_W * (42 / 130),
+            marginTop:TASSE_MT,
             lineHeight:0, pointerEvents:'none',
             transform:'scaleX(-1)',
           }}>
