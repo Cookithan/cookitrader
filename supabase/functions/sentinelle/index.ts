@@ -147,8 +147,8 @@ const OUTILS: Anthropic.Tool[] = [
   },
   {
     name: "retenir",
-    description: "Écris une phrase dans ta mémoire longue : une décision de Cookithan, un fait établi. Tu la reliras à chaque tour.",
-    input_schema: { type: "object", properties: { note: { type: "string" }, source: { type: "string", enum: ["sentinelle", "regis"] } }, required: ["note"], additionalProperties: false },
+    description: "Écris une phrase dans ta mémoire longue : une décision de Cookithan, un fait établi, ou UNE IDÉE DE JOUEUR. Tu la reliras à chaque tour, et Cookithan la lit aussi. C'est le seul endroit où une idée survit : un signalement marqué « traité » est clos, plus personne ne le rouvre.",
+    input_schema: { type: "object", properties: { note: { type: "string" }, source: { type: "string", enum: ["sentinelle", "regis", "joueur"] } }, required: ["note"], additionalProperties: false },
   },
 ];
 
@@ -251,6 +251,10 @@ Donc : tu n'annonces QUE ce que tu as CONSTATÉ dans les données, et qui change
 
 Une annonce « tous » reste affichée jusqu'à ce qu'on la retire : quand elle n'est plus vraie, retire-la (« taire_annonce »).
 
+NE DIS JAMAIS AVOIR FAIT UNE CHOSE QUE TU N'AS PAS FAITE. « C'est noté », « je transmets », « je vais regarder » : chacune de ces phrases décrit un GESTE. Si tu l'écris à un joueur sans avoir appelé l'outil correspondant, tu lui mens — poliment, mais tu lui mens, et son idée ou son problème disparaît pendant qu'il te croit. Donc : l'outil D'ABORD, la phrase ENSUITE. Si tu ne peux pas le faire, dis ce que tu ne peux pas faire.
+
+N'ÉVALUE PAS CE QUE TU NE CONNAIS PAS. « C'est une excellente idée », « ça a l'air rigolo » sur une fonctionnalité dont tu ne sais rien, c'est de l'enthousiasme fabriqué : tu déduis du nom et tu le présentes comme un avis. Un joueur le sent. Remercie, note, dis ce qui va se passer — c'est plus court et c'est vrai.
+
 Les chiffres que tu cites viennent du contexte ou des outils, jamais de mémoire.`;
 
 /* ── Le contexte : ce que la base sait, compacté ────────────── */
@@ -324,7 +328,7 @@ async function contexte(sb: SB) {
   const toutes = (notes.data ?? []) as R[];
   const manques = toutes.filter((x: R) => x.source === "manque");
   const manquesTxt = manques.slice().reverse().map((x: R) => "- " + x.note).join(SAUT);
-  const notesTxt = toutes.filter((x: R) => x.source !== "manque").slice().reverse().map((x: R) => `[${j(x.created_at as string)}${x.source === "regis" ? " · Cookithan" : ""}] ${x.note}`).join("\n");
+  const notesTxt = toutes.filter((x: R) => x.source !== "manque").slice().reverse().map((x: R) => `[${j(x.created_at as string)}${x.source === "regis" ? " · Cookithan" : x.source === "joueur" ? " · idée d'un joueur" : ""}] ${x.note}`).join("\n");
 
   const dossiersTxt = (dossiers.data ?? []).map((d: R) =>
     `${d.cle} · ${d.statut}${d.decision ? " (" + d.decision + ")" : ""} · ${d.titre}`
@@ -629,7 +633,8 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
   if (nom === "retenir") {
     const note = String(entree.note ?? "").trim().slice(0, 400);
     if (!note) return { ok: false, message: "Note vide." };
-    const { error } = await sb.from("sentinelle_notes").insert({ note, source: entree.source === "regis" ? "regis" : "sentinelle" });
+    const src = ["regis", "joueur"].includes(String(entree.source)) ? String(entree.source) : "sentinelle";
+    const { error } = await sb.from("sentinelle_notes").insert({ note, source: src });
     if (error) return { ok: false, message: error.message };
     return { ok: true, message: "Noté." };
   }
