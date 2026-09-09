@@ -553,6 +553,33 @@ function controleActionsPrecoces(users, portefeuilles) {
    disait si un compte repassait au-dessus du plafond qu'on lui a fixé. */
 function controleSurveillance(users, surveilles) {
   if (!surveilles.length) return null;
+
+  /* ── Le schéma d'abord ──
+     Ajouté le 09/09 après un incident qu'elle n'aurait PAS pu voir :
+     la console de sanction refusait d'écrire, « column plafond_earned
+     does not exist ». LE_MUR_CORRECTIF.sql n'était jamais passé en base.
+
+     Deux conséquences, et la seconde est la grave :
+       · on ne peut plus sanctionner personne ;
+       · surtout, le mur anti-restauration de la base est resté dans sa
+         version SANS `security definer` — donc invisible pour le rôle
+         anonyme, donc inopérant. Le compte sanctionné pouvait réécrire
+         ses valeurs, ce que le correctif avait justement été écrit pour
+         empêcher.
+
+     Le test ne coûte rien : PostgREST n'expose pas les colonnes
+     absentes, donc la clé manque tout simplement dans l'objet. Un champ
+     à null (compte surveillé sans plafond fixé) ne déclenche rien —
+     seul le schéma qui a dérivé compte. */
+  if (!surveilles.some(s => 'plafond_earned' in s)) {
+    return faire('alerte', 'triche', 'Le mur anti-restauration est incomplet en base', [
+      "La colonne plafond_earned n'existe pas dans comptes_sous_surveillance.",
+      'Conséquence 1 : la console de sanction échoue à écrire.',
+      'Conséquence 2, la vraie : la fonction du mur est restée sans « security definer », donc invisible pour le rôle anonyme — un compte sanctionné peut réécrire ses valeurs depuis son téléphone.',
+      'Correctif : passer LE_MUR_CORRECTIF.sql (idempotent).',
+    ]);
+  }
+
   const parCode = new Map(users.map(u => [u.user_code, u]));
   const repartis = [];
   for (const s of surveilles) {
