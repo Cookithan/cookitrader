@@ -64,6 +64,10 @@ const SAUT = String.fromCharCode(10);
 const GESTES_A_CONFIRMER = new Set([
   "sanctionner", "lever_sanction", "modifier_joueur", "corriger_cours",
   "maintenance", "forcer_maj", "creer_code_promo", "desactiver_code_promo",
+  /* Un pop-up chez tous les joueurs ne s'annule pas : une fois vu, il est
+     vu. C'est le seul geste qui touche tout le monde ET qui est
+     irréversible — donc il attend un oui, sauf en mode full autonome. */
+  "annoncer",
 ]);
 const COMPENSATION_LIBRE = { cookies: 2000, cafes: 3 };
 
@@ -93,8 +97,8 @@ const OUTILS: Anthropic.Tool[] = [
     input_schema: {
       type: "object",
       properties: {
-        action: { type: "string", enum: ["sanctionner", "lever_sanction", "compenser", "modifier_joueur", "corriger_cours", "fermer_marche", "ouvrir_marche", "creer_code_promo", "desactiver_code_promo", "forcer_maj", "maintenance", "nettoyer_portefeuille"] },
-        params: { type: "object", description: "sanctionner: {user_code, level, total_earned, cookies, cafes, motif} · compenser: {user_code, cookies, cafes} · modifier_joueur: {user_code, et un ou plusieurs de level, xp, cookies, cafes, total_earned, weekly_earned, prestige_level, streak, active_theme, active_title, user_bio, ajouter_unlocked:[ids], retirer_unlocked:[ids]} — ce qui n'est pas fourni ne bouge pas · corriger_cours: {prix} · fermer_marche: {heures} · creer_code_promo: {code, coins, cafes, shares} · desactiver_code_promo: {code} · maintenance: {actif, titre, sous_titre} · forcer_maj: {version} · nettoyer_portefeuille: {user_code}" },
+        action: { type: "string", enum: ["sanctionner", "lever_sanction", "compenser", "modifier_joueur", "corriger_cours", "fermer_marche", "ouvrir_marche", "creer_code_promo", "desactiver_code_promo", "forcer_maj", "maintenance", "nettoyer_portefeuille", "annoncer", "taire_annonce"] },
+        params: { type: "object", description: "sanctionner: {user_code, level, total_earned, cookies, cafes, motif} · compenser: {user_code, cookies, cafes} · modifier_joueur: {user_code, et un ou plusieurs de level, xp, cookies, cafes, total_earned, weekly_earned, prestige_level, streak, active_theme, active_title, user_bio, ajouter_unlocked:[ids], retirer_unlocked:[ids]} — ce qui n'est pas fourni ne bouge pas · corriger_cours: {prix} · fermer_marche: {heures} · creer_code_promo: {code, coins, cafes, shares} · desactiver_code_promo: {code} · maintenance: {actif, titre, sous_titre} · forcer_maj: {version} · nettoyer_portefeuille: {user_code} · annoncer: {titre, corps, portee} où portee vaut « maintenant » (ceux qui ont l'app ouverte, pop-up chez eux seuls) ou « tous » (bandeau vu aussi par ceux qui ouvriront plus tard) · taire_annonce: {} pour retirer le bandeau" },
         confirmation_utilisateur: { type: "boolean" },
       },
       required: ["action", "params"],
@@ -217,6 +221,14 @@ Ne renvoie jamais Cookithan à la base de données pour une chose que tu aurais 
 QUAND IL TE POSE UNE QUESTION, RÉPONDS À CELLE-LÀ. Il a nommé un joueur : tu parles de CE joueur, pas de son voisin. Il a demandé une heure : tu donnes l'heure, pas le portrait du compte. Ajouter ce qu'il n'a pas demandé n'est pas de la générosité — c'est du bruit à trier, et ça noie la réponse qu'il attendait. Si tu trouves en chemin quelque chose d'important qu'il n'a pas demandé, tu le dis en UNE phrase, à la fin, séparée.
 
 Réponds court. Trois lignes valent mieux que quinze si les trois suffisent. Tu écris pour un téléphone tenu à une main, pas pour un rapport. Pas de titres, pas de tableaux, pas de listes à puces quand une phrase suffit : garde les listes pour ce qui est vraiment une liste. Le gras sert à un chiffre ou un nom qu'il doit repérer d'un coup d'œil, pas à décorer une ligne sur deux.
+
+PARLER AUX JOUEURS. Ta réponse à un signalement arrive chez lui en pop-up, pas dans une boîte qu'il ouvrira peut-être : écris-la comme on répond à quelqu'un qui attend, en deux ou trois phrases, sans jargon, et dis ce qui a été fait plutôt que ce qui va être étudié.
+
+Tu peux aussi annoncer quelque chose à PLUSIEURS joueurs (agir avec « annoncer »). Deux portées : « maintenant » touche ceux qui ont l'app ouverte, « tous » pose un bandeau que verront aussi ceux qui ouvriront demain. Dans les deux cas c'est un POP-UP sur leur téléphone, et il ne s'annule pas — une fois vu, il est vu.
+
+Donc : tu n'annonces QUE ce que tu as CONSTATÉ dans les données, et qui change quelque chose pour eux — le marché a rouvert, la panne est finie, un bug est corrigé. Jamais une opinion, jamais une promotion, jamais « bonjour ». Le plafond est de dix par jour, mais dix c'est un pop-up toutes les heures et demie sur leur téléphone : deux dans une journée, c'est déjà beaucoup. Dans le doute, tu n'annonces pas — tu réponds à ceux qui ont écrit.
+
+Une annonce « tous » reste affichée jusqu'à ce qu'on la retire : quand elle n'est plus vraie, retire-la (« taire_annonce »).
 
 Les chiffres que tu cites viennent du contexte ou des outils, jamais de mémoire.`;
 
@@ -399,6 +411,21 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
        dans action_sentinelle aurait demandé de réécrire son code source
        depuis lui-même, ce que l'éditeur SQL refuse. Même porte (la
        phrase), même journal. */
+    if (action === "annoncer") {
+      const { data, error } = await sb.rpc("sentinelle_annoncer", {
+        p_phrase: phrase,
+        p_titre:  String((params as Record<string, unknown>).titre ?? ""),
+        p_corps:  String((params as Record<string, unknown>).corps ?? ""),
+        p_portee: String((params as Record<string, unknown>).portee ?? "maintenant"),
+      });
+      if (error) return { ok: false, message: error.message };
+      return data;
+    }
+    if (action === "taire_annonce") {
+      const { data, error } = await sb.rpc("sentinelle_taire_annonce", { p_phrase: phrase });
+      if (error) return { ok: false, message: error.message };
+      return data;
+    }
     if (action === "modifier_joueur") {
       const { user_code, ...champs } = params as Record<string, unknown>;
       if (!user_code) return { ok: false, message: "user_code manquant." };
@@ -415,7 +442,10 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
     const user_code = String(entree.user_code ?? "").trim();
     if (!user_code) return { ok: false, message: "user_code manquant" };
     const { error } = await sb.from("inbox_messages").insert({
-      user_code, type: "system",
+      /* 'sentinelle' et non 'system' : l'app fait remonter ce type-là en
+         pop-up bleu. Un joueur qui a signalé un problème attend une
+         réponse — la déposer sans rien dire revient à la lui cacher. */
+      user_code, type: "sentinelle",
       title: String(entree.titre ?? "Un mot de la Sentinelle").slice(0, 80),
       body: String(entree.corps ?? "").slice(0, 800),
       payload: null,

@@ -1170,6 +1170,7 @@ export const FR = {
     confirm_for:        'Confirmer pour {n} 🍪',
     severity_info:      'Info',
     severity_warning:   'Important',
+    severity_sentinelle: 'La Sentinelle',
     severity_new:       'Nouveau',
     understood:         "J'ai compris ✓",
     ok_understood:      "OK, j'ai compris",

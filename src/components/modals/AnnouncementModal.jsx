@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Megaphone, AlertTriangle, Sparkles } from 'lucide-react';
+import { Megaphone, AlertTriangle, Sparkles, Shield } from 'lucide-react';
+import { MARINE, BLEU, DEGRADE } from '../../data/sentinelleTheme.js';
 import { useTranslation } from '../../i18n/index.js';
 
 /* ════════════════════════════════════════════════════
@@ -48,6 +49,32 @@ const VARIANTS = {
     btnBg: 'linear-gradient(135deg, #FFE066, #D4A017)',
     labelKey: 'modal.severity_new',
   },
+  /* ── La Sentinelle ──
+     La seule variante non-café de l'app, avec l'entonnoir de
+     signalement. C'est délibéré et c'est le but : quand le bleu
+     apparaît, le joueur sait AVANT DE LIRE que ce n'est pas le jeu qui
+     parle, c'est elle. La règle café-only tient partout ailleurs. */
+  sentinelle: {
+    Icon: Shield,
+    iconBg: DEGRADE,
+    accent: MARINE,
+    accentSoft: 'rgba(69,108,139,.9)',
+    btnBg: DEGRADE,
+    labelKey: 'modal.severity_sentinelle',
+    carte: `linear-gradient(160deg, #FFFFFF, ${BLEU[100]})`,
+    bord: BLEU[300],
+    texte: BLEU[800],
+    corps: 'rgba(14,51,85,.82)',
+    voile: 'rgba(11,46,77,.62)',
+  },
+};
+
+/* La peau par défaut : celle des trois variantes café d'origine. */
+const PEAU_CAFE = {
+  carte: 'linear-gradient(160deg, #3D2010, #5C3317)',
+  texte: '#F0E6D3',
+  corps: 'rgba(255,255,255,.85)',
+  voile: 'rgba(15,8,4,.78)',
 };
 
 function hashMessage(s) {
@@ -78,7 +105,7 @@ export function AnnouncementModal({ message, severity = 'info' }) {
 
   if (!message || dismissed) return null;
 
-  const v = VARIANTS[severity] || VARIANTS.info;
+  const v = { ...PEAU_CAFE, ...(VARIANTS[severity] || VARIANTS.info) };
   const { Icon } = v;
 
   /* Split sur 1er \n : 1re ligne = titre, reste = corps. */
@@ -101,7 +128,7 @@ export function AnnouncementModal({ message, severity = 'info' }) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(15,8,4,.78)',
+        background: v.voile,
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
         display: 'flex',
@@ -118,13 +145,13 @@ export function AnnouncementModal({ message, severity = 'info' }) {
         style={{
           width: '100%',
           maxWidth: 360,
-          background: 'linear-gradient(160deg, #3D2010, #5C3317)',
+          background: v.carte,
           borderRadius: 24,
           padding: '28px 22px 22px',
           boxShadow: '0 24px 60px rgba(0,0,0,.55)',
-          border: `2px solid ${v.accent}`,
+          border: `2px solid ${v.bord || v.accent}`,
           textAlign: 'center',
-          color: '#F0E6D3',
+          color: v.texte,
         }}
       >
         {/* Icône en bandeau */}
@@ -158,7 +185,7 @@ export function AnnouncementModal({ message, severity = 'info' }) {
         {/* Corps (lignes suivantes — optionnel) */}
         {body && (
           <div style={{
-            fontSize: 13, color: 'rgba(255,255,255,.85)',
+            fontSize: 13, color: v.corps,
             lineHeight: 1.5, marginBottom: 18,
             whiteSpace: 'pre-wrap',
             textAlign: 'left',

@@ -67,7 +67,8 @@ import { ClassementTab } from "./components/tabs/ClassementTab.jsx";
 import { MarketTab } from "./components/tabs/MarketTab.jsx";
 import { MarketLocked } from "./components/tabs/MarketLocked.jsx";
 import { InboxModal } from "./components/modals/InboxModal.jsx";
-import { getUnreadInboxCount, createInboxMessage } from "./lib/inbox.js";
+import { SentinelleMessageModal } from "./components/modals/SentinelleMessageModal.jsx";
+import { getUnreadInboxCount, createInboxMessage, getMessageSentinelle } from "./lib/inbox.js";
 import { useToast } from "./components/Toaster.jsx";
 import { BoostGainToast } from "./components/BoostGainToast.jsx";
 import { FriendNotificationModal } from "./components/modals/FriendNotificationModal.jsx";
@@ -938,6 +939,9 @@ export default function CookiMiner() {
   const [showPromoCode,    setShowPromoCode]    = useState(false);
   const [promoCodesUsed,   setPromoCodesUsed]   = useLocalStorage('promoCodesUsed', []);
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
+  /* Le mot de la Sentinelle : relevé par le même battement de 30 s que
+     le compteur de non-lus — pas de sonde en plus. */
+  const [motSentinelle, setMotSentinelle] = useState(null);
   const { showToast } = useToast();
   /* Ref synchronisée → permet à addCoins (useCallback deps=[]) d'appeler
      le showToast courant sans avoir à se rebuilder à chaque render. */
@@ -1320,6 +1324,10 @@ export default function CookiMiner() {
     const refresh = async () => {
       const c = await getUnreadInboxCount(userCode);
       if(alive) setUnreadInboxCount(c);
+      /* Une réponse de la Sentinelle ne dort pas dans la boîte : le
+         joueur a posé une question, elle lui revient d'elle-même. */
+      const mot = await getMessageSentinelle(userCode);
+      if(alive) setMotSentinelle(mot);
     };
     refresh();
     const t = setInterval(refresh, 30_000);
@@ -4047,7 +4055,16 @@ export default function CookiMiner() {
 
   return (
     <>
-    {!inTutorial && (
+    {/* Elle passe AVANT l'annonce générale : un mot qui s'adresse à lui
+        personnellement prime sur un message à tout le monde. */}
+    {!inTutorial && motSentinelle && (
+      <SentinelleMessageModal
+        key={motSentinelle.id}
+        message={motSentinelle}
+        onFerme={() => { setMotSentinelle(null); setUnreadInboxCount(c => Math.max(0, c - 1)); }}
+      />
+    )}
+    {!inTutorial && !motSentinelle && (
       <AnnouncementModal
         message={systemStatus.banner_message}
         severity={systemStatus.banner_severity}

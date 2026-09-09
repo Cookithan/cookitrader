@@ -48,6 +48,31 @@ export async function getInboxMessages(userCode){
   return (data ?? []).map(m => ({ ...m, payload: parsePayload(m.payload) }));
 }
 
+/* ── Le mot de la Sentinelle ─────────────────────────
+   Ses messages portent le type 'sentinelle' et non 'system' : c'est ce
+   qui permet de les faire remonter en pop-up au lieu de les laisser
+   dormir dans la boîte. Un joueur qui a signalé un problème attend une
+   réponse — la lui poser sans rien dire, c'est la lui cacher.
+
+   Le pop-up ne fait que MONTRER : le message reste dans la messagerie
+   après coup, comme tous les autres. Rien n'est consommé. */
+export async function getMessageSentinelle(userCode){
+  if(!isSupabaseEnabled() || !userCode) return null;
+  const since = new Date(Date.now() - TTL_MS).toISOString();
+  const { data, error } = await supabase
+    .from('inbox_messages')
+    .select('*')
+    .eq('user_code', userCode)
+    .eq('type', 'sentinelle')
+    .eq('is_read', false)
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if(error) return null;
+  return data ? { ...data, payload: parsePayload(data.payload) } : null;
+}
+
 /* Compte les messages non lus (rapide, head-only). */
 export async function getUnreadInboxCount(userCode){
   if(!isSupabaseEnabled() || !userCode) return 0;

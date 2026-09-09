@@ -1150,6 +1150,7 @@ export const EN = {
     confirm_for:        'Confirm for {n} 🍪',
     severity_info:      'Info',
     severity_warning:   'Important',
+    severity_sentinelle: 'The Sentinel',
     severity_new:       'New',
     understood:         'Got it ✓',
     ok_understood:      "OK, got it",
