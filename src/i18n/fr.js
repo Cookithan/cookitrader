@@ -893,9 +893,9 @@ export const FR = {
 
   game_rider: {
     title:        'Cooki Rider',
-    intro:        "Maintiens pour rouler. En l'air, garde le doigt posé pour tourner.",
-    tip:          'Retombe la tasse en haut, sinon le café se renverse. Chaque figure bouclée : +{n} 🍪.',
-    hold_hint:    '👇 Maintiens pour accélérer',
+    intro:        'Maintiens pour rouler. Sans vitesse, tu ne passes pas le trou.',
+    tip:          "En l'air, garde le doigt pour tourner et lâche-le pour poser la tasse à l'endroit. Figure bouclée : +{n} 🍪.",
+    hold_hint:    "👇 Maintiens — c'est la vitesse qui passe les trous",
     gas_on:       'GAZ',
     gas_off:      'ROUE LIBRE',
     dist_label:   'Distance',
@@ -903,7 +903,8 @@ export const FR = {
     earned_label: 'Gagné',
     flip_pop:     'Figure ×{n}',
     end_flip:     '☕ Café renversé !',
-    end_fall:     '🕳️ Tombé dans le trou !',
+    end_fall:     '🕳️ Tombé dans le vide !',
+    end_wall:     '💥 Dans le flanc de la plateforme !',
     end_recap:    '{m} m parcourus · {f} figure(s)',
     end_none:     'Trop court pour une récompense',
     play_btn:     'Rouler ({cost} 🍪)',

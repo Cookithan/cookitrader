@@ -874,9 +874,9 @@ export const EN = {
 
   game_rider: {
     title:        'Cooki Rider',
-    intro:        'Hold to roll. In the air, keep holding to spin.',
-    tip:          'Land with the cup up, or the coffee spills. Every completed flip: +{n} 🍪.',
-    hold_hint:    '👇 Hold to accelerate',
+    intro:        'Hold to roll. No speed, no gap cleared.',
+    tip:          'In the air, keep holding to spin and let go to land the cup upright. Completed flip: +{n} 🍪.',
+    hold_hint:    '👇 Hold — speed is what clears the gaps',
     gas_on:       'THROTTLE',
     gas_off:      'COASTING',
     dist_label:   'Distance',
@@ -884,7 +884,8 @@ export const EN = {
     earned_label: 'Earned',
     flip_pop:     'Flip ×{n}',
     end_flip:     '☕ Coffee spilled!',
-    end_fall:     '🕳️ Fell in the gap!',
+    end_fall:     '🕳️ Fell into the void!',
+    end_wall:     '💥 Straight into the platform edge!',
     end_recap:    '{m} m ridden · {f} flip(s)',
     end_none:     'Too short for a reward',
     play_btn:     'Ride ({cost} 🍪)',

@@ -187,6 +187,71 @@ function playSwipeSynth(){
   src.stop(ctx.currentTime + dur);
 }
 
+/* ── MOTEUR COOKI RIDER — bourdon continu piloté par la vitesse ───
+   Le maintien du doigt est la commande entière de Cooki Rider, et un
+   doigt posé sur une vitre ne renvoie rien : sans son, accélérer ne se
+   sent pas. Un bourdon dont la hauteur suit la vitesse règle ça à lui
+   seul, mieux que n'importe quelle animation.
+
+   Trois précautions : volume bas (0.10) parce qu'il tient 40 s d'affilée,
+   `setTargetAtTime` partout plutôt que des sauts de valeur (un saut de
+   fréquence s'entend comme un clic), et le doigt levé BAISSE le gain au
+   lieu de couper — un moteur qui s'arrête net sonne comme un bug. */
+let engineNodes = null;
+
+export function startRiderEngine(){
+  if(!getSettings().uiSoundEnabled) return;
+  const ctx = ensureAudioContext();
+  if(!ctx || engineNodes) return;
+  /* Un contexte créé hors geste utilisateur reste « suspended » et le
+     bourdon serait muet sans le moindre message. Les autres synths sont
+     des one-shots et s'en sortent ; un son continu, non. */
+  if(ctx.state === 'suspended') ctx.resume().catch(() => {});
+  try{
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = 62;
+    const sub = ctx.createOscillator();     // octave basse : donne le corps
+    sub.type = 'triangle';
+    sub.frequency.value = 31;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 520;
+    lp.Q.value = 0.7;
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    osc.connect(lp); sub.connect(lp);
+    lp.connect(gain).connect(ctx.destination);
+    osc.start(); sub.start();
+    engineNodes = { ctx, osc, sub, lp, gain };
+  }catch{ engineNodes = null; }   /* WebAudio indisponible → jeu muet, pas de crash */
+}
+
+/* v01 : vitesse ramenée à 0..1 · gaz : doigt posé ou non */
+export function setRiderEngine(v01, gaz){
+  if(!engineNodes) return;
+  const { ctx, osc, sub, lp, gain } = engineNodes;
+  const t = ctx.currentTime;
+  const v = Math.max(0, Math.min(1, v01));
+  try{
+    osc.frequency.setTargetAtTime(60 + 120 * v, t, 0.05);
+    sub.frequency.setTargetAtTime(30 + 60 * v, t, 0.05);
+    lp.frequency.setTargetAtTime(gaz ? 480 + 950 * v : 280, t, 0.09);
+    gain.gain.setTargetAtTime(gaz ? 0.10 : 0.04, t, 0.07);
+  }catch{ /* contexte fermé par l'OS en cours de partie */ }
+}
+
+export function stopRiderEngine(){
+  if(!engineNodes) return;
+  const { ctx, osc, sub, gain } = engineNodes;
+  try{
+    gain.gain.setTargetAtTime(0, ctx.currentTime, 0.05);
+    osc.stop(ctx.currentTime + 0.3);
+    sub.stop(ctx.currentTime + 0.3);
+  }catch{ /* déjà arrêté */ }
+  engineNodes = null;
+}
+
 /* ── FLAPPY JUMP SYNTH — "boop" cartoon montant ───────────────────
    Pour le saut du cookie : un blip court à pitch ascendant qui rappelle
    un saut de jeu d'arcade (Mario, Flappy Bird).
