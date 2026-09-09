@@ -30,11 +30,11 @@
    2. LE PLAFOND DU JOUR. 12 rondes maximum par 24 h, quoi qu'il arrive.
       C'est la seule garantie dure sur la facture : toutes les autres
       portes dépendent de ce qui se passe dans l'app, celle-ci non.
-   3. LE PLANCHER, A DEUX VITESSES. Dix minutes quand un joueur attend une
-      reponse ou qu'une alerte vient de tomber ; une heure le reste du
-      temps. Les dix minutes servent autant a REGROUPER qu'a temporiser :
-      dix amis qui ecrivent dans le meme quart d'heure sont traites par UNE
-      ronde, pas dix.
+   3. LE PLANCHER, A TROIS VITESSES. AUCUN quand un joueur attend : il a
+      sa reponse au prochain tic, donc dans les cinq minutes. Dix minutes
+      pour une alerte de la vigie. Une heure le reste du temps.
+      Consequence assumee : le plafond du jour (porte 2) devient la seule
+      protection du budget, et il peut partir vite un jour charge.
    4. LA NUIT (22 h – 6 h, heure de Paris). Elle dort, SAUF si la vigie
       déterministe a levé une ALERTE depuis sa dernière ronde. La vigie,
       elle, continue de tourner toutes les 10 minutes : c'est du SQL, ça
@@ -133,18 +133,26 @@ begin
      borner la facture : sans lui, chaque evenement declencherait un tour
      de modele. D ou deux vitesses :
 
-     · 10 MINUTES quand un joueur attend (ou qu une alerte vient de
-       tomber). Assez court pour qu il ne se sente pas ignore, assez long
-       pour REGROUPER : dix amis qui ecrivent dans le meme quart d heure
-       sont traites par UNE seule ronde, pas dix. C est le vrai garde-fou,
-       et il vaut mieux qu un plancher long.
+     · AUCUN quand un joueur attend. Decision de Cookithan, apres avoir
+       essaye 10 min : « on ne met pas de plancher pour le signalement ».
+       Elle repond au prochain tic du cron, donc dans les cinq minutes.
+     · 10 MINUTES quand c est une ALERTE de la vigie. Elles sont rares et
+       ne se reecrivent pas, donc elles ne peuvent pas s emballer.
      · 1 HEURE le reste du temps. Un crash, un ordre de marche, un geste
        au journal : rien de tout ca n attend une reponse.
 
-     Le plafond de 12 rondes par jour reste la garantie dure sur le
-     budget, quoi qu il arrive. */
-  plancher := case when attend or alerte then interval '10 minutes'
-                                         else interval '1 hour' end;
+     ⚠️ CE QUE CA COUTE, ET IL FAUT LE SAVOIR
+     Sans plancher sur les signalements, chaque message peut declencher sa
+     ronde. Le regroupement ne joue plus que dans la fenetre de 5 minutes
+     du cron : dix amis qui ecrivent a dix moments differents, ce sont dix
+     rondes. Le PLAFOND DU JOUR devient donc la seule chose qui protege le
+     budget — et il peut etre epuise en une heure, laissant la Sentinelle
+     muette tout l apres-midi. Si ca arrive, c est le plafond qu il faut
+     relever (ligne « rondes_ia_jour >= 12 » plus bas), pas ce plancher-ci
+     qu il faut remettre. */
+  plancher := case when attend  then interval '0 seconds'
+                   when alerte  then interval '10 minutes'
+                                else interval '1 hour' end;
 
   -- 3. le plancher
   if e.derniere_ronde_ia is not null and e.derniere_ronde_ia > now() - plancher then
