@@ -99,6 +99,14 @@ export const SCHEMA_ATTENDU = [
     fichier: 'sql/SENTINELLE_AUTONOMIE.sql',
   },
   {
+    id: 'surveille',
+    fonction: 'suis_je_surveille',
+    gravite: 'utile',
+    quoi: "Le splash Sentinelle d'un compte surveille",
+    casse: "Un compte sanctionne garde le splash normal : il ne saura pas qu'il est surveille. Rien d'autre ne casse.",
+    fichier: 'sql/SUIS_JE_SURVEILLE.sql',
+  },
+  {
     id: 'phrase',
     fonction: 'sentinelle_phrase_ok',
     gravite: 'bloquant',

@@ -227,6 +227,33 @@ export const GLOBAL_CSS = `
   /* ── SPLASH SCREEN ───────────────────────────────── */
   .splash-screen{position:fixed;inset:0;background:linear-gradient(135deg,#4A2C17 0%,#3D2010 50%,#2C1810 100%);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:24px;z-index:9999;transition:opacity .5s ease;overflow:hidden}
   .splash-screen.fade-out{opacity:0;pointer-events:none}
+
+  /* ── Le splash d'un compte SOUS SURVEILLANCE (10/09) ──
+     Cookithan : « si un joueur est surveillé par un mur, alors son splash
+     devient un splash Sentinelle ».
+
+     On ne redessine rien : on repeint. Les mêmes blocs, la même
+     chorégraphie, seules les couleurs changent — bleu marine au lieu du
+     moka, halos acier au lieu de l'or. Un joueur sanctionné ouvre son app
+     et comprend AVANT de lire.
+
+     Le texte reste factuel : « tes gains sont vérifiés », pas « tu es un
+     tricheur ». Il a déjà vu ses valeurs remises à plat, l'humilier une
+     seconde fois ne protège rien. */
+  .splash-sentinelle{background:linear-gradient(135deg,#14496D 0%,#0E3355 50%,#0B2E4D 100%)}
+  .splash-sentinelle .splash-blob-1{background:rgba(46,134,191,.22)}
+  .splash-sentinelle .splash-blob-2{background:rgba(127,173,210,.14)}
+  .splash-sentinelle .splash-letter{color:#DCEBF7;text-shadow:0 2px 8px rgba(46,134,191,.45),0 0 24px rgba(46,134,191,.25)}
+  .splash-sentinelle .splash-subtitle{color:#9FC4DE;letter-spacing:1px;text-transform:none;font-size:12.5px;text-align:center}
+  .splash-sentinelle .splash-dot{background:#7FADD2}
+  .splash-sentinelle .splash-credit{color:rgba(220,235,247,.7)}
+
+  /* Le bouclier respire, il ne clignote pas : c'est une surveillance
+     tranquille, pas une alarme. */
+  .splash-bouclier{font-size:56px;line-height:1;z-index:2;opacity:0;
+    animation:splashBouclierIn .55s cubic-bezier(.34,1.56,.64,1) .1s forwards,
+              sentinelleScrute 2.6s ease-in-out 1s infinite}
+  @keyframes splashBouclierIn{from{opacity:0;transform:translateY(14px) scale(.7)}to{opacity:1;transform:none}}
   .splash-blob{position:absolute;border-radius:50%;pointer-events:none;filter:blur(40px)}
   .splash-blob-1{top:10%;left:-20%;width:200px;height:200px;background:rgba(212,160,23,.15)}
   .splash-blob-2{bottom:10%;right:-15%;width:180px;height:180px;background:rgba(193,127,60,.12)}

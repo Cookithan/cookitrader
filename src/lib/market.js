@@ -44,7 +44,11 @@ export const MARKET_CONFIG = {
      promo pouvait créditer des actions à un joueur de niveau 1 : il
      arrivait au niveau 3 avec un portefeuille déjà garni, sans avoir
      jamais vu le marché. */
-  UNLOCK_LEVEL: 3,
+  /* Relevé de 3 à 4 le 10/09/2026 (demande de Cookithan). Le marché
+     demande de comprendre une courbe et des cooldowns : au niveau 3 on
+     sort à peine du tutoriel. Un palier de plus laisse le temps de jouer
+     avant de spéculer. */
+  UNLOCK_LEVEL: 4,
   /* ⚠️ MAINTENANCE — quand true, le marché est fermé en permanence
      (au-delà des horaires habituels). Affiche "Marché en maintenance"
      côté UI + bloque buyShares/sellShares avec message d'erreur clair.

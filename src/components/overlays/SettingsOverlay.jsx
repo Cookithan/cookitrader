@@ -236,6 +236,87 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
           </section>
         )}
 
+        {/* Audio — les 2 interrupteurs. Le choix de la piste est dans
+            Ma Collection (catégorie Musiques). */}
+        <section>
+          {sectionLabel(t('settings.section_audio'))}
+          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
+
+            <button
+              onClick={toggleUi}
+              style={{
+                width:'100%', padding:'10px 4px', display:'flex',
+                alignItems:'center', justifyContent:'space-between',
+                background:'transparent', border:'none', cursor:'pointer',
+              }}
+            >
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t('settings.audio_ui')}</div>
+                <div style={{ fontSize:11, color:C.muted }}>{t('settings.audio_ui_desc')}</div>
+              </div>
+              <Switch enabled={audio.uiSoundEnabled} />
+            </button>
+
+            <div style={{ height:1, background:C.border, opacity:.5, margin:'4px 0' }} />
+
+            <button
+              onClick={toggleMusic}
+              style={{
+                width:'100%', padding:'10px 4px', display:'flex',
+                alignItems:'center', justifyContent:'space-between',
+                background:'transparent', border:'none', cursor:'pointer',
+              }}
+            >
+              <div style={{ textAlign:'left' }}>
+                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t('settings.audio_music')}</div>
+                <div style={{ fontSize:11, color:C.muted }}>{t('settings.audio_music_desc')}</div>
+              </div>
+              <Switch enabled={audio.musicEnabled} />
+            </button>
+
+            {audio.musicEnabled && onOpenCollection && (
+              <div style={{ fontSize:11, color:C.muted, padding:'8px 4px 2px', fontStyle:'italic', lineHeight:1.45 }}>
+                {t('settings.audio_pick_hint')}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Langue / Language — switch FR ↔ EN, ré-rend toute l'app en live
+            via le hook useTranslation (useSyncExternalStore). */}
+        <section>
+          {sectionLabel(t('settings.section_language'), <Globe size={11} />)}
+          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
+            <div style={{ display:'flex', gap:8 }}>
+              {[
+                { id:'fr', flag:'🇫🇷', label:t('settings.lang_fr') },
+                { id:'en', flag:'🇬🇧', label:t('settings.lang_en') },
+              ].map(opt => {
+                const active = lang === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => { if(!active){ playSound('toggle'); setLang(opt.id); } }}
+                    style={{
+                      flex:1, padding:'10px 12px', borderRadius:12,
+                      background: active ? 'rgba(212,160,23,.14)' : 'transparent',
+                      border: `1.5px solid ${active ? '#D4A017' : C.border}`,
+                      color: active ? '#D4A017' : C.text,
+                      fontSize:13, fontWeight:800, cursor:'pointer',
+                      display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+                      transition:'all .2s',
+                    }}
+                  >
+                    <span style={{ fontSize:18, lineHeight:1 }}>{opt.flag}</span>
+                    {opt.label}
+                    {active && <Check size={14} color="#D4A017" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         {/* Sentinelle — visible par TOUT LE MONDE depuis la 1.30.
 
             Elle n'était offerte qu'aux admins, et les joueurs n'avaient
@@ -323,87 +404,13 @@ export function SettingsOverlay({ onClose, onReset, install, onOpenAbout, aboutI
           </section>
         )}
 
-        {/* Audio — les 2 interrupteurs. Le choix de la piste est dans
-            Ma Collection (catégorie Musiques). */}
-        <section>
-          {sectionLabel(t('settings.section_audio'))}
-          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
-
-            <button
-              onClick={toggleUi}
-              style={{
-                width:'100%', padding:'10px 4px', display:'flex',
-                alignItems:'center', justifyContent:'space-between',
-                background:'transparent', border:'none', cursor:'pointer',
-              }}
-            >
-              <div style={{ textAlign:'left' }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t('settings.audio_ui')}</div>
-                <div style={{ fontSize:11, color:C.muted }}>{t('settings.audio_ui_desc')}</div>
-              </div>
-              <Switch enabled={audio.uiSoundEnabled} />
-            </button>
-
-            <div style={{ height:1, background:C.border, opacity:.5, margin:'4px 0' }} />
-
-            <button
-              onClick={toggleMusic}
-              style={{
-                width:'100%', padding:'10px 4px', display:'flex',
-                alignItems:'center', justifyContent:'space-between',
-                background:'transparent', border:'none', cursor:'pointer',
-              }}
-            >
-              <div style={{ textAlign:'left' }}>
-                <div style={{ fontSize:13, fontWeight:800, color:C.text }}>{t('settings.audio_music')}</div>
-                <div style={{ fontSize:11, color:C.muted }}>{t('settings.audio_music_desc')}</div>
-              </div>
-              <Switch enabled={audio.musicEnabled} />
-            </button>
-
-            {audio.musicEnabled && onOpenCollection && (
-              <div style={{ fontSize:11, color:C.muted, padding:'8px 4px 2px', fontStyle:'italic', lineHeight:1.45 }}>
-                {t('settings.audio_pick_hint')}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Langue / Language — switch FR ↔ EN, ré-rend toute l'app en live
-            via le hook useTranslation (useSyncExternalStore). */}
-        <section>
-          {sectionLabel(t('settings.section_language'), <Globe size={11} />)}
-          <div style={{ borderRadius:16, background:C.card, border:`1px solid ${C.border}`, padding:14 }}>
-            <div style={{ display:'flex', gap:8 }}>
-              {[
-                { id:'fr', flag:'🇫🇷', label:t('settings.lang_fr') },
-                { id:'en', flag:'🇬🇧', label:t('settings.lang_en') },
-              ].map(opt => {
-                const active = lang === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => { if(!active){ playSound('toggle'); setLang(opt.id); } }}
-                    style={{
-                      flex:1, padding:'10px 12px', borderRadius:12,
-                      background: active ? 'rgba(212,160,23,.14)' : 'transparent',
-                      border: `1.5px solid ${active ? '#D4A017' : C.border}`,
-                      color: active ? '#D4A017' : C.text,
-                      fontSize:13, fontWeight:800, cursor:'pointer',
-                      display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-                      transition:'all .2s',
-                    }}
-                  >
-                    <span style={{ fontSize:18, lineHeight:1 }}>{opt.flag}</span>
-                    {opt.label}
-                    {active && <Check size={14} color="#D4A017" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
+        {/* ── Déplacée ICI le 10/09 ──
+            Elle était juste après « À propos », avec l'audio et la langue
+            qui s'intercalaient avant le code promo. Cookithan la voulait
+            COLLÉE au code promo : ce sont les deux endroits où l'on va
+            quand on a quelque chose à dire ou à réclamer, et les
+            séparer par deux réglages de confort les rendait tous les deux
+            plus durs à trouver. L'audio passe donc devant, assumé. */}
         {/* Code promo — au-dessus des données (v1.30). C'est ce qu'on vient
             saisir volontairement ; les données, on ne les ouvre qu'en cas
             de besoin. Il garde sa carte orange, seul de son espèce ici. */}

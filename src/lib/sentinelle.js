@@ -1362,6 +1362,27 @@ export async function budgetSentinelle() {
   }
 }
 
+/* ── Ce compte est-il sous surveillance ? ──────────────────
+   La table `comptes_sous_surveillance` est fermée à la clé publique, et
+   doit le rester : la liste des comptes sanctionnés n'a rien à faire
+   dans un bundle qui part chez tout le monde. On passe donc par une
+   fonction qui ne répond que sur UN code et ne rend qu'un booléen — ni
+   plafond, ni motif, ni date.
+
+   Le résultat est rangé en localStorage : le splash s'affiche avant
+   toute requête, il ne peut donc utiliser que ce qu'on savait au
+   lancement précédent (cf. SplashScreen). */
+export async function suisJeSurveille(userCode) {
+  if (!isSupabaseEnabled() || !userCode) return false;
+  try {
+    const { data, error } = await supabase.rpc('suis_je_surveille', { p_code: userCode });
+    if (error) return false;
+    return data === true;
+  } catch {
+    return false;
+  }
+}
+
 /* ── Le mode d'autonomie ──────────────────────────────
    Trois positions, et c'est d'abord une question d'argent :
      'non'  — aucune ronde IA. Zero appel, zero euro. La vigie SQL et le

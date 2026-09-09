@@ -46,6 +46,7 @@ import { CafesResetNoticeModal } from "./components/modals/CafesResetNoticeModal
 import { PromoCodeModal } from "./components/modals/PromoCodeModal.jsx";
 import { creditFreeShares, adminDebitShares, applyMarketRebalance10pct, getMarketState, MARKET_CONFIG } from "./lib/market.js";
 import { isAdminName, ADMIN_NAMES, peutVoirSentinelle } from "./utils/admin.js";
+import { suisJeSurveille } from "./lib/sentinelle.js";
 import { SettingsOverlay } from "./components/overlays/SettingsOverlay.jsx";
 import { AboutModal } from "./components/modals/AboutModal.jsx";
 import { NewVersionModal } from "./components/modals/NewVersionModal.jsx";
@@ -412,6 +413,14 @@ export default function CookiMiner() {
 
          On met l'upsert en pause 8 s, le temps que les setState écrivent,
          sinon le debounce republierait les anciennes valeurs par-dessus. */
+      /* Le statut de surveillance, rangé pour le lancement SUIVANT : le
+         splash s'affiche avant toute requête, il ne peut donc lire que ce
+         qu'on savait la fois d'avant. Cf. SplashScreen. */
+      suisJeSurveille(userCode).then(v => {
+        try { window.localStorage.setItem('cookiminer:sousSurveillance', v ? '1' : '0'); }
+        catch { /* mode privé : le splash restera le normal */ }
+      });
+
       const doitAdopter = server && Number(server.forceAdoptVersion || 0) > Number(adoptVersion || 0);
       if(doitAdopter){
         setPauseUpsertUntil(Date.now() + 8000);

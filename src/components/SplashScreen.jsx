@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { APP_INFO } from '../lib/appInfo.js';
 
 /* ════════════════════════════════════════════════════
    SplashScreen — écran d'accueil custom au lancement (BRIEF_SPLASH)
@@ -46,6 +47,52 @@ export default function SplashScreen({ onFinish, fast = false }){
 
   const letters = 'CookiMiner'.split('');
 
+  /* ── LE SPLASH DE LA SENTINELLE ──
+     Un compte sous surveillance ouvre l'app sur du bleu et un bouclier,
+     pas sur le logo café.
+
+     POURQUOI LE STATUT VIENT DU localStorage ET NON DU RÉSEAU
+     Le splash s'affiche AVANT toute requête : attendre une réponse le
+     ferait clignoter, ou pire, retarderait le lancement pour tout le
+     monde. Le statut est donc relevé APRÈS coup (App.jsx, au moment de
+     la synchronisation) et rangé ici — il sert au lancement SUIVANT.
+     Conséquence assumée : le premier lancement après une sanction montre
+     encore le splash normal. Un décalage d'une ouverture, contre un
+     démarrage qui ne dépend jamais du réseau : le marché est bon. */
+  let surveille = false;
+  try { surveille = window.localStorage.getItem('cookiminer:sousSurveillance') === '1'; }
+  catch { /* mode privé : on retombe sur le splash normal, jamais d'erreur */ }
+
+  if (surveille) {
+    return (
+      <div className={`splash-screen splash-sentinelle ${fast ? 'fast' : ''} ${fadingOut ? 'fade-out' : ''}`}>
+        <div className="splash-blob splash-blob-1" />
+        <div className="splash-blob splash-blob-2" />
+
+        <div className="splash-bouclier">🛡️</div>
+
+        <div className="splash-title" style={{ fontSize: 26, letterSpacing: -.5 }}>
+          <span className="splash-letter" style={{ animationDelay: '.05s' }}>La Sentinelle</span>
+        </div>
+
+        <div className="splash-subtitle" style={{ maxWidth: 260, lineHeight: 1.5 }}>
+          Ce compte est sous surveillance.<br />Tes gains sont vérifiés à chaque partie.
+        </div>
+
+        <div className="splash-dots">
+          <div className="splash-dot" />
+          <div className="splash-dot" />
+          <div className="splash-dot" />
+        </div>
+
+        <div className="splash-credit">
+          Joue normalement, il n'y a rien à faire de plus.
+          <span style={{ opacity: .55, marginLeft: 7 }}>v{APP_INFO.version}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`splash-screen ${fast ? 'fast' : ''} ${fadingOut ? 'fade-out' : ''}`}>
       <div className="splash-blob splash-blob-1" />
@@ -78,6 +125,9 @@ export default function SplashScreen({ onFinish, fast = false }){
 
       <div className="splash-credit">
         Réalisé par <strong>Cookithan</strong>
+        {/* La version vient d'APP_INFO : la recopier ici, c'est se
+            garantir qu'elle sera fausse à la prochaine livraison. */}
+        <span style={{ opacity: .6, marginLeft: 7 }}>v{APP_INFO.version}</span>
       </div>
     </div>
   );
