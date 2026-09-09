@@ -44,6 +44,12 @@ const TYPE_ACCENTS = {
   referral_reward:   { accent:'#D4A017', icon:'🎁' },
   reaction:          { accent:'#C17F3C', icon:'💬' },
   system:            { accent:'#8B6A5A', icon:'📜' },
+  /* La Sentinelle a le sien. Sans cette ligne, sa réponse tombait sur le
+     parchemin marron de « system » : le joueur ne pouvait pas distinguer
+     une réponse à SA question d'une notification automatique. C'est le
+     seul accent bleu de la boîte, et c'est voulu — le bleu, c'est elle
+     (cf. SentinelleMessageModal, l'entonnoir de signalement). */
+  sentinelle:        { accent:'#1B5E8C', icon:'🛡️' },
 };
 
 function formatDate(iso, lang){
@@ -229,6 +235,13 @@ export function InboxModal({ userCode, onClose, onApplyReward, onUnreadCountChan
 }
 
 function InboxMessageItem({ message, onOpen, onDelete, t, lang, C }){
+  /* ⚠️ PAS d'ouverture automatique, même pour un mot d'elle.
+     Tenté, puis retiré : déplier sans passer par handleClick n'appelle
+     jamais onOpen(), donc le message n'est JAMAIS marqué comme lu. Il
+     resterait non lu pour toujours — et comme le pop-up bleu ne cherche
+     que les non-lus, il serait revenu toutes les trente secondes, en
+     boucle. Le pop-up se charge déjà de la montrer à l'arrivée ; ici
+     c'est de la relecture, un tap est légitime. */
   const [expanded, setExpanded] = useState(false);
   const meta = TYPE_ACCENTS[message.type] ?? TYPE_ACCENTS.system;
   const dateStr = formatDate(message.created_at, lang);
@@ -272,7 +285,12 @@ function InboxMessageItem({ message, onOpen, onDelete, t, lang, C }){
               fontWeight: message.is_read ? 600 : 800,
               color:C.text,
               flex:1, minWidth:0,
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis',
+              /* Plus de nowrap : « Ton signalement a été lu et voici ce
+                 que j'ai fait » se retrouvait coupé à « Ton signalem… ».
+                 Deux lignes au maximum, puis l'ellipsis. */
+              lineHeight:1.35,
+              display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical',
+              overflow:'hidden',
             }}>
               {message.title}
             </div>
@@ -282,9 +300,14 @@ function InboxMessageItem({ message, onOpen, onDelete, t, lang, C }){
           </div>
           {expanded && (
             <>
+              {/* 13,5 px sur la couleur du texte, et non 12 px en gris :
+                  le gris clair convient à « t'a envoyé un 🔥 », pas à une
+                  réponse rédigée de plusieurs phrases qu'on a attendue.
+                  Le changement profite à tous les messages — les courts
+                  ne perdent rien à être lisibles. */}
               <div style={{
-                fontSize:12, color:C.muted, marginTop:6, lineHeight:1.45,
-                whiteSpace:'pre-wrap',
+                fontSize:13.5, color:C.text, marginTop:7, lineHeight:1.55,
+                whiteSpace:'pre-wrap', wordBreak:'break-word',
               }}>
                 {message.body}
               </div>
