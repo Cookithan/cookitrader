@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette } from "lucide-react";
+import { Cookie, ShoppingBag, Gamepad2, Home, Gift, Star, CircleDot, MousePointerClick, ChevronLeft, Settings, TrendingUp, Trophy, Coffee, Flame, Zap, LayoutGrid, HelpCircle, Timer, Lock, Dice5, Palette, Bike } from "lucide-react";
 
 import { LEVEL_NAMES, REWARDS, ACHIEVEMENTS, getCheckinReward, QUIZ_COOLDOWN_MS, xpRequired, bonusNiveau, CAFE_MILESTONES_NIVEAUX } from "./data/constants.js";
 import { DK, LT, THEMES, GOLD, ESPRESSO, PREMIUM_PALETTE, levelTier } from "./data/themes.js";
@@ -4004,6 +4004,7 @@ export default function CookiMiner() {
     { id:'slot',    Icon:Dice5,             emoji:'🎰', title: t('games_list.slot_title'),         desc: t('games_list.slot_desc'),     reward: t('games_list.slot_reward'), avail:coins>=20, color:'#5C3614', levelRequired:10 },
     { id:'flappy',  Icon:Coffee,            emoji:'🐦', title: t('games_list.flappy_title'),       desc: t('games_list.flappy_desc'), reward: t('games_list.flappy_reward'), avail:coins>=10, color:'#C8945A', levelRequired:12 },
     { id:'catcher', Icon:Coffee,            emoji:'🥤', title: t('games_list.catcher_title'),      desc: t('games_list.catcher_desc'), reward: t('games_list.catcher_reward'), avail:coins>=10, color:'#B5793E', levelRequired:4 },
+    { id:'rider',   Icon:Bike,              emoji:'🛞', title: t('games_list.rider_title'),        desc: t('games_list.rider_desc'), reward: t('games_list.rider_reward'), avail:coins>=10, color:'#8B5A2B', levelRequired:7 },
   ];
 
   const s = {

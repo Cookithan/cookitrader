@@ -14,6 +14,7 @@ import { PyramidGame } from "../games/PyramidGame.jsx";
 import { SlotGame } from "../games/SlotGame.jsx";
 import { FlappyGame } from "../games/FlappyGame.jsx";
 import { CatcherGame } from "../games/CatcherGame.jsx";
+import { RiderGame } from "../games/RiderGame.jsx";
 import { DuelRaceHUD } from "../games/DuelRaceHUD.jsx";
 
 /* ════════════════════════════════════════════════════
@@ -35,7 +36,7 @@ import { DuelRaceHUD } from "../games/DuelRaceHUD.jsx";
 ═══════════════════════════════════════════════════════ */
 
 export function GameOverlay({ gameView, onClose, coins, level, streak, canCheckin, canQuiz, quizMsLeft, clickRecord, onCheckin, checkinReward, onQuizEarn, onQuizDone, onSpinEarn, onSpend, onClickEarn, onCafeEarn, onUpdateRecord, onJackpot, onEventChallenge, spinsLeft, spinsCap, consumeSpin, spinRechargeCost, onRechargeSpin, slotPlaysLeft, slotGamesCap, consumeSlotGame, slotRechargeCost, onRechargeSlot, pyramidPlaysLeft, pyramidGamesCap, consumePyramidGame, pyramidRechargeCost, cafes, onRechargePyramid, activeSkin, activeRoue, gameThemes, setGameThemes, unlocked, onPayContinueCatcher, legendarySeen, onLegendarySeen, isAdmin, duelMode = false, onDuelScore, onDuelProgress, duelInfo, myLiveRef, onBotDuelScore, onBotDuelProgress, botLiveRef, C }) {
-  const TITLES = { checkin:'Série du jour', quiz:'Quiz du jour', spin:'Roue de la chance', click:'Cookie Click', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes cookies', pyramid:'Pile de Tasses', slot:'Machine à Sous', flappy:'Flappy Cookie', catcher:'Café Express' };
+  const TITLES = { checkin:'Série du jour', quiz:'Quiz du jour', spin:'Roue de la chance', click:'Cookie Click', pour:'Stop le café', memory:'Memory Café', guess:'Devine la commande', reflex:'Réflexes cookies', pyramid:'Pile de Tasses', slot:'Machine à Sous', flappy:'Flappy Cookie', catcher:'Café Express', rider:'Cooki Rider' };
   /* Duel « Option 1 » : le bot joue d'abord (turn='bot' → autoPlay + non
      cliquable + bandeau), puis à toi (turn='me' → interactif). Le changement
      de tour remonte le jeu via key={duelInfo.turn}. */
@@ -96,6 +97,7 @@ export function GameOverlay({ gameView, onClose, coins, level, streak, canChecki
         {gameView==='slot'    && <SlotGame    coins={coins} level={level} onEarn={onClickEarn} onSpend={onSpend} onEventChallenge={onEventChallenge} slotPlaysLeft={slotPlaysLeft} slotGamesCap={slotGamesCap} consumeSlotGame={consumeSlotGame} slotRechargeCost={slotRechargeCost} cafes={cafes} onRechargeSlot={onRechargeSlot} C={C} />}
         {gameView==='flappy'  && <FlappyGame  key={duelInfo?.turn} coins={coins} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} activeSkin={activeSkin} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
         {gameView==='catcher' && <CatcherGame key={duelInfo?.turn} coins={coins} cafes={cafes} onEarn={onClickEarn} onSpend={onSpend} onCafeEarn={onCafeEarn} onPayContinue={onPayContinueCatcher} gameThemes={gameThemes} setGameThemes={setGameThemes} unlocked={unlocked} duelMode={duelMode} onDuelScore={onDuelScore} onDuelProgress={onDuelProgress} autoPlay={botTurn} C={C} />}
+        {gameView==='rider'   && <RiderGame   coins={coins} onEarn={onClickEarn} onSpend={onSpend} activeSkin={activeSkin} C={C} />}
         </div>
       </div>
     </div>

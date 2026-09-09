@@ -119,11 +119,11 @@ const SOUCIS_JEU = [
     exemple:'Raconte ce que tu as vu.',                      exemple_en:'Tell us what you saw.' },
 ];
 
-/* Les douze mini-jeux, nommés par leur clé i18n : un jeu renommé se
+/* Les treize mini-jeux, nommés par leur clé i18n : un jeu renommé se
    renomme ici tout seul, dans les deux langues. */
 const JEUX = [
   'checkin', 'quiz', 'spin', 'click', 'pour', 'memory',
-  'guess', 'reflex', 'pyramid', 'slot', 'flappy', 'catcher',
+  'guess', 'reflex', 'pyramid', 'slot', 'flappy', 'catcher', 'rider',
 ].map(id => ({ id, tKey:`games_list.${id}_title`, enfants: SOUCIS_JEU }));
 
 /* ── Les endroits de l'app ────────────────────────────
