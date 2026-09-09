@@ -28,8 +28,8 @@ create table if not exists public.sentinelle_dossiers (
   genre        text not null,
   /* 'haute' | 'moyenne' | 'basse' */
   gravite      text not null default 'moyenne',
-  titre        text not null,            -- sa phrase : ce qu'il y a, en clair
-  analyse      text,                     -- ce qu'elle a regardé, et pourquoi elle pense ça
+  titre        text not null,            -- sa phrase : le fait, en clair
+  analyse      text,                     -- ce qui a été regardé, et pourquoi elle pense ça
   proposition  text,                     -- le libellé du bouton (ex. « Sanctionner à 70 194 »)
   actions      jsonb,                    -- [{outil, entree}] : le geste, déjà rempli
   /* 'ouvert' | 'classe' | 'fait' */
