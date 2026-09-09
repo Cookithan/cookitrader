@@ -91,6 +91,15 @@ const MODES = [
 const heure = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
 const jour  = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
 
+/* flexShrink: 0 — SANS LUI, RIEN NE DEFILE.
+   Le conteneur parent est un flex en colonne qui defile. Dans un flex,
+   flex-shrink vaut 1 PAR DEFAUT : au lieu de deborder (et donc de creer
+   du defilement), les enfants se font ecraser pour tenir dans la hauteur.
+   Combine a l'overflow:hidden ci-dessous, le bas du bloc etait purement
+   et simplement coupe — Cookithan voyait deux positions sur trois dans
+   « Sentinelle autonomie » et n'avait rien a faire glisser.
+   Regle generale : tout enfant direct d'un flex-column qui defile doit
+   porter flexShrink: 0. */
 /* ── Un bloc, replié par défaut ─────────────────────
    Sept sections dépliées font trois écrans de défilement pour trouver
    celle qu'on veut. Le titre porte le compte : on sait s'il y a quelque
@@ -98,7 +107,7 @@ const jour  = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2
 function Bloc({ emoji, titre, compte, teinte, ouvertParDefaut = false, children }) {
   const [ouvert, setOuvert] = useState(ouvertParDefaut);
   return (
-    <section style={{ background: VERRE, border: CONTOUR, borderRadius: 18, boxShadow: OMBRE, overflow: 'hidden' }}>
+    <section style={{ background: VERRE, border: CONTOUR, borderRadius: 18, boxShadow: OMBRE, overflow: 'hidden', flexShrink: 0 }}>
       <button
         onClick={() => setOuvert(o => !o)}
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '13px 14px', background: 'transparent', border: 'none', textAlign: 'left', touchAction: 'manipulation' }}
@@ -315,7 +324,7 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
     <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch', padding: '12px 13px 16px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 11 }}>
 
       {/* ── Ce que coûte cette page : rien, et on le dit ── */}
-      <div className="s-monte" style={{ background: VERRE, border: CONTOUR, borderRadius: 18, padding: '13px 14px', boxShadow: OMBRE }}>
+      <div className="s-monte" style={{ background: VERRE, border: CONTOUR, borderRadius: 18, padding: '13px 14px', boxShadow: OMBRE, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.4, textTransform: 'uppercase', color: ACIER, flex: 1 }}>Coup d'œil · gratuit</span>
           <button onClick={() => !chargement && charger()} disabled={chargement} aria-label="Recharger"

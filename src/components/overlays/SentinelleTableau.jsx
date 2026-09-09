@@ -273,10 +273,12 @@ function Dossier({ d, phrase, onFerme, story = false }) {
   );
 }
 
-/* ── une bande du tableau ──────────────────────────── */
+/* Voir SentinelleCoupDoeil : dans un flex-column qui defile, un enfant
+   sans flexShrink:0 se fait ecraser au lieu de faire defiler.
+   ── une bande du tableau ──────────────────────────── */
 function Bande({ emoji, titre, teinte, allumee, phrase, i, children }) {
   return (
-    <section className={`s-monte stagger-${(i % 4) + 1}`} style={{ background: VERRE, border: allumee ? `1.5px solid ${BLEU[500]}` : CONTOUR, borderRadius: 20, padding: '13px 15px 15px', boxShadow: allumee ? OMBRE_VIVE : OMBRE }}>
+    <section className={`s-monte stagger-${(i % 4) + 1}`} style={{ background: VERRE, border: allumee ? `1.5px solid ${BLEU[500]}` : CONTOUR, borderRadius: 20, padding: '13px 15px 15px', boxShadow: allumee ? OMBRE_VIVE : OMBRE, flexShrink: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
         <span style={{ width: 28, height: 28, borderRadius: 9, background: teinte, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, boxShadow: '0 3px 8px rgba(14,51,85,.18)' }}>{emoji}</span>
         <span style={{ fontSize: 11, fontWeight: 900, letterSpacing: 1.4, textTransform: 'uppercase', color: MARINE }}>{titre}</span>

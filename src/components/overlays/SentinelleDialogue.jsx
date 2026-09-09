@@ -158,11 +158,11 @@ export function SentinelleDialogue({ phrase, onFermer, echanges, setEchanges }) 
         )}
 
         {echanges.map((e, k) => e.qui === 'toi' ? (
-          <div key={k} className="s-bulle" style={{ alignSelf: 'flex-end', maxWidth: '86%', background: DEGRADE, color: '#fff', padding: '11px 14px', borderRadius: '18px 18px 5px 18px', fontSize: 15, lineHeight: 1.5, boxShadow: OMBRE_VIVE, whiteSpace: 'pre-wrap' }}>
+          <div key={k} className="s-bulle" style={{ flexShrink: 0, alignSelf: 'flex-end', maxWidth: '86%', background: DEGRADE, color: '#fff', padding: '11px 14px', borderRadius: '18px 18px 5px 18px', fontSize: 15, lineHeight: 1.5, boxShadow: OMBRE_VIVE, whiteSpace: 'pre-wrap' }}>
             {e.texte}
           </div>
         ) : (
-          <div key={k} className="s-bulle" style={{ alignSelf: 'flex-start', maxWidth: '94%', background: '#fff', border: `1.5px solid ${BLEU[200]}`, padding: '12px 14px', borderRadius: '18px 18px 18px 5px', boxShadow: OMBRE }}>
+          <div key={k} className="s-bulle" style={{ flexShrink: 0, alignSelf: 'flex-start', maxWidth: '94%', background: '#fff', border: `1.5px solid ${BLEU[200]}`, padding: '12px 14px', borderRadius: '18px 18px 18px 5px', boxShadow: OMBRE }}>
             <Riche texte={e.texte} couleur={e.erreur ? C.muted : C.text} />
             {Array.isArray(e.actions) && e.actions.length > 0 && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10, paddingTop: 9, borderTop: `1px solid ${C.trait}` }}>
@@ -177,7 +177,7 @@ export function SentinelleDialogue({ phrase, onFermer, echanges, setEchanges }) 
         ))}
 
         {attente && (
-          <div className="s-bulle" style={{ alignSelf: 'flex-start', background: '#fff', border: `1.5px solid ${BLEU[200]}`, padding: '12px 16px', borderRadius: '18px 18px 18px 5px', boxShadow: OMBRE }}>
+          <div className="s-bulle" style={{ flexShrink: 0, alignSelf: 'flex-start', background: '#fff', border: `1.5px solid ${BLEU[200]}`, padding: '12px 16px', borderRadius: '18px 18px 18px 5px', boxShadow: OMBRE }}>
             <ElleEcrit />
           </div>
         )}
