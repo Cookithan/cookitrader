@@ -1048,9 +1048,25 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           willChange:'transform', pointerEvents:'none',
           filter: crashed ? 'grayscale(.7)' : 'none',
         }}>
-          {/* Deux roues en cookie — les VRAIS cookies, donc les skins de
-              la boutique roulent — et la tasse de Pile de Tasses posée
-              dessus. Rien de redessiné pour l'occasion. */}
+          {/* La tasse D'ABORD, les roues par-dessus : c'est ce simple
+              ordre de rendu qui met les roues devant le café. Elle est
+              retournée (anse à gauche) pour regarder dans le sens de la
+              marche — et comme le corps de la tasse n'occupe que les 100
+              premiers 130es du SVG, le miroir déplace son centre : le
+              décalage passe de 0,42 à 0,60 pour qu'elle reste posée pile
+              entre les deux roues. */}
+          <div style={{
+            position:'absolute', left:'50%', top:'50%',
+            width:TASSE_W, marginLeft:-TASSE_W * 0.60,
+            marginTop:ROUE_Y - 2 - TASSE_W * (42 / 130),
+            lineHeight:0, pointerEvents:'none',
+            transform:'scaleX(-1)',
+          }}>
+            <SingleCup width={TASSE_W} showCoffeeInside skin="classic" />
+          </div>
+
+          {/* Les roues : les VRAIS cookies, donc les skins de la boutique
+              roulent. Rendues après la tasse, elles passent devant. */}
           {[-ROUE_DX, ROUE_DX].map(dx => (
             <div key={dx} style={{
               position:'absolute', left:'50%', top:'50%',
@@ -1060,17 +1076,6 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
               {hasCustomSkin ? <SkinnedCookie skin={skin} noShadow /> : <PremiumCookie noShadow />}
             </div>
           ))}
-          {/* La tasse : c'est elle qui dit si l'atterrissage est bon.
-              Elle tourne avec l'attelage, donc « à l'endroit » se lit
-              d'un coup d'œil, sans jauge ni indicateur à l'écran. */}
-          <div style={{
-            position:'absolute', left:'50%', top:'50%',
-            width:TASSE_W, marginLeft:-TASSE_W * 0.42,
-            marginTop:ROUE_Y - 2 - TASSE_W * (42 / 130),
-            lineHeight:0, pointerEvents:'none',
-          }}>
-            <SingleCup width={TASSE_W} showCoffeeInside skin="classic" />
-          </div>
         </div>
 
         {/* Pops de figure */}
