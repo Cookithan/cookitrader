@@ -84,8 +84,8 @@ const GESTES_NOMS = {
    interrupteur de gauche a droite, et c'est la depense qui augmente. */
 const MODES = [
   { id: 'non',  titre: 'non-autonome',  sous: "aucune ronde · zéro euro",  quoi: "Elle ne se réveille plus toute seule. La vigie SQL, le coup d'œil et les douze gestes continuent — tout ça est gratuit. Tu vérifies toi-même, et si tu lui parles c'est toi qui décides de payer." },
-  { id: 'semi', titre: 'semi-autonome',  sous: 'elle prépare, tu décides',      quoi: "Elle ronde, répond aux joueurs, compense dans ses plafonds, et te laisse en dossier tout ce qui demande ta décision. Au plus une ronde toutes les 3 h, jamais la nuit, et seulement s'il s'est passé quelque chose." },
-  { id: 'full', titre: 'full-autonome',  sous: 'elle agit seule',                quoi: "Elle exécute sans te demander : sanctions, comptes, compensations, réponses. Tout est annulable en un tap depuis l'écran de retour, et un budget quotidien l'arrête." },
+  { id: 'semi', titre: 'semi-autonome',  sous: 'elle prépare, tu décides',      quoi: "Elle ronde, répond aux joueurs, compense dans ses plafonds, et te laisse en dossier tout ce qui demande ta décision. Au plus une ronde toutes les 2 h, jamais la nuit, et seulement s'il s'est passé quelque chose — mais un signalement qui attend la fait venir plus tôt, sans jamais descendre sous une heure." },
+  { id: 'full', titre: 'full-autonome',  sous: 'elle agit seule',                quoi: "Elle exécute sans te demander : sanctions, comptes, compensations, réponses. Tout est annulable en un tap depuis l'écran de retour, et un budget quotidien l'arrête. Ronde toutes les 3 h plutôt que 2 : chacune pose de vrais gestes, autant en poser moins entre deux de tes passages." },
 ];
 
 const heure = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';

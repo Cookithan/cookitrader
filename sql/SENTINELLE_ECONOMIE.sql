@@ -41,7 +41,9 @@
       en UTC en dur : coder « 20 h – 4 h UTC » marcherait jusqu'au
       passage à l'heure d'hiver, puis le couvre-feu se décalerait d'une
       heure sans que personne ne s'en aperçoive.
-   5. LA CADENCE ET LE CHANGEMENT. Au repos, une ronde toutes les 3 h —
+   5. LA CADENCE ET LE CHANGEMENT. Au repos, une ronde toutes les 2 h en
+      semi-autonome et toutes les 3 h en full — plus rare quand elle agit
+      seule, parce que chaque ronde y pose de vrais gestes —
       et seulement s'il s'est passé quelque chose depuis la dernière :
       un signalement, un crash, un geste au journal, un constat de la
       vigie, un ordre sur le marché. À six joueurs actifs, la plupart des
@@ -90,6 +92,7 @@ declare
   attend    boolean;
   bouge     boolean;
   depuis    timestamptz;
+  cadence   interval;
 begin
   select * into e from public.sentinelle_etat where id = 1;
   if not found then return 'etat introuvable'; end if;
@@ -132,10 +135,20 @@ begin
     select 1 from public.signalements where statut in ('nouveau', 'vu')   -- les statuts reels : nouveau | vu | traite | sans_suite
   ) into attend;
 
-  -- 5. la cadence de 3 h, court-circuitee par une alerte ou une attente
+  /* LA CADENCE DEPEND DU MODE, et ce n est pas un caprice :
+     - SEMI (2 h) : c est Cookithan qui decide. Il veut des piles
+       fraiches quand il ouvre, et une ronde qui ne fait que preparer ne
+       risque rien.
+     - FULL (3 h) : elle EXECUTE seule. Moins souvent, c est moins de
+       gestes poses sans lui entre deux regards, et moins cher. */
+  cadence := case e.mode_autonomie when 'full' then interval '3 hours'
+                                   else interval '2 hours' end;
+
+  -- 5. la cadence, court-circuitee par une alerte ou un joueur qui attend
   if not alerte and not attend and e.derniere_ronde_ia is not null
-     and e.derniere_ronde_ia > now() - interval '3 hours' then
-    return 'moins de 3 h depuis la derniere ronde, et rien n attend';
+     and e.derniere_ronde_ia > now() - cadence then
+    return format('moins de %s depuis la derniere ronde (mode %s), et rien n attend',
+                  cadence, e.mode_autonomie);
   end if;
 
   -- 5 bis. s est-il passe quelque chose ?
