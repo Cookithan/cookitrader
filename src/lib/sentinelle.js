@@ -7,6 +7,7 @@ import { GAME_THEMES } from '../data/gameThemes.js';
 import { MUSICS } from './audio.js';
 import { isAdminName } from '../utils/admin.js';
 import { CODES_CONCERNES_129 } from '../data/accountNotices.js';
+import { SCHEMA_ATTENDU } from '../data/schemaAttendu.js';
 
 /* ════════════════════════════════════════════════════
    sentinelle.js — la vigie qui tourne toute seule
@@ -838,6 +839,51 @@ function controleIdentifiants(users) {
   ]);
 }
 
+/* ── Le schéma de la base ─────────────────────────────
+   Ajouté le 09/09 après l'incident du mur : le dépôt savait ce qu'il
+   fallait, la base ne l'avait pas, et RIEN ne comparait les deux. La
+   fonction Postgres répond présent/absent à des noms qu'on lui donne ;
+   la liste de ce qu'on attend vit dans schemaAttendu.js.
+
+   Un échec d'appel ne rend pas `null` mais une liste vide : si la
+   fonction elle-même n'existe pas encore, c'est la première chose à
+   signaler, pas un silence de plus. */
+export async function verifierSchema() {
+  if (!isSupabaseEnabled()) return null;
+  const demande = SCHEMA_ATTENDU.map(o => ({
+    id: o.id, table: o.table, colonne: o.colonne, fonction: o.fonction,
+  }));
+  const { data, error } = await supabase.rpc('sentinelle_schema', { objets: demande });
+  if (error || !Array.isArray(data)) {
+    return { fonctionAbsente: true, manquants: [] };
+  }
+  const etat = new Map(data.map(d => [d.id, d.present]));
+  return {
+    fonctionAbsente: false,
+    manquants: SCHEMA_ATTENDU.filter(o => etat.get(o.id) === false),
+  };
+}
+
+function controleSchema(schema) {
+  if (!schema) return null;
+  if (schema.fonctionAbsente) {
+    return faire('voir', 'app', "La vigie ne peut pas encore vérifier la base", [
+      "La fonction sentinelle_schema n'existe pas : passer SENTINELLE_SCHEMA.sql (lecture seule, une seule fois).",
+      "Tant qu'elle manque, un fichier SQL oublié reste invisible — c'est exactement ce qui a laissé le mur inopérant le 09/09.",
+    ]);
+  }
+  if (!schema.manquants.length) {
+    return faire('ok', 'app', `Base à jour — ${SCHEMA_ATTENDU.length} objet(s) attendu(s), tous présents`);
+  }
+  const bloquants = schema.manquants.filter(o => o.gravite === 'bloquant');
+  return faire(bloquants.length ? 'alerte' : 'voir', 'app',
+    `${schema.manquants.length} morceau(x) de SQL jamais passé(s) en base`,
+    [
+      ...schema.manquants.map(o => `${o.quoi} — manque ${o.colonne ? `la colonne ${o.table}.${o.colonne}` : o.fonction ? `la fonction ${o.fonction}()` : `la table ${o.table}`} · à coller : ${o.fichier}`),
+      ...schema.manquants.filter(o => o.gravite === 'bloquant').map(o => `⚠️ ${o.casse}`),
+    ]);
+}
+
 export async function faireUneRonde({ enregistrer = true } = {}) {
   if (!isSupabaseEnabled()) return [];
 
@@ -863,6 +909,8 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
       .then(r => r.data?.[0]?.created_at || null, () => null),
   ]);
 
+  const schema = await verifierSchema();
+
   const rapports = [
     controleRendement(users),
     controleCoherenceNiveau(users),
@@ -878,6 +926,7 @@ export async function faireUneRonde({ enregistrer = true } = {}) {
     controleActionsSansTrace(state, transactions),
     controlePrixDeRevient(portefeuilles),
     controleActionsPrecoces(users, portefeuilles),
+    controleSchema(schema),
     controleSurveillance(users, surveilles),
     controleCodesPromo(codes),
     controleSignalements(signalements),
