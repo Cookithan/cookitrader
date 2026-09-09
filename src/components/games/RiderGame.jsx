@@ -117,13 +117,19 @@ const BEHIND   = 380;        // marge conservée derrière
    dénivelé des trous, pente maximale d'une vague) — tout ce qui en
    dépend est donc recalculé à partir d'elle, jamais figé en dur. */
 const G         = 720;
-const ACCEL     = 340;       // gaz maintenu, au sol
+const ACCEL     = 480;       /* gaz maintenu, au sol. Doit rester au-dessus
+                                de SLOPE_ACC × pente maximale (420 × 0,95 =
+                                399), sinon on se retrouve à l'arrêt au pied
+                                d'un tremplin sans pouvoir le remonter. */
 const BRAKE     = 300;       // doigt levé, au sol
 const SLOPE_ACC = 420;       // ce que la pente donne (descente) ou reprend (montée)
-const MIN_V     = 60;
+const MIN_V     = 0;         /* On peut s'arrêter net. Le chrono, lui, ne
+                                s'arrête pas : ne rien faire coûte. */
 const MAX_V     = 360;       // plafond de départ
 const V_RAMP    = 150;       // ce que le plafond gagne à difficulté maximale
-const START_V   = 210;
+const START_V   = 0;         /* L'attelage ne part PAS tout seul. Rien ne
+                                bouge tant que le doigt n'est pas posé —
+                                sinon la partie commence sans le joueur. */
 
 const FLIP_AV  = -7.0;   /* rad/s en l'air, doigt posé → un tour en 0,90 s.
                             Ce chiffre n'est pas libre : il doit tenir DANS
@@ -480,6 +486,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const boucleRef = useRef(null);
   const maxXRef   = useRef(0);
   const retourCamRef = useRef(0);
+  const cibleCamXMonotone = useRef(-Infinity);
   const camXRef   = useRef(0);
   const camYRef   = useRef(0);
   const basRef    = useRef(0);
@@ -567,6 +574,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     crashedRef.current = false; crashTRef.current = 0; crashKindRef.current = null;
     boucleRef.current = null;
     retourCamRef.current = 0;
+    cibleCamXMonotone.current = -Infinity;
     maxXRef.current = xRef.current;
     camXRef.current = xRef.current - RIDER_X / ZOOM;
     camYRef.current = yRef.current - (ARENA_H * 0.42) / ZOOM;
@@ -641,7 +649,24 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       const b = boucleRef.current;
       const vCrit = Math.sqrt(G * b.r);
       vRef.current += (hold ? ACCEL : -BRAKE) * dt;
-      vRef.current = Math.max(vCrit, Math.min(maxV, vRef.current));
+      vRef.current = Math.max(MIN_V, Math.min(maxV, vRef.current));
+
+      /* On peut DÉCROCHER. Avant, la vitesse était bornée par le bas et
+         le tour se jouait tout seul quoi qu'on fasse — le joueur
+         regardait une animation au lieu de piloter. Maintenant, lâcher
+         le gaz dans la moitié haute de l'anneau, c'est tomber. C'est ce
+         qui fait qu'on TIENT la boucle au lieu de la subir. */
+      const hautDeLAnneau = Math.cos(b.theta) < 0.15;
+      if(hautDeLAnneau && vRef.current < vCrit){
+        boucleRef.current = null;
+        retourCamRef.current = 0.5;
+        groundedRef.current = false;
+        airTimeRef.current = 0; spinRef.current = 0; avRef.current = 0;
+        vyRef.current = -Math.sin(b.theta) * vRef.current;
+        playSound('error');
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
       b.theta += (vRef.current / b.r) * dt;
 
       if(b.theta >= TAU){
@@ -665,7 +690,10 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
          c'est le tour qu'on doit voir, pas un gros plan sur la roue. */
       const cx = b.x - (ARENA_W * 0.5) / ZOOM;
       const cy = (b.y - R - b.r) - (ARENA_H * 0.45) / ZOOM;
-      camXRef.current += (cx - camXRef.current) * Math.min(1, 4 * dt);
+      /* Elle s'arrête sur l'anneau, elle ne RECULE pas : dans une boucle
+         x redescend, et une caméra qui suivrait x donnerait l'impression
+         qu'on rembobine. Le max l'empêche partout. */
+      camXRef.current = Math.max(camXRef.current, camXRef.current + (cx - camXRef.current) * Math.min(1, 4 * dt));
       camYRef.current += (cy - camYRef.current) * Math.min(1, 5 * dt);
       if(xRef.current > maxXRef.current) maxXRef.current = xRef.current;
       setFrame({
@@ -842,6 +870,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
 
     boucleRef.current = null;
     retourCamRef.current = 0;
+    cibleCamXMonotone.current = -Infinity;
     maxXRef.current = xRef.current;
     /* La caméra colle au biscuit — SAUF pendant la demi-seconde qui suit
        une boucle : elle vient de cadrer l'anneau et un saut sec se
@@ -855,6 +884,10 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     } else {
       camXRef.current = cibleCamX;
     }
+    /* Verrou : jamais en arrière. C'est la seule règle qui tienne, parce
+       que trois endroits différents veulent bouger la caméra. */
+    camXRef.current = Math.max(camXRef.current, cibleCamXMonotone.current);
+    cibleCamXMonotone.current = camXRef.current;
     const targetCamY = yRef.current - (ARENA_H * 0.42) / ZOOM;
     camYRef.current += (targetCamY - camYRef.current) * Math.min(1, 6 * dt);
 
@@ -920,10 +953,15 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const up = () => { throttleRef.current = false; setHolding(false); };
 
   const earnedNow    = rewardFor(dist, flips, gems);
+  /* Le SCORE est l'affichage arcade : il monte à chaque mètre et bondit
+     à chaque figure, pour qu'on voie la partie avancer. Il ne remplace
+     pas le calcul des 🍪 (celui-là est calé sur des centaines de parties
+     simulées) — c'est le même effort raconté deux fois, une fois pour
+     l'œil, une fois pour l'économie. */
+  const score        = dist + flips * 200 + gems * 40;
   const riderScreenX = frame.rx * ZOOM;
   const riderScreenY = (frame.ry - frame.camY) * ZOOM;
   const vitesse01    = Math.max(0, Math.min(1, (frame.v - STREAK_FROM) / 220));
-  const jauge01      = Math.max(0, Math.min(1, (frame.v - MIN_V) / (MAX_V + V_RAMP - MIN_V)));
   const enPartie     = phase === 'playing';
   const paraX        = -((frame.camX * 0.22) % PARA_W);
   const paraY        = -frame.camY * 0.12;
@@ -1119,7 +1157,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
         {tag && (
           <div key={tag.id} className="rider-tag" style={{
             position:'absolute', left:0, right:0, bottom:34, textAlign:'center',
-            fontSize:21, fontWeight:800, letterSpacing:.2,
+            fontSize:26, fontWeight:900, letterSpacing:.3,
             color:'rgba(255,231,186,.92)', pointerEvents:'none',
             textShadow:'0 2px 14px rgba(0,0,0,.65)',
           }}>{t(tag.cle)}</div>
@@ -1143,6 +1181,16 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           }}>{t('game_rider.hold_hint')}</div>
         )}
 
+        {/* Le score, gros et haut, comme dans la référence */}
+        {(enPartie || phase === 'countdown') && (
+          <div style={{
+            position:'absolute', left:0, right:0, top:22, textAlign:'center',
+            fontSize:40, fontWeight:900, letterSpacing:-1,
+            color:'rgba(255,231,186,.94)', pointerEvents:'none',
+            textShadow:'0 3px 18px rgba(0,0,0,.7)', lineHeight:1,
+          }}>{score}</div>
+        )}
+
         {/* Chrono — un filet en haut de l'aire, pas un chiffre de plus */}
         {enPartie && (
           <div style={{ position:'absolute', left:10, right:10, top:8, height:4, borderRadius:3, background:'rgba(255,226,170,.14)', overflow:'hidden', pointerEvents:'none' }}>
@@ -1155,24 +1203,6 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           </div>
         )}
 
-        {/* Jauge de vitesse — le seul état permanent affiché */}
-        {enPartie && (
-          <div style={{
-            position:'absolute', right:10, top:10, width:74,
-            padding:'5px 7px', borderRadius:14,
-            background:'rgba(74,44,23,.30)', pointerEvents:'none',
-          }}>
-            <div style={{ fontSize:8.5, fontWeight:900, color:'#fff', letterSpacing:.8, textAlign:'center', marginBottom:3 }}>
-              {holding ? t('game_rider.gas_on') : t('game_rider.gas_off')}
-            </div>
-            <div style={{ height:4, borderRadius:3, background:'rgba(255,255,255,.22)', overflow:'hidden' }}>
-              <div style={{
-                height:'100%', borderRadius:3, width:`${Math.round(jauge01 * 100)}%`,
-                background: holding ? GOLD : 'rgba(255,255,255,.5)',
-              }} />
-            </div>
-          </div>
-        )}
 
         {/* Écran d'accueil / de fin */}
         {(phase === 'idle' || phase === 'done') && (
