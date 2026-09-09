@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, RefreshCw } from "lucide-react";
 import { THEME_SENTINELLE, ACIER, MARINE, BLEU, VERRE, OMBRE, OMBRE_VIVE, DEGRADE, CHAMP } from "../../data/sentinelleTheme.js";
 import { GROUPES, ACTIONS_SENTINELLE } from "../../data/sentinelleActions.js";
-import { agir, modifierJoueur, derniersRapports, journal, prixMarche, signalementsOuverts, listerSignalements, traiterSignalement, manquesConnus } from "../../lib/sentinelle.js";
+import { agir, modifierJoueur, derniersRapports, journal, prixMarche, signalementsOuverts, listerSignalements, traiterSignalement, manquesConnus, lireMode, changerMode } from "../../lib/sentinelle.js";
 import { playSound } from "../../lib/audio.js";
 import { haptic } from "../../lib/haptic.js";
 
@@ -58,8 +58,16 @@ const CONTOUR = `1.5px solid ${BLEU[200]}`;
    ici ne dépend de son état, et l'effet de montage peut donc s'en servir
    sans la traîner en dépendance. */
 const lire = () => Promise.all([
-  derniersRapports(20), journal(14), prixMarche(), signalementsOuverts(), manquesConnus(),
+  derniersRapports(20), journal(14), prixMarche(), signalementsOuverts(), manquesConnus(), lireMode(),
 ]);
+
+/* Les trois positions. L'ordre va du moins cher au plus cher : on lit un
+   interrupteur de gauche a droite, et c'est la depense qui augmente. */
+const MODES = [
+  { id: 'non',  titre: 'Ne rien faire',  sous: "aucune ronde · zéro euro",  quoi: "Elle ne se réveille plus toute seule. La vigie SQL, le coup d'œil et les douze gestes continuent — tout ça est gratuit. Tu vérifies toi-même, et si tu lui parles c'est toi qui décides de payer." },
+  { id: 'semi', titre: 'Semi-autonome',  sous: 'elle prépare, tu décides',      quoi: "Elle ronde, répond aux joueurs, compense dans ses plafonds, et te laisse en dossier tout ce qui demande ta décision. Au plus une ronde toutes les 3 h, jamais la nuit, et seulement s'il s'est passé quelque chose." },
+  { id: 'full', titre: 'Full autonome',  sous: 'elle agit seule',                quoi: "Elle exécute sans te demander : sanctions, comptes, compensations, réponses. Tout est annulable en un tap depuis l'écran de retour, et un budget quotidien l'arrête." },
+];
 
 const heure = (iso) => iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
 const jour  = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
@@ -205,11 +213,13 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
   const [boite, setBoite]           = useState(0);
   const [messages, setMessages]     = useState(null);   /* null = pas encore lus */
   const [manques, setManques]       = useState([]);
+  const [etat, setEtat]             = useState(null);
+  const [bascule, setBascule]       = useState(null);   /* le mode qu'on est en train de poser */
 
   const charger = async () => {
     setChargement(true);
-    const [r, j, p, b, mq] = await lire();
-    setRapports(r); setLignes(j); setPrix(p); setBoite(b); setManques(mq);
+    const [r, j, p, b, mq, md] = await lire();
+    setRapports(r); setLignes(j); setPrix(p); setBoite(b); setManques(mq); setEtat(md);
     setChargement(false);
   };
 
@@ -221,9 +231,9 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
      lecture. */
   useEffect(() => {
     let vivant = true;
-    lire().then(([r, j, p, b, mq]) => {
+    lire().then(([r, j, p, b, mq, md]) => {
       if (!vivant) return;
-      setRapports(r); setLignes(j); setPrix(p); setBoite(b); setManques(mq); setChargement(false);
+      setRapports(r); setLignes(j); setPrix(p); setBoite(b); setManques(mq); setEtat(md); setChargement(false);
     });
     return () => { vivant = false; };
   }, []);
@@ -252,6 +262,16 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
     playSound('toggle');
     setMessages(m => (m || []).filter(x => x.id !== id));
     setBoite(n => Math.max(0, n - 1));
+  };
+
+  const poser = async (id) => {
+    if (bascule || etat?.mode === id) return;
+    setBascule(id);
+    const r = await changerMode(phrase, id);
+    setBascule(null);
+    if (!r?.ok) { playSound('error'); haptic('warning'); setEtat(e => ({ ...(e || {}), erreur: r?.message })); return; }
+    playSound('toggle'); haptic('success');
+    setEtat(e => ({ ...(e || {}), mode: id, erreur: null }));
   };
 
   return (
@@ -293,6 +313,49 @@ export function SentinelleCoupDoeil({ phrase, onVersElle }) {
           </button>
         )}
       </div>
+
+      {/* ── L'interrupteur ──
+          Il est ICI, sur la page gratuite, parce que c'est d'abord une
+          question d'argent : c'est le robinet, pas un réglage de confort. */}
+      <Bloc emoji="⚡" titre="Son autonomie" compte={null} ouvertParDefaut={etat?.mode === 'non'}
+        teinte="linear-gradient(135deg,#F2C879,#D99B2B)">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {MODES.map(m => {
+            const actif = (etat?.mode || 'semi') === m.id;
+            return (
+              <button key={m.id} onClick={() => poser(m.id)} disabled={!!bascule}
+                style={{ width: '100%', textAlign: 'left', padding: '11px 13px', borderRadius: 14, touchAction: 'manipulation',
+                  border: actif ? `1.5px solid ${BLEU[500]}` : CONTOUR,
+                  background: actif ? 'linear-gradient(135deg,rgba(46,134,191,.15),rgba(46,134,191,.05))' : C.card,
+                  opacity: bascule && bascule !== m.id ? .5 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, border: `2px solid ${actif ? ACIER : BLEU[300]}`, background: actif ? ACIER : 'transparent', boxShadow: actif ? `inset 0 0 0 2px #fff` : 'none' }} />
+                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 800, color: actif ? MARINE : C.text }}>{m.titre}</span>
+                  <span style={{ fontSize: 10.5, color: C.muted, flexShrink: 0 }}>{bascule === m.id ? '…' : m.sous}</span>
+                </div>
+                {actif && <div style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.5, marginTop: 6 }}>{m.quoi}</div>}
+              </button>
+            );
+          })}
+        </div>
+
+        {etat?.erreur && (
+          <div style={{ marginTop: 9, padding: '9px 11px', borderRadius: 11, background: BLEU[100], border: `1.5px solid ${BLEU[300]}`, fontSize: 12, fontWeight: 700, color: MARINE }}>⛔ {etat.erreur}</div>
+        )}
+
+        {/* Ce qu'elle a réellement fait, et pourquoi elle dort. Une
+            Sentinelle muette et une Sentinelle en panne se ressemblent
+            trop pour qu'on laisse la question ouverte. */}
+        <div style={{ marginTop: 11, paddingTop: 10, borderTop: `1px solid ${C.trait}`, fontSize: 11.5, color: C.muted, lineHeight: 1.55 }}>
+          {etat ? (
+            <>
+              <b style={{ color: MARINE }}>{etat.rondes}</b> ronde(s) aujourd'hui sur 12 au maximum
+              {etat.derniere && <> · la dernière {jour(etat.derniere)} à {heure(etat.derniere)}</>}
+              {etat.raison && <div style={{ marginTop: 4 }}>Elle ne tourne pas : <b style={{ color: ACIER }}>{etat.raison}</b>.</div>}
+            </>
+          ) : "L'interrupteur n'est pas encore installé en base (SENTINELLE_ECONOMIE.sql)."}
+        </div>
+      </Bloc>
 
       {/* ── Les gestes, groupe par groupe ── */}
       {GROUPES.map(g => {

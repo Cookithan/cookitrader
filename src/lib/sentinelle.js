@@ -1307,6 +1307,56 @@ export async function manquesConnus(limite = 120) {
   }
 }
 
+/* ── Le mode d'autonomie ──────────────────────────────
+   Trois positions, et c'est d'abord une question d'argent :
+     'non'  — aucune ronde IA. Zero appel, zero euro. La vigie SQL et le
+              coup d'œil continuent, gratuits.
+     'semi' — elle ronde, fait ce qu'elle peut seule, laisse le reste en
+              dossiers. C'est le defaut.
+     'full' — le mode autonome complet.
+
+   LIRE est gratuit et ouvert (l'ecran doit savoir dans quel mode elle
+   est). ECRIRE passe par la phrase : basculer le mode revient a ouvrir
+   ou fermer le robinet a euros. */
+export async function lireMode() {
+  if (!isSupabaseEnabled()) return null;
+  try {
+    const { data } = await supabase
+      .from('sentinelle_etat')
+      .select('mode_autonomie, derniere_ronde_ia, rondes_ia_jour, rondes_ia_date, derniere_raison_saut')
+      .eq('id', 1).maybeSingle();
+    if (!data) return null;
+    /* Le compteur du jour ne se remet a zero qu'a la prochaine ronde :
+       affiche tel quel, il montrerait le total d'hier apres minuit. */
+    const aujourdhui = new Date().toISOString().slice(0, 10);
+    return {
+      mode: data.mode_autonomie || 'semi',
+      derniere: data.derniere_ronde_ia,
+      rondes: data.rondes_ia_date === aujourdhui ? (data.rondes_ia_jour || 0) : 0,
+      raison: data.derniere_raison_saut || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function changerMode(phrase, mode) {
+  if (!isSupabaseEnabled()) return { ok: false, message: 'Hors ligne' };
+  if (!phrase) return { ok: false, message: 'Phrase de passe requise' };
+  try {
+    const { data, error } = await supabase.rpc('sentinelle_changer_mode', { p_phrase: phrase, p_mode: mode });
+    if (error) {
+      const manquante = /function|does not exist|schema cache/i.test(error.message || '');
+      return { ok: false, message: manquante
+        ? "L'interrupteur n'est pas installe en base (SENTINELLE_ECONOMIE.sql)."
+        : `Erreur : ${error.message}` };
+    }
+    return data || { ok: false, message: 'Reponse vide' };
+  } catch (e) {
+    return { ok: false, message: `Erreur reseau : ${e?.message || e}` };
+  }
+}
+
 /* ── Modifier un compte ─────────────────────────────────────────
    Le seul geste qui ne passe PAS par `action_sentinelle`. Il vit dans
    sa propre fonction (SENTINELLE_MODIFIER.sql) parce que l'y greffer

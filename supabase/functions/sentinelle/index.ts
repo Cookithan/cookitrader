@@ -52,7 +52,11 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { SAVOIR } from "./savoir.ts";
 
 const MODEL = "claude-haiku-4-5";
-const TOURS_MAX = 8;
+/* 8 tours, c'était 8 fois le prix du contexte quand il n'était pas mis
+   en cache. Il l'est maintenant, mais un modèle qui n'a pas conclu en
+   cinq tours ne conclura pas au huitième : il tourne en rond, et chaque
+   tour coûte. Baissé le 09/09, budget API de 5 €. */
+const TOURS_MAX = 5;
 const MEMOIRE = 16;
 const FRAICHEUR_MIN = 10;      // minutes avant de réécrire la pile
 
@@ -474,7 +478,22 @@ async function executer(sb: SB, phrase: string, nom: string, entree: Record<stri
 }
 
 /* ── La boucle modèle ↔ outils ──────────────────────────────── */
-async function tourner(client: Anthropic, sb: SB, phrase: string, messages: Anthropic.MessageParam[], opts: { outils: Anthropic.Tool[]; terminal?: string; forcer?: string }) {
+/* ── Pourquoi le contexte est passé en `system` et non dans le message ──
+   Il y était, et il était donc REPAYÉ PLEIN TARIF à chacun des tours
+   d'outils : seul le bloc système est mis en cache. Sur un appel à cinq
+   tours, le contexte (une soixantaine de joueurs, le journal, les
+   crashs, les notes, les dossiers) représentait à lui seul les deux
+   tiers de la facture.
+
+   Deux points de cache, et pas un seul à la fin : le cache couvre tout
+   ce qui PRÉCÈDE le marqueur, donc un marqueur unique en queue ferait
+   dépendre le savoir du contexte, qui change à chaque appel — et le
+   savoir ne serait jamais réutilisé d'un appel à l'autre.
+     · après SAVOIR   : stable, réutilisable entre deux appels (5 min)
+     · après CONTEXTE : stable pendant l'appel, relu par les tours 2 à 5
+   Mesuré nulle part, déduit de la tarification : à vérifier sur la
+   console de facturation après deux jours. */
+async function tourner(client: Anthropic, sb: SB, phrase: string, messages: Anthropic.MessageParam[], opts: { outils: Anthropic.Tool[]; terminal?: string; forcer?: string; contexte?: string }) {
   const actions: { outil: string; entree: unknown; resultat: unknown }[] = [];
   let texte = "";
   let remis: Record<string, unknown> | null = null;
@@ -487,6 +506,9 @@ async function tourner(client: Anthropic, sb: SB, phrase: string, messages: Anth
       system: [
         { type: "text", text: SYSTEME },
         { type: "text", text: SAVOIR, cache_control: { type: "ephemeral" } },
+        ...(opts.contexte
+          ? [{ type: "text" as const, text: `--- CONTEXTE À JOUR (généré par le serveur, fiable) ---\n${opts.contexte}`, cache_control: { type: "ephemeral" as const } }]
+          : []),
       ],
       tools: opts.outils,
       /* Dernier tour d'une rédaction de pile : on force la remise, sinon
@@ -544,9 +566,9 @@ async function redigerPile(client: Anthropic, sb: SB, phrase: string, seuleAuMon
     role: "user",
     content: `${seuleAuMonde
       ? "[C'est ta RONDE : l'horloge te réveille, Cookithan n'est pas là. Tu gères l'app avec lui, à parts égales — donc fais tout ce que tu as le droit de faire sans lui : répondre aux joueurs, compenser dans les plafonds, marquer les signalements, fermer un marché qui déraille, noter. Ne laisse dans la pile QUE ce qu'il est le seul à pouvoir décider. Puis appelle remettre_dossiers UNE fois. Ton mot s'adresse à lui pour quand il ouvrira : ce que tu as fait, ce qui l'attend.]"
-      : "[Cookithan vient d'ouvrir la Sentinelle. Regarde tout. Fais d'abord seule ce que tu peux faire seule (répondre, compenser dans les plafonds, marquer, noter, fermer le marché s'il déraille). Puis appelle remettre_dossiers UNE fois, avec la pile : une chose à décider = un dossier, le geste déjà rempli. Ne recrée pas un dossier déjà ouvert ou classé sans fait nouveau. Si rien ne demande sa décision, la pile est vide et ton mot le dit.]"}\n\n--- CONTEXTE À JOUR (généré par le serveur, fiable) ---\n${ctx}`,
+      : "[Cookithan vient d'ouvrir la Sentinelle. Regarde tout. Fais d'abord seule ce que tu peux faire seule (répondre, compenser dans les plafonds, marquer, noter, fermer le marché s'il déraille). Puis appelle remettre_dossiers UNE fois, avec la pile : une chose à décider = un dossier, le geste déjà rempli. Ne recrée pas un dossier déjà ouvert ou classé sans fait nouveau. Si rien ne demande sa décision, la pile est vide et ton mot le dit.]"}`,
   }];
-  const { actions, remis } = await tourner(client, sb, phrase, messages, { outils: [...OUTILS, REMETTRE], terminal: "remettre_dossiers", forcer: "remettre_dossiers" });
+  const { actions, remis } = await tourner(client, sb, phrase, messages, { outils: [...OUTILS, REMETTRE], terminal: "remettre_dossiers", forcer: "remettre_dossiers", contexte: ctx });
 
   const mot = String(remis?.mot ?? "").trim();
   const seuleModele = String(remis?.seule ?? "").trim();
@@ -763,9 +785,9 @@ Deno.serve(async (req) => {
     const fil = echanges.map(e => `${e.qui === "regis" ? "Cookithan" : "Toi"} : ${e.texte}`).join("\n");
     const messages: Anthropic.MessageParam[] = [{
       role: "user",
-      content: `[Cookithan te parle DANS le dossier « ${d.titre} ».\nTon analyse : ${d.explication}\nTa proposition : ${d.proposition}\n${fil ? "Échange jusqu'ici :\n" + fil + "\n" : ""}Sa question : ${question}\n\nRéponds court, dans le dossier. Tu peux utiliser tes outils. Si sa question change ta proposition, dis-le clairement — il pourra taper le bouton ensuite ou te dire quoi faire. S'il te dit clairement oui pour un geste lourd, tu peux l'exécuter avec confirmation_utilisateur=true.]\n\n--- CONTEXTE À JOUR ---\n${ctx}`,
+      content: `[Cookithan te parle DANS le dossier « ${d.titre} ».\nTon analyse : ${d.explication}\nTa proposition : ${d.proposition}\n${fil ? "Échange jusqu'ici :\n" + fil + "\n" : ""}Sa question : ${question}\n\nRéponds court, dans le dossier. Tu peux utiliser tes outils. Si sa question change ta proposition, dis-le clairement — il pourra taper le bouton ensuite ou te dire quoi faire. S'il te dit clairement oui pour un geste lourd, tu peux l'exécuter avec confirmation_utilisateur=true.]`,
     }];
-    const { texte, actions } = await tourner(client, sb, phrase, messages, { outils: OUTILS });
+    const { texte, actions } = await tourner(client, sb, phrase, messages, { outils: OUTILS, contexte: ctx });
     const reponse = texte || (actions.length ? "C'est fait." : "Je n'ai rien à ajouter.");
     const quand = new Date().toISOString();
     const nouveaux = [...echanges, { qui: "regis", texte: question, quand }, { qui: "sentinelle", texte: reponse, quand, actions: actions.length ? actions : undefined }];
@@ -786,9 +808,9 @@ Deno.serve(async (req) => {
     : message;
   const messages: Anthropic.MessageParam[] = [
     ...historique.map((h: Record<string, unknown>) => ({ role: h.role as "user" | "assistant", content: String(h.contenu) })),
-    { role: "user", content: `${consigne}\n\n--- CONTEXTE À JOUR (généré par le serveur, fiable) ---\n${ctx}` },
+    { role: "user", content: consigne },
   ];
-  const { texte, actions } = await tourner(client, sb, phrase, messages, { outils: OUTILS });
+  const { texte, actions } = await tourner(client, sb, phrase, messages, { outils: OUTILS, contexte: ctx });
   const reponse = texte || (actions.length ? "C'est fait." : "Je n'ai rien à ajouter.");
   await sb.from("sentinelle_conversation").insert([
     { role: "user", contenu: mode === "briefing" ? "[ouverture]" : message },
