@@ -97,6 +97,7 @@ const TASSE_ML     = TASSE_BORD_G - (30 / 130) * TASSE_W;
 /* Hauteur d'assise du fond de la tasse, comptée depuis l'essieu. Elle est
    ancrée elle aussi : c'est le FOND qui est posé, et la tasse grandit
    vers le haut. Sans ça, l'élargir la ferait s'enfoncer dans les roues. */
+const TASSE_CX     = TASSE_BORD_G + (TASSE_W * 100 / 130) / 2;  // centre du CORPS, d'où sort la vapeur
 const TASSE_BAS    = ROUE_Y - 7;
 const TASSE_MT     = TASSE_BAS - TASSE_W * (42 / 130);
 
@@ -452,7 +453,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [countdownVal, setCountdownVal] = useState(null);
   const [echelleArene, setEchelleArene] = useState(1);
   const [paths, setPaths] = useState({ crust:'', loops:[], gems:[] });
-  const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true });
+  const [frame, setFrame] = useState({ camX:0, camY:0, rx:RIDER_X, ry:0, ang:0, v:START_V, gr:true, sq:0 });
   const [dist,  setDist]  = useState(0);
   const [reste, setReste] = useState(RUN_TIME);
   const [flips, setFlips] = useState(0);
@@ -462,7 +463,6 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const [crashReason, setCrashReason] = useState(null);   // 'flip' | 'fall' | 'wall' | 'time'
   const [shake, setShake] = useState(false);
   const [holding, setHolding] = useState(false);
-  const [squash, setSquash] = useState(false);
   const [pops, setPops] = useState([]);
 
   const areneBoxRef = useRef(null);
@@ -495,7 +495,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
   const phaseRef  = useRef('idle');
   const rafRef    = useRef(null);
   const lastTRef  = useRef(0);
-  const squashTRef = useRef(null);
+  const squashRef = useRef(0);
 
   useEffect(() => { phaseRef.current = phase; }, [phase]);
 
@@ -528,7 +528,6 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
      plein virage et le bourdon continuerait sur tout le reste de l'app. */
   useEffect(() => () => {
     if(rafRef.current) cancelAnimationFrame(rafRef.current);
-    if(squashTRef.current) clearTimeout(squashTRef.current);
     stopRiderEngine();
   }, []);
 
@@ -578,8 +577,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     basRef.current = solLePlusBas(runs);
     setPaths(buildPaths(runs));
     setDist(0); setFlips(0); setGems(0); setTag(null); setReste(RUN_TIME); setCrashed(false); setCrashReason(null);
-    setPops([]); setHolding(false); setSquash(false);
-    setFrame({ camX:camXRef.current, camY:camYRef.current, rx:RIDER_X, ry:yRef.current, ang:0, v:START_V, gr:true });
+    setPops([]); setHolding(false); squashRef.current = 0;
+    setFrame({ camX:camXRef.current, camY:camYRef.current, rx:RIDER_X, ry:yRef.current, ang:0, v:START_V, gr:true, sq:0 });
   };
 
   const endGame = () => {
@@ -672,7 +671,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
       setFrame({
         camX:camXRef.current, camY:camYRef.current,
         rx:xRef.current - camXRef.current, ry:yRef.current, ang:angRef.current,
-        v:vRef.current, gr:false,
+        v:vRef.current, gr:false, sq:0,
       });
       setRiderEngine((vRef.current - MIN_V) / (MAX_V + V_RAMP - MIN_V), hold);
       rafRef.current = requestAnimationFrame(tick);
@@ -737,7 +736,13 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           xRef.current = nx;
           yRef.current = ny;
           vyRef.current = implied;
-          angRef.current = Math.atan2(g1.slope, 1);
+          /* L'angle REJOINT la pente, il ne s'y colle pas d'un coup.
+             C'était ça, l'atterrissage sec : on touchait le sol à 40°
+             de travers et l'attelage se téléportait à l'horizontale en
+             une image. Ici il s'aligne en ~60 ms — assez vite pour
+             suivre le relief, assez lent pour qu'on voie la suspension
+             travailler. */
+          angRef.current += normAngle(Math.atan2(g1.slope, 1) - angRef.current) * Math.min(1, 17 * dt);
         }
       }
 
@@ -780,13 +785,13 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
             } else {
               groundedRef.current = true;
               yRef.current = g.y - R;
-              angRef.current = sa;
               avRef.current = 0;
               vyRef.current = g.slope * vRef.current;
               vRef.current *= 0.96;
-              setSquash(true);
-              if(squashTRef.current) clearTimeout(squashTRef.current);
-              squashTRef.current = setTimeout(() => setSquash(false), 130);
+              /* Amorti continu plutôt qu'un setTimeout : la valeur
+                 retombe dans la boucle de jeu, donc l'écrasement se
+                 détend au lieu de se couper net au bout de 130 ms. */
+              squashRef.current = 1;
               /* Seules les rotations ARRIÈRE comptent : `spin` accumule
                  aussi la dérive avant du doigt levé, et une chute assez
                  longue aurait offert une figure à qui n'a rien fait. */
@@ -829,6 +834,8 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     /* La distance se lit sur le point le plus AVANCÉ : dans une boucle
        x recule puis revient, et un compteur qui redescend est une
        promesse cassée. */
+    squashRef.current = Math.max(0, squashRef.current - dt * 7);
+
     if(xRef.current > maxXRef.current) maxXRef.current = xRef.current;
     const m = Math.min(DIST_CAP, Math.max(0, Math.floor(maxXRef.current / 10)));
     if(m !== distRef.current){ distRef.current = m; setDist(m); }
@@ -865,7 +872,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
     setFrame({
       camX:camXRef.current, camY:camYRef.current,
       rx:xRef.current - camXRef.current, ry:yRef.current, ang:angRef.current,
-      v:vRef.current, gr:groundedRef.current,
+      v:vRef.current, gr:groundedRef.current, sq:squashRef.current,
     });
     rafRef.current = requestAnimationFrame(tick);
   };
@@ -1039,16 +1046,22 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           </svg>
         </div>
 
-        {/* Poussière sous la roue — seulement quand ça pousse au sol */}
+        {/* La vapeur sort du HAUT de la tasse, pas de sous les roues — et
+            son ancrage est multiplié par ZOOM, ce que l'ancienne
+            poussière oubliait : elle était posée en pixels monde dans un
+            repère écran, donc décalée en permanence.
+            Elle ne fume que gaz ouvert : c'est le retour visuel du
+            maintien, autant qu'un détail de décor. */}
         {enPartie && holding && frame.gr && !crashed && (
           <div style={{ position:'absolute', left:0, top:0, pointerEvents:'none' }}>
             {[0, 1, 2].map(i => (
               <div key={i} style={{
                 position:'absolute',
-                left: riderScreenX - 12, top: riderScreenY + R - 4,
-                width: 9 - i, height: 9 - i, borderRadius:'50%',
-                background:'rgba(142,95,48,.55)',
-                animation:`riderDust ${0.42 + i * 0.06}s linear ${i * 0.13}s infinite`,
+                left: riderScreenX + TASSE_CX * ZOOM,
+                top:  riderScreenY + TASSE_MT * ZOOM,
+                width: 7 - i, height: 7 - i, borderRadius:'50%',
+                background:'rgba(255,240,214,.42)',
+                animation:`riderSteam ${0.62 + i * 0.08}s linear ${i * 0.2}s infinite`,
               }} />
             ))}
           </div>
@@ -1059,7 +1072,7 @@ export function RiderGame({ coins, onEarn, onSpend, activeSkin, C }){
           position:'absolute', left:0, top:0,
           width:COOKIE_SIZE, height:COOKIE_SIZE,
           marginLeft:-COOKIE_SIZE / 2, marginTop:-COOKIE_SIZE / 2,
-          transform:`translate3d(${riderScreenX}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${ZOOM * (squash ? 1.14 : 1)}, ${ZOOM * (squash ? 0.84 : 1)})`,
+          transform:`translate3d(${riderScreenX}px, ${riderScreenY}px, 0) rotate(${frame.ang}rad) scale(${ZOOM * (1 + 0.15 * frame.sq)}, ${ZOOM * (1 - 0.15 * frame.sq)})`,
           willChange:'transform', pointerEvents:'none',
           filter: crashed ? 'grayscale(.7)' : 'none',
         }}>

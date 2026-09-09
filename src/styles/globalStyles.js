@@ -500,10 +500,12 @@ export const GLOBAL_CSS = `
     0%   { transform: translate3d(340px, 0, 0); }
     100% { transform: translate3d(-120px, 0, 0); }
   }
-  /* Poussière sous la roue quand ça pousse au sol. */
-  @keyframes riderDust {
-    0%   { transform: translate3d(0, 0, 0) scale(.5); opacity: .55; }
-    100% { transform: translate3d(-46px, -14px, 0) scale(1.5); opacity: 0; }
+  /* Vapeur au-dessus de la tasse quand le gaz est ouvert. Elle part vers
+     l'arrière autant que vers le haut : c'est le déplacement qui la
+     couche, et c'est ce qui donne la sensation de vitesse. */
+  @keyframes riderSteam {
+    0%   { transform: translate3d(0, 0, 0) scale(.5); opacity: .5; }
+    100% { transform: translate3d(-22px, -26px, 0) scale(1.7); opacity: 0; }
   }
 
   /* Cooki Rider — le petit mot après une figure. Il ne félicite pas, il
